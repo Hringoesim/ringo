@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { RingoDevice } from './components/Device';
 import { App } from './App';
 
-const ACCENT_A = '#F08038';
-const ACCENT_B = '#ED4D8E';
+const ACCENT_A = '#FF5E1E';
+const ACCENT_B = '#E6249A';
 
 export function Host() {
   const [scale, setScale] = useState(1);

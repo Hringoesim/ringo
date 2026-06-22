@@ -1,22 +1,22 @@
-// theme.ts — Ringo warm-toned design tokens (no black/grey UI).
-// Mirrors the CSS variables in index.css so inline styles and CSS stay in sync.
-// The sunset gradient (#F08038 → #F25F77 → #ED4D8E) is the single hero accent,
-// used surgically on primary CTAs, the active-number card and ambient blobs.
+// theme.ts — Ringo warm-toned design tokens (vibrant light).
+// De-faded: crisp warm-white base, deep high-contrast text, a punchier
+// electric sunset gradient (matching ringoesim.com's energy), and stronger
+// borders/tints so accents read clearly. No black/grey UI.
 
 export const RC = {
-  bg: '#FEF8F4',
-  paper: '#FFFDFB',
-  ink: '#5C2A0E',
-  inkStrong: '#D05000',
-  inkMute: '#9A6B4A',
-  line: 'rgba(208,80,0,0.10)',
-  lineStrong: 'rgba(208,80,0,0.18)',
-  cream: '#F8EBDD',
-  cream2: '#F2DDC8',
-  grad: 'linear-gradient(135deg,#F08038 0%, #F25F77 50%, #ED4D8E 100%)',
+  bg: '#FFF6EF',          // crisp warm white
+  paper: '#FFFFFF',       // pure-white cards for crisp contrast
+  ink: '#3A1605',         // deep, high-contrast body text
+  inkStrong: '#E5431A',   // punchy deep-orange accent / emphasis
+  inkMute: '#B25A2A',     // richer muted (no longer faded)
+  line: 'rgba(230,60,40,0.14)',
+  lineStrong: 'rgba(230,60,40,0.24)',
+  cream: '#FFE7D6',       // richer warm chip/tile background
+  cream2: '#FCD4BE',
+  grad: 'linear-gradient(135deg,#FF5E1E 0%, #F5337E 50%, #E6249A 100%)',
   gradSoft:
-    'linear-gradient(135deg, rgba(240,128,56,0.16) 0%, rgba(237,77,142,0.16) 100%)',
-  pink: '#ED4D8E',
+    'linear-gradient(135deg, rgba(255,94,30,0.20) 0%, rgba(230,36,154,0.20) 100%)',
+  pink: '#E6249A',
 } as const;
 
 // Translate a hex color to an rgba() string with the given alpha.

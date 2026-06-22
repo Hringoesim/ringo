@@ -18,8 +18,8 @@ function QRArt() {
     <svg width="100%" height="100%" viewBox="0 0 21 21" style={{ display: 'block', borderRadius: 6 }}>
       <defs>
         <linearGradient id="qrGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#F08038" />
-          <stop offset="100%" stopColor="#ED4D8E" />
+          <stop offset="0%" stopColor="#FF5E1E" />
+          <stop offset="100%" stopColor="#E6249A" />
         </linearGradient>
       </defs>
       {cells.map(
@@ -90,7 +90,7 @@ export function InstallScreen({ onBack, onActivate }: { onBack: () => void; onAc
       <div
         style={{
           padding: '14px 20px 24px', borderTop: `1px solid ${RC.line}`,
-          background: 'rgba(254,248,244,0.92)', backdropFilter: 'blur(20px) saturate(180%)',
+          background: 'rgba(255,246,239,0.92)', backdropFilter: 'blur(20px) saturate(180%)',
         }}
       >
         <RingoButton onClick={onActivate}>Install on this device</RingoButton>

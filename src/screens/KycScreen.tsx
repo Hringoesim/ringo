@@ -195,7 +195,7 @@ export function KycScreen({ onBack, onContinue }: KycScreenProps) {
       <div
         style={{
           padding: '14px 24px 24px', borderTop: `1px solid ${RC.line}`,
-          background: 'rgba(254,248,244,0.92)', backdropFilter: 'blur(20px) saturate(180%)',
+          background: 'rgba(255,246,239,0.92)', backdropFilter: 'blur(20px) saturate(180%)',
           display: 'flex', flexDirection: 'column', gap: 8,
         }}
       >

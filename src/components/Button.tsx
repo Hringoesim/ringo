@@ -35,8 +35,8 @@ export function RingoButton({
   };
   if (variant === 'primary')
     Object.assign(base, {
-      background: RC.grad, color: '#FFFDFB',
-      boxShadow: '0 12px 24px -8px rgba(248,80,96,0.55), 0 4px 10px -4px rgba(240,128,56,0.4)',
+      background: RC.grad, color: '#FFFFFF',
+      boxShadow: '0 14px 28px -8px rgba(230,36,154,0.52), 0 5px 12px -4px rgba(255,94,30,0.45)',
     });
   if (variant === 'soft') Object.assign(base, { background: RC.cream, color: RC.inkStrong });
   if (variant === 'ghost')

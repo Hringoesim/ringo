@@ -14,8 +14,8 @@ export function SplashScreen({ onContinue }: { onContinue: (t: SplashTarget) => 
         style={{
           position: 'absolute', top: 0, left: 0, right: 0, height: '62%',
           background: `
-            radial-gradient(120% 80% at 50% 0%, rgba(255,235,210,0.9), transparent 60%),
-            linear-gradient(180deg, #F08038 0%, #F25F77 55%, #ED4D8E 100%)
+            radial-gradient(120% 80% at 50% 0%, rgba(255,236,214,0.92), transparent 60%),
+            linear-gradient(180deg, #FF5E1E 0%, #F5337E 55%, #E6249A 100%)
           `,
         }}
       />
@@ -105,7 +105,7 @@ export function SplashScreen({ onContinue }: { onContinue: (t: SplashTarget) => 
         {/* social proof */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
           <div style={{ display: 'flex' }}>
-            {['#F08038', '#F25F77', '#ED4D8E'].map((c, i) => (
+            {['#FF5E1E', '#F5337E', '#E6249A'].map((c, i) => (
               <div
                 key={i}
                 style={{
