@@ -18,3 +18,11 @@ pnpm-debug.log*
 
 # Local agent skills (installed via npx skills)
 .agents/
+
+# Capacitor native project (generated on Mac)
+ios/
+android/
+
+# Env
+.env
+.env.local
