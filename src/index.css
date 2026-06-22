@@ -1,0 +1,51 @@
+:root {
+  --bg: #fef8f4;
+  --paper: #fffdfb;
+  --ink: #5c2a0e; /* warm dark for body */
+  --ink-strong: #d05000; /* deep orange for emphasis */
+  --ink-mute: #9a6b4a; /* warm taupe */
+  --line: rgba(208, 80, 0, 0.1);
+  --line-strong: rgba(208, 80, 0, 0.18);
+  --cream: #f8ebdd;
+  --cream-2: #f2ddc8;
+  --grad: linear-gradient(135deg, #f08038 0%, #f25f77 50%, #ed4d8e 100%);
+  --grad-soft: linear-gradient(
+    135deg,
+    rgba(240, 128, 56, 0.16) 0%,
+    rgba(237, 77, 142, 0.16) 100%
+  );
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  font-family: 'Poppins', system-ui, sans-serif;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(900px 600px at 18% 12%, rgba(240, 128, 56, 0.1), transparent 60%),
+    radial-gradient(700px 500px at 88% 90%, rgba(237, 77, 142, 0.1), transparent 60%),
+    var(--bg);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* hide scrollbars inside the phone */
+.no-bar::-webkit-scrollbar {
+  display: none;
+}
+.no-bar {
+  scrollbar-width: none;
+}

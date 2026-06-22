@@ -1,0 +1,179 @@
+// ui.tsx — small shared building blocks used across screens.
+import type { CSSProperties, ReactNode } from 'react';
+import { RC } from '../theme';
+
+export function BackBtn({ onClick }: { onClick?: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        width: 38, height: 38, borderRadius: '50%',
+        background: RC.paper, border: `1px solid ${RC.line}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'pointer', boxShadow: '0 4px 12px -6px rgba(208,80,0,0.2)',
+      }}
+    >
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+        <path d="M10 2L4 8l6 6" stroke={RC.inkStrong} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
+  );
+}
+
+export function FieldLabel({ children }: { children: ReactNode }) {
+  return (
+    <div
+      style={{
+        fontFamily: 'Poppins', fontSize: 11, fontWeight: 600, color: RC.inkMute,
+        letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 8,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+interface InputProps {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+  inputMode?: 'text' | 'tel' | 'numeric' | 'email' | 'none' | 'search' | 'url' | 'decimal';
+}
+
+export function Input({ value, onChange, placeholder, type = 'text', inputMode }: InputProps) {
+  return (
+    <input
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      type={type}
+      inputMode={inputMode}
+      style={{
+        width: '100%', height: 54, padding: '0 16px', boxSizing: 'border-box',
+        borderRadius: 14, background: RC.paper,
+        border: `1.5px solid ${value ? RC.inkStrong : RC.line}`,
+        outline: 'none', fontFamily: 'Poppins', fontSize: 16, fontWeight: 500,
+        color: RC.ink, letterSpacing: -0.1,
+      }}
+    />
+  );
+}
+
+export function SectionTitle({ children, style = {} }: { children: ReactNode; style?: CSSProperties }) {
+  return (
+    <div
+      style={{
+        padding: '8px 0 10px', fontFamily: 'Poppins', fontSize: 11, fontWeight: 600,
+        color: RC.inkMute, letterSpacing: 0.6, textTransform: 'uppercase', ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+type RowIconKind = 'speed' | 'call' | 'hotspot' | 'sos';
+
+function rowIcon(k: RowIconKind) {
+  switch (k) {
+    case 'speed':
+      return (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M3 12a9 9 0 0118 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <path d="M12 12l5-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      );
+    case 'call':
+      return (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M5 4h4l2 5-3 2a12 12 0 005 5l2-3 5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+        </svg>
+      );
+    case 'hotspot':
+      return (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="2" fill="currentColor" />
+          <path d="M8 16a5 5 0 010-8M16 8a5 5 0 010 8M5 19a9 9 0 010-14M19 5a9 9 0 010 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      );
+    case 'sos':
+      return (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
+          <path d="M9 10c.5-1 1.5-1.5 3-1.5 1.5 0 2.3.7 2.3 1.7 0 1-.7 1.5-2 1.8-1 .2-1.5.5-1.5 1.2v.3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <circle cx="12" cy="16" r="0.9" fill="currentColor" />
+        </svg>
+      );
+  }
+}
+
+export function Row({
+  icon,
+  title,
+  sub,
+  last,
+}: {
+  icon: RowIconKind;
+  title: string;
+  sub: string;
+  last?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px',
+        borderBottom: last ? 'none' : `1px solid ${RC.line}`,
+      }}
+    >
+      <div
+        style={{
+          width: 36, height: 36, borderRadius: 12, background: RC.cream,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: RC.inkStrong,
+        }}
+      >
+        {rowIcon(icon)}
+      </div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontFamily: 'Poppins', fontSize: 14, fontWeight: 600, color: RC.ink }}>{title}</div>
+        <div style={{ fontFamily: 'Poppins', fontSize: 12, color: RC.inkMute }}>{sub}</div>
+      </div>
+    </div>
+  );
+}
+
+export function Step({
+  num,
+  title,
+  sub,
+  last,
+}: {
+  num: string;
+  title: string;
+  sub: string;
+  last?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex', alignItems: 'flex-start', gap: 14, padding: '16px',
+        borderBottom: last ? 'none' : `1px solid ${RC.line}`,
+      }}
+    >
+      <div
+        style={{
+          width: 30, height: 30, borderRadius: '50%', background: RC.grad,
+          color: '#FFFDFB', fontFamily: 'Poppins', fontWeight: 700, fontSize: 14,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}
+      >
+        {num}
+      </div>
+      <div>
+        <div style={{ fontFamily: 'Poppins', fontSize: 14, fontWeight: 600, color: RC.ink }}>{title}</div>
+        <div style={{ fontFamily: 'Poppins', fontSize: 12, color: RC.inkMute }}>{sub}</div>
+      </div>
+    </div>
+  );
+}
