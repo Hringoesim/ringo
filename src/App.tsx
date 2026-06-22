@@ -5,7 +5,7 @@
 //   → eSIM install (SM-DP+/LPAd) → activation → home.
 // Auth is real (src/auth/auth.ts): persisted sessions, OTP challenge/verify,
 // returning-user lock, sign-out.
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { RingoTabBar } from './components/TabBar';
 import { actions as storeActions } from './store/store';
 import * as auth from './auth/auth';
@@ -52,6 +52,11 @@ export function App({ theme, onToggleTheme }: AppProps) {
   const [otp, setOtp] = useState<{ challengeId: string; devCode: string; phone: string } | null>(null);
   const current = stack[stack.length - 1];
 
+  // In live mode, pull real data from the backend on first load.
+  useEffect(() => {
+    void storeActions.hydrate();
+  }, []);
+
   const push = (name: string, params: Frame['params'] = {}) => setStack((s) => [...s, { name, params }]);
   const pop = () => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
   const replace = (name: string, params: Frame['params'] = {}) => setStack([{ name, params }]);
@@ -60,6 +65,7 @@ export function App({ theme, onToggleTheme }: AppProps) {
   // Land on home and mark onboarding complete for the session.
   const finishToHome = () => {
     auth.completeOnboarding();
+    storeActions.syncIdentity();
     replace('home');
   };
 
@@ -88,7 +94,7 @@ export function App({ theme, onToggleTheme }: AppProps) {
         <LockScreen
           userName={session?.name || 'there'}
           onUnlock={() => replace('home')}
-          onSwitchAccount={() => { auth.signOut(); replace('splash'); }}
+          onSwitchAccount={() => { auth.signOut(); storeActions.reset(); replace('splash'); }}
         />
       );
       break;
@@ -220,7 +226,7 @@ export function App({ theme, onToggleTheme }: AppProps) {
           onBack={pop}
           theme={theme}
           onToggleTheme={onToggleTheme}
-          onSignOut={() => { auth.signOut(); replace('splash'); }}
+          onSignOut={() => { auth.signOut(); storeActions.reset(); replace('splash'); }}
         />
       );
       break;

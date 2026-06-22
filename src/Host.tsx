@@ -6,11 +6,21 @@ import { App } from './App';
 import { RC, applyTheme, type Scheme } from './theme';
 
 export function Host() {
-  const [theme, setThemeState] = useState<Scheme>('light');
+  const [theme, setThemeState] = useState<Scheme>(() => {
+    const saved = (typeof localStorage !== 'undefined' && localStorage.getItem('ringo_theme')) as Scheme | null;
+    const initial: Scheme = saved === 'dark' || saved === 'light' ? saved : 'light';
+    applyTheme(initial);
+    return initial;
+  });
 
   const setTheme = (next: Scheme) => {
     applyTheme(next); // mutate tokens synchronously, then re-render the tree
     setThemeState(next);
+    try {
+      localStorage.setItem('ringo_theme', next);
+    } catch {
+      /* ignore */
+    }
   };
   const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
 

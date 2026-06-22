@@ -1,5 +1,5 @@
 // KycScreen — soft KYC: name → DOB → ID document → photo (skippable until activate).
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { RC } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
@@ -18,6 +18,9 @@ export function KycScreen({ onBack, onContinue }: KycScreenProps) {
   const [dob, setDob] = useState('');
   const [docType, setDocType] = useState('');
   const [uploaded, setUploaded] = useState(false);
+  const [fileName, setFileName] = useState('');
+  const [preview, setPreview] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
   const docs = [
     { id: 'passport', label: 'Passport', sub: 'Most reliable' },
     { id: 'id', label: 'National ID card', sub: 'EU residents' },
@@ -136,13 +139,32 @@ export function KycScreen({ onBack, onContinue }: KycScreenProps) {
           )}
           {step === 3 && (
             <div
-              onClick={() => setUploaded(true)}
+              onClick={() => fileRef.current?.click()}
               style={{
                 borderRadius: 20, padding: '30px 18px', textAlign: 'center',
                 border: `1.5px dashed ${uploaded ? RC.inkStrong : RC.lineStrong}`,
                 background: uploaded ? RC.gradSoft : RC.paper, cursor: 'pointer',
+                position: 'relative', overflow: 'hidden',
               }}
             >
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (!f) return;
+                  setFileName(f.name);
+                  const reader = new FileReader();
+                  reader.onload = () => { setPreview(typeof reader.result === 'string' ? reader.result : ''); setUploaded(true); };
+                  reader.readAsDataURL(f);
+                }}
+              />
+              {preview && (
+                <img src={preview} alt="ID preview" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.18 }} />
+              )}
               <div
                 style={{
                   margin: '0 auto', width: 64, height: 64, borderRadius: 18,
@@ -204,7 +226,7 @@ export function KycScreen({ onBack, onContinue }: KycScreenProps) {
           onClick={() =>
             step < 3
               ? setStep(step + 1)
-              : onContinue({ firstName: first, lastName: last, dob, docType, documentRef: 'mock_upload' })
+              : onContinue({ firstName: first, lastName: last, dob, docType, documentRef: fileName || 'mock_upload' })
           }
         >
           {step < 3 ? 'Continue' : 'Submit and continue'}

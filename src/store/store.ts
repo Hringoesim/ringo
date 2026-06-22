@@ -1,12 +1,12 @@
 // store.ts
 // ─────────────────────────────────────────────────────────────────────────────
 // Single reactive store. UI reads live state from here; every mutation routes
-// through an action that (a) updates local state optimistically and (b) calls the
-// matching RingoAPI layer so the same code works against the real orchestration
-// backend (Identity → Number Management → Connectivity/RSP → BSS).
+// through an action that (a) updates local state optimistically + persists it and
+// (b) calls the matching RingoAPI layer so the same code works against the real
+// orchestration backend (Identity → Number Management → Connectivity/RSP → BSS).
 //
-//   const { state, actions } = useRingoState();
-//   actions.switchPlan('pro');     // updates UI + RingoAPI.billing.switchPlan
+// State is persisted to localStorage (survives reloads) and seeded with the
+// signed-in user's identity. In `live` mode, hydrate() pulls real data from the API.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useReducer } from 'react';
@@ -14,6 +14,7 @@ import { RingoAPI, type KycPayload } from '../api/ringoApi';
 import { CO_BY_CODE } from '../data/countries';
 import { NUMBERS } from '../data/numbers';
 import { USER } from '../data/tiers';
+import { getSession } from '../auth/auth';
 import type { KycStatus, PhoneNumber } from '../data/types';
 
 export interface RingoState {
@@ -26,25 +27,26 @@ export interface RingoState {
   countries: number;
   dataPct: number;
   name: string;
+  email: string | null;
 }
 
-/** Payload collected by the port (MNP) flow. */
 export interface PortFormPayload {
   number: string;
-  country: string; // number-market country code
+  country: string;
   currentProvider: string;
   pac?: string;
 }
 
+const STATE_KEY = 'ringo_state_v1';
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
 
 let state: RingoState | null = null;
 const subs = new Set<() => void>();
 const emit = () => subs.forEach((fn) => fn());
 
-function seed() {
-  if (state) return;
-  state = {
+function defaults(): RingoState {
+  const session = getSession();
+  return {
     numbers: clone(NUMBERS),
     activeNumberId: 'gb',
     planId: 'essentials',
@@ -53,8 +55,31 @@ function seed() {
     score: USER.score ?? 4,
     countries: USER.countries ?? 4,
     dataPct: USER.dataPct ?? 0.34,
-    name: USER.name || 'Marie',
+    name: session?.name || USER.name || 'there',
+    email: session?.email ?? null,
   };
+}
+
+function persist() {
+  try {
+    localStorage.setItem(STATE_KEY, JSON.stringify(state));
+  } catch {
+    /* storage full / unavailable — keep in memory */
+  }
+}
+
+function seed() {
+  if (state) return;
+  let loaded: Partial<RingoState> | null = null;
+  try {
+    const raw = localStorage.getItem(STATE_KEY);
+    if (raw) loaded = JSON.parse(raw);
+  } catch {
+    loaded = null;
+  }
+  const base = defaults();
+  // Merge persisted state forward-compatibly; always refresh identity from session.
+  state = loaded ? { ...base, ...loaded, name: base.name, email: base.email } : base;
 }
 
 function get(): RingoState {
@@ -65,6 +90,7 @@ function get(): RingoState {
 function set(patch: Partial<RingoState>) {
   seed();
   state = { ...(state as RingoState), ...patch };
+  persist();
   emit();
 }
 
@@ -83,7 +109,6 @@ export const actions = {
     }
   },
 
-  // Allocate a fresh Ringo MSISDN from the DID inventory (Number Management).
   async allocateNumber(code: string) {
     const s = get();
     const co = CO_BY_CODE[code];
@@ -99,15 +124,18 @@ export const actions = {
     };
     set({ numbers: [...s.numbers, n] });
     try {
-      await RingoAPI.numbers.allocate(code);
+      const created = await RingoAPI.numbers.allocate(code);
+      // reflect the server-assigned number if returned
+      if (created && (created as PhoneNumber).number) {
+        const real = created as PhoneNumber;
+        set({ numbers: get().numbers.map((x) => (x.id === n.id ? { ...x, number: real.number } : x)) });
+      }
     } catch {
       /* keep optimistic state */
     }
     return n;
   },
 
-  // Port an existing number in via MNP (1GLOBAL). The number lands in a
-  // 'porting' state, then flips to 'active' once the donor releases it.
   async portNumber(payload: PortFormPayload) {
     const s = get();
     const co = CO_BY_CODE[payload.country];
@@ -136,11 +164,9 @@ export const actions = {
     } catch {
       /* keep optimistic state */
     }
-    // Simulate the donor releasing the number → port completes.
     setTimeout(() => {
-      const cur = get();
       set({
-        numbers: cur.numbers.map((x) =>
+        numbers: get().numbers.map((x) =>
           x.id === id ? { ...x, status: 'active', porting: false, portEta: undefined } : x,
         ),
       });
@@ -170,11 +196,40 @@ export const actions = {
     } catch {
       /* keep optimistic state */
     }
-    // Identity Management approval workflow completing.
     setTimeout(() => set({ kycStatus: 'verified' }), 2600);
   },
 
+  // Pull real data from the backend (used in live mode / on cold start).
+  async hydrate() {
+    if (RingoAPI.mode !== 'live') return;
+    try {
+      const [numbers, usage] = await Promise.all([
+        RingoAPI.numbers.list() as Promise<PhoneNumber[]>,
+        RingoAPI.billing.getUsage() as Promise<{ planId: string; fairUsePct: number; country: string }>,
+      ]);
+      set({
+        numbers,
+        planId: usage.planId,
+        dataPct: usage.fairUsePct,
+        currentCountry: usage.country,
+      });
+    } catch {
+      /* offline / not reachable — keep local state */
+    }
+  },
+
+  // Refresh identity from the current session (after sign-in).
+  syncIdentity() {
+    const session = getSession();
+    if (session) set({ name: session.name, email: session.email });
+  },
+
   reset() {
+    try {
+      localStorage.removeItem(STATE_KEY);
+    } catch {
+      /* ignore */
+    }
     state = null;
     seed();
     emit();
