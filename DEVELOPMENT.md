@@ -65,6 +65,24 @@ const { data } = await sb!.from('numbers').select('*');
 Back each `RingoAPI.*` method with a Supabase query the same way; the UI is
 unaffected.
 
+## Backend migration path (Supabase → AWS / GCP / Azure)
+
+The backend is intentionally swappable. The app only knows `RingoAPI` + `auth`;
+the concrete backend is chosen at boot by `config.ts` from env vars.
+
+- **Now — Supabase**: set `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`. Auth and
+  data run through `src/lib/ringoSupabase.ts` against `supabase/schema.sql`.
+- **Later — your own cloud (AWS/GCP/Azure)**: stand up the orchestration API, then
+  either
+  - set `VITE_RINGO_API_MODE=live` + `VITE_RINGO_API_BASE_URL=…` (the typed REST
+    client in `api/ringoApi.ts` is already wired, with bearer auth from the
+    session), **or**
+  - add a `ringoAws.ts` / `ringoGcp.ts` adapter next to `ringoSupabase.ts` and
+    branch on it in `config.ts` / `store.ts`.
+
+Either way the screens, store shape, and flows are unchanged — only the adapter
+swaps. Keep request/response shapes matching `data/types.ts`.
+
 ## CI/CD
 
 - **CI** (`.github/workflows/ci.yml`): lint + build on every push/PR.
