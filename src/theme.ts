@@ -76,7 +76,7 @@ const LIGHT: Palette = {
 export const THEMES: Record<Scheme, Palette> = { dark: DARK, light: LIGHT };
 
 // The single mutable token object every component imports.
-export const RC: Palette = { ...DARK };
+export const RC: Palette = { ...LIGHT };
 
 export function applyTheme(name: Scheme): void {
   const p = THEMES[name];
@@ -105,4 +105,4 @@ export function hexA(hex: string, a: number): string {
 }
 
 // Set the initial theme at module load so the first paint is correct.
-applyTheme('dark');
+applyTheme('light');

@@ -6,7 +6,7 @@ import { App } from './App';
 import { RC, applyTheme, type Scheme } from './theme';
 
 export function Host() {
-  const [theme, setThemeState] = useState<Scheme>('dark');
+  const [theme, setThemeState] = useState<Scheme>('light');
 
   const setTheme = (next: Scheme) => {
     applyTheme(next); // mutate tokens synchronously, then re-render the tree

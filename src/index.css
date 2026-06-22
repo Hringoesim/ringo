@@ -1,13 +1,13 @@
 :root {
-  /* Dark defaults (website match) — applyTheme() overrides at runtime. */
-  --bg: #0a0810;
-  --paper: #17121f;
-  --ink: #fbede6;
-  --ink-strong: #ff8a4c;
-  --ink-mute: #9c93a8;
-  --line: rgba(255, 255, 255, 0.1);
-  --line-strong: rgba(255, 255, 255, 0.2);
-  --grad: linear-gradient(135deg, #ff7a2f 0%, #fb3e84 50%, #e92ba0 100%);
+  /* Light (vibrant) defaults — applyTheme() keeps these in sync at runtime. */
+  --bg: #fff6ef;
+  --paper: #ffffff;
+  --ink: #3a1605;
+  --ink-strong: #e5431a;
+  --ink-mute: #b25a2a;
+  --line: rgba(230, 60, 40, 0.14);
+  --line-strong: rgba(230, 60, 40, 0.24);
+  --grad: linear-gradient(135deg, #ff5e1e 0%, #f5337e 50%, #e6249a 100%);
 }
 
 * {
@@ -27,9 +27,9 @@ body {
 body {
   min-height: 100vh;
   background:
-    radial-gradient(900px 600px at 18% 8%, rgba(255, 122, 47, 0.12), transparent 60%),
-    radial-gradient(760px 520px at 86% 92%, rgba(233, 43, 160, 0.14), transparent 60%),
-    #07060c;
+    radial-gradient(900px 600px at 18% 12%, rgba(255, 94, 30, 0.16), transparent 60%),
+    radial-gradient(700px 500px at 88% 90%, rgba(230, 36, 154, 0.16), transparent 60%),
+    var(--bg);
 }
 
 #root {
