@@ -36,9 +36,11 @@ function FaceIdGlyph({ color, scanning }: { color: string; scanning: boolean }) 
 }
 
 export function LockScreen({
+  userName = 'there',
   onUnlock,
   onSwitchAccount,
 }: {
+  userName?: string;
   onUnlock: () => void;
   onSwitchAccount: () => void;
 }) {
@@ -73,17 +75,14 @@ export function LockScreen({
         <img
           src={LOGO_SRC}
           alt="Ringo"
-          style={{
-            width: 84, height: 84, borderRadius: '50%',
-            boxShadow: `0 22px 44px -20px ${hexA(c2, 0.45)}, 0 0 0 1px rgba(208,80,0,0.06)`,
-          }}
+          style={{ height: 48, width: 'auto', filter: `drop-shadow(0 14px 26px ${hexA(c2, 0.28)})` }}
         />
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontFamily: 'Poppins', fontSize: 13, fontWeight: 500, color: RC.inkMute, letterSpacing: 0.3 }}>
             Welcome back
           </div>
           <div style={{ fontFamily: 'Poppins', fontSize: 26, fontWeight: 600, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.1, marginTop: 2 }}>
-            {USER.name || 'Marie'}
+            {userName}
           </div>
         </div>
       </div>
@@ -156,7 +155,7 @@ export function LockScreen({
             fontFamily: 'Poppins', fontSize: 13, fontWeight: 500, color: RC.inkMute,
           }}
         >
-          Not {USER.name || 'Marie'}? Sign in to another account
+          Not {userName}? Sign in to another account
         </button>
       </div>
 

@@ -2,7 +2,7 @@
 // editorial type, floating glass destination cards, social proof, sticky CTA.
 import { RC } from '../theme';
 import { RingoButton } from '../components/Button';
-import { LOGO_SRC } from '../assets';
+import { LOGO_WHITE } from '../assets';
 
 export type SplashTarget = 'signup' | 'signin' | 'onboard';
 
@@ -31,10 +31,7 @@ export function SplashScreen({ onContinue }: { onContinue: (t: SplashTarget) => 
 
       {/* Top bar: logo + tiny status */}
       <div style={{ position: 'relative', zIndex: 2, padding: '58px 22px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <img src={LOGO_SRC} alt="Ringo" style={{ width: 34, height: 34, borderRadius: '50%', boxShadow: '0 4px 14px -6px rgba(0,0,0,0.25)' }} />
-          <span style={{ fontFamily: 'Poppins', fontWeight: 600, fontSize: 18, color: '#FFFDFB', letterSpacing: -0.3 }}>Ringo</span>
-        </div>
+        <img src={LOGO_WHITE} alt="Ringo" style={{ height: 26, width: 'auto', filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.18))' }} />
         <div
           style={{
             padding: '5px 10px', borderRadius: 999,

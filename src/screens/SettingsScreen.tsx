@@ -6,9 +6,10 @@ interface SettingsScreenProps {
   onBack: () => void;
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
+  onSignOut: () => void;
 }
 
-export function SettingsScreen({ onBack, theme, onToggleTheme }: SettingsScreenProps) {
+export function SettingsScreen({ onBack, theme, onToggleTheme, onSignOut }: SettingsScreenProps) {
   const isDark = theme === 'dark';
   return (
     <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '70px 24px 40px', color: RC.ink }}>
@@ -50,6 +51,20 @@ export function SettingsScreen({ onBack, theme, onToggleTheme }: SettingsScreenP
       <div style={{ marginTop: 10, fontFamily: 'Poppins', fontSize: 12, color: RC.inkMute, lineHeight: 1.5 }}>
         {isDark ? 'Dark matches ringoesim.com.' : 'Warm light theme.'} You can switch any time.
       </div>
+
+      <div style={{ marginTop: 24, fontFamily: 'Poppins', fontSize: 11, fontWeight: 600, color: RC.inkMute, letterSpacing: 0.6, textTransform: 'uppercase' }}>
+        Account
+      </div>
+      <button
+        onClick={onSignOut}
+        style={{
+          marginTop: 10, width: '100%', height: 50, borderRadius: 14, cursor: 'pointer',
+          border: `1.5px solid ${RC.lineStrong}`, background: 'transparent', color: RC.inkStrong,
+          fontFamily: 'Poppins', fontSize: 14, fontWeight: 600,
+        }}
+      >
+        Sign out
+      </button>
     </div>
   );
 }

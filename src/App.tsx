@@ -1,12 +1,14 @@
-// App.tsx — main shell with stack-based screen navigation + tab bar.
+// App.tsx — main shell with stack-based navigation + tab bar.
 //
-// Onboarding sequence mirrors the backend orchestration order (Workstream A):
-//   account → KYC (Identity gate) → Number assignment (allocate | port-in MNP)
+// Onboarding mirrors the backend orchestration order (Workstream A):
+//   account → KYC (Identity gate) → number assignment (allocate | port-in MNP)
 //   → eSIM install (SM-DP+/LPAd) → activation → home.
+// Auth is real (src/auth/auth.ts): persisted sessions, OTP challenge/verify,
+// returning-user lock, sign-out.
 import { useState, type ReactNode } from 'react';
 import { RingoTabBar } from './components/TabBar';
-import { RingoAPI } from './api/ringoApi';
 import { actions as storeActions } from './store/store';
+import * as auth from './auth/auth';
 import type { NavTarget, OnNav } from './navigation';
 
 import { LockScreen } from './screens/LockScreen';
@@ -28,18 +30,12 @@ import { ActivationScreen } from './screens/ActivationScreen';
 import { TiersScreen } from './screens/TiersScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 
-// For returning (already-onboarded) users we boot straight to a Face ID lock →
-// dashboard. Flip to false to simulate a brand-new user (splash → sign-up).
-const ONBOARDED = true;
-
-// Screens that show the tab bar (top-level destinations)
 const TABBED = new Set(['home', 'browse', 'numbers', 'plan']);
 
 interface Frame {
   name: string;
   params: { code?: string; preselect?: string; onboarding?: boolean };
 }
-
 type TabName = 'home' | 'browse' | 'numbers' | 'plan';
 
 interface AppProps {
@@ -48,16 +44,24 @@ interface AppProps {
 }
 
 export function App({ theme, onToggleTheme }: AppProps) {
-  const [stack, setStack] = useState<Frame[]>([
-    { name: ONBOARDED ? 'lock' : 'splash', params: {} },
+  // Boot from a real session: returning users hit the Face ID lock, new users
+  // start at the splash.
+  const [stack, setStack] = useState<Frame[]>(() => [
+    { name: auth.getSession() ? 'lock' : 'splash', params: {} },
   ]);
-  const [phoneCache, setPhoneCache] = useState('');
+  const [otp, setOtp] = useState<{ challengeId: string; devCode: string; phone: string } | null>(null);
   const current = stack[stack.length - 1];
 
   const push = (name: string, params: Frame['params'] = {}) => setStack((s) => [...s, { name, params }]);
   const pop = () => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
   const replace = (name: string, params: Frame['params'] = {}) => setStack([{ name, params }]);
   const goTab = (name: TabName) => setStack([{ name, params: {} }]);
+
+  // Land on home and mark onboarding complete for the session.
+  const finishToHome = () => {
+    auth.completeOnboarding();
+    replace('home');
+  };
 
   const onNav: OnNav = (target: NavTarget, ...args: string[]) => {
     if (target === 'home') return goTab('home');
@@ -75,43 +79,46 @@ export function App({ theme, onToggleTheme }: AppProps) {
   };
 
   const onboarding = !!current.params.onboarding;
+  const session = auth.getSession();
 
   let body: ReactNode = null;
   switch (current.name) {
     case 'lock':
-      body = <LockScreen onUnlock={() => replace('home')} onSwitchAccount={() => replace('splash')} />;
+      body = (
+        <LockScreen
+          userName={session?.name || 'there'}
+          onUnlock={() => replace('home')}
+          onSwitchAccount={() => { auth.signOut(); replace('splash'); }}
+        />
+      );
       break;
     case 'splash':
       body = (
         <SplashScreen
           onContinue={(t) => {
-            if (t === 'signup') return push('onboard');
-            if (t === 'signin') return replace('home');
+            if (t === 'signin') { auth.signInEmailOnly('member@ringoesim.com'); return finishToHome(); }
             return push('onboard');
           }}
         />
       );
       break;
     case 'onboard':
-      // Value-prop intro, then into account creation.
       body = <OnboardScreen onContinue={() => push('signup')} onBack={pop} />;
       break;
     case 'signup':
       body = (
         <SignUpScreen
           onBack={pop}
-          onAppleSignIn={async () => {
-            try { await RingoAPI.auth.appleSignIn('mock_identity_token'); } catch { /* ignore */ }
-            replace('home');
-          }}
-          onContinue={async ({ email, phone }) => {
-            try { await RingoAPI.auth.emailSignUp(email, phone); } catch { /* ignore */ }
-            setPhoneCache(phone);
+          onAppleSignIn={async () => { await auth.signInWithApple(); finishToHome(); }}
+          onGoogleSignIn={async () => { try { await auth.signInWithGoogle(); } catch { /* cancelled */ } finishToHome(); }}
+          onContinue={({ email, phone }) => {
+            const { challengeId, devCode } = auth.startPhoneVerification(email, phone);
+            setOtp({ challengeId, devCode, phone });
             push('otp');
           }}
-          onSkipPhone={async ({ email }) => {
-            try { await RingoAPI.auth.emailSignUp(email, null); } catch { /* ignore */ }
-            push('kyc'); // Identity gate comes before number assignment.
+          onSkipPhone={({ email }) => {
+            auth.signInEmailOnly(email);
+            push('kyc'); // Identity gate before number assignment.
           }}
         />
       );
@@ -119,12 +126,15 @@ export function App({ theme, onToggleTheme }: AppProps) {
     case 'otp':
       body = (
         <OtpScreen
-          phone={phoneCache}
+          phone={otp?.phone || ''}
+          devCode={otp?.devCode}
           onBack={pop}
-          onContinue={async () => {
-            try { await RingoAPI.auth.verifyOtp('chl_mock', '000000'); } catch { /* ignore */ }
-            push('kyc');
+          onVerify={(code) => {
+            const res = auth.verifyCode(otp?.challengeId || '', code);
+            if (res.ok) push('kyc');
+            return res;
           }}
+          onResend={() => auth.resendCode(otp?.challengeId || '')}
         />
       );
       break;
@@ -134,7 +144,6 @@ export function App({ theme, onToggleTheme }: AppProps) {
           onBack={pop}
           onContinue={(payload) => {
             storeActions.submitKyc(payload || {});
-            // Identity submitted → proceed to Number Management.
             push('numberSetup');
           }}
         />
@@ -145,7 +154,7 @@ export function App({ theme, onToggleTheme }: AppProps) {
         <NumberSetupScreen
           onNewNumber={() => push('addNumber', { onboarding: true })}
           onPortIn={() => push('port', { onboarding: true })}
-          onSkip={() => replace('home')}
+          onSkip={finishToHome}
         />
       );
       break;
@@ -161,10 +170,7 @@ export function App({ theme, onToggleTheme }: AppProps) {
           code={current.params.code as string}
           onNav={onNav}
           onBack={pop}
-          onAddCountry={(code) => {
-            storeActions.enableCountry(code);
-            push('install');
-          }}
+          onAddCountry={(code) => { storeActions.enableCountry(code); push('install'); }}
         />
       );
       break;
@@ -200,24 +206,23 @@ export function App({ theme, onToggleTheme }: AppProps) {
       body = <PlanScreen onBack={() => goTab('home')} onInstall={() => push('install')} />;
       break;
     case 'install':
-      body = (
-        <InstallScreen
-          onBack={pop}
-          onActivate={async () => {
-            try { await RingoAPI.connectivity.activateEsim('LPA:mock'); } catch { /* ignore */ }
-            push('activate');
-          }}
-        />
-      );
+      body = <InstallScreen onBack={pop} onActivate={() => push('activate')} />;
       break;
     case 'activate':
-      body = <ActivationScreen onDone={() => replace('home')} />;
+      body = <ActivationScreen onDone={finishToHome} />;
       break;
     case 'tiers':
       body = <TiersScreen onBack={pop} />;
       break;
     case 'settings':
-      body = <SettingsScreen onBack={pop} theme={theme} onToggleTheme={onToggleTheme} />;
+      body = (
+        <SettingsScreen
+          onBack={pop}
+          theme={theme}
+          onToggleTheme={onToggleTheme}
+          onSignOut={() => { auth.signOut(); replace('splash'); }}
+        />
+      );
       break;
     default:
       body = <div style={{ padding: 40 }}>Unknown screen: {current.name}</div>;

@@ -22,7 +22,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', paddingTop: 54 }}>
         {/* ── App bar: logo · search · avatar ─────────────────── */}
         <div style={{ padding: '8px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-          <img src={LOGO_SRC} alt="Ringo" style={{ width: 34, height: 34, borderRadius: '50%' }} />
+          <img src={LOGO_SRC} alt="Ringo" style={{ height: 22, width: 'auto' }} />
           <div
             onClick={() => onNav('browse')}
             style={{

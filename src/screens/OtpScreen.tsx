@@ -1,4 +1,4 @@
-// OtpScreen — 6-digit OTP with auto-focus advance.
+// OtpScreen — 6-digit OTP with real verification (code match + expiry + resend).
 import { useRef, useState } from 'react';
 import { RC } from '../theme';
 import { RingoHeader } from '../components/Header';
@@ -7,23 +7,50 @@ import { BackBtn } from '../components/ui';
 
 interface OtpScreenProps {
   phone: string;
+  /** Demo code surfaced because there's no SMS gateway yet. */
+  devCode?: string;
   onBack: () => void;
-  onContinue: () => void;
+  onVerify: (code: string) => { ok: boolean; error?: string };
+  onResend: () => { devCode: string } | null;
 }
 
-export function OtpScreen({ phone, onBack, onContinue }: OtpScreenProps) {
+export function OtpScreen({ phone, devCode, onBack, onVerify, onResend }: OtpScreenProps) {
   const [code, setCode] = useState(['', '', '', '', '', '']);
+  const [error, setError] = useState('');
+  const [hint, setHint] = useState(devCode || '');
   const refs = useRef<(HTMLInputElement | null)[]>([]);
+
   const set = (i: number, v: string) => {
     if (!/^\d?$/.test(v)) return;
     const next = [...code];
     next[i] = v;
     setCode(next);
+    setError('');
     if (v && i < 5) refs.current[i + 1]?.focus();
     if (!v && i > 0) refs.current[i - 1]?.focus();
   };
+
   const full = code.join('');
   const ok = full.length === 6;
+
+  const submit = () => {
+    const res = onVerify(full);
+    if (!res.ok) {
+      setError(res.error || 'Incorrect code.');
+      setCode(['', '', '', '', '', '']);
+      refs.current[0]?.focus();
+    }
+  };
+
+  const resend = () => {
+    const r = onResend();
+    if (r) {
+      setHint(r.devCode);
+      setError('');
+      setCode(['', '', '', '', '', '']);
+      refs.current[0]?.focus();
+    }
+  };
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -48,7 +75,14 @@ export function OtpScreen({ phone, onBack, onContinue }: OtpScreenProps) {
           We just texted it to <strong style={{ color: RC.ink, fontWeight: 600 }}>{phone}</strong>. Code expires in 10 minutes.
         </div>
 
-        <div style={{ marginTop: 30, display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8 }}>
+        {hint && (
+          <div style={{ marginTop: 14, padding: '10px 14px', borderRadius: 12, background: RC.cream, fontFamily: 'Poppins', fontSize: 12.5, color: RC.ink }}>
+            <strong style={{ color: RC.inkStrong, fontWeight: 600 }}>Demo</strong> · no SMS gateway connected yet — your code is{' '}
+            <strong style={{ color: RC.inkStrong, fontWeight: 700, letterSpacing: 1 }}>{hint}</strong>
+          </div>
+        )}
+
+        <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8 }}>
           {code.map((c, i) => (
             <input
               key={i}
@@ -57,22 +91,29 @@ export function OtpScreen({ phone, onBack, onContinue }: OtpScreenProps) {
               }}
               value={c}
               onChange={(e) => set(i, e.target.value.slice(-1))}
+              onKeyDown={(e) => { if (e.key === 'Enter' && ok) submit(); }}
               inputMode="numeric"
               maxLength={1}
               style={{
                 height: 60, textAlign: 'center',
                 fontFamily: 'Poppins', fontSize: 24, fontWeight: 600, color: RC.ink,
-                background: RC.paper, border: `1.5px solid ${c ? RC.inkStrong : RC.line}`,
+                background: RC.paper,
+                border: `1.5px solid ${error ? '#E5431A' : c ? RC.inkStrong : RC.line}`,
                 borderRadius: 14, outline: 'none', letterSpacing: -0.4,
               }}
             />
           ))}
         </div>
 
-        <div style={{ marginTop: 18, fontFamily: 'Poppins', fontSize: 13, color: RC.inkMute, textAlign: 'center' }}>
+        {error && (
+          <div style={{ marginTop: 12, fontFamily: 'Poppins', fontSize: 13, fontWeight: 500, color: '#E5431A', textAlign: 'center' }}>
+            {error}
+          </div>
+        )}
+
+        <div style={{ marginTop: 16, fontFamily: 'Poppins', fontSize: 13, color: RC.inkMute, textAlign: 'center' }}>
           Didn’t get it?{' '}
-          <span style={{ color: RC.inkStrong, fontWeight: 600, cursor: 'pointer' }}>Resend</span> ·{' '}
-          <span style={{ color: RC.inkStrong, fontWeight: 600, cursor: 'pointer' }}>Call instead</span>
+          <span onClick={resend} style={{ color: RC.inkStrong, fontWeight: 600, cursor: 'pointer' }}>Resend</span>
         </div>
       </div>
 
@@ -82,7 +123,7 @@ export function OtpScreen({ phone, onBack, onContinue }: OtpScreenProps) {
           background: RC.glass, backdropFilter: 'blur(20px) saturate(180%)',
         }}
       >
-        <RingoButton disabled={!ok} onClick={onContinue}>Verify and continue</RingoButton>
+        <RingoButton disabled={!ok} onClick={submit}>Verify and continue</RingoButton>
       </div>
     </div>
   );
