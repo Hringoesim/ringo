@@ -6,9 +6,11 @@
 //   → eSIM install (SM-DP+/LPAd) → activation → home.
 // Auth is real (src/auth/auth.ts); when Supabase is configured it routes through
 // Supabase Auth + data (src/lib/ringoSupabase.ts).
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { RingoTabBar } from './components/TabBar';
+import { ScreenHost, type NavDir } from './components/ScreenHost';
 import { actions as storeActions } from './store/store';
+import { haptic } from './lib/haptics';
 import * as auth from './auth/auth';
 import { isSupabaseConfigured, sbAuth } from './lib/ringoSupabase';
 import type { NavTarget, OnNav } from './navigation';
@@ -52,14 +54,36 @@ export function App({ theme, onToggleTheme }: AppProps) {
   const [otp, setOtp] = useState<{ challengeId: string; devCode: string; phone: string } | null>(null);
   const current = stack[stack.length - 1];
 
+  // Navigation transition: derive a stable key per screen + the motion direction
+  // (deeper stack = push, shallower = pop, same depth = tab/replace = fade).
+  const navDirRef = useRef<NavDir>('fade');
+  const navLenRef = useRef(stack.length);
+  const navKeyRef = useRef<string>('');
+  const navKey = `${current.name}|${current.params.code ?? ''}|${current.params.mode ?? ''}|${stack.length}`;
+  if (navKey !== navKeyRef.current) {
+    navDirRef.current =
+      stack.length > navLenRef.current ? 'push' : stack.length < navLenRef.current ? 'pop' : 'fade';
+    navLenRef.current = stack.length;
+    navKeyRef.current = navKey;
+  }
+
   useEffect(() => {
     void storeActions.hydrate();
   }, []);
 
-  const push = (name: string, params: Frame['params'] = {}) => setStack((s) => [...s, { name, params }]);
-  const pop = () => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
+  const push = (name: string, params: Frame['params'] = {}) => {
+    haptic('light');
+    setStack((s) => [...s, { name, params }]);
+  };
+  const pop = () => {
+    haptic('light');
+    setStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
+  };
   const replace = (name: string, params: Frame['params'] = {}) => setStack([{ name, params }]);
-  const goTab = (name: TabName) => setStack([{ name, params: {} }]);
+  const goTab = (name: TabName) => {
+    haptic('light');
+    setStack([{ name, params: {} }]);
+  };
 
   const finishToHome = () => {
     auth.completeOnboarding();
@@ -253,7 +277,9 @@ export function App({ theme, onToggleTheme }: AppProps) {
 
   return (
     <div data-screen-label={`Ringo / ${current.name}`} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>{body}</div>
+      <ScreenHost navKey={navKey} dir={navDirRef.current}>
+        {body}
+      </ScreenHost>
       {showTabs && <RingoTabBar active={current.name} onChange={goTab} />}
     </div>
   );

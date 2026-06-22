@@ -42,4 +42,135 @@ body {
 }
 .no-bar {
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch; /* momentum scroll */
+}
+
+/* ── Native app feel ─────────────────────────────────────────────────────────
+   Remove the web-isms that make a page feel like a page: tap highlights, text
+   selection on tap, overscroll chaining, the long-press callout. */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+html,
+body {
+  overscroll-behavior: none;
+  height: 100%;
+}
+body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+input,
+textarea,
+[contenteditable] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Tactile press feedback — add className="press" to any tappable element. */
+.press {
+  transition:
+    transform 0.13s cubic-bezier(0.2, 0, 0, 1),
+    opacity 0.13s ease;
+}
+.press:active {
+  transform: scale(0.955);
+  opacity: 0.86;
+}
+
+/* ── Screen transitions (iOS-style push / pop / fade) ─────────────────────── */
+.screen-layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  overflow: hidden;
+  will-change: transform, opacity;
+}
+@keyframes ringoInRight {
+  from {
+    transform: translate3d(100%, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+@keyframes ringoOutLeft {
+  from {
+    transform: translate3d(0, 0, 0);
+    filter: brightness(1);
+  }
+  to {
+    transform: translate3d(-24%, 0, 0);
+    filter: brightness(0.9);
+  }
+}
+@keyframes ringoInLeft {
+  from {
+    transform: translate3d(-24%, 0, 0);
+    filter: brightness(0.9);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+    filter: brightness(1);
+  }
+}
+@keyframes ringoOutRight {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(100%, 0, 0);
+  }
+}
+@keyframes ringoFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes ringoFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+.enter-push {
+  animation: ringoInRight 0.34s cubic-bezier(0.32, 0.72, 0, 1) both;
+  box-shadow: -14px 0 30px -10px rgba(0, 0, 0, 0.16);
+}
+.leave-push {
+  animation: ringoOutLeft 0.34s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+.enter-pop {
+  animation: ringoInLeft 0.34s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+.leave-pop {
+  animation: ringoOutRight 0.34s cubic-bezier(0.32, 0.72, 0, 1) both;
+  box-shadow: -14px 0 30px -10px rgba(0, 0, 0, 0.16);
+}
+.enter-fade {
+  animation: ringoFadeIn 0.2s ease both;
+}
+.leave-fade {
+  animation: ringoFadeOut 0.18s ease both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .enter-push,
+  .leave-push,
+  .enter-pop,
+  .leave-pop,
+  .enter-fade,
+  .leave-fade {
+    animation-duration: 0.01ms;
+  }
 }

@@ -5,6 +5,7 @@ import { RC } from '../theme';
 export function BackBtn({ onClick }: { onClick?: () => void }) {
   return (
     <button
+      className="press"
       onClick={onClick}
       style={{
         width: 38, height: 38, borderRadius: '50%',

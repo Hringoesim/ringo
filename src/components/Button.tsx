@@ -1,6 +1,7 @@
 // Button.tsx — reusable warm primary button (gradient) and variants.
-import type { CSSProperties, MouseEvent, ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { RC } from '../theme';
+import { haptic } from '../lib/haptics';
 
 interface RingoButtonProps {
   children: ReactNode;
@@ -30,7 +31,6 @@ export function RingoButton({
     borderRadius: 999,
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
     width: full ? '100%' : 'auto',
-    transition: 'transform .12s ease, box-shadow .2s ease',
     opacity: disabled ? 0.5 : 1,
   };
   if (variant === 'primary')
@@ -44,18 +44,19 @@ export function RingoButton({
       background: 'transparent', color: RC.inkStrong, border: `1.5px solid ${RC.lineStrong}`,
     });
 
-  const press = (v: string) => (e: MouseEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.transform = v;
-  };
-
   return (
     <button
-      onClick={disabled ? undefined : onClick}
+      className="press"
+      onClick={
+        disabled
+          ? undefined
+          : () => {
+              haptic('medium');
+              onClick?.();
+            }
+      }
       style={base}
       disabled={disabled}
-      onMouseDown={press('scale(0.98)')}
-      onMouseUp={press('scale(1)')}
-      onMouseLeave={press('scale(1)')}
     >
       {icon}
       {children}

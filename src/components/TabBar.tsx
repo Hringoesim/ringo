@@ -69,12 +69,14 @@ export function RingoTabBar({
         return (
           <button
             key={t.id}
+            className="press"
             onClick={() => onChange(t.id)}
             style={{
               border: 'none', background: 'none', padding: 0, cursor: 'pointer',
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
               color: on ? RC.inkStrong : RC.inkMute,
               fontFamily: 'Poppins', fontSize: 11, fontWeight: on ? 600 : 500,
+              transition: 'color .2s ease',
             }}
           >
             <span
@@ -82,6 +84,8 @@ export function RingoTabBar({
                 width: 28, height: 28, borderRadius: 10,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 background: on ? RC.gradSoft : 'transparent',
+                transform: on ? 'scale(1)' : 'scale(0.9)',
+                transition: 'background .25s ease, transform .25s cubic-bezier(0.34,1.56,0.64,1)',
               }}
             >
               {t.icon(on ? RC.inkStrong : RC.inkMute)}
