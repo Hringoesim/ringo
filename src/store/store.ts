@@ -1,17 +1,17 @@
 // store.ts
 // ─────────────────────────────────────────────────────────────────────────────
-// Single reactive store for the Ringo app. The UI reads live state from here and
-// every mutation routes through an action that (a) updates local state for an
-// instant, optimistic UI and (b) calls the matching RingoAPI endpoint so the
-// same code works against a real backend.
+// Single reactive store. UI reads live state from here; every mutation routes
+// through an action that (a) updates local state optimistically and (b) calls the
+// matching RingoAPI layer so the same code works against the real orchestration
+// backend (Identity → Number Management → Connectivity/RSP → BSS).
 //
 //   const { state, actions } = useRingoState();
-//   actions.switchPlan('pro');     // updates UI + PUT /me/plan
+//   actions.switchPlan('pro');     // updates UI + RingoAPI.billing.switchPlan
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useReducer } from 'react';
-import { RingoAPI, type KycPayload, type PortPayload } from '../api/ringoApi';
-import { CO_BY_CODE, COUNTRIES } from '../data/countries';
+import { RingoAPI, type KycPayload } from '../api/ringoApi';
+import { CO_BY_CODE } from '../data/countries';
 import { NUMBERS } from '../data/numbers';
 import { USER } from '../data/tiers';
 import type { KycStatus, PhoneNumber } from '../data/types';
@@ -28,6 +28,14 @@ export interface RingoState {
   name: string;
 }
 
+/** Payload collected by the port (MNP) flow. */
+export interface PortFormPayload {
+  number: string;
+  country: string; // number-market country code
+  currentProvider: string;
+  pac?: string;
+}
+
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
 
 let state: RingoState | null = null;
@@ -38,9 +46,9 @@ function seed() {
   if (state) return;
   state = {
     numbers: clone(NUMBERS),
-    activeNumberId: 'jp',
+    activeNumberId: 'gb',
     planId: 'essentials',
-    currentCountry: USER.currentCountry || 'JP',
+    currentCountry: USER.currentCountry || 'GB',
     kycStatus: 'pending',
     score: USER.score ?? 4,
     countries: USER.countries ?? 4,
@@ -60,68 +68,83 @@ function set(patch: Partial<RingoState>) {
   emit();
 }
 
-const dialToCountry = (number: string) =>
-  COUNTRIES.find((c) =>
-    number.replace(/[^\d]/g, '').startsWith(String(c.dial || '')),
-  ) || null;
-
 export const actions = {
   setActiveNumber(id: string) {
     set({ activeNumberId: id });
+    void RingoAPI.numbers.setMain(id).catch(() => {});
   },
 
   async switchPlan(planId: string) {
     set({ planId });
     try {
-      await RingoAPI.switchPlan(planId);
+      await RingoAPI.billing.switchPlan(planId);
     } catch {
       /* keep optimistic state */
     }
   },
 
-  async addNumber(code: string) {
+  // Allocate a fresh Ringo MSISDN from the DID inventory (Number Management).
+  async allocateNumber(code: string) {
     const s = get();
     const co = CO_BY_CODE[code];
     const n: PhoneNumber = {
       id: code.toLowerCase() + '_' + Date.now().toString(36),
       flag: co ? co.flag : '🌐',
       country: co ? co.name : 'New',
-      number: co ? `+${co.dial} ··· ··· ···` : '+·· ··· ··· ···',
+      number: co ? `+${co.dial} ···· ······` : '+·· ··· ··· ···',
       tag: 'Background',
       active: true,
+      source: 'ringo',
+      status: 'active',
     };
     set({ numbers: [...s.numbers, n] });
     try {
-      await RingoAPI.addNumber(code);
+      await RingoAPI.numbers.allocate(code);
     } catch {
       /* keep optimistic state */
     }
     return n;
   },
 
-  async portNumber(payload: Partial<PortPayload>) {
+  // Port an existing number in via MNP (1GLOBAL). The number lands in a
+  // 'porting' state, then flips to 'active' once the donor releases it.
+  async portNumber(payload: PortFormPayload) {
     const s = get();
-    const num = (payload && payload.number) || '+00 000 000 000';
-    const co = dialToCountry(num);
+    const co = CO_BY_CODE[payload.country];
+    const eta = co?.mnp?.sla || 'Within 1 business day';
+    const id = 'port_' + Date.now().toString(36);
     const n: PhoneNumber = {
-      id: 'port_' + Date.now().toString(36),
+      id,
       flag: co ? co.flag : '📲',
       country: co ? co.name : 'Ported',
-      number: num,
+      number: payload.number || '+00 000 000 000',
       tag: 'Background',
       active: true,
+      source: 'ported',
+      status: 'porting',
       porting: true,
+      portEta: eta,
     };
     set({ numbers: [...s.numbers, n] });
     try {
-      await RingoAPI.portNumber({
-        number: num,
-        carrier: payload.carrier || '',
-        transferPin: payload.transferPin || '',
+      await RingoAPI.numbers.portIn({
+        number: n.number,
+        country: payload.country,
+        currentProvider: payload.currentProvider,
+        pac: payload.pac,
       });
     } catch {
       /* keep optimistic state */
     }
+    // Simulate the donor releasing the number → port completes.
+    setTimeout(() => {
+      const cur = get();
+      set({
+        numbers: cur.numbers.map((x) =>
+          x.id === id ? { ...x, status: 'active', porting: false, portEta: undefined } : x,
+        ),
+      });
+    }, 3200);
     return n;
   },
 
@@ -134,7 +157,7 @@ export const actions = {
       score: already ? s.score : s.score + 1,
     });
     try {
-      await RingoAPI.enableCountry(code);
+      await RingoAPI.connectivity.enableCountry(code);
     } catch {
       /* keep optimistic state */
     }
@@ -143,11 +166,11 @@ export const actions = {
   async submitKyc(payload: KycPayload) {
     set({ kycStatus: 'in_review' });
     try {
-      await RingoAPI.submitKyc(payload || {});
+      await RingoAPI.identity.submitKyc(payload || {});
     } catch {
       /* keep optimistic state */
     }
-    // simulate review completing
+    // Identity Management approval workflow completing.
     setTimeout(() => set({ kycStatus: 'verified' }), 2600);
   },
 

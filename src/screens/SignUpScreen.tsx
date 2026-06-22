@@ -17,9 +17,9 @@ interface SignUpScreenProps {
 export function SignUpScreen({ onBack, onContinue, onSkipPhone, onAppleSignIn }: SignUpScreenProps) {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [country, setCountry] = useState('+32');
+  const [country, setCountry] = useState('+44');
   const [agree, setAgree] = useState(true);
-  const dial = ['+1', '+32', '+33', '+44', '+49', '+34', '+39', '+351', '+81', '+971', '+52', '+66', '+65'];
+  const dial = ['+44', '+353', '+34', '+49', '+31', '+1', '+33', '+39', '+351', '+81', '+971', '+65'];
   const emailOk = /\S+@\S+\.\S+/.test(email);
   const phoneOk = phone.replace(/\D/g, '').length >= 7;
 

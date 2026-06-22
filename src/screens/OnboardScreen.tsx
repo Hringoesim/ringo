@@ -101,7 +101,7 @@ function OnboardArt({ kind }: { kind: ArtKind }) {
         }}
       >
         <div style={{ fontFamily: 'Poppins', fontSize: 14, fontWeight: 500, opacity: 0.85 }}>per month</div>
-        <div style={{ fontFamily: 'Poppins', fontSize: 80, fontWeight: 700, letterSpacing: -2, lineHeight: 1 }}>$19</div>
+        <div style={{ fontFamily: 'Poppins', fontSize: 80, fontWeight: 700, letterSpacing: -2, lineHeight: 1 }}>£19</div>
         <div style={{ fontFamily: 'Poppins', fontSize: 13, fontWeight: 500, opacity: 0.85, marginTop: 6 }}>Unlimited · 180+ countries</div>
       </div>
     </div>
@@ -118,7 +118,7 @@ export function OnboardScreen({ onContinue, onBack }: OnboardScreenProps) {
   const slides: { kicker: string; title: string; copy: string; icon: ArtKind }[] = [
     { kicker: '180+ countries', title: 'Stay connected, anywhere you land.', copy: 'One eSIM that just works in 180+ countries. No swapping, no roaming bills, no surprises.', icon: 'globe' },
     { kicker: 'Multiple numbers', title: 'Keep every number. Drop none.', copy: 'Your home number for the bank. A local one for the taxi. All on the same eSIM, switchable in a tap.', icon: 'phones' },
-    { kicker: '$19 per month', title: 'Unlimited data, unlimited borders.', copy: 'One flat plan. Use it in Tokyo, then in Lisbon, then in Mexico City. We don’t care.', icon: 'plan' },
+    { kicker: '£19 per month', title: 'Unlimited data, unlimited borders.', copy: 'One flat plan. Use it in London, then in Lisbon, then in Tokyo. We don’t care.', icon: 'plan' },
   ];
   const s = slides[step];
   const next = () => (step < slides.length - 1 ? setStep(step + 1) : onContinue('home'));

@@ -19,10 +19,11 @@ export function nextTier(score: number): Tier | null {
 }
 
 // Default user profile — Marie, a recurring crosser at 4 countries this year.
+// Anchored in the UK launch market.
 export const USER = {
   name: 'Marie',
   score: 4,
   dataPct: 0.34,
   countries: 4,
-  currentCountry: 'JP',
+  currentCountry: 'GB',
 };

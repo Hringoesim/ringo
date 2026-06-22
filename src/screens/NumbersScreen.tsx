@@ -56,11 +56,13 @@ export function NumbersScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => v
                       style={{
                         padding: '2px 8px', borderRadius: 999,
                         fontFamily: 'Poppins', fontSize: 9.5, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase',
-                        background: isActive ? 'rgba(255,253,251,0.24)' : RC.cream,
-                        color: isActive ? '#FFFDFB' : RC.inkStrong,
+                        background: n.status === 'porting'
+                          ? 'rgba(240,128,56,0.18)'
+                          : isActive ? 'rgba(255,253,251,0.24)' : RC.cream,
+                        color: n.status === 'porting' ? RC.inkStrong : isActive ? '#FFFDFB' : RC.inkStrong,
                       }}
                     >
-                      {isActive ? 'Main' : 'Background'}
+                      {n.status === 'porting' ? 'Porting' : isActive ? 'Main' : 'Background'}
                     </span>
                   </div>
                   <div style={{ fontFamily: 'Poppins', fontSize: 18, fontWeight: 600, letterSpacing: -0.3 }}>{n.number}</div>
@@ -84,8 +86,10 @@ export function NumbersScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => v
                   color: isActive ? 'rgba(255,253,251,0.92)' : RC.inkMute,
                 }}
               >
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: isActive ? '#9CFCBD' : '#1F8A5B' }} />
-                {isActive ? 'Main — calls, SMS & verification codes' : 'Background — receives verification codes & SMS'}
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: n.status === 'porting' ? '#F0792E' : isActive ? '#9CFCBD' : '#1F8A5B' }} />
+                {n.status === 'porting'
+                  ? `Porting in via MNP — ${n.portEta || 'in progress'}`
+                  : isActive ? 'Main — calls, SMS & verification codes' : 'Background — receives verification codes & SMS'}
               </div>
 
               <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>

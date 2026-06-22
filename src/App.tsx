@@ -1,4 +1,8 @@
 // App.tsx — main shell with stack-based screen navigation + tab bar.
+//
+// Onboarding sequence mirrors the backend orchestration order (Workstream A):
+//   account → KYC (Identity gate) → Number assignment (allocate | port-in MNP)
+//   → eSIM install (SM-DP+/LPAd) → activation → home.
 import { useState, type ReactNode } from 'react';
 import { RingoTabBar } from './components/TabBar';
 import { RingoAPI } from './api/ringoApi';
@@ -7,11 +11,11 @@ import type { NavTarget, OnNav } from './navigation';
 
 import { LockScreen } from './screens/LockScreen';
 import { SplashScreen } from './screens/SplashScreen';
+import { OnboardScreen } from './screens/OnboardScreen';
 import { SignUpScreen } from './screens/SignUpScreen';
 import { OtpScreen } from './screens/OtpScreen';
-import { PortLaterScreen } from './screens/PortLaterScreen';
 import { KycScreen } from './screens/KycScreen';
-import { OnboardScreen } from './screens/OnboardScreen';
+import { NumberSetupScreen } from './screens/NumberSetupScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { BrowseScreen } from './screens/BrowseScreen';
 import { CountryScreen } from './screens/CountryScreen';
@@ -33,28 +37,23 @@ const TABBED = new Set(['home', 'browse', 'numbers', 'plan']);
 
 interface Frame {
   name: string;
-  params: { code?: string; preselect?: string };
+  params: { code?: string; preselect?: string; onboarding?: boolean };
 }
 
 type TabName = 'home' | 'browse' | 'numbers' | 'plan';
 
 export function App() {
-  // Stack of screens: [{ name, params }, ...]. Top of stack = current screen.
   const [stack, setStack] = useState<Frame[]>([
     { name: ONBOARDED ? 'lock' : 'splash', params: {} },
   ]);
   const [phoneCache, setPhoneCache] = useState('');
   const current = stack[stack.length - 1];
 
-  const push = (name: string, params: Frame['params'] = {}) =>
-    setStack((s) => [...s, { name, params }]);
+  const push = (name: string, params: Frame['params'] = {}) => setStack((s) => [...s, { name, params }]);
   const pop = () => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
   const replace = (name: string, params: Frame['params'] = {}) => setStack([{ name, params }]);
-
-  // Top-level navigation (tabs always replace stack)
   const goTab = (name: TabName) => setStack([{ name, params: {} }]);
 
-  // Generic nav handler used by screens
   const onNav: OnNav = (target: NavTarget, ...args: string[]) => {
     if (target === 'home') return goTab('home');
     if (target === 'browse') return goTab('browse');
@@ -70,6 +69,8 @@ export function App() {
     if (target === 'settings') return push('settings');
   };
 
+  const onboarding = !!current.params.onboarding;
+
   let body: ReactNode = null;
   switch (current.name) {
     case 'lock':
@@ -79,29 +80,33 @@ export function App() {
       body = (
         <SplashScreen
           onContinue={(t) => {
-            if (t === 'signup') return push('signup');
+            if (t === 'signup') return push('onboard');
             if (t === 'signin') return replace('home');
-            return replace('onboard');
+            return push('onboard');
           }}
         />
       );
+      break;
+    case 'onboard':
+      // Value-prop intro, then into account creation.
+      body = <OnboardScreen onContinue={() => push('signup')} onBack={pop} />;
       break;
     case 'signup':
       body = (
         <SignUpScreen
           onBack={pop}
           onAppleSignIn={async () => {
-            try { await RingoAPI.signInWithApple('mock_identity_token'); } catch { /* ignore */ }
+            try { await RingoAPI.auth.appleSignIn('mock_identity_token'); } catch { /* ignore */ }
             replace('home');
           }}
           onContinue={async ({ email, phone }) => {
-            try { await RingoAPI.signUpWithEmail(email, phone); } catch { /* ignore */ }
+            try { await RingoAPI.auth.emailSignUp(email, phone); } catch { /* ignore */ }
             setPhoneCache(phone);
             push('otp');
           }}
           onSkipPhone={async ({ email }) => {
-            try { await RingoAPI.signUpWithEmail(email, null); } catch { /* ignore */ }
-            push('portLater');
+            try { await RingoAPI.auth.emailSignUp(email, null); } catch { /* ignore */ }
+            push('kyc'); // Identity gate comes before number assignment.
           }}
         />
       );
@@ -112,14 +117,11 @@ export function App() {
           phone={phoneCache}
           onBack={pop}
           onContinue={async () => {
-            try { await RingoAPI.verifyOtp('chl_mock', '000000'); } catch { /* ignore */ }
+            try { await RingoAPI.auth.verifyOtp('chl_mock', '000000'); } catch { /* ignore */ }
             push('kyc');
           }}
         />
       );
-      break;
-    case 'portLater':
-      body = <PortLaterScreen onPortNow={() => push('kyc')} onSkip={() => push('kyc')} />;
       break;
     case 'kyc':
       body = (
@@ -127,13 +129,20 @@ export function App() {
           onBack={pop}
           onContinue={(payload) => {
             storeActions.submitKyc(payload || {});
-            replace('onboard');
+            // Identity submitted → proceed to Number Management.
+            push('numberSetup');
           }}
         />
       );
       break;
-    case 'onboard':
-      body = <OnboardScreen onContinue={() => replace('home')} onBack={() => replace('splash')} />;
+    case 'numberSetup':
+      body = (
+        <NumberSetupScreen
+          onNewNumber={() => push('addNumber', { onboarding: true })}
+          onPortIn={() => push('port', { onboarding: true })}
+          onSkip={() => replace('home')}
+        />
+      );
       break;
     case 'home':
       body = <HomeScreen onNav={onNav} />;
@@ -163,8 +172,21 @@ export function App() {
           preselect={current.params.preselect}
           onBack={pop}
           onContinue={(code) => {
-            storeActions.addNumber(code);
-            goTab('numbers');
+            storeActions.allocateNumber(code);
+            if (onboarding) push('install');
+            else goTab('numbers');
+          }}
+        />
+      );
+      break;
+    case 'port':
+      body = (
+        <PortNumberScreen
+          onBack={pop}
+          onContinue={(payload) => {
+            storeActions.portNumber(payload);
+            if (onboarding) push('install');
+            else goTab('numbers');
           }}
         />
       );
@@ -177,7 +199,7 @@ export function App() {
         <InstallScreen
           onBack={pop}
           onActivate={async () => {
-            try { await RingoAPI.activateEsim('LPA:mock'); } catch { /* ignore */ }
+            try { await RingoAPI.connectivity.activateEsim('LPA:mock'); } catch { /* ignore */ }
             push('activate');
           }}
         />
@@ -185,17 +207,6 @@ export function App() {
       break;
     case 'activate':
       body = <ActivationScreen onDone={() => replace('home')} />;
-      break;
-    case 'port':
-      body = (
-        <PortNumberScreen
-          onBack={pop}
-          onContinue={(payload) => {
-            storeActions.portNumber(payload || {});
-            goTab('numbers');
-          }}
-        />
-      );
       break;
     case 'tiers':
       body = <TiersScreen onBack={pop} />;

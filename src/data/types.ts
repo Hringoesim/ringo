@@ -1,4 +1,17 @@
 // Shared domain types for the Ringo app.
+// These mirror the backend orchestration model (Workstream A): Identity Layer
+// (KYC + Number Management/DID inventory), Communication Layer (voice/SMS),
+// Connectivity Layer (CMP + SM-DP+ RSP).
+
+/** Mobile Number Portability profile for a number-market, per Workstream A (p9–13). */
+export interface MnpProfile {
+  regulator: string; // e.g. Ofcom (UK), AOPM (ES), Bundesnetzagentur (DE)
+  flow: 'donor-led' | 'recipient-led';
+  /** Donor-led markets (UK) require a PAC from the losing carrier. */
+  needsPac: boolean;
+  /** Human-readable porting SLA shown in the UI. */
+  sla: string;
+}
 
 export interface Country {
   code: string;
@@ -9,7 +22,13 @@ export interface Country {
   tier: 'A' | 'B';
   popular?: boolean;
   dial: number;
+  /** True where Ringo can allocate/port a local MSISDN (UK launch + EU markets). */
+  numberMarket?: boolean;
+  mnp?: MnpProfile;
 }
+
+/** A number's provisioning lifecycle, mirroring Number Management states. */
+export type NumberStatus = 'active' | 'porting' | 'pending';
 
 export interface PhoneNumber {
   id: string;
@@ -18,8 +37,12 @@ export interface PhoneNumber {
   number: string;
   tag: string;
   active: boolean;
-  /** True while a port is still being processed by the losing carrier. */
+  /** 'ringo' = allocated MSISDN, 'ported' = brought in via MNP. */
+  source?: 'ringo' | 'ported';
+  status?: NumberStatus;
+  /** Set while a port (MNP) is in flight. */
   porting?: boolean;
+  portEta?: string;
 }
 
 export interface Plan {
@@ -43,4 +66,5 @@ export interface Tier {
   perk: string;
 }
 
+/** Identity Management approval workflow (orchestration layer, fed by KYC). */
 export type KycStatus = 'pending' | 'in_review' | 'verified';

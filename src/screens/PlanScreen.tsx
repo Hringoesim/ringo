@@ -40,7 +40,7 @@ export function PlanScreen({ onBack, onInstall, onSwitchPlan }: PlanScreenProps)
               )}
             </div>
             <div style={{ marginTop: 8, display: 'flex', alignItems: 'baseline', gap: 6 }}>
-              <span style={{ fontFamily: 'Poppins', fontSize: 64, fontWeight: 700, letterSpacing: -2, lineHeight: 1 }}>${cur.price}</span>
+              <span style={{ fontFamily: 'Poppins', fontSize: 64, fontWeight: 700, letterSpacing: -2, lineHeight: 1 }}>£{cur.price}</span>
               <span style={{ fontFamily: 'Poppins', fontSize: 15, fontWeight: 500, opacity: 0.85 }}>/ month</span>
             </div>
             <div style={{ marginTop: 10, fontFamily: 'Poppins', fontSize: 14, fontWeight: 400, opacity: 0.9, lineHeight: 1.5 }}>
@@ -105,7 +105,7 @@ export function PlanScreen({ onBack, onInstall, onSwitchPlan }: PlanScreenProps)
                       </div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontFamily: 'Poppins', fontSize: 20, fontWeight: 700, color: RC.inkStrong, letterSpacing: -0.5, lineHeight: 1 }}>${p.price}</div>
+                      <div style={{ fontFamily: 'Poppins', fontSize: 20, fontWeight: 700, color: RC.inkStrong, letterSpacing: -0.5, lineHeight: 1 }}>£{p.price}</div>
                       <div style={{ fontFamily: 'Poppins', fontSize: 10.5, color: RC.inkMute, fontWeight: 500 }}>/mo</div>
                     </div>
                   </div>
@@ -128,7 +128,7 @@ export function PlanScreen({ onBack, onInstall, onSwitchPlan }: PlanScreenProps)
           {!isCurrent(cur.id) && (
             <div style={{ marginTop: 14 }}>
               <RingoButton onClick={() => { actions.switchPlan(cur.id); if (onSwitchPlan) onSwitchPlan(cur.id); }}>
-                Switch to {cur.name} — ${cur.price}/mo
+                Switch to {cur.name} — £{cur.price}/mo
               </RingoButton>
             </div>
           )}
@@ -162,9 +162,9 @@ export function PlanScreen({ onBack, onInstall, onSwitchPlan }: PlanScreenProps)
         <div style={{ marginTop: 22 }}>
           <SectionTitle>Add-ons</SectionTitle>
           <RingoCard style={{ padding: 0 }}>
-            <Row icon="call" title="Extra Belgium number" sub="Already on your plan · $3/mo" />
-            <Row icon="hotspot" title="Office tether" sub="Unlimited tethering · +$5/mo" />
-            <Row icon="speed" title="Always 5G" sub="Skip fair-use throttle · +$9/mo" last />
+            <Row icon="call" title="Extra Ireland number" sub="Already on your plan · £3/mo" />
+            <Row icon="hotspot" title="Office tether" sub="Unlimited tethering · +£5/mo" />
+            <Row icon="speed" title="Always 5G" sub="Skip fair-use throttle · +£9/mo" last />
           </RingoCard>
         </div>
 
@@ -172,9 +172,9 @@ export function PlanScreen({ onBack, onInstall, onSwitchPlan }: PlanScreenProps)
           <SectionTitle>Recent</SectionTitle>
           <RingoCard style={{ padding: 0 }}>
             {[
-              { d: 'Apr 28', t: 'Ringo Unlimited', a: '$19.00' },
-              { d: 'Apr 12', t: 'Belgium number', a: '$3.00' },
-              { d: 'Mar 28', t: 'Ringo Unlimited', a: '$19.00' },
+              { d: 'Apr 28', t: 'Ringo Essentials', a: '£19.00' },
+              { d: 'Apr 12', t: 'Ireland number', a: '£3.00' },
+              { d: 'Mar 28', t: 'Ringo Essentials', a: '£19.00' },
             ].map((r, i, arr) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', borderBottom: i === arr.length - 1 ? 'none' : `1px solid ${RC.line}` }}>
                 <div style={{ flex: 1 }}>

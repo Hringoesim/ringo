@@ -37,7 +37,7 @@ export function CountryScreen({ code, onNav, onBack, onAddCountry }: CountryScre
           </div>
           <div>
             <div style={{ fontFamily: 'Poppins', fontSize: 32, fontWeight: 600, color: RC.ink, letterSpacing: -0.6, lineHeight: 1 }}>{c.name}</div>
-            <div style={{ marginTop: 4, fontFamily: 'Poppins', fontSize: 14, color: RC.inkMute }}>{c.capital} · GMT+9</div>
+            <div style={{ marginTop: 4, fontFamily: 'Poppins', fontSize: 14, color: RC.inkMute }}>{c.capital} · {c.region}</div>
           </div>
         </div>
       </div>
@@ -69,29 +69,33 @@ export function CountryScreen({ code, onNav, onBack, onAddCountry }: CountryScre
           <Row icon="sos" title="Emergency calls" sub="Always free, always connected" last />
         </RingoCard>
 
-        {/* add a local number */}
-        <SectionTitle style={{ marginTop: 20 }}>Want a local number too?</SectionTitle>
-        <RingoCard style={{ padding: 18 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: 46, height: 46, borderRadius: 14, background: RC.cream, display: 'flex', alignItems: 'center', justifyContent: 'center', color: RC.inkStrong, fontSize: 22 }}>
-              {c.flag}
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: 'Poppins', fontSize: 15, fontWeight: 600, color: RC.ink }}>+{dial(c.code)} number in {c.name}</div>
-              <div style={{ fontFamily: 'Poppins', fontSize: 12, color: RC.inkMute }}>$3 / month · cancel any time</div>
-            </div>
-            <button
-              onClick={() => onNav('addNumber', c.code)}
-              style={{
-                border: `1.5px solid ${RC.lineStrong}`, background: 'transparent',
-                padding: '8px 14px', borderRadius: 999, color: RC.inkStrong,
-                fontFamily: 'Poppins', fontWeight: 600, fontSize: 13, cursor: 'pointer',
-              }}
-            >
-              Add
-            </button>
-          </div>
-        </RingoCard>
+        {/* add a local number — only in Ringo's number markets */}
+        {c.numberMarket && (
+          <>
+            <SectionTitle style={{ marginTop: 20 }}>Want a local number too?</SectionTitle>
+            <RingoCard style={{ padding: 18 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ width: 46, height: 46, borderRadius: 14, background: RC.cream, display: 'flex', alignItems: 'center', justifyContent: 'center', color: RC.inkStrong, fontSize: 22 }}>
+                  {c.flag}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: 'Poppins', fontSize: 15, fontWeight: 600, color: RC.ink }}>+{dial(c.code)} number in {c.name}</div>
+                  <div style={{ fontFamily: 'Poppins', fontSize: 12, color: RC.inkMute }}>£3 / month · cancel any time</div>
+                </div>
+                <button
+                  onClick={() => onNav('addNumber', c.code)}
+                  style={{
+                    border: `1.5px solid ${RC.lineStrong}`, background: 'transparent',
+                    padding: '8px 14px', borderRadius: 999, color: RC.inkStrong,
+                    fontFamily: 'Poppins', fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                  }}
+                >
+                  Add
+                </button>
+              </div>
+            </RingoCard>
+          </>
+        )}
       </div>
 
       <div

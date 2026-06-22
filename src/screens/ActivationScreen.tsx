@@ -70,7 +70,7 @@ export function ActivationScreen({ onDone }: { onDone: () => void }) {
           <span style={{ background: RC.grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>.</span>
         </div>
         <div style={{ marginTop: 10, fontFamily: 'Poppins', fontSize: 15, color: RC.inkMute, lineHeight: 1.55 }}>
-          Connected in <strong style={{ color: RC.inkStrong, fontWeight: 600 }}>Belgium</strong>. Cross any border — we’ll switch automatically.
+          Connected in the <strong style={{ color: RC.inkStrong, fontWeight: 600 }}>United Kingdom</strong>. Cross any border — we’ll switch automatically.
         </div>
       </div>
 

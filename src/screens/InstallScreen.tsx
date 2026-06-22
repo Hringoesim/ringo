@@ -47,7 +47,7 @@ export function InstallScreen({ onBack, onActivate }: { onBack: () => void; onAc
           Two taps and you’re live.
         </div>
         <div style={{ marginTop: 6, fontFamily: 'Poppins', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
-          Scan this QR with another device, or install directly on this iPhone.
+          Your profile is ready on Ringo’s SM-DP+. Scan this QR with another device, or install it on this iPhone via your eSIM (LPA).
         </div>
 
         <div
@@ -73,16 +73,16 @@ export function InstallScreen({ onBack, onActivate }: { onBack: () => void; onAc
             </div>
           </div>
           <div style={{ marginTop: 14, fontFamily: 'Poppins', fontSize: 12, fontWeight: 500, color: RC.inkMute, letterSpacing: 0.4, textTransform: 'uppercase' }}>
-            Activation key · expires in 23h
+            SM-DP+ activation code · expires in 23h
           </div>
         </div>
 
         <div style={{ marginTop: 22 }}>
           <SectionTitle>Or do it on this iPhone</SectionTitle>
           <RingoCard style={{ padding: 0 }}>
-            <Step num="1" title="Tap “Install on this device”" sub="Opens Settings → Cellular" />
-            <Step num="2" title="Confirm “Add eSIM”" sub="Approves the Ringo profile" />
-            <Step num="3" title="Set Ringo as your data plan" sub="Keep your old SIM for calls if you want" last />
+            <Step num="1" title="Tap “Install on this device”" sub="Your iPhone’s LPA fetches the profile from SM-DP+" />
+            <Step num="2" title="Confirm “Add eSIM”" sub="Downloads & installs the Ringo profile onto your eUICC" />
+            <Step num="3" title="Enable Ringo data" sub="SGP.22 activation complete — keep your old SIM for calls if you want" last />
           </RingoCard>
         </div>
       </div>
