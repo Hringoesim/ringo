@@ -28,6 +28,11 @@ jobs:
         run: npm run build
         env:
           GH_PAGES: '1'
+          # Set these as repo Variables (Settings → Secrets and variables →
+          # Actions → Variables). The Supabase anon key is public/client-safe.
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
