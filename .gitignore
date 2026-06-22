@@ -19,9 +19,9 @@ pnpm-debug.log*
 # Local agent skills (installed via npx skills)
 .agents/
 
-# Capacitor native project (generated on Mac)
-ios/
-android/
+# Capacitor native projects (ios/ and android/) are committed so the repo is a
+# ready-to-build app project. Build artifacts inside them are excluded by each
+# platform's own .gitignore (ios/.gitignore, android/.gitignore).
 
 # Env
 .env
