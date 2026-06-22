@@ -18,6 +18,15 @@ function isStandalone(): boolean {
   return !!(mm || iosStandalone);
 }
 
+// True on a phone-sized / touch screen, even in a plain browser tab. We render
+// full-screen there too — the iPhone mockup frame is only useful on desktop.
+function isPhoneViewport(): boolean {
+  if (typeof window === 'undefined') return false;
+  const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  const narrow = window.innerWidth <= 560;
+  return narrow && (coarse || window.innerWidth <= 480);
+}
+
 export function Host() {
   const [theme, setThemeState] = useState<Scheme>(() => {
     const saved = (typeof localStorage !== 'undefined' && localStorage.getItem('ringo_theme')) as Scheme | null;
@@ -46,7 +55,14 @@ export function Host() {
   };
   const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
 
-  const native = isStandalone();
+  // Re-evaluate full-screen vs mockup when the window resizes (desktop ↔ phone).
+  const [fullScreen, setFullScreen] = useState(() => isStandalone() || isPhoneViewport());
+  useEffect(() => {
+    const compute = () => setFullScreen(isStandalone() || isPhoneViewport());
+    compute();
+    window.addEventListener('resize', compute);
+    return () => window.removeEventListener('resize', compute);
+  }, []);
 
   // Hide the native splash once mounted.
   useEffect(() => {
@@ -57,7 +73,7 @@ export function Host() {
   }, []);
 
   // ── Full-screen (device) ────────────────────────────────────────────────────
-  if (native) {
+  if (fullScreen) {
     return (
       <div
         style={{
