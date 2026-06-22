@@ -5,13 +5,18 @@ import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { BackBtn } from '../components/ui';
 
+interface VerifyOutcome {
+  ok: boolean;
+  error?: string;
+}
+
 interface OtpScreenProps {
   phone: string;
-  /** Demo code surfaced because there's no SMS gateway yet. */
+  /** Demo code surfaced because there's no SMS gateway yet (mock mode only). */
   devCode?: string;
   onBack: () => void;
-  onVerify: (code: string) => { ok: boolean; error?: string };
-  onResend: () => { devCode: string } | null;
+  onVerify: (code: string) => VerifyOutcome | Promise<VerifyOutcome>;
+  onResend: () => ({ devCode: string } | null) | Promise<{ devCode: string } | null>;
 }
 
 export function OtpScreen({ phone, devCode, onBack, onVerify, onResend }: OtpScreenProps) {
@@ -33,8 +38,13 @@ export function OtpScreen({ phone, devCode, onBack, onVerify, onResend }: OtpScr
   const full = code.join('');
   const ok = full.length === 6;
 
-  const submit = () => {
-    const res = onVerify(full);
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    if (busy) return;
+    setBusy(true);
+    const res = await onVerify(full);
+    setBusy(false);
     if (!res.ok) {
       setError(res.error || 'Incorrect code.');
       setCode(['', '', '', '', '', '']);
@@ -42,14 +52,12 @@ export function OtpScreen({ phone, devCode, onBack, onVerify, onResend }: OtpScr
     }
   };
 
-  const resend = () => {
-    const r = onResend();
-    if (r) {
-      setHint(r.devCode);
-      setError('');
-      setCode(['', '', '', '', '', '']);
-      refs.current[0]?.focus();
-    }
+  const resend = async () => {
+    const r = await onResend();
+    setHint(r ? r.devCode : '');
+    setError('');
+    setCode(['', '', '', '', '', '']);
+    refs.current[0]?.focus();
   };
 
   return (
@@ -123,7 +131,7 @@ export function OtpScreen({ phone, devCode, onBack, onVerify, onResend }: OtpScr
           background: RC.glass, backdropFilter: 'blur(20px) saturate(180%)',
         }}
       >
-        <RingoButton disabled={!ok} onClick={submit}>Verify and continue</RingoButton>
+        <RingoButton disabled={!ok || busy} onClick={submit}>{busy ? 'Verifying…' : 'Verify and continue'}</RingoButton>
       </div>
     </div>
   );

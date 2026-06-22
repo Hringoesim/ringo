@@ -1,19 +1,20 @@
 // App.tsx — main shell with stack-based navigation + tab bar.
 //
-// Onboarding mirrors the backend orchestration order (Workstream A):
+// Entry is a SINGLE landing screen (Create account | Log in). Onboarding then
+// follows the backend orchestration order (Workstream A):
 //   account → KYC (Identity gate) → number assignment (allocate | port-in MNP)
 //   → eSIM install (SM-DP+/LPAd) → activation → home.
-// Auth is real (src/auth/auth.ts): persisted sessions, OTP challenge/verify,
-// returning-user lock, sign-out.
+// Auth is real (src/auth/auth.ts); when Supabase is configured it routes through
+// Supabase Auth + data (src/lib/ringoSupabase.ts).
 import { useState, useEffect, type ReactNode } from 'react';
 import { RingoTabBar } from './components/TabBar';
 import { actions as storeActions } from './store/store';
 import * as auth from './auth/auth';
+import { isSupabaseConfigured, sbAuth } from './lib/ringoSupabase';
 import type { NavTarget, OnNav } from './navigation';
 
 import { LockScreen } from './screens/LockScreen';
-import { SplashScreen } from './screens/SplashScreen';
-import { OnboardScreen } from './screens/OnboardScreen';
+import { LandingScreen } from './screens/LandingScreen';
 import { SignUpScreen } from './screens/SignUpScreen';
 import { OtpScreen } from './screens/OtpScreen';
 import { KycScreen } from './screens/KycScreen';
@@ -31,10 +32,11 @@ import { TiersScreen } from './screens/TiersScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 
 const TABBED = new Set(['home', 'browse', 'numbers', 'plan']);
+const sb = isSupabaseConfigured();
 
 interface Frame {
   name: string;
-  params: { code?: string; preselect?: string; onboarding?: boolean };
+  params: { code?: string; preselect?: string; onboarding?: boolean; mode?: 'create' | 'login' };
 }
 type TabName = 'home' | 'browse' | 'numbers' | 'plan';
 
@@ -44,15 +46,12 @@ interface AppProps {
 }
 
 export function App({ theme, onToggleTheme }: AppProps) {
-  // Boot from a real session: returning users hit the Face ID lock, new users
-  // start at the splash.
   const [stack, setStack] = useState<Frame[]>(() => [
-    { name: auth.getSession() ? 'lock' : 'splash', params: {} },
+    { name: auth.getSession() ? 'lock' : 'landing', params: {} },
   ]);
   const [otp, setOtp] = useState<{ challengeId: string; devCode: string; phone: string } | null>(null);
   const current = stack[stack.length - 1];
 
-  // In live mode, pull real data from the backend on first load.
   useEffect(() => {
     void storeActions.hydrate();
   }, []);
@@ -62,11 +61,30 @@ export function App({ theme, onToggleTheme }: AppProps) {
   const replace = (name: string, params: Frame['params'] = {}) => setStack([{ name, params }]);
   const goTab = (name: TabName) => setStack([{ name, params: {} }]);
 
-  // Land on home and mark onboarding complete for the session.
   const finishToHome = () => {
     auth.completeOnboarding();
+    if (sb) void sbAuth.completeOnboarding();
     storeActions.syncIdentity();
     replace('home');
+  };
+
+  const signOut = () => {
+    if (sb) void sbAuth.signOut();
+    auth.signOut();
+    storeActions.reset();
+    replace('landing');
+  };
+
+  // Begin email verification (Supabase OTP if configured, else local mock OTP).
+  const beginOtp = async (email: string, phone: string) => {
+    if (sb) {
+      await sbAuth.startEmailOtp(email);
+      setOtp({ challengeId: email, devCode: '', phone: phone || email });
+    } else {
+      const { challengeId, devCode } = auth.startPhoneVerification(email, phone || email);
+      setOtp({ challengeId, devCode, phone: phone || email });
+    }
+    push('otp');
   };
 
   const onNav: OnNav = (target: NavTarget, ...args: string[]) => {
@@ -94,37 +112,34 @@ export function App({ theme, onToggleTheme }: AppProps) {
         <LockScreen
           userName={session?.name || 'there'}
           onUnlock={() => replace('home')}
-          onSwitchAccount={() => { auth.signOut(); storeActions.reset(); replace('splash'); }}
+          onSwitchAccount={signOut}
         />
       );
       break;
-    case 'splash':
+    case 'landing':
       body = (
-        <SplashScreen
-          onContinue={(t) => {
-            if (t === 'signin') { auth.signInEmailOnly('member@ringoesim.com'); return finishToHome(); }
-            return push('onboard');
-          }}
+        <LandingScreen
+          onCreate={() => push('signup', { mode: 'create' })}
+          onLogin={() => push('signup', { mode: 'login' })}
         />
       );
-      break;
-    case 'onboard':
-      body = <OnboardScreen onContinue={() => push('signup')} onBack={pop} />;
       break;
     case 'signup':
       body = (
         <SignUpScreen
+          mode={current.params.mode}
           onBack={pop}
           onAppleSignIn={async () => { await auth.signInWithApple(); finishToHome(); }}
-          onGoogleSignIn={async () => { try { await auth.signInWithGoogle(); } catch { /* cancelled */ } finishToHome(); }}
-          onContinue={({ email, phone }) => {
-            const { challengeId, devCode } = auth.startPhoneVerification(email, phone);
-            setOtp({ challengeId, devCode, phone });
-            push('otp');
+          onGoogleSignIn={async () => {
+            if (sb) { await sbAuth.google(); return; } // redirect flow
+            try { await auth.signInWithGoogle(); } catch { /* cancelled */ }
+            finishToHome();
           }}
+          onContinue={({ email, phone }) => void beginOtp(email, phone)}
           onSkipPhone={({ email }) => {
+            if (sb) { void beginOtp(email, ''); return; }
             auth.signInEmailOnly(email);
-            push('kyc'); // Identity gate before number assignment.
+            push('kyc');
           }}
         />
       );
@@ -135,12 +150,20 @@ export function App({ theme, onToggleTheme }: AppProps) {
           phone={otp?.phone || ''}
           devCode={otp?.devCode}
           onBack={pop}
-          onVerify={(code) => {
+          onVerify={async (code) => {
+            if (sb) {
+              const r = await sbAuth.verifyEmailOtp(otp?.challengeId || '', code);
+              if (r.ok) { storeActions.syncIdentity(); push('kyc'); }
+              return { ok: r.ok, error: r.error };
+            }
             const res = auth.verifyCode(otp?.challengeId || '', code);
             if (res.ok) push('kyc');
             return res;
           }}
-          onResend={() => auth.resendCode(otp?.challengeId || '')}
+          onResend={async () => {
+            if (sb) { await sbAuth.startEmailOtp(otp?.challengeId || ''); return null; }
+            return auth.resendCode(otp?.challengeId || '');
+          }}
         />
       );
       break;
@@ -148,10 +171,7 @@ export function App({ theme, onToggleTheme }: AppProps) {
       body = (
         <KycScreen
           onBack={pop}
-          onContinue={(payload) => {
-            storeActions.submitKyc(payload || {});
-            push('numberSetup');
-          }}
+          onContinue={(payload) => { storeActions.submitKyc(payload || {}); push('numberSetup'); }}
         />
       );
       break;
@@ -222,12 +242,7 @@ export function App({ theme, onToggleTheme }: AppProps) {
       break;
     case 'settings':
       body = (
-        <SettingsScreen
-          onBack={pop}
-          theme={theme}
-          onToggleTheme={onToggleTheme}
-          onSignOut={() => { auth.signOut(); storeActions.reset(); replace('splash'); }}
-        />
+        <SettingsScreen onBack={pop} theme={theme} onToggleTheme={onToggleTheme} onSignOut={signOut} />
       );
       break;
     default:

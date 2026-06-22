@@ -13,9 +13,11 @@ interface SignUpScreenProps {
   onSkipPhone: (v: { email: string }) => void;
   onAppleSignIn: () => void;
   onGoogleSignIn: () => void;
+  mode?: 'create' | 'login';
 }
 
-export function SignUpScreen({ onBack, onContinue, onSkipPhone, onAppleSignIn, onGoogleSignIn }: SignUpScreenProps) {
+export function SignUpScreen({ onBack, onContinue, onSkipPhone, onAppleSignIn, onGoogleSignIn, mode = 'create' }: SignUpScreenProps) {
+  const login = mode === 'login';
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [country, setCountry] = useState('+44');
@@ -32,10 +34,12 @@ export function SignUpScreen({ onBack, onContinue, onSkipPhone, onAppleSignIn, o
           <img src={LOGO_SRC} alt="Ringo" style={{ height: 30, width: 'auto' }} />
         </div>
         <div style={{ fontFamily: 'Poppins', fontSize: 30, fontWeight: 600, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1, textWrap: 'pretty' }}>
-          Create your Ringo account.
+          {login ? 'Log in to Ringo.' : 'Create your Ringo account.'}
         </div>
         <div style={{ marginTop: 8, fontFamily: 'Poppins', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
-          One tap with Apple — straight to your dashboard. You can port your number whenever you're ready.
+          {login
+            ? 'Use the Apple, Google or email account you signed up with.'
+            : 'One tap with Apple — straight to your dashboard. You can port your number whenever you’re ready.'}
         </div>
 
         {/* Sign in with Apple — primary, top of stack (white on dark, black on light) */}

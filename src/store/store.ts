@@ -15,7 +15,10 @@ import { CO_BY_CODE } from '../data/countries';
 import { NUMBERS } from '../data/numbers';
 import { USER } from '../data/tiers';
 import { getSession } from '../auth/auth';
+import { isSupabaseConfigured, sbData } from '../lib/ringoSupabase';
 import type { KycStatus, PhoneNumber } from '../data/types';
+
+const sb = isSupabaseConfigured();
 
 export interface RingoState {
   numbers: PhoneNumber[];
@@ -103,7 +106,8 @@ export const actions = {
   async switchPlan(planId: string) {
     set({ planId });
     try {
-      await RingoAPI.billing.switchPlan(planId);
+      if (sb) await sbData.switchPlan(planId);
+      else await RingoAPI.billing.switchPlan(planId);
     } catch {
       /* keep optimistic state */
     }
@@ -124,11 +128,14 @@ export const actions = {
     };
     set({ numbers: [...s.numbers, n] });
     try {
-      const created = await RingoAPI.numbers.allocate(code);
-      // reflect the server-assigned number if returned
-      if (created && (created as PhoneNumber).number) {
-        const real = created as PhoneNumber;
-        set({ numbers: get().numbers.map((x) => (x.id === n.id ? { ...x, number: real.number } : x)) });
+      if (sb) {
+        await sbData.allocateNumber(code, n.number);
+      } else {
+        const created = await RingoAPI.numbers.allocate(code);
+        if (created && (created as PhoneNumber).number) {
+          const real = created as PhoneNumber;
+          set({ numbers: get().numbers.map((x) => (x.id === n.id ? { ...x, number: real.number } : x)) });
+        }
       }
     } catch {
       /* keep optimistic state */
@@ -155,12 +162,16 @@ export const actions = {
     };
     set({ numbers: [...s.numbers, n] });
     try {
-      await RingoAPI.numbers.portIn({
-        number: n.number,
-        country: payload.country,
-        currentProvider: payload.currentProvider,
-        pac: payload.pac,
-      });
+      if (sb) {
+        await sbData.portIn(payload);
+      } else {
+        await RingoAPI.numbers.portIn({
+          number: n.number,
+          country: payload.country,
+          currentProvider: payload.currentProvider,
+          pac: payload.pac,
+        });
+      }
     } catch {
       /* keep optimistic state */
     }
@@ -192,27 +203,36 @@ export const actions = {
   async submitKyc(payload: KycPayload) {
     set({ kycStatus: 'in_review' });
     try {
-      await RingoAPI.identity.submitKyc(payload || {});
+      if (sb) await sbData.submitKyc((payload || {}) as Record<string, unknown>);
+      else await RingoAPI.identity.submitKyc(payload || {});
     } catch {
       /* keep optimistic state */
     }
-    setTimeout(() => set({ kycStatus: 'verified' }), 2600);
+    if (!sb) setTimeout(() => set({ kycStatus: 'verified' }), 2600);
   },
 
-  // Pull real data from the backend (used in live mode / on cold start).
+  // Pull real data from the backend (Supabase or live API).
   async hydrate() {
-    if (RingoAPI.mode !== 'live') return;
     try {
+      if (sb) {
+        const [numbers, profile] = await Promise.all([sbData.getNumbers(), sbData.getProfile()]);
+        const patch: Partial<RingoState> = {};
+        if (numbers.length) patch.numbers = numbers;
+        if (profile) {
+          if (profile.plan_id) patch.planId = String(profile.plan_id);
+          if (profile.kyc_status) patch.kycStatus = profile.kyc_status as KycStatus;
+          if (profile.current_country) patch.currentCountry = String(profile.current_country);
+          if (typeof profile.score === 'number') patch.score = profile.score as number;
+        }
+        if (Object.keys(patch).length) set(patch);
+        return;
+      }
+      if (RingoAPI.mode !== 'live') return;
       const [numbers, usage] = await Promise.all([
         RingoAPI.numbers.list() as Promise<PhoneNumber[]>,
         RingoAPI.billing.getUsage() as Promise<{ planId: string; fairUsePct: number; country: string }>,
       ]);
-      set({
-        numbers,
-        planId: usage.planId,
-        dataPct: usage.fairUsePct,
-        currentCountry: usage.country,
-      });
+      set({ numbers, planId: usage.planId, dataPct: usage.fairUsePct, currentCountry: usage.country });
     } catch {
       /* offline / not reachable — keep local state */
     }

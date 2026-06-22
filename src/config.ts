@@ -5,6 +5,7 @@
 // See .env.example for all variables.
 import { RingoAPI } from './api/ringoApi';
 import { configureAuth } from './auth/auth';
+import { initAuthBridge } from './lib/ringoSupabase';
 
 const SESSION_KEY = 'ringo_session_v1';
 
@@ -17,7 +18,7 @@ function sessionToken(): string | null {
   }
 }
 
-export function bootConfig(): void {
+export async function bootConfig(): Promise<void> {
   const env = import.meta.env;
 
   RingoAPI.configure({
@@ -37,4 +38,7 @@ export function bootConfig(): void {
     googleClientId: env.VITE_GOOGLE_CLIENT_ID || '',
     backendUrl: env.VITE_AUTH_BACKEND || '',
   });
+
+  // If Supabase is configured, hydrate the session before the app renders.
+  await initAuthBridge();
 }
