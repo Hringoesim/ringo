@@ -141,7 +141,7 @@ export function PlanScreen({ onBack, onInstall, onSwitchPlan }: PlanScreenProps)
               <div
                 style={{
                   width: 80, height: 80, borderRadius: '50%',
-                  background: `conic-gradient(#F08038 0%, #ED4D8E 34%, ${RC.cream} 34%)`,
+                  background: `conic-gradient(#FF7A2F 0%, #E92BA0 34%, ${RC.cream} 34%)`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
                 }}
               >

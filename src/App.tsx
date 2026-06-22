@@ -42,7 +42,12 @@ interface Frame {
 
 type TabName = 'home' | 'browse' | 'numbers' | 'plan';
 
-export function App() {
+interface AppProps {
+  theme: 'dark' | 'light';
+  onToggleTheme: () => void;
+}
+
+export function App({ theme, onToggleTheme }: AppProps) {
   const [stack, setStack] = useState<Frame[]>([
     { name: ONBOARDED ? 'lock' : 'splash', params: {} },
   ]);
@@ -212,7 +217,7 @@ export function App() {
       body = <TiersScreen onBack={pop} />;
       break;
     case 'settings':
-      body = <SettingsScreen onBack={pop} />;
+      body = <SettingsScreen onBack={pop} theme={theme} onToggleTheme={onToggleTheme} />;
       break;
     default:
       body = <div style={{ padding: 40 }}>Unknown screen: {current.name}</div>;

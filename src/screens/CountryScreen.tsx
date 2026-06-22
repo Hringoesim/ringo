@@ -101,7 +101,7 @@ export function CountryScreen({ code, onNav, onBack, onAddCountry }: CountryScre
       <div
         style={{
           padding: '14px 20px 24px', borderTop: `1px solid ${RC.line}`,
-          background: 'rgba(255,246,239,0.92)', backdropFilter: 'blur(20px) saturate(180%)',
+          background: RC.glass, backdropFilter: 'blur(20px) saturate(180%)',
         }}
       >
         <RingoButton onClick={() => onAddCountry(c.code)}>Use Ringo in {c.name}</RingoButton>

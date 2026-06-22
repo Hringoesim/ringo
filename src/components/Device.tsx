@@ -58,13 +58,18 @@ export function RingoDevice({
   bg = RC.bg,
   statusTime = '9:41',
 }: RingoDeviceProps) {
+  const dark = RC.scheme === 'dark';
+  const caseColor = dark ? '#100B18' : '#FFF7EE';
+  const ringColor = dark ? 'rgba(255,255,255,0.10)' : 'rgba(208,80,0,0.18)';
+  const frameShadow = dark
+    ? `0 60px 120px -30px rgba(0,0,0,0.65), 0 30px 60px -20px rgba(0,0,0,0.5), 0 0 0 1.5px ${ringColor}, 0 0 0 12px ${caseColor}`
+    : `0 60px 120px -30px rgba(208,80,0,0.30), 0 30px 60px -20px rgba(208,80,0,0.18), 0 0 0 1.5px ${ringColor}, 0 0 0 12px ${caseColor}`;
   return (
     <div
       style={{
         width, height, borderRadius: 54, position: 'relative', overflow: 'hidden',
         background: bg,
-        boxShadow:
-          '0 60px 120px -30px rgba(208,80,0,0.30), 0 30px 60px -20px rgba(208,80,0,0.18), 0 0 0 1.5px rgba(208,80,0,0.18), 0 0 0 12px #FFF7EE',
+        boxShadow: frameShadow,
         fontFamily: 'Poppins, system-ui, sans-serif',
         WebkitFontSmoothing: 'antialiased',
       }}

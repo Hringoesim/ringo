@@ -37,18 +37,19 @@ export function SignUpScreen({ onBack, onContinue, onSkipPhone, onAppleSignIn }:
           One tap with Apple — straight to your dashboard. You can port your number whenever you're ready.
         </div>
 
-        {/* Sign in with Apple — primary, top of stack */}
+        {/* Sign in with Apple — primary, top of stack (white on dark, black on light) */}
         <button
           onClick={() => onAppleSignIn && onAppleSignIn()}
           style={{
             marginTop: 24, width: '100%', height: 54, borderRadius: 14, border: 'none',
-            background: '#000', color: '#FFFFFF',
+            background: RC.scheme === 'dark' ? '#FFFFFF' : '#000',
+            color: RC.scheme === 'dark' ? '#000' : '#FFFFFF',
             fontFamily: 'Poppins', fontSize: 15, fontWeight: 600, letterSpacing: -0.1,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer',
             boxShadow: '0 8px 22px -12px rgba(0,0,0,0.45)',
           }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="#FFFFFF">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill={RC.scheme === 'dark' ? '#000' : '#FFFFFF'}>
             <path d="M16.365 1.43c0 1.14-.39 2.21-1.13 3.04-.78.86-2.05 1.51-3.27 1.42-.13-1.13.41-2.27 1.12-3.05.79-.88 2.16-1.55 3.28-1.41zm3.74 17.05c-.66 1.45-.97 2.1-1.81 3.39-1.18 1.81-2.84 4.06-4.9 4.07-1.83.02-2.3-1.19-4.79-1.18-2.49.01-3.01 1.2-4.84 1.18-2.06-.02-3.63-2.06-4.81-3.86-3.3-5.05-3.65-10.97-1.61-14.13 1.45-2.25 3.74-3.57 5.89-3.57 2.19 0 3.57 1.2 5.39 1.2 1.76 0 2.83-1.2 5.37-1.2 1.92 0 3.95 1.05 5.4 2.85-4.74 2.6-3.97 9.36 .71 11.25z" />
           </svg>
           Sign in with Apple
@@ -126,7 +127,7 @@ export function SignUpScreen({ onBack, onContinue, onSkipPhone, onAppleSignIn }:
       <div
         style={{
           padding: '14px 24px 24px', borderTop: `1px solid ${RC.line}`,
-          background: 'rgba(255,246,239,0.92)', backdropFilter: 'blur(20px) saturate(180%)',
+          background: RC.glass, backdropFilter: 'blur(20px) saturate(180%)',
           display: 'flex', flexDirection: 'column', gap: 10,
         }}
       >
