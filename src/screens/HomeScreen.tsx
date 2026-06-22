@@ -7,6 +7,7 @@ import { COUNTRIES } from '../data/countries';
 import { tierFor, nextTier } from '../data/tiers';
 import type { PhoneNumber, Tier } from '../data/types';
 import type { OnNav } from '../navigation';
+import { LOGO_SRC } from '../assets';
 
 export function HomeScreen({ onNav }: { onNav: OnNav }) {
   const { state } = useRingoState();
@@ -21,7 +22,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', paddingTop: 54 }}>
         {/* ── App bar: logo · search · avatar ─────────────────── */}
         <div style={{ padding: '8px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-          <img src="/ringo-logo.png" alt="Ringo" style={{ width: 34, height: 34, borderRadius: '50%' }} />
+          <img src={LOGO_SRC} alt="Ringo" style={{ width: 34, height: 34, borderRadius: '50%' }} />
           <div
             onClick={() => onNav('browse')}
             style={{

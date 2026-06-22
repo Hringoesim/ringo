@@ -5,6 +5,7 @@ import { RC } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { BackBtn, FieldLabel, Input } from '../components/ui';
+import { LOGO_SRC } from '../assets';
 
 interface SignUpScreenProps {
   onBack: () => void;
@@ -27,7 +28,7 @@ export function SignUpScreen({ onBack, onContinue, onSkipPhone, onAppleSignIn }:
       <RingoHeader title="" leading={<BackBtn onClick={onBack} />} />
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '0 24px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}>
-          <img src="/ringo-logo.png" alt="Ringo" style={{ width: 44, height: 44, borderRadius: '50%', boxShadow: '0 6px 18px -8px rgba(208,80,0,0.3)' }} />
+          <img src={LOGO_SRC} alt="Ringo" style={{ width: 44, height: 44, borderRadius: '50%', boxShadow: '0 6px 18px -8px rgba(208,80,0,0.3)' }} />
         </div>
         <div style={{ fontFamily: 'Poppins', fontSize: 30, fontWeight: 600, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1, textWrap: 'pretty' }}>
           Create your Ringo account.

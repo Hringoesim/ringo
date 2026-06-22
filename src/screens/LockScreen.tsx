@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { RC, hexA } from '../theme';
 import { tierFor, USER } from '../data/tiers';
+import { LOGO_SRC } from '../assets';
 
 type Phase = 'idle' | 'scanning' | 'success';
 
@@ -70,7 +71,7 @@ export function LockScreen({
       {/* Brand */}
       <div style={{ marginTop: 96, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
         <img
-          src="/ringo-logo.png"
+          src={LOGO_SRC}
           alt="Ringo"
           style={{
             width: 84, height: 84, borderRadius: '50%',
