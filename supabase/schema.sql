@@ -84,6 +84,14 @@ alter table public.kyc_submissions enable row level security;
 alter table public.plans           enable row level security;
 alter table public.countries       enable row level security;
 
+-- Drop-then-create so the script is safe to re-run.
+drop policy if exists "own profile"    on public.profiles;
+drop policy if exists "own numbers"    on public.numbers;
+drop policy if exists "own ports"      on public.ports;
+drop policy if exists "own kyc"        on public.kyc_submissions;
+drop policy if exists "read plans"     on public.plans;
+drop policy if exists "read countries" on public.countries;
+
 -- Own-row access for user data
 create policy "own profile"  on public.profiles        for all using (auth.uid() = id)      with check (auth.uid() = id);
 create policy "own numbers"  on public.numbers         for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
