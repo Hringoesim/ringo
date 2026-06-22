@@ -64,6 +64,13 @@ export async function initAuthBridge(onChange?: () => void): Promise<void> {
 }
 
 // ── auth ──────────────────────────────────────────────────────────────────────
+// Where the OAuth provider sends the user back. Use the app's own root URL so it
+// works on the GitHub Pages base path (/ringo/) and locally. This exact URL must
+// be added to Supabase → Authentication → URL Configuration → Redirect URLs.
+function oauthRedirect(): string {
+  return window.location.origin + import.meta.env.BASE_URL;
+}
+
 export const sbAuth = {
   async startEmailOtp(email: string): Promise<void> {
     const sb = await getSupabase();
@@ -81,7 +88,14 @@ export const sbAuth = {
   async google(): Promise<void> {
     const sb = await getSupabase();
     if (!sb) return;
-    await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
+    const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: oauthRedirect() } });
+    if (error) throw error;
+  },
+  async apple(): Promise<void> {
+    const sb = await getSupabase();
+    if (!sb) return;
+    const { error } = await sb.auth.signInWithOAuth({ provider: 'apple', options: { redirectTo: oauthRedirect() } });
+    if (error) throw error;
   },
   async signOut(): Promise<void> {
     const sb = await getSupabase();

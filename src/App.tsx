@@ -153,9 +153,13 @@ export function App({ theme, onToggleTheme }: AppProps) {
         <SignUpScreen
           mode={current.params.mode}
           onBack={pop}
-          onAppleSignIn={async () => { await auth.signInWithApple(); finishToHome(); }}
+          onAppleSignIn={async () => {
+            if (sb) { await sbAuth.apple(); return; } // real Apple OAuth (redirect)
+            await auth.signInWithApple();
+            finishToHome();
+          }}
           onGoogleSignIn={async () => {
-            if (sb) { await sbAuth.google(); return; } // redirect flow
+            if (sb) { await sbAuth.google(); return; } // real Google OAuth (redirect)
             try { await auth.signInWithGoogle(); } catch { /* cancelled */ }
             finishToHome();
           }}
