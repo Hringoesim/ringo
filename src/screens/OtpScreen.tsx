@@ -76,15 +76,15 @@ export function OtpScreen({ phone, devCode, onBack, onVerify, onResend }: OtpScr
             <circle cx="12" cy="17" r="1" fill={RC.inkStrong} />
           </svg>
         </div>
-        <div style={{ fontFamily: 'Poppins', fontSize: 30, fontWeight: 600, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1 }}>
+        <div style={{ fontFamily: 'var(--font)', fontSize: 30, fontWeight: 600, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1 }}>
           Enter the 6-digit code.
         </div>
-        <div style={{ marginTop: 8, fontFamily: 'Poppins', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
+        <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
           We just texted it to <strong style={{ color: RC.ink, fontWeight: 600 }}>{phone}</strong>. Code expires in 10 minutes.
         </div>
 
         {hint && (
-          <div style={{ marginTop: 14, padding: '10px 14px', borderRadius: 12, background: RC.cream, fontFamily: 'Poppins', fontSize: 12.5, color: RC.ink }}>
+          <div style={{ marginTop: 14, padding: '10px 14px', borderRadius: 12, background: RC.cream, fontFamily: 'var(--font)', fontSize: 12.5, color: RC.ink }}>
             <strong style={{ color: RC.inkStrong, fontWeight: 600 }}>Demo</strong> · no SMS gateway connected yet — your code is{' '}
             <strong style={{ color: RC.inkStrong, fontWeight: 700, letterSpacing: 1 }}>{hint}</strong>
           </div>
@@ -104,7 +104,7 @@ export function OtpScreen({ phone, devCode, onBack, onVerify, onResend }: OtpScr
               maxLength={1}
               style={{
                 height: 60, textAlign: 'center',
-                fontFamily: 'Poppins', fontSize: 24, fontWeight: 600, color: RC.ink,
+                fontFamily: 'var(--font)', fontSize: 24, fontWeight: 600, color: RC.ink,
                 background: RC.paper,
                 border: `1.5px solid ${error ? '#E5431A' : c ? RC.inkStrong : RC.line}`,
                 borderRadius: 14, outline: 'none', letterSpacing: -0.4,
@@ -114,12 +114,12 @@ export function OtpScreen({ phone, devCode, onBack, onVerify, onResend }: OtpScr
         </div>
 
         {error && (
-          <div style={{ marginTop: 12, fontFamily: 'Poppins', fontSize: 13, fontWeight: 500, color: '#E5431A', textAlign: 'center' }}>
+          <div style={{ marginTop: 12, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 500, color: '#E5431A', textAlign: 'center' }}>
             {error}
           </div>
         )}
 
-        <div style={{ marginTop: 16, fontFamily: 'Poppins', fontSize: 13, color: RC.inkMute, textAlign: 'center' }}>
+        <div style={{ marginTop: 16, fontFamily: 'var(--font)', fontSize: 13, color: RC.inkMute, textAlign: 'center' }}>
           Didn’t get it?{' '}
           <span onClick={resend} style={{ color: RC.inkStrong, fontWeight: 600, cursor: 'pointer' }}>Resend</span>
         </div>

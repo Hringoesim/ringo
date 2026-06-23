@@ -78,10 +78,10 @@ export function LockScreen({
           style={{ height: 48, width: 'auto', filter: `drop-shadow(0 14px 26px ${hexA(c2, 0.28)})` }}
         />
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontFamily: 'Poppins', fontSize: 13, fontWeight: 500, color: RC.inkMute, letterSpacing: 0.3 }}>
+          <div style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 500, color: RC.inkMute, letterSpacing: 0.3 }}>
             Welcome back
           </div>
-          <div style={{ fontFamily: 'Poppins', fontSize: 26, fontWeight: 600, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.1, marginTop: 2 }}>
+          <div style={{ fontFamily: 'var(--font)', fontSize: 26, fontWeight: 600, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.1, marginTop: 2 }}>
             {userName}
           </div>
         </div>
@@ -124,7 +124,7 @@ export function LockScreen({
             )}
           </div>
         </button>
-        <div style={{ fontFamily: 'Poppins', fontSize: 14, fontWeight: 500, color: RC.inkMute, height: 20 }}>
+        <div style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 500, color: RC.inkMute, height: 20 }}>
           {phase === 'idle' && 'Tap to unlock with Face ID'}
           {phase === 'scanning' && 'Looking for you…'}
           {phase === 'success' && 'Unlocked'}
@@ -138,7 +138,7 @@ export function LockScreen({
           style={{
             height: 50, border: `1.5px solid ${RC.lineStrong}`, background: 'transparent',
             borderRadius: 999, cursor: 'pointer',
-            fontFamily: 'Poppins', fontSize: 14, fontWeight: 600, color: RC.inkStrong,
+            fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, color: RC.inkStrong,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
           }}
         >
@@ -152,7 +152,7 @@ export function LockScreen({
           onClick={onSwitchAccount}
           style={{
             height: 44, border: 'none', background: 'transparent', cursor: 'pointer',
-            fontFamily: 'Poppins', fontSize: 13, fontWeight: 500, color: RC.inkMute,
+            fontFamily: 'var(--font)', fontSize: 13, fontWeight: 500, color: RC.inkMute,
           }}
         >
           Not {userName}? Sign in to another account

@@ -18,7 +18,7 @@ export function RingoWordmark({
     <span style={{ display: 'inline-flex', alignItems: 'baseline' }}>
       <span
         style={{
-          fontFamily: 'Poppins, system-ui',
+          fontFamily: 'var(--font)',
           fontWeight: 600, fontSize: size, letterSpacing: -0.5,
           lineHeight: 1, display: 'inline-flex', alignItems: 'baseline',
           background: gradient ? RC.grad : 'none',

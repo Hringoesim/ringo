@@ -8,6 +8,9 @@
   --line: rgba(230, 60, 40, 0.14);
   --line-strong: rgba(230, 60, 40, 0.24);
   --grad: linear-gradient(135deg, #ff5e1e 0%, #f5337e 50%, #e6249a 100%);
+  /* One place to set the whole app's typeface. Inter = clean & highly legible,
+     with a full system-sans fallback so text is NEVER a serif. */
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 * {
@@ -19,7 +22,7 @@ body {
   margin: 0;
   padding: 0;
   background: var(--bg);
-  font-family: 'Poppins', system-ui, sans-serif;
+  font-family: var(--font);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
 }

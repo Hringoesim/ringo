@@ -33,10 +33,10 @@ export function SignUpScreen({ onBack, onContinue, onSkipPhone, onAppleSignIn, o
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}>
           <img src={LOGO_SRC} alt="Ringo" style={{ height: 30, width: 'auto' }} />
         </div>
-        <div style={{ fontFamily: 'Poppins', fontSize: 30, fontWeight: 600, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1, textWrap: 'pretty' }}>
+        <div style={{ fontFamily: 'var(--font)', fontSize: 30, fontWeight: 600, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1, textWrap: 'pretty' }}>
           {login ? 'Log in to Ringo.' : 'Create your Ringo account.'}
         </div>
-        <div style={{ marginTop: 8, fontFamily: 'Poppins', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
+        <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
           {login
             ? 'Use the Apple, Google or email account you signed up with.'
             : 'One tap with Apple — straight to your dashboard. You can port your number whenever you’re ready.'}
@@ -49,7 +49,7 @@ export function SignUpScreen({ onBack, onContinue, onSkipPhone, onAppleSignIn, o
             marginTop: 24, width: '100%', height: 54, borderRadius: 14, border: 'none',
             background: RC.scheme === 'dark' ? '#FFFFFF' : '#000',
             color: RC.scheme === 'dark' ? '#000' : '#FFFFFF',
-            fontFamily: 'Poppins', fontSize: 15, fontWeight: 600, letterSpacing: -0.1,
+            fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, letterSpacing: -0.1,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer',
             boxShadow: '0 8px 22px -12px rgba(0,0,0,0.45)',
           }}
@@ -66,7 +66,7 @@ export function SignUpScreen({ onBack, onContinue, onSkipPhone, onAppleSignIn, o
           style={{
             marginTop: 10, width: '100%', height: 54, borderRadius: 14,
             border: `1.5px solid ${RC.lineStrong}`, background: RC.paper, color: RC.ink,
-            fontFamily: 'Poppins', fontSize: 15, fontWeight: 600, letterSpacing: -0.1,
+            fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, letterSpacing: -0.1,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer',
           }}
         >
@@ -82,7 +82,7 @@ export function SignUpScreen({ onBack, onContinue, onSkipPhone, onAppleSignIn, o
         <div
           style={{
             margin: '18px 0 4px', display: 'flex', alignItems: 'center', gap: 10,
-            fontFamily: 'Poppins', fontSize: 11, fontWeight: 600, color: RC.inkMute,
+            fontFamily: 'var(--font)', fontSize: 11, fontWeight: 600, color: RC.inkMute,
             letterSpacing: 0.6, textTransform: 'uppercase',
           }}
         >
@@ -107,7 +107,7 @@ export function SignUpScreen({ onBack, onContinue, onSkipPhone, onAppleSignIn, o
               style={{
                 height: 54, padding: '0 10px', borderRadius: 14,
                 border: `1.5px solid ${RC.line}`, background: RC.paper,
-                fontFamily: 'Poppins', fontSize: 15, fontWeight: 600, color: RC.ink,
+                fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, color: RC.ink,
                 outline: 'none', cursor: 'pointer',
               }}
             >
@@ -119,7 +119,7 @@ export function SignUpScreen({ onBack, onContinue, onSkipPhone, onAppleSignIn, o
               <Input value={phone} onChange={setPhone} placeholder="471 23 45 67" type="tel" inputMode="tel" />
             </div>
           </div>
-          <div style={{ marginTop: 8, fontFamily: 'Poppins', fontSize: 11.5, color: RC.inkMute, lineHeight: 1.5 }}>
+          <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 11.5, color: RC.inkMute, lineHeight: 1.5 }}>
             We’ll text a 6-digit code to verify it’s you.{' '}
             <strong style={{ color: RC.inkStrong, fontWeight: 600 }}>You can also skip</strong> and add or port a number later.
           </div>
@@ -141,7 +141,7 @@ export function SignUpScreen({ onBack, onContinue, onSkipPhone, onAppleSignIn, o
               </svg>
             )}
           </span>
-          <span style={{ fontFamily: 'Poppins', fontSize: 12, color: RC.inkMute, lineHeight: 1.5 }}>
+          <span style={{ fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute, lineHeight: 1.5 }}>
             I agree to Ringo’s <span style={{ color: RC.inkStrong, fontWeight: 600 }}>Terms</span> and{' '}
             <span style={{ color: RC.inkStrong, fontWeight: 600 }}>Privacy Policy</span>. I understand identity verification is required to activate an eSIM.
           </span>
@@ -166,7 +166,7 @@ export function SignUpScreen({ onBack, onContinue, onSkipPhone, onAppleSignIn, o
             onClick={() => onSkipPhone({ email })}
             style={{
               border: 'none', background: 'transparent', cursor: 'pointer',
-              fontFamily: 'Poppins', fontWeight: 500, fontSize: 13, color: RC.inkMute, height: 36,
+              fontFamily: 'var(--font)', fontWeight: 500, fontSize: 13, color: RC.inkMute, height: 36,
             }}
           >
             Skip — add or port a number later

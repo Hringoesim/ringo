@@ -19,7 +19,7 @@ export function RingoHeader({ title, leading, trailing }: RingoHeaderProps) {
       <div style={{ minWidth: 36 }}>{leading}</div>
       <div
         style={{
-          flex: 1, textAlign: 'center', fontFamily: 'Poppins',
+          flex: 1, textAlign: 'center', fontFamily: 'var(--font)',
           fontWeight: 600, fontSize: 16, color: RC.ink, letterSpacing: -0.2,
         }}
       >

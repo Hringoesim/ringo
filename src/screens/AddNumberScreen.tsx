@@ -28,16 +28,21 @@ interface AddNumberScreenProps {
 export function AddNumberScreen({ preselect, onBack, onContinue }: AddNumberScreenProps) {
   const initial = preselect && CO_BY_CODE[preselect]?.numberMarket ? preselect : 'GB';
   const [code, setCode] = useState(initial);
+  const [chosen, setChosen] = useState<string | null>(null);
   const c = CO_BY_CODE[code];
+  const selectCountry = (next: string) => {
+    setCode(next);
+    setChosen(null);
+  };
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <RingoHeader title="New Ringo number" leading={<BackBtn onClick={onBack} />} />
       <div style={{ padding: '0 20px' }}>
-        <div style={{ fontFamily: 'Poppins', fontSize: 28, fontWeight: 600, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15, textWrap: 'pretty' }}>
+        <div style={{ fontFamily: 'var(--font)', fontSize: 28, fontWeight: 600, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15, textWrap: 'pretty' }}>
           Pick a market for your new number.
         </div>
-        <div style={{ marginTop: 6, fontFamily: 'Poppins', fontSize: 13, color: RC.inkMute, lineHeight: 1.5 }}>
+        <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 13, color: RC.inkMute, lineHeight: 1.5 }}>
           Allocated instantly from Ringo’s number inventory.
         </div>
       </div>
@@ -49,7 +54,7 @@ export function AddNumberScreen({ preselect, onBack, onContinue }: AddNumberScre
             return (
               <div
                 key={co.code}
-                onClick={() => setCode(co.code)}
+                onClick={() => selectCountry(co.code)}
                 style={{
                   padding: 14, borderRadius: 18,
                   background: sel ? RC.gradSoft : RC.paper,
@@ -59,8 +64,8 @@ export function AddNumberScreen({ preselect, onBack, onContinue }: AddNumberScre
                 }}
               >
                 <div style={{ fontSize: 26 }}>{co.flag}</div>
-                <div style={{ marginTop: 8, fontFamily: 'Poppins', fontSize: 14, fontWeight: 600, color: RC.ink }}>{co.name}</div>
-                <div style={{ fontFamily: 'Poppins', fontSize: 11, color: RC.inkMute }}>+{dial(co.code)} · £3/mo</div>
+                <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, color: RC.ink }}>{co.name}</div>
+                <div style={{ fontFamily: 'var(--font)', fontSize: 11, color: RC.inkMute }}>+{dial(co.code)} · £3/mo</div>
               </div>
             );
           })}
@@ -71,10 +76,27 @@ export function AddNumberScreen({ preselect, onBack, onContinue }: AddNumberScre
           <RingoCard style={{ padding: '4px 0' }}>
             {sampleNumbers(code).map((s, idx) => {
               const num = `+${dial(code)} ${s}`;
+              const sel = chosen === num;
               return (
-                <div key={idx} style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', borderBottom: idx === 2 ? 'none' : `1px solid ${RC.line}` }}>
-                  <div style={{ flex: 1, fontFamily: 'Poppins', fontSize: 15, fontWeight: 600, color: RC.ink, letterSpacing: -0.2 }}>{num}</div>
-                  <div style={{ fontFamily: 'Poppins', fontSize: 12, fontWeight: 600, color: RC.inkStrong }}>Tap to claim</div>
+                <div
+                  key={idx}
+                  className="press"
+                  onClick={() => setChosen(num)}
+                  style={{
+                    display: 'flex', alignItems: 'center', padding: '14px 16px', cursor: 'pointer',
+                    background: sel ? RC.gradSoft : 'transparent',
+                    borderBottom: idx === 2 ? 'none' : `1px solid ${RC.line}`,
+                  }}
+                >
+                  <div style={{ flex: 1, fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, color: RC.ink, letterSpacing: -0.2 }}>{num}</div>
+                  {sel ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'var(--font)', fontSize: 12, fontWeight: 600, color: RC.inkStrong }}>
+                      <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="8" fill={RC.inkStrong} /><path d="M4.5 8.2l2.2 2.2 4.8-5" stroke="#FFFDFB" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                      Selected
+                    </span>
+                  ) : (
+                    <span style={{ fontFamily: 'var(--font)', fontSize: 12, fontWeight: 600, color: RC.inkMute }}>Tap to choose</span>
+                  )}
                 </div>
               );
             })}
@@ -89,10 +111,14 @@ export function AddNumberScreen({ preselect, onBack, onContinue }: AddNumberScre
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <div style={{ fontFamily: 'Poppins', fontSize: 13, color: RC.inkMute, fontWeight: 500 }}>{c.flag} {c.name} · monthly</div>
-          <div style={{ fontFamily: 'Poppins', fontSize: 18, fontWeight: 600, color: RC.ink }}>£3/mo</div>
+          <div style={{ fontFamily: 'var(--font)', fontSize: 13, color: RC.inkMute, fontWeight: 500 }}>
+            {chosen ? chosen : `${c.flag} ${c.name} · monthly`}
+          </div>
+          <div style={{ fontFamily: 'var(--font)', fontSize: 18, fontWeight: 600, color: RC.ink }}>£3/mo</div>
         </div>
-        <RingoButton onClick={() => onContinue(code)}>Claim my {c.name} number</RingoButton>
+        <RingoButton onClick={() => onContinue(code)}>
+          {chosen ? `Claim ${chosen}` : `Claim my ${c.name} number`}
+        </RingoButton>
       </div>
     </div>
   );

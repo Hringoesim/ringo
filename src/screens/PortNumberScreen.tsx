@@ -56,14 +56,14 @@ export function PortNumberScreen({ onBack, onContinue }: PortNumberScreenProps) 
 
         {step === 0 && (
           <>
-            <div style={{ fontFamily: 'Poppins', fontSize: 28, fontWeight: 600, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15, textWrap: 'pretty' }}>
+            <div style={{ fontFamily: 'var(--font)', fontSize: 28, fontWeight: 600, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15, textWrap: 'pretty' }}>
               What number do you want to bring?
             </div>
-            <div style={{ marginTop: 6, fontFamily: 'Poppins', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
+            <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
               We keep your number, your contacts and your iMessage. Number portability is regulated per country.
             </div>
             <div style={{ marginTop: 22 }}>
-              <div style={{ fontFamily: 'Poppins', fontSize: 11, fontWeight: 600, color: RC.inkMute, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 8 }}>
+              <div style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 600, color: RC.inkMute, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 8 }}>
                 Number market
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
@@ -79,7 +79,7 @@ export function PortNumberScreen({ onBack, onContinue }: PortNumberScreenProps) 
                         background: sel ? RC.gradSoft : RC.paper,
                         border: `1.5px solid ${sel ? 'transparent' : RC.line}`,
                         outline: sel ? `1.5px solid ${RC.inkStrong}` : 'none',
-                        fontFamily: 'Poppins', fontSize: 13, fontWeight: 600, color: RC.ink,
+                        fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.ink,
                       }}
                     >
                       <span>{m.flag}</span> {m.code}
@@ -87,20 +87,20 @@ export function PortNumberScreen({ onBack, onContinue }: PortNumberScreenProps) 
                   );
                 })}
               </div>
-              <div style={{ fontFamily: 'Poppins', fontSize: 11, fontWeight: 600, color: RC.inkMute, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 8 }}>
+              <div style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 600, color: RC.inkMute, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 8 }}>
                 Phone number
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 14px', height: 56, borderRadius: 14, background: RC.paper, border: `1.5px solid ${num ? RC.inkStrong : RC.line}` }}>
-                <span style={{ fontFamily: 'Poppins', fontSize: 18, fontWeight: 600, color: RC.inkMute }}>+{co.dial}</span>
+                <span style={{ fontFamily: 'var(--font)', fontSize: 18, fontWeight: 600, color: RC.inkMute }}>+{co.dial}</span>
                 <input
                   value={num}
                   onChange={(e) => setNum(e.target.value)}
                   placeholder="7700 900123"
                   inputMode="tel"
-                  style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontFamily: 'Poppins', fontSize: 18, fontWeight: 600, color: RC.ink, letterSpacing: -0.2 }}
+                  style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontFamily: 'var(--font)', fontSize: 18, fontWeight: 600, color: RC.ink, letterSpacing: -0.2 }}
                 />
               </div>
-              <div style={{ marginTop: 12, padding: 12, borderRadius: 12, background: RC.cream, fontFamily: 'Poppins', fontSize: 11.5, color: RC.ink, lineHeight: 1.5 }}>
+              <div style={{ marginTop: 12, padding: 12, borderRadius: 12, background: RC.cream, fontFamily: 'var(--font)', fontSize: 11.5, color: RC.ink, lineHeight: 1.5 }}>
                 <strong style={{ color: RC.inkStrong, fontWeight: 600 }}>{mnp?.regulator}</strong> · {mnp?.flow} · {mnp?.sla}
               </div>
             </div>
@@ -109,10 +109,10 @@ export function PortNumberScreen({ onBack, onContinue }: PortNumberScreenProps) 
 
         {step === 1 && (
           <>
-            <div style={{ fontFamily: 'Poppins', fontSize: 28, fontWeight: 600, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15 }}>
+            <div style={{ fontFamily: 'var(--font)', fontSize: 28, fontWeight: 600, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15 }}>
               Who’s your current carrier?
             </div>
-            <div style={{ marginTop: 6, fontFamily: 'Poppins', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
+            <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
               Pick the network that owns this number in {co.name} today.
             </div>
             <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -127,7 +127,7 @@ export function PortNumberScreen({ onBack, onContinue }: PortNumberScreenProps) 
                       background: sel ? RC.gradSoft : RC.paper,
                       border: `1.5px solid ${sel ? 'transparent' : RC.line}`,
                       outline: sel ? `1.5px solid ${RC.inkStrong}` : 'none',
-                      fontFamily: 'Poppins', fontSize: 13, fontWeight: 600, color: RC.ink,
+                      fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.ink,
                     }}
                   >
                     {c}
@@ -140,14 +140,14 @@ export function PortNumberScreen({ onBack, onContinue }: PortNumberScreenProps) 
 
         {step === 2 && needsPac && (
           <>
-            <div style={{ fontFamily: 'Poppins', fontSize: 28, fontWeight: 600, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15, textWrap: 'pretty' }}>
+            <div style={{ fontFamily: 'var(--font)', fontSize: 28, fontWeight: 600, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15, textWrap: 'pretty' }}>
               Enter your PAC code.
             </div>
-            <div style={{ marginTop: 6, fontFamily: 'Poppins', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
+            <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
               Text <strong style={{ color: RC.ink, fontWeight: 600 }}>PAC</strong> to 65075 from your {carrier || 'current'} phone, or ask in their app. {co.name} porting is {mnp?.flow}, regulated by {mnp?.regulator}.
             </div>
             <div style={{ marginTop: 22 }}>
-              <div style={{ fontFamily: 'Poppins', fontSize: 11, fontWeight: 600, color: RC.inkMute, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 8 }}>
+              <div style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 600, color: RC.inkMute, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 8 }}>
                 Porting Authorisation Code (PAC)
               </div>
               <input
@@ -158,11 +158,11 @@ export function PortNumberScreen({ onBack, onContinue }: PortNumberScreenProps) 
                   width: '100%', height: 56, padding: '0 14px',
                   border: `1.5px solid ${pac ? RC.inkStrong : RC.line}`, borderRadius: 14,
                   background: RC.paper, outline: 'none',
-                  fontFamily: 'Poppins', fontSize: 18, fontWeight: 600, color: RC.ink,
+                  fontFamily: 'var(--font)', fontSize: 18, fontWeight: 600, color: RC.ink,
                   letterSpacing: 3, textAlign: 'center', boxSizing: 'border-box',
                 }}
               />
-              <div style={{ marginTop: 14, padding: 14, borderRadius: 14, background: RC.cream, fontFamily: 'Poppins', fontSize: 12, color: RC.ink, lineHeight: 1.55 }}>
+              <div style={{ marginTop: 14, padding: 14, borderRadius: 14, background: RC.cream, fontFamily: 'var(--font)', fontSize: 12, color: RC.ink, lineHeight: 1.55 }}>
                 <strong style={{ color: RC.inkStrong, fontWeight: 600 }}>What happens next:</strong> we submit your PAC to {carrier || 'your carrier'} via the 1GLOBAL Connect API. Your old SIM keeps working until the switch — {mnp?.sla.toLowerCase()}.
               </div>
             </div>
@@ -171,10 +171,10 @@ export function PortNumberScreen({ onBack, onContinue }: PortNumberScreenProps) 
 
         {step === 2 && !needsPac && (
           <>
-            <div style={{ fontFamily: 'Poppins', fontSize: 28, fontWeight: 600, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15, textWrap: 'pretty' }}>
+            <div style={{ fontFamily: 'var(--font)', fontSize: 28, fontWeight: 600, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15, textWrap: 'pretty' }}>
               Confirm your port.
             </div>
-            <div style={{ marginTop: 6, fontFamily: 'Poppins', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
+            <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
               {co.name} is <strong style={{ color: RC.ink, fontWeight: 600 }}>{mnp?.flow}</strong> — no PAC needed. As your new provider, Ringo initiates the port with {co.mnp?.regulator} on your behalf.
             </div>
             <div style={{ marginTop: 18, padding: 16, borderRadius: 16, background: RC.paper, border: `1px solid ${RC.line}` }}>
@@ -184,7 +184,7 @@ export function PortNumberScreen({ onBack, onContinue }: PortNumberScreenProps) 
                 ['Market', `${co.flag} ${co.name}`],
                 ['Timing', mnp?.sla || ''],
               ].map(([k, v]) => (
-                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontFamily: 'Poppins', fontSize: 13 }}>
+                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontFamily: 'var(--font)', fontSize: 13 }}>
                   <span style={{ color: RC.inkMute }}>{k}</span>
                   <span style={{ color: RC.ink, fontWeight: 600, textAlign: 'right', maxWidth: '60%' }}>{v}</span>
                 </div>

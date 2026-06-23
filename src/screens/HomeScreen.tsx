@@ -35,7 +35,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
               <circle cx="11" cy="11" r="7" stroke={RC.inkMute} strokeWidth="2" />
               <path d="M20 20l-3-3" stroke={RC.inkMute} strokeWidth="2" strokeLinecap="round" />
             </svg>
-            <span style={{ fontFamily: 'Poppins', fontSize: 13, color: RC.inkMute, fontWeight: 500 }}>Search countries</span>
+            <span style={{ fontFamily: 'var(--font)', fontSize: 13, color: RC.inkMute, fontWeight: 500 }}>Search countries</span>
           </div>
           {/* avatar with tier ring */}
           <div
@@ -50,7 +50,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
               style={{
                 flex: 1, borderRadius: '50%', background: RC.paper,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: RC.inkStrong, fontFamily: 'Poppins', fontWeight: 600, fontSize: 13,
+                color: RC.inkStrong, fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13,
               }}
             >
               {state.name.charAt(0)}
@@ -60,8 +60,8 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
 
         {/* ── Greeting ────────────────────────────────────────── */}
         <div style={{ padding: '20px 20px 14px' }}>
-          <div style={{ fontFamily: 'Poppins', fontSize: 13, color: RC.inkMute, fontWeight: 500, letterSpacing: 0.2 }}>Good morning</div>
-          <div style={{ fontFamily: 'Poppins', fontSize: 30, fontWeight: 600, color: RC.ink, letterSpacing: -0.7, lineHeight: 1.05 }}>
+          <div style={{ fontFamily: 'var(--font)', fontSize: 13, color: RC.inkMute, fontWeight: 500, letterSpacing: 0.2 }}>Good morning</div>
+          <div style={{ fontFamily: 'var(--font)', fontSize: 30, fontWeight: 600, color: RC.ink, letterSpacing: -0.7, lineHeight: 1.05 }}>
             {state.name}{' '}
             <span style={{ background: `linear-gradient(135deg, ${tier.c1}, ${tier.c2})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>·</span>{' '}
             {tier.name}
@@ -90,10 +90,10 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
 
         {/* ── Active number (compact) ─────────────────────────── */}
         <div style={{ padding: '28px 20px 10px', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <div style={{ fontFamily: 'Poppins', fontSize: 18, fontWeight: 600, color: RC.ink, letterSpacing: -0.3 }}>Your numbers</div>
+          <div style={{ fontFamily: 'var(--font)', fontSize: 18, fontWeight: 600, color: RC.ink, letterSpacing: -0.3 }}>Your numbers</div>
           <button
             onClick={() => onNav('numbers')}
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 13, fontWeight: 600, color: RC.inkStrong }}
+            style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.inkStrong }}
           >
             Manage
           </button>
@@ -105,7 +105,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
         {/* ── KYC verification status ─────────────────────────── */}
         <div style={{ padding: '24px 20px 0' }}>
           <div
-            onClick={() => (kycDone ? undefined : onNav('kyc'))}
+            onClick={kycDone ? undefined : () => onNav('kyc')}
             style={{
               display: 'flex', alignItems: 'center', gap: 14, padding: 16,
               borderRadius: 20, background: RC.paper, border: `1px solid ${RC.line}`,
@@ -125,10 +125,10 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
               </svg>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontFamily: 'Poppins', fontSize: 14.5, fontWeight: 600, color: RC.ink, letterSpacing: -0.2 }}>
+              <div style={{ fontFamily: 'var(--font)', fontSize: 14.5, fontWeight: 600, color: RC.ink, letterSpacing: -0.2 }}>
                 {kycDone ? 'Identity verified' : state.kycStatus === 'in_review' ? 'Verification in review' : 'Finish identity check'}
               </div>
-              <div style={{ fontFamily: 'Poppins', fontSize: 12, color: RC.inkMute, fontWeight: 500 }}>
+              <div style={{ fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute, fontWeight: 500 }}>
                 {kycDone
                   ? 'You’re cleared to port & activate'
                   : state.kycStatus === 'in_review'
@@ -140,7 +140,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
               <div
                 style={{
                   padding: '6px 12px', borderRadius: 999, background: 'rgba(31,138,91,0.18)', color: '#37C285',
-                  fontFamily: 'Poppins', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
+                  fontFamily: 'var(--font)', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
                   display: 'flex', alignItems: 'center', gap: 5,
                 }}
               >
@@ -155,7 +155,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
                   padding: '6px 12px', borderRadius: 999,
                   background: state.kycStatus === 'in_review' ? RC.cream : RC.grad,
                   color: state.kycStatus === 'in_review' ? RC.inkStrong : '#FFFDFB',
-                  fontFamily: 'Poppins', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
+                  fontFamily: 'var(--font)', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
                 }}
               >
                 {state.kycStatus === 'in_review' ? 'Review' : 'Verify'}
@@ -166,10 +166,10 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
 
         {/* ── Discovery: trips ────────────────────────────────── */}
         <div style={{ padding: '28px 20px 10px', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <div style={{ fontFamily: 'Poppins', fontSize: 18, fontWeight: 600, color: RC.ink, letterSpacing: -0.3 }}>Where to next</div>
+          <div style={{ fontFamily: 'var(--font)', fontSize: 18, fontWeight: 600, color: RC.ink, letterSpacing: -0.3 }}>Where to next</div>
           <button
             onClick={() => onNav('browse')}
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'Poppins', fontSize: 13, fontWeight: 600, color: RC.inkStrong }}
+            style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.inkStrong }}
           >
             See all
           </button>
@@ -187,13 +187,13 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
             >
               <div style={{ fontSize: 28, lineHeight: 1 }}>{c.flag}</div>
               <div style={{ marginTop: 6 }}>
-                <div style={{ fontFamily: 'Poppins', fontSize: 14, fontWeight: 600, color: RC.ink, letterSpacing: -0.2 }}>{c.name}</div>
-                <div style={{ fontFamily: 'Poppins', fontSize: 11.5, color: RC.inkMute, fontWeight: 500 }}>{c.capital}</div>
+                <div style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, color: RC.ink, letterSpacing: -0.2 }}>{c.name}</div>
+                <div style={{ fontFamily: 'var(--font)', fontSize: 11.5, color: RC.inkMute, fontWeight: 500 }}>{c.capital}</div>
               </div>
               <div
                 style={{
                   marginTop: 4, alignSelf: 'flex-start',
-                  fontFamily: 'Poppins', fontSize: 10, fontWeight: 600, color: RC.inkStrong,
+                  fontFamily: 'var(--font)', fontSize: 10, fontWeight: 600, color: RC.inkStrong,
                   padding: '3px 8px', borderRadius: 999, background: RC.cream, letterSpacing: 0.2,
                 }}
               >
@@ -244,7 +244,7 @@ function TierCard({
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
             <path d="M12 2l2.6 5.6L21 8.3l-4.5 4.3L17.8 19 12 15.8 6.2 19l1.3-6.4L3 8.3l6.4-.7z" fill="#FFFDFB" fillOpacity="0.95" />
           </svg>
-          <span style={{ fontFamily: 'Poppins', fontSize: 12, fontWeight: 600, letterSpacing: 1.2, textTransform: 'uppercase', opacity: 0.92 }}>
+          <span style={{ fontFamily: 'var(--font)', fontSize: 12, fontWeight: 600, letterSpacing: 1.2, textTransform: 'uppercase', opacity: 0.92 }}>
             {tier.name} member
           </span>
         </div>
@@ -255,8 +255,8 @@ function TierCard({
 
       {/* Big metric */}
       <div style={{ position: 'relative', marginTop: 20, display: 'flex', alignItems: 'flex-end', gap: 10 }}>
-        <div style={{ fontFamily: 'Poppins', fontSize: 54, fontWeight: 700, letterSpacing: -2, lineHeight: 0.9 }}>{score}</div>
-        <div style={{ fontFamily: 'Poppins', fontSize: 13, fontWeight: 500, opacity: 0.9, paddingBottom: 8 }}>
+        <div style={{ fontFamily: 'var(--font)', fontSize: 54, fontWeight: 700, letterSpacing: -2, lineHeight: 0.9 }}>{score}</div>
+        <div style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 500, opacity: 0.9, paddingBottom: 8 }}>
           countries<br />this year
         </div>
       </div>
@@ -267,12 +267,12 @@ function TierCard({
           <div style={{ height: 7, borderRadius: 7, background: 'rgba(255,253,251,0.28)', overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${pct}%`, borderRadius: 7, background: '#FFFDFB' }} />
           </div>
-          <div style={{ marginTop: 8, fontFamily: 'Poppins', fontSize: 12, fontWeight: 500, opacity: 0.95 }}>
+          <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 12, fontWeight: 500, opacity: 0.95 }}>
             <strong style={{ fontWeight: 700 }}>{toNext} more</strong> to unlock {next.name} — {next.perk}
           </div>
         </div>
       ) : (
-        <div style={{ position: 'relative', marginTop: 16, fontFamily: 'Poppins', fontSize: 12, fontWeight: 500, opacity: 0.95 }}>
+        <div style={{ position: 'relative', marginTop: 16, fontFamily: 'var(--font)', fontSize: 12, fontWeight: 500, opacity: 0.95 }}>
           Top tier unlocked — {tier.perk}
         </div>
       )}
@@ -291,8 +291,8 @@ function MetricTile({ value, label, onClick }: { value: ReactNode; label: string
         display: 'flex', flexDirection: 'column', gap: 2,
       }}
     >
-      <div style={{ fontFamily: 'Poppins', fontSize: 24, fontWeight: 700, color: RC.inkStrong, letterSpacing: -0.6, lineHeight: 1 }}>{value}</div>
-      <div style={{ fontFamily: 'Poppins', fontSize: 11.5, fontWeight: 500, color: RC.inkMute }}>{label}</div>
+      <div style={{ fontFamily: 'var(--font)', fontSize: 24, fontWeight: 700, color: RC.inkStrong, letterSpacing: -0.6, lineHeight: 1 }}>{value}</div>
+      <div style={{ fontFamily: 'var(--font)', fontSize: 11.5, fontWeight: 500, color: RC.inkMute }}>{label}</div>
     </div>
   );
 }
@@ -314,8 +314,8 @@ function WalletCard({ n, count, onMore }: { n: PhoneNumber | undefined; count: n
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 24 }}>{n.flag}</span>
           <div>
-            <div style={{ fontFamily: 'Poppins', fontSize: 12, fontWeight: 500, color: RC.inkMute, letterSpacing: 0.2 }}>{n.country} · {n.tag}</div>
-            <div style={{ fontFamily: 'Poppins', fontSize: 20, fontWeight: 600, color: RC.ink, letterSpacing: -0.4, lineHeight: 1.2 }}>{n.number}</div>
+            <div style={{ fontFamily: 'var(--font)', fontSize: 12, fontWeight: 500, color: RC.inkMute, letterSpacing: 0.2 }}>{n.country} · {n.tag}</div>
+            <div style={{ fontFamily: 'var(--font)', fontSize: 20, fontWeight: 600, color: RC.ink, letterSpacing: -0.4, lineHeight: 1.2 }}>{n.number}</div>
           </div>
         </div>
         {/* eSIM glyph */}
@@ -325,11 +325,11 @@ function WalletCard({ n, count, onMore }: { n: PhoneNumber | undefined; count: n
         </svg>
       </div>
       <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${RC.line}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'Poppins', fontSize: 12, fontWeight: 500, color: RC.inkMute }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', fontSize: 12, fontWeight: 500, color: RC.inkMute }}>
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: n.active ? '#1F8A5B' : RC.cream2 }} />
           Main · calls, SMS &amp; codes
         </div>
-        <div style={{ fontFamily: 'Poppins', fontSize: 12, fontWeight: 600, color: RC.inkStrong, display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ fontFamily: 'var(--font)', fontSize: 12, fontWeight: 600, color: RC.inkStrong, display: 'flex', alignItems: 'center', gap: 4 }}>
           {count} numbers
           <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
             <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
@@ -394,7 +394,7 @@ function ActionChip({ label, icon, onClick }: { label: string; icon: ActionIcon;
       >
         {glyphs[icon]}
       </div>
-      <div style={{ fontFamily: 'Poppins', fontSize: 11, fontWeight: 600, color: RC.ink, letterSpacing: -0.1, textAlign: 'center', lineHeight: 1.2 }}>{label}</div>
+      <div style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 600, color: RC.ink, letterSpacing: -0.1, textAlign: 'center', lineHeight: 1.2 }}>{label}</div>
     </button>
   );
 }

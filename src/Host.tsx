@@ -112,7 +112,7 @@ function BrowserMockup({ theme, toggleTheme }: { theme: Scheme; toggleTheme: () 
       <div
         style={{
           position: 'absolute', top: 24, left: 28,
-          fontFamily: 'Poppins', fontWeight: 700, fontSize: 18,
+          fontFamily: 'var(--font)', fontWeight: 700, fontSize: 18,
           background: RC.grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
           letterSpacing: -0.4,
         }}
@@ -129,7 +129,7 @@ function BrowserMockup({ theme, toggleTheme }: { theme: Scheme; toggleTheme: () 
           border: `1px solid ${RC.scheme === 'dark' ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)'}`,
           background: RC.scheme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.7)',
           color: RC.scheme === 'dark' ? '#FBEDE6' : '#3A1605',
-          fontFamily: 'Poppins', fontSize: 12, fontWeight: 600,
+          fontFamily: 'var(--font)', fontSize: 12, fontWeight: 600,
           display: 'flex', alignItems: 'center', gap: 7, backdropFilter: 'blur(8px)',
         }}
       >

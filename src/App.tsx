@@ -145,6 +145,7 @@ export function App({ theme, onToggleTheme }: AppProps) {
         <LandingScreen
           onCreate={() => push('signup', { mode: 'create' })}
           onLogin={() => push('signup', { mode: 'login' })}
+          onDemo={() => { auth.signInDemo(); storeActions.syncIdentity(); replace('home'); }}
         />
       );
       break;

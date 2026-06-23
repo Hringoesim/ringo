@@ -43,10 +43,10 @@ export function InstallScreen({ onBack, onActivate }: { onBack: () => void; onAc
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <RingoHeader title="Install eSIM" leading={<BackBtn onClick={onBack} />} />
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '0 20px 130px' }}>
-        <div style={{ fontFamily: 'Poppins', fontSize: 28, fontWeight: 600, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15 }}>
+        <div style={{ fontFamily: 'var(--font)', fontSize: 28, fontWeight: 600, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15 }}>
           Two taps and you’re live.
         </div>
-        <div style={{ marginTop: 6, fontFamily: 'Poppins', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
+        <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
           Your profile is ready on Ringo’s SM-DP+. Scan this QR with another device, or install it on this iPhone via your eSIM (LPA).
         </div>
 
@@ -69,10 +69,10 @@ export function InstallScreen({ onBack, onActivate }: { onBack: () => void; onAc
                 boxShadow: '0 8px 18px -8px rgba(248,80,96,0.6)',
               }}
             >
-              <span style={{ color: '#FFFDFB', fontFamily: 'Poppins', fontWeight: 700, fontSize: 18 }}>R</span>
+              <span style={{ color: '#FFFDFB', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 18 }}>R</span>
             </div>
           </div>
-          <div style={{ marginTop: 14, fontFamily: 'Poppins', fontSize: 12, fontWeight: 500, color: RC.inkMute, letterSpacing: 0.4, textTransform: 'uppercase' }}>
+          <div style={{ marginTop: 14, fontFamily: 'var(--font)', fontSize: 12, fontWeight: 500, color: RC.inkMute, letterSpacing: 0.4, textTransform: 'uppercase' }}>
             SM-DP+ activation code · expires in 23h
           </div>
         </div>

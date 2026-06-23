@@ -65,11 +65,11 @@ export function ActivationScreen({ onDone }: { onDone: () => void }) {
           transition: 'all .5s ease-out',
         }}
       >
-        <div style={{ fontFamily: 'Poppins', fontSize: 32, fontWeight: 600, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1 }}>
+        <div style={{ fontFamily: 'var(--font)', fontSize: 32, fontWeight: 600, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1 }}>
           You’re on Ringo
           <span style={{ background: RC.grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>.</span>
         </div>
-        <div style={{ marginTop: 10, fontFamily: 'Poppins', fontSize: 15, color: RC.inkMute, lineHeight: 1.55 }}>
+        <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 15, color: RC.inkMute, lineHeight: 1.55 }}>
           Connected in the <strong style={{ color: RC.inkStrong, fontWeight: 600 }}>United Kingdom</strong>. Cross any border — we’ll switch automatically.
         </div>
       </div>

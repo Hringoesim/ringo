@@ -21,7 +21,7 @@ export function CountryScreen({ code, onNav, onBack, onAddCountry }: CountryScre
       <div style={{ position: 'relative', padding: '70px 20px 30px', background: `radial-gradient(500px 220px at 80% 0%, rgba(248,80,96,0.22), transparent 70%), ${RC.bg}` }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <BackBtn onClick={onBack} />
-          <div style={{ padding: '6px 12px', borderRadius: 999, background: RC.cream, fontFamily: 'Poppins', fontSize: 11, fontWeight: 600, color: RC.inkStrong, letterSpacing: 0.3 }}>
+          <div style={{ padding: '6px 12px', borderRadius: 999, background: RC.cream, fontFamily: 'var(--font)', fontSize: 11, fontWeight: 600, color: RC.inkStrong, letterSpacing: 0.3 }}>
             {c.region}
           </div>
         </div>
@@ -36,8 +36,8 @@ export function CountryScreen({ code, onNav, onBack, onAddCountry }: CountryScre
             {c.flag}
           </div>
           <div>
-            <div style={{ fontFamily: 'Poppins', fontSize: 32, fontWeight: 600, color: RC.ink, letterSpacing: -0.6, lineHeight: 1 }}>{c.name}</div>
-            <div style={{ marginTop: 4, fontFamily: 'Poppins', fontSize: 14, color: RC.inkMute }}>{c.capital} · {c.region}</div>
+            <div style={{ fontFamily: 'var(--font)', fontSize: 32, fontWeight: 600, color: RC.ink, letterSpacing: -0.6, lineHeight: 1 }}>{c.name}</div>
+            <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute }}>{c.capital} · {c.region}</div>
           </div>
         </div>
       </div>
@@ -52,8 +52,8 @@ export function CountryScreen({ code, onNav, onBack, onAddCountry }: CountryScre
               </svg>
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: 'Poppins', fontSize: 16, fontWeight: 600, color: RC.ink, letterSpacing: -0.2 }}>Included in your plan</div>
-              <div style={{ marginTop: 2, fontFamily: 'Poppins', fontSize: 13, color: RC.inkMute, lineHeight: 1.5 }}>
+              <div style={{ fontFamily: 'var(--font)', fontSize: 16, fontWeight: 600, color: RC.ink, letterSpacing: -0.2 }}>Included in your plan</div>
+              <div style={{ marginTop: 2, fontFamily: 'var(--font)', fontSize: 13, color: RC.inkMute, lineHeight: 1.5 }}>
                 Use {c.name} on your existing Ringo eSIM. No new install required.
               </div>
             </div>
@@ -79,15 +79,15 @@ export function CountryScreen({ code, onNav, onBack, onAddCountry }: CountryScre
                   {c.flag}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: 'Poppins', fontSize: 15, fontWeight: 600, color: RC.ink }}>+{dial(c.code)} number in {c.name}</div>
-                  <div style={{ fontFamily: 'Poppins', fontSize: 12, color: RC.inkMute }}>£3 / month · cancel any time</div>
+                  <div style={{ fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, color: RC.ink }}>+{dial(c.code)} number in {c.name}</div>
+                  <div style={{ fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute }}>£3 / month · cancel any time</div>
                 </div>
                 <button
                   onClick={() => onNav('addNumber', c.code)}
                   style={{
                     border: `1.5px solid ${RC.lineStrong}`, background: 'transparent',
                     padding: '8px 14px', borderRadius: 999, color: RC.inkStrong,
-                    fontFamily: 'Poppins', fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                    fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer',
                   }}
                 >
                   Add

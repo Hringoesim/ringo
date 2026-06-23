@@ -59,7 +59,7 @@ export function SaturnWorld({ size = 280 }: { size?: number }) {
         <ellipse cx={cx} cy={cy} rx={rx * 0.84} ry={ry * 0.84} fill="none" stroke="url(#saturnRing)" strokeWidth="1" strokeOpacity="0.25" />
       </svg>
 
-      {/* planet */}
+      {/* planet — meridians sweep with `spin` so it reads as a turning 3D globe */}
       <div
         style={{
           position: 'absolute', left: cx - planet / 2, top: cy - planet / 2,
@@ -67,7 +67,7 @@ export function SaturnWorld({ size = 280 }: { size?: number }) {
           boxShadow: `0 26px 60px -20px ${RC.pink}66`,
         }}
       >
-        <RingoGlobe size={planet} />
+        <RingoGlobe size={planet} spin={t * 1.1} />
       </div>
 
       {/* orbiting flags */}
@@ -83,6 +83,9 @@ export function SaturnWorld({ size = 280 }: { size?: number }) {
         const depth = (Math.sin(a) + 1) / 2; // 0 back … 1 front
         const scale = 0.62 + 0.5 * depth;
         const chip = 34;
+        const ring = chip + 9;
+        // Live ring spins continuously; alternate direction per flag for life.
+        const ringSpin = (t * 150 * (i % 2 ? -1 : 1)) % 360;
         return (
           <div
             key={i}
@@ -93,8 +96,24 @@ export function SaturnWorld({ size = 280 }: { size?: number }) {
               opacity: 0.5 + 0.5 * depth,
             }}
           >
+            {/* spinning live ring */}
+            <svg
+              width={ring} height={ring} viewBox={`0 0 ${ring} ${ring}`}
+              style={{
+                position: 'absolute', left: '50%', top: '50%',
+                transform: `translate(-50%,-50%) rotate(${ringSpin}deg)`,
+              }}
+            >
+              <circle
+                cx={ring / 2} cy={ring / 2} r={ring / 2 - 1.5}
+                fill="none" stroke="url(#saturnRing)" strokeWidth="2"
+                strokeLinecap="round" strokeDasharray={`${ring * 0.7} ${ring * 1.2}`}
+                strokeOpacity={0.5 + 0.5 * depth}
+              />
+            </svg>
             <div
               style={{
+                position: 'relative',
                 width: chip, height: chip, borderRadius: '50%',
                 background: RC.paper, border: `1px solid ${RC.line}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',

@@ -12,7 +12,7 @@ export function RingoStatusBar({ time = '9:41' }: { time?: string }) {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '18px 32px 8px', boxSizing: 'border-box',
         position: 'relative', zIndex: 20, width: '100%',
-        fontFamily: 'Poppins, system-ui',
+        fontFamily: 'var(--font)',
       }}
     >
       <span style={{ fontWeight: 600, fontSize: 16, color: c, letterSpacing: 0.2 }}>{time}</span>
@@ -70,7 +70,7 @@ export function RingoDevice({
         width, height, borderRadius: 54, position: 'relative', overflow: 'hidden',
         background: bg,
         boxShadow: frameShadow,
-        fontFamily: 'Poppins, system-ui, sans-serif',
+        fontFamily: 'var(--font)',
         WebkitFontSmoothing: 'antialiased',
       }}
     >

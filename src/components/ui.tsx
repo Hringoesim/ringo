@@ -25,7 +25,7 @@ export function FieldLabel({ children }: { children: ReactNode }) {
   return (
     <div
       style={{
-        fontFamily: 'Poppins', fontSize: 11, fontWeight: 600, color: RC.inkMute,
+        fontFamily: 'var(--font)', fontSize: 11, fontWeight: 600, color: RC.inkMute,
         letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 8,
       }}
     >
@@ -54,7 +54,7 @@ export function Input({ value, onChange, placeholder, type = 'text', inputMode }
         width: '100%', height: 54, padding: '0 16px', boxSizing: 'border-box',
         borderRadius: 14, background: RC.paper,
         border: `1.5px solid ${value ? RC.inkStrong : RC.line}`,
-        outline: 'none', fontFamily: 'Poppins', fontSize: 16, fontWeight: 500,
+        outline: 'none', fontFamily: 'var(--font)', fontSize: 16, fontWeight: 500,
         color: RC.ink, letterSpacing: -0.1,
       }}
     />
@@ -65,7 +65,7 @@ export function SectionTitle({ children, style = {} }: { children: ReactNode; st
   return (
     <div
       style={{
-        padding: '8px 0 10px', fontFamily: 'Poppins', fontSize: 11, fontWeight: 600,
+        padding: '8px 0 10px', fontFamily: 'var(--font)', fontSize: 11, fontWeight: 600,
         color: RC.inkMute, letterSpacing: 0.6, textTransform: 'uppercase', ...style,
       }}
     >
@@ -114,32 +114,44 @@ export function Row({
   title,
   sub,
   last,
+  onClick,
+  trailing,
+  active,
 }: {
   icon: RowIconKind;
   title: string;
   sub: string;
   last?: boolean;
+  onClick?: () => void;
+  trailing?: ReactNode;
+  active?: boolean;
 }) {
   return (
     <div
+      className={onClick ? 'press' : undefined}
+      onClick={onClick}
       style={{
         display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px',
         borderBottom: last ? 'none' : `1px solid ${RC.line}`,
+        cursor: onClick ? 'pointer' : 'default',
+        background: active ? RC.cream : 'transparent',
       }}
     >
       <div
         style={{
-          width: 36, height: 36, borderRadius: 12, background: RC.cream,
+          width: 36, height: 36, borderRadius: 12,
+          background: active ? RC.grad : RC.cream,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: RC.inkStrong,
+          color: active ? '#FFFDFB' : RC.inkStrong,
         }}
       >
         {rowIcon(icon)}
       </div>
       <div style={{ flex: 1 }}>
-        <div style={{ fontFamily: 'Poppins', fontSize: 14, fontWeight: 600, color: RC.ink }}>{title}</div>
-        <div style={{ fontFamily: 'Poppins', fontSize: 12, color: RC.inkMute }}>{sub}</div>
+        <div style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, color: RC.ink }}>{title}</div>
+        <div style={{ fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute }}>{sub}</div>
       </div>
+      {trailing}
     </div>
   );
 }
@@ -165,15 +177,15 @@ export function Step({
       <div
         style={{
           width: 30, height: 30, borderRadius: '50%', background: RC.grad,
-          color: '#FFFDFB', fontFamily: 'Poppins', fontWeight: 700, fontSize: 14,
+          color: '#FFFDFB', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 14,
           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
         }}
       >
         {num}
       </div>
       <div>
-        <div style={{ fontFamily: 'Poppins', fontSize: 14, fontWeight: 600, color: RC.ink }}>{title}</div>
-        <div style={{ fontFamily: 'Poppins', fontSize: 12, color: RC.inkMute }}>{sub}</div>
+        <div style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, color: RC.ink }}>{title}</div>
+        <div style={{ fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute }}>{sub}</div>
       </div>
     </div>
   );

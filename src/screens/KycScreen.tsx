@@ -57,13 +57,13 @@ export function KycScreen({ onBack, onContinue }: KycScreenProps) {
       </div>
 
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '18px 24px 16px' }}>
-        <div style={{ fontFamily: 'Poppins', fontSize: 11, fontWeight: 600, color: RC.inkStrong, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 10 }}>
+        <div style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 600, color: RC.inkStrong, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 10 }}>
           Step {step + 1} of 4
         </div>
-        <div style={{ fontFamily: 'Poppins', fontSize: 28, fontWeight: 600, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15, textWrap: 'pretty' }}>
+        <div style={{ fontFamily: 'var(--font)', fontSize: 28, fontWeight: 600, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15, textWrap: 'pretty' }}>
           {titles[step]}
         </div>
-        <div style={{ marginTop: 8, fontFamily: 'Poppins', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>{subs[step]}</div>
+        <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>{subs[step]}</div>
 
         <div style={{ marginTop: 24 }}>
           {step === 0 && (
@@ -79,7 +79,7 @@ export function KycScreen({ onBack, onContinue }: KycScreenProps) {
             <>
               <FieldLabel>Date of birth</FieldLabel>
               <Input value={dob} onChange={setDob} placeholder="DD / MM / YYYY" inputMode="numeric" />
-              <div style={{ marginTop: 14, padding: 14, borderRadius: 14, background: RC.cream, fontFamily: 'Poppins', fontSize: 12, color: RC.ink, lineHeight: 1.5 }}>
+              <div style={{ marginTop: 14, padding: 14, borderRadius: 14, background: RC.cream, fontFamily: 'var(--font)', fontSize: 12, color: RC.ink, lineHeight: 1.5 }}>
                 <strong style={{ color: RC.inkStrong, fontWeight: 600 }}>Why we ask:</strong> we’re required by every country’s telecom regulator to confirm you’re 18+. We never share your DOB with third parties.
               </div>
             </>
@@ -115,8 +115,8 @@ export function KycScreen({ onBack, onContinue }: KycScreenProps) {
                       </svg>
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontFamily: 'Poppins', fontSize: 15, fontWeight: 600, color: RC.ink }}>{d.label}</div>
-                      <div style={{ fontFamily: 'Poppins', fontSize: 12, color: RC.inkMute }}>{d.sub}</div>
+                      <div style={{ fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, color: RC.ink }}>{d.label}</div>
+                      <div style={{ fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute }}>{d.sub}</div>
                     </div>
                     <div
                       style={{
@@ -185,10 +185,10 @@ export function KycScreen({ onBack, onContinue }: KycScreenProps) {
                   </svg>
                 )}
               </div>
-              <div style={{ marginTop: 14, fontFamily: 'Poppins', fontSize: 15, fontWeight: 600, color: RC.ink }}>
+              <div style={{ marginTop: 14, fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, color: RC.ink }}>
                 {uploaded ? 'Looks good — we got it.' : 'Tap to take a photo'}
               </div>
-              <div style={{ marginTop: 4, fontFamily: 'Poppins', fontSize: 12, color: RC.inkMute, lineHeight: 1.5, padding: '0 12px' }}>
+              <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute, lineHeight: 1.5, padding: '0 12px' }}>
                 {uploaded
                   ? 'Encrypted upload complete. We’ll review it in under 5 minutes.'
                   : 'Make sure all four corners of the ID are visible and the text is readable.'}
@@ -208,7 +208,7 @@ export function KycScreen({ onBack, onContinue }: KycScreenProps) {
             <path d="M12 3l8 3v6c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V6l8-3z" stroke={RC.inkStrong} strokeWidth="2" strokeLinejoin="round" />
             <path d="M9 12l2 2 4-4" stroke={RC.inkStrong} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          <div style={{ fontFamily: 'Poppins', fontSize: 11.5, color: RC.ink, lineHeight: 1.5 }}>
+          <div style={{ fontFamily: 'var(--font)', fontSize: 11.5, color: RC.ink, lineHeight: 1.5 }}>
             Encrypted in transit and at rest. We use a regulated KYC partner (Onfido). Your ID is never used for marketing.
           </div>
         </div>
@@ -236,7 +236,7 @@ export function KycScreen({ onBack, onContinue }: KycScreenProps) {
             onClick={() => onContinue()}
             style={{
               border: 'none', background: 'transparent', cursor: 'pointer',
-              fontFamily: 'Poppins', fontWeight: 500, fontSize: 13, color: RC.inkMute, height: 36,
+              fontFamily: 'var(--font)', fontWeight: 500, fontSize: 13, color: RC.inkMute, height: 36,
             }}
           >
             I’ll verify later

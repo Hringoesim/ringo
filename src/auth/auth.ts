@@ -177,6 +177,12 @@ export function signInEmailOnly(email: string): RingoSession {
   return createSession({ email, name: nameFromEmail(email), provider: 'email' });
 }
 
+/** Instant demo session — drops straight into the populated app, no email/OTP.
+ *  Lets the product be shown end-to-end live without waiting on a code. */
+export function signInDemo(): RingoSession {
+  return createSession({ email: 'marie@ringoesim.com', name: 'Marie', provider: 'email', onboarded: true });
+}
+
 // ── OAuth providers ───────────────────────────────────────────────────────────
 // Real Apple/Google OAuth requires registered client IDs + redirect/origin
 // config. When `googleClientId` is set we use Google Identity Services; otherwise

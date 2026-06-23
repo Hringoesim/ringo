@@ -15,10 +15,10 @@ export function NumbersScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => v
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <RingoHeader title="Numbers" leading={<BackBtn onClick={onBack} />} />
       <div style={{ padding: '0 20px' }}>
-        <div style={{ fontFamily: 'Poppins', fontSize: 30, fontWeight: 600, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1 }}>
+        <div style={{ fontFamily: 'var(--font)', fontSize: 30, fontWeight: 600, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1 }}>
           Your <span style={{ background: RC.grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>identity</span>, your call.
         </div>
-        <div style={{ marginTop: 6, fontFamily: 'Poppins', fontSize: 14, color: RC.inkMute, fontWeight: 400, lineHeight: 1.5 }}>
+        <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, fontWeight: 400, lineHeight: 1.5 }}>
           Your <strong style={{ color: RC.ink, fontWeight: 600 }}>main</strong> number handles calls and texts. The others stay live in the background to receive your verification codes.
         </div>
       </div>
@@ -51,11 +51,11 @@ export function NumbersScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => v
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontFamily: 'Poppins', fontSize: 13, fontWeight: 500, color: isActive ? 'rgba(255,253,251,0.85)' : RC.inkMute }}>{n.country}</span>
+                    <span style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 500, color: isActive ? 'rgba(255,253,251,0.85)' : RC.inkMute }}>{n.country}</span>
                     <span
                       style={{
                         padding: '2px 8px', borderRadius: 999,
-                        fontFamily: 'Poppins', fontSize: 9.5, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase',
+                        fontFamily: 'var(--font)', fontSize: 9.5, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase',
                         background: n.status === 'porting'
                           ? 'rgba(240,128,56,0.18)'
                           : isActive ? 'rgba(255,253,251,0.24)' : RC.cream,
@@ -65,7 +65,7 @@ export function NumbersScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => v
                       {n.status === 'porting' ? 'Porting' : isActive ? 'Main' : 'Background'}
                     </span>
                   </div>
-                  <div style={{ fontFamily: 'Poppins', fontSize: 18, fontWeight: 600, letterSpacing: -0.3 }}>{n.number}</div>
+                  <div style={{ fontFamily: 'var(--font)', fontSize: 18, fontWeight: 600, letterSpacing: -0.3 }}>{n.number}</div>
                 </div>
                 <div
                   style={{
@@ -82,7 +82,7 @@ export function NumbersScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => v
               <div
                 style={{
                   marginTop: 14, display: 'flex', alignItems: 'center', gap: 8,
-                  fontFamily: 'Poppins', fontSize: 12, fontWeight: 500,
+                  fontFamily: 'var(--font)', fontSize: 12, fontWeight: 500,
                   color: isActive ? 'rgba(255,253,251,0.92)' : RC.inkMute,
                 }}
               >
@@ -100,7 +100,7 @@ export function NumbersScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => v
                       padding: '5px 10px', borderRadius: 999,
                       background: isActive ? 'rgba(255,253,251,0.2)' : RC.cream,
                       color: isActive ? '#FFFDFB' : RC.inkStrong,
-                      fontFamily: 'Poppins', fontSize: 11, fontWeight: 600,
+                      fontFamily: 'var(--font)', fontSize: 11, fontWeight: 600,
                     }}
                   >
                     {t}
@@ -120,8 +120,8 @@ export function NumbersScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => v
               <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
             </svg>
           </div>
-          <div style={{ marginTop: 10, fontFamily: 'Poppins', fontSize: 15, fontWeight: 600, color: RC.ink }}>Add a new number</div>
-          <div style={{ fontFamily: 'Poppins', fontSize: 12, color: RC.inkMute }}>Local numbers from $3 / month</div>
+          <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, color: RC.ink }}>Add a new number</div>
+          <div style={{ fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute }}>Local numbers from $3 / month</div>
         </div>
 
         {/* Port your number — bring your existing number to Ringo */}
@@ -140,8 +140,8 @@ export function NumbersScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => v
             </svg>
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: 'Poppins', fontSize: 15, fontWeight: 600, color: RC.ink }}>Port your number</div>
-            <div style={{ fontFamily: 'Poppins', fontSize: 12, color: RC.inkMute }}>Bring your existing number to Ringo · free</div>
+            <div style={{ fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, color: RC.ink }}>Port your number</div>
+            <div style={{ fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute }}>Bring your existing number to Ringo · free</div>
           </div>
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
             <path d="M6 3l5 5-5 5" stroke={RC.inkStrong} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />

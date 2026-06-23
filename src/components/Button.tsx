@@ -24,7 +24,7 @@ export function RingoButton({
 }: RingoButtonProps) {
   const base: CSSProperties = {
     border: 'none', cursor: disabled ? 'not-allowed' : 'pointer',
-    fontFamily: 'Poppins', fontWeight: 600,
+    fontFamily: 'var(--font)', fontWeight: 600,
     fontSize: size === 'lg' ? 16 : 14, letterSpacing: -0.1,
     height: size === 'lg' ? 56 : 44,
     padding: '0 22px',

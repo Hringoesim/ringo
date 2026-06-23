@@ -4,7 +4,7 @@ import { RingoButton } from '../components/Button';
 import { SaturnWorld } from '../components/SaturnWorld';
 import { LOGO_SRC } from '../assets';
 
-export function LandingScreen({ onCreate, onLogin }: { onCreate: () => void; onLogin: () => void }) {
+export function LandingScreen({ onCreate, onLogin, onDemo }: { onCreate: () => void; onLogin: () => void; onDemo?: () => void }) {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
       <div
@@ -21,7 +21,7 @@ export function LandingScreen({ onCreate, onLogin }: { onCreate: () => void; onL
 
         <div
           style={{
-            marginTop: 4, fontFamily: 'Poppins', fontSize: 34, fontWeight: 600,
+            marginTop: 4, fontFamily: 'var(--font)', fontSize: 34, fontWeight: 600,
             color: RC.ink, letterSpacing: -1, lineHeight: 1.05, textWrap: 'balance',
           }}
         >
@@ -30,7 +30,7 @@ export function LandingScreen({ onCreate, onLogin }: { onCreate: () => void; onL
             every country.
           </span>
         </div>
-        <div style={{ marginTop: 10, fontFamily: 'Poppins', fontSize: 14, color: RC.inkMute, lineHeight: 1.55, maxWidth: 280 }}>
+        <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.55, maxWidth: 280 }}>
           180+ countries on one eSIM. Keep your number, stay connected everywhere.
         </div>
       </div>
@@ -42,11 +42,23 @@ export function LandingScreen({ onCreate, onLogin }: { onCreate: () => void; onL
           style={{
             width: '100%', height: 52, borderRadius: 999, cursor: 'pointer',
             border: `1.5px solid ${RC.lineStrong}`, background: 'transparent', color: RC.inkStrong,
-            fontFamily: 'Poppins', fontSize: 15, fontWeight: 600,
+            fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600,
           }}
         >
           Log in
         </button>
+        {onDemo && (
+          <button
+            onClick={onDemo}
+            style={{
+              marginTop: 2, width: '100%', height: 40, cursor: 'pointer',
+              border: 'none', background: 'transparent', color: RC.inkMute,
+              fontFamily: 'var(--font)', fontSize: 13, fontWeight: 500,
+            }}
+          >
+            or explore the live demo →
+          </button>
+        )}
       </div>
     </div>
   );

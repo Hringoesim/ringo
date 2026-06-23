@@ -75,7 +75,7 @@ export function RingoTabBar({
               border: 'none', background: 'none', padding: 0, cursor: 'pointer',
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
               color: on ? RC.inkStrong : RC.inkMute,
-              fontFamily: 'Poppins', fontSize: 11, fontWeight: on ? 600 : 500,
+              fontFamily: 'var(--font)', fontSize: 11, fontWeight: on ? 600 : 500,
               transition: 'color .2s ease',
             }}
           >

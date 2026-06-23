@@ -22,6 +22,14 @@ export function PlanScreen({ onBack, onInstall, onSwitchPlan }: PlanScreenProps)
   const cur = PLANS.find((p) => p.id === selected) || PLANS[0];
   const isCurrent = (id: string) => id === currentId;
 
+  const ADDONS = [
+    { id: 'ie-number', icon: 'call' as const, title: 'Extra Ireland number', sub: 'A second local number · +£3/mo' },
+    { id: 'tether', icon: 'hotspot' as const, title: 'Office tether', sub: 'Unlimited tethering · +£5/mo' },
+    { id: 'always5g', icon: 'speed' as const, title: 'Always 5G', sub: 'Skip fair-use throttle · +£9/mo' },
+  ];
+  const [addons, setAddons] = useState<Record<string, boolean>>({});
+  const toggleAddon = (id: string) => setAddons((a) => ({ ...a, [id]: !a[id] }));
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <RingoHeader title="Plan" leading={<BackBtn onClick={onBack} />} />
@@ -34,23 +42,23 @@ export function PlanScreen({ onBack, onInstall, onSwitchPlan }: PlanScreenProps)
 
           <div style={{ position: 'relative' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ fontFamily: 'Poppins', fontSize: 13, fontWeight: 500, opacity: 0.85 }}>Ringo {cur.name}</div>
+              <div style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 500, opacity: 0.85 }}>Ringo {cur.name}</div>
               {isCurrent(cur.id) && (
-                <span style={{ padding: '3px 9px', borderRadius: 999, background: 'rgba(255,253,251,0.24)', fontFamily: 'Poppins', fontSize: 10, fontWeight: 600, letterSpacing: 0.3 }}>Current</span>
+                <span style={{ padding: '3px 9px', borderRadius: 999, background: 'rgba(255,253,251,0.24)', fontFamily: 'var(--font)', fontSize: 10, fontWeight: 600, letterSpacing: 0.3 }}>Current</span>
               )}
             </div>
             <div style={{ marginTop: 8, display: 'flex', alignItems: 'baseline', gap: 6 }}>
-              <span style={{ fontFamily: 'Poppins', fontSize: 64, fontWeight: 700, letterSpacing: -2, lineHeight: 1 }}>£{cur.price}</span>
-              <span style={{ fontFamily: 'Poppins', fontSize: 15, fontWeight: 500, opacity: 0.85 }}>/ month</span>
+              <span style={{ fontFamily: 'var(--font)', fontSize: 64, fontWeight: 700, letterSpacing: -2, lineHeight: 1 }}>£{cur.price}</span>
+              <span style={{ fontFamily: 'var(--font)', fontSize: 15, fontWeight: 500, opacity: 0.85 }}>/ month</span>
             </div>
-            <div style={{ marginTop: 10, fontFamily: 'Poppins', fontSize: 14, fontWeight: 400, opacity: 0.9, lineHeight: 1.5 }}>
+            <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 14, fontWeight: 400, opacity: 0.9, lineHeight: 1.5 }}>
               {cur.highspeed === 'Unlimited'
                 ? 'Truly unlimited high-speed data in 180+ countries. No fair-use throttle. Cancel any time.'
                 : `${cur.highspeed} high-speed data in 180+ countries, then unlimited at standard speed. Cancel any time.`}
             </div>
             <div style={{ marginTop: 18, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {[cur.highspeed === 'Unlimited' ? 'Unlimited 5G' : `${cur.highspeed} high-speed`, '180+ countries', 'Multi-number'].map((t) => (
-                <div key={t} style={{ padding: '6px 12px', borderRadius: 999, background: 'rgba(255,253,251,0.22)', fontFamily: 'Poppins', fontSize: 12, fontWeight: 600 }}>{t}</div>
+                <div key={t} style={{ padding: '6px 12px', borderRadius: 999, background: 'rgba(255,253,251,0.22)', fontFamily: 'var(--font)', fontSize: 12, fontWeight: 600 }}>{t}</div>
               ))}
             </div>
           </div>
@@ -92,21 +100,21 @@ export function PlanScreen({ onBack, onInstall, onSwitchPlan }: PlanScreenProps)
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontFamily: 'Poppins', fontSize: 16, fontWeight: 600, color: RC.ink, letterSpacing: -0.2 }}>{p.name}</span>
+                        <span style={{ fontFamily: 'var(--font)', fontSize: 16, fontWeight: 600, color: RC.ink, letterSpacing: -0.2 }}>{p.name}</span>
                         {p.popular && (
-                          <span style={{ padding: '2px 8px', borderRadius: 999, background: RC.grad, color: '#FFFDFB', fontFamily: 'Poppins', fontSize: 9.5, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase' }}>Popular</span>
+                          <span style={{ padding: '2px 8px', borderRadius: 999, background: RC.grad, color: '#FFFDFB', fontFamily: 'var(--font)', fontSize: 9.5, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase' }}>Popular</span>
                         )}
                         {isCurrent(p.id) && (
-                          <span style={{ padding: '2px 8px', borderRadius: 999, background: RC.cream, color: RC.inkStrong, fontFamily: 'Poppins', fontSize: 9.5, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase' }}>Current</span>
+                          <span style={{ padding: '2px 8px', borderRadius: 999, background: RC.cream, color: RC.inkStrong, fontFamily: 'var(--font)', fontSize: 9.5, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase' }}>Current</span>
                         )}
                       </div>
-                      <div style={{ fontFamily: 'Poppins', fontSize: 12.5, color: RC.inkMute, fontWeight: 500, marginTop: 1 }}>
+                      <div style={{ fontFamily: 'var(--font)', fontSize: 12.5, color: RC.inkMute, fontWeight: 500, marginTop: 1 }}>
                         {p.highspeed === 'Unlimited' ? 'Unlimited high-speed' : `${p.highspeed} high-speed`} · {p.tagline}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontFamily: 'Poppins', fontSize: 20, fontWeight: 700, color: RC.inkStrong, letterSpacing: -0.5, lineHeight: 1 }}>£{p.price}</div>
-                      <div style={{ fontFamily: 'Poppins', fontSize: 10.5, color: RC.inkMute, fontWeight: 500 }}>/mo</div>
+                      <div style={{ fontFamily: 'var(--font)', fontSize: 20, fontWeight: 700, color: RC.inkStrong, letterSpacing: -0.5, lineHeight: 1 }}>£{p.price}</div>
+                      <div style={{ fontFamily: 'var(--font)', fontSize: 10.5, color: RC.inkMute, fontWeight: 500 }}>/mo</div>
                     </div>
                   </div>
                   {sel && (
@@ -116,7 +124,7 @@ export function PlanScreen({ onBack, onInstall, onSwitchPlan }: PlanScreenProps)
                           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
                             <path d="M5 13l4 4L19 7" stroke={RC.inkStrong} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
-                          <span style={{ fontFamily: 'Poppins', fontSize: 13, fontWeight: 500, color: RC.ink }}>{f}</span>
+                          <span style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 500, color: RC.ink }}>{f}</span>
                         </div>
                       ))}
                     </div>
@@ -146,14 +154,14 @@ export function PlanScreen({ onBack, onInstall, onSwitchPlan }: PlanScreenProps)
                 }}
               >
                 <div style={{ width: 62, height: 62, borderRadius: '50%', background: RC.paper, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  <div style={{ fontFamily: 'Poppins', fontSize: 20, fontWeight: 700, color: RC.inkStrong, lineHeight: 1 }}>34%</div>
-                  <div style={{ fontFamily: 'Poppins', fontSize: 9, fontWeight: 500, color: RC.inkMute }}>fair-use</div>
+                  <div style={{ fontFamily: 'var(--font)', fontSize: 20, fontWeight: 700, color: RC.inkStrong, lineHeight: 1 }}>34%</div>
+                  <div style={{ fontFamily: 'var(--font)', fontSize: 9, fontWeight: 500, color: RC.inkMute }}>fair-use</div>
                 </div>
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: 'Poppins', fontSize: 14, fontWeight: 600, color: RC.ink }}>You’re flying.</div>
-                <div style={{ fontFamily: 'Poppins', fontSize: 12, color: RC.inkMute, lineHeight: 1.5, marginTop: 2 }}>At this rate, you’ll stay at high speed all month.</div>
-                <div style={{ marginTop: 8, fontFamily: 'Poppins', fontSize: 11, color: RC.inkMute }}>Renews May 28 · Visa •• 4242</div>
+                <div style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, color: RC.ink }}>You’re flying.</div>
+                <div style={{ fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute, lineHeight: 1.5, marginTop: 2 }}>At this rate, you’ll stay at high speed all month.</div>
+                <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 11, color: RC.inkMute }}>Renews May 28 · Visa •• 4242</div>
               </div>
             </div>
           </RingoCard>
@@ -162,9 +170,36 @@ export function PlanScreen({ onBack, onInstall, onSwitchPlan }: PlanScreenProps)
         <div style={{ marginTop: 22 }}>
           <SectionTitle>Add-ons</SectionTitle>
           <RingoCard style={{ padding: 0 }}>
-            <Row icon="call" title="Extra Ireland number" sub="Already on your plan · £3/mo" />
-            <Row icon="hotspot" title="Office tether" sub="Unlimited tethering · +£5/mo" />
-            <Row icon="speed" title="Always 5G" sub="Skip fair-use throttle · +£9/mo" last />
+            {ADDONS.map((a, i) => {
+              const on = !!addons[a.id];
+              return (
+                <Row
+                  key={a.id}
+                  icon={a.icon}
+                  title={a.title}
+                  sub={a.sub}
+                  last={i === ADDONS.length - 1}
+                  active={on}
+                  onClick={() => toggleAddon(a.id)}
+                  trailing={
+                    <span
+                      style={{
+                        width: 46, height: 28, borderRadius: 999, flexShrink: 0, position: 'relative',
+                        background: on ? RC.grad : RC.line, transition: 'background 160ms ease',
+                      }}
+                    >
+                      <span
+                        style={{
+                          position: 'absolute', top: 3, left: on ? 21 : 3, width: 22, height: 22,
+                          borderRadius: '50%', background: '#FFFDFB', transition: 'left 160ms ease',
+                          boxShadow: '0 2px 6px -1px rgba(0,0,0,0.3)',
+                        }}
+                      />
+                    </span>
+                  }
+                />
+              );
+            })}
           </RingoCard>
         </div>
 
@@ -178,10 +213,10 @@ export function PlanScreen({ onBack, onInstall, onSwitchPlan }: PlanScreenProps)
             ].map((r, i, arr) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', borderBottom: i === arr.length - 1 ? 'none' : `1px solid ${RC.line}` }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: 'Poppins', fontSize: 14, fontWeight: 600, color: RC.ink }}>{r.t}</div>
-                  <div style={{ fontFamily: 'Poppins', fontSize: 12, color: RC.inkMute }}>{r.d}</div>
+                  <div style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, color: RC.ink }}>{r.t}</div>
+                  <div style={{ fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute }}>{r.d}</div>
                 </div>
-                <div style={{ fontFamily: 'Poppins', fontSize: 14, fontWeight: 600, color: RC.inkStrong }}>{r.a}</div>
+                <div style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, color: RC.inkStrong }}>{r.a}</div>
               </div>
             ))}
           </RingoCard>

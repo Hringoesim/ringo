@@ -32,10 +32,10 @@ export function NumberSetupScreen({ onNewNumber, onPortIn, onSkip }: NumberSetup
             <circle cx="12" cy="17.5" r="1" fill="#FFFDFB" />
           </svg>
         </div>
-        <div style={{ fontFamily: 'Poppins', fontSize: 30, fontWeight: 600, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.15, textWrap: 'pretty' }}>
+        <div style={{ fontFamily: 'var(--font)', fontSize: 30, fontWeight: 600, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.15, textWrap: 'pretty' }}>
           Set up your number.
         </div>
-        <div style={{ marginTop: 10, fontFamily: 'Poppins', fontSize: 15, color: RC.inkMute, lineHeight: 1.55 }}>
+        <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 15, color: RC.inkMute, lineHeight: 1.55 }}>
           Your identity check is in. Now choose how you want your Ringo number — get a fresh one, or bring your current one with you.
         </div>
 
@@ -76,8 +76,8 @@ export function NumberSetupScreen({ onNewNumber, onPortIn, onSkip }: NumberSetup
                 )}
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: 'Poppins', fontSize: 15, fontWeight: 600, color: RC.ink }}>{o.title}</div>
-                <div style={{ fontFamily: 'Poppins', fontSize: 12, color: RC.inkMute, lineHeight: 1.45 }}>{o.sub}</div>
+                <div style={{ fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, color: RC.ink }}>{o.title}</div>
+                <div style={{ fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute, lineHeight: 1.45 }}>{o.sub}</div>
               </div>
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                 <path d="M6 3l5 5-5 5" stroke={RC.inkStrong} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
