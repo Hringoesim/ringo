@@ -1,129 +1,116 @@
-// Globe.tsx — a real, rotating dotted Earth rendered on canvas.
-// Continents come from a coarse equirectangular land map; each land cell is
-// projected onto a sphere and rotated by `spin`, so recognisable continents turn
-// past the limb. Brand gradient (orange→pink) colours the dots; radial shading
-// gives the sphere volume.
+// Globe.tsx — a realistic rotating Earth.
+// Real coastlines (Natural Earth 110m land via world-atlas) drawn with a d3-geo
+// orthographic projection onto a canvas, spinning continuously. Blue oceans,
+// green land, soft atmosphere glow and limb shading sell a real globe.
 import { useEffect, useRef } from 'react';
+import { geoOrthographic, geoPath, geoGraticule10, type GeoPermissibleObjects } from 'd3-geo';
+import { feature } from 'topojson-client';
+import landTopo from 'world-atlas/land-110m.json';
 
-// Coarse world map: '#' = land, '.' = sea. Rows run N→S, columns W→E (-180→180).
-const WORLD = [
-  '........................................',
-  '...####.......####.......############...',
-  '..#######....####....#################..',
-  '.########..###.....################.....',
-  '..######........####################....',
-  '...#####........###################.....',
-  '....####.......####...##########..##.....',
-  '.....###......######..########....##....',
-  '......##.....#######.######..####.......',
-  '.......#....#######..####...#####.......',
-  '........###..######..##....####.........',
-  '.........###..#####..........#####......',
-  '..........###..####.........######......',
-  '...........##..###..........#####.......',
-  '............#...............###.##.......',
-  '............#............................',
-  '........................................',
-  '.......######..........######...........',
-  '....############################........',
-  '..####################################..',
-];
+// world-atlas land topology → GeoJSON land feature (computed once).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const LAND = feature(landTopo as any, (landTopo as any).objects.land) as unknown as GeoPermissibleObjects;
+const GRATICULE = geoGraticule10() as unknown as GeoPermissibleObjects;
 
-function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
-// orange #F0803A → pink #ED4D8E
-function dotColor(t: number, alpha: number) {
-  const r = Math.round(lerp(0xF0, 0xED, t));
-  const g = Math.round(lerp(0x80, 0x4D, t));
-  const b = Math.round(lerp(0x3A, 0x8E, t));
-  return `rgba(${r},${g},${b},${alpha})`;
-}
-
-// Pre-extract land points (lon/lat in radians) once.
-const LAND: { lon: number; lat: number }[] = [];
-WORLD.forEach((row, r) => {
-  const lat = (90 - (r + 0.5) * (180 / WORLD.length)) * (Math.PI / 180);
-  const cols = row.length;
-  for (let c = 0; c < cols; c++) {
-    if (row[c] === '#') {
-      const lon = (-180 + (c + 0.5) * (360 / cols)) * (Math.PI / 180);
-      LAND.push({ lon, lat });
-    }
-  }
-});
-
-export function RingoGlobe({ size = 300, opacity = 1, spin = 0 }: { size?: number; opacity?: number; spin?: number }) {
+export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity?: number; spin?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const cv = ref.current;
     if (!cv) return;
-    const dpr = Math.min(2, (typeof devicePixelRatio !== 'undefined' ? devicePixelRatio : 1));
+    const dpr = Math.min(2, typeof devicePixelRatio !== 'undefined' ? devicePixelRatio : 1);
     cv.width = size * dpr;
     cv.height = size * dpr;
     const ctx = cv.getContext('2d');
     if (!ctx) return;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, size, size);
 
     const cx = size / 2;
     const cy = size / 2;
-    const R = size / 2 - 3;
-    const rot = spin * 2.1; // a touch faster than the flag orbit
+    const R = size / 2 - size * 0.04; // leave room for the atmosphere glow
 
-    // Sphere base (lit cream sphere).
-    const fill = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.35, R * 0.2, cx, cy, R);
-    fill.addColorStop(0, '#FFE9D8');
-    fill.addColorStop(0.6, '#FBD2BA');
-    fill.addColorStop(1, '#F2AE8B');
-    ctx.beginPath();
-    ctx.arc(cx, cy, R, 0, Math.PI * 2);
-    ctx.fillStyle = fill;
-    ctx.fill();
+    const projection = geoOrthographic()
+      .scale(R)
+      .translate([cx, cy])
+      .clipAngle(90);
+    const path = geoPath(projection, ctx);
 
-    // Land dots on the front hemisphere.
-    const dot = Math.max(1.1, size * 0.012);
-    for (const p of LAND) {
-      const lon = p.lon + rot;
-      const cosLat = Math.cos(p.lat);
-      const x = cosLat * Math.sin(lon);
-      const y = Math.sin(p.lat);
-      const z = cosLat * Math.cos(lon);
-      if (z <= 0.02) continue; // behind the globe
-      const sx = cx + x * R;
-      const sy = cy - y * R;
-      const depth = z; // 0..1
-      const t = (x + 1) / 2;
+    const reduce = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let raf = 0;
+    let lambda = 0; // longitude rotation
+
+    const draw = () => {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, size, size);
+      projection.rotate([lambda, -18, 0]); // tilt the axis for a natural view
+
+      // Atmosphere glow behind the disc.
+      const glow = ctx.createRadialGradient(cx, cy, R * 0.9, cx, cy, R * 1.08);
+      glow.addColorStop(0, 'rgba(90,170,255,0.35)');
+      glow.addColorStop(1, 'rgba(90,170,255,0)');
       ctx.beginPath();
-      ctx.arc(sx, sy, dot * (0.5 + 0.6 * depth), 0, Math.PI * 2);
-      ctx.fillStyle = dotColor(t, 0.45 + 0.5 * depth);
+      ctx.arc(cx, cy, R * 1.08, 0, Math.PI * 2);
+      ctx.fillStyle = glow;
       ctx.fill();
-    }
 
-    // Limb shading for volume.
-    const shade = ctx.createRadialGradient(cx - R * 0.28, cy - R * 0.3, R * 0.55, cx, cy, R);
-    shade.addColorStop(0, 'rgba(0,0,0,0)');
-    shade.addColorStop(1, 'rgba(122,46,18,0.34)');
-    ctx.beginPath();
-    ctx.arc(cx, cy, R, 0, Math.PI * 2);
-    ctx.fillStyle = shade;
-    ctx.fill();
+      // Ocean sphere.
+      const ocean = ctx.createRadialGradient(cx - R * 0.35, cy - R * 0.4, R * 0.2, cx, cy, R);
+      ocean.addColorStop(0, '#3AA3E8');
+      ocean.addColorStop(0.65, '#1E6FB8');
+      ocean.addColorStop(1, '#0E3F73');
+      ctx.beginPath();
+      path({ type: 'Sphere' });
+      ctx.fillStyle = ocean;
+      ctx.fill();
 
-    // Specular highlight.
-    const hi = ctx.createRadialGradient(cx - R * 0.32, cy - R * 0.36, 0, cx - R * 0.32, cy - R * 0.36, R * 0.55);
-    hi.addColorStop(0, 'rgba(255,255,255,0.55)');
-    hi.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.beginPath();
-    ctx.arc(cx, cy, R, 0, Math.PI * 2);
-    ctx.fillStyle = hi;
-    ctx.fill();
+      // Graticule (faint lat/long lines).
+      ctx.beginPath();
+      path(GRATICULE);
+      ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
 
-    // Rim.
-    ctx.beginPath();
-    ctx.arc(cx, cy, R, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(237,77,142,0.5)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-  }, [size, spin]);
+      // Land.
+      ctx.beginPath();
+      path(LAND);
+      ctx.fillStyle = '#3E9B5F';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(20,80,45,0.55)';
+      ctx.lineWidth = 0.4;
+      ctx.stroke();
 
-  return <canvas ref={ref} style={{ width: size, height: size, opacity, display: 'block' }} />;
+      // Limb shading + day highlight, clipped to the disc.
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.clip();
+      const shade = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.32, R * 0.45, cx, cy, R);
+      shade.addColorStop(0, 'rgba(0,0,0,0)');
+      shade.addColorStop(1, 'rgba(2,12,30,0.45)');
+      ctx.fillStyle = shade;
+      ctx.fillRect(0, 0, size, size);
+      const hi = ctx.createRadialGradient(cx - R * 0.34, cy - R * 0.38, 0, cx - R * 0.34, cy - R * 0.38, R * 0.7);
+      hi.addColorStop(0, 'rgba(255,255,255,0.35)');
+      hi.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = hi;
+      ctx.fillRect(0, 0, size, size);
+      ctx.restore();
+
+      // Crisp rim.
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(180,220,255,0.6)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      if (!reduce) {
+        lambda += 0.28; // degrees per frame → ~16s per rotation
+        raf = requestAnimationFrame(draw);
+      }
+    };
+
+    draw();
+    return () => cancelAnimationFrame(raf);
+  }, [size]);
+
+  return <canvas ref={ref} style={{ width: size, height: size, opacity, display: 'block', borderRadius: '50%' }} />;
 }
