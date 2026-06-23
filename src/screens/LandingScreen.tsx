@@ -4,7 +4,7 @@ import { RingoButton } from '../components/Button';
 import { SaturnWorld } from '../components/SaturnWorld';
 import { LOGO_SRC } from '../assets';
 
-export function LandingScreen({ onCreate, onLogin, onDemo }: { onCreate: () => void; onLogin: () => void; onDemo?: () => void }) {
+export function LandingScreen({ onCreate, onLogin }: { onCreate: () => void; onLogin: () => void }) {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
       <div
@@ -47,18 +47,6 @@ export function LandingScreen({ onCreate, onLogin, onDemo }: { onCreate: () => v
         >
           Log in
         </button>
-        {onDemo && (
-          <button
-            onClick={onDemo}
-            style={{
-              marginTop: 2, width: '100%', height: 40, cursor: 'pointer',
-              border: 'none', background: 'transparent', color: RC.inkMute,
-              fontFamily: 'var(--font)', fontSize: 13, fontWeight: 500,
-            }}
-          >
-            or explore the live demo →
-          </button>
-        )}
       </div>
     </div>
   );
