@@ -6,7 +6,17 @@ import { LOGO_SRC } from '../assets';
 
 export function LandingScreen({ onCreate, onLogin }: { onCreate: () => void; onLogin: () => void }) {
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+    <div
+      style={{
+        flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative',
+        background: [
+          'radial-gradient(115% 75% at 50% 6%, rgba(255,205,138,0.60) 0%, rgba(255,205,138,0) 46%)',
+          'radial-gradient(120% 85% at 82% 26%, rgba(255,132,158,0.38) 0%, rgba(255,132,158,0) 55%)',
+          'radial-gradient(110% 90% at 12% 72%, rgba(193,150,255,0.32) 0%, rgba(193,150,255,0) 60%)',
+          'linear-gradient(180deg, #FFF4EA 0%, #FFE7DB 36%, #FFD9E1 68%, #EFDcF4 100%)',
+        ].join(', '),
+      }}
+    >
       <div
         style={{
           flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
