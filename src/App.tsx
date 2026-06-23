@@ -163,11 +163,22 @@ export function App({ theme, onToggleTheme }: AppProps) {
             try { await auth.signInWithGoogle(); } catch { /* cancelled */ }
             finishToHome();
           }}
-          onContinue={({ email, phone }) => beginOtp(email, phone)}
-          onSkipPhone={({ email }) => {
-            if (sb) return beginOtp(email, '');
+          onEmailAuth={async ({ name, email, password }) => {
+            const isLogin = current.params.mode === 'login';
+            if (sb) {
+              const r = isLogin
+                ? await sbAuth.signInPassword(email, password)
+                : await sbAuth.signUpPassword(name, email, password);
+              if (!r.ok) throw new Error(r.error || 'Authentication failed.');
+              storeActions.syncIdentity();
+              if (isLogin) finishToHome();
+              else push('kyc');
+              return;
+            }
+            // Local fallback when Supabase isn't configured.
             auth.signInEmailOnly(email);
-            push('kyc');
+            if (isLogin) finishToHome();
+            else push('kyc');
           }}
         />
       );

@@ -9,29 +9,29 @@ import { LOGO_SRC } from '../assets';
 
 interface SignUpScreenProps {
   onBack: () => void;
-  onContinue: (v: { email: string; phone: string }) => void | Promise<void>;
-  onSkipPhone: (v: { email: string }) => void | Promise<void>;
+  onEmailAuth: (v: { name: string; email: string; password: string }) => void | Promise<void>;
   onAppleSignIn: () => void | Promise<void>;
   onGoogleSignIn: () => void | Promise<void>;
   mode?: 'create' | 'login';
 }
 
-export function SignUpScreen({ onBack, onContinue, onSkipPhone, onAppleSignIn, onGoogleSignIn, mode = 'create' }: SignUpScreenProps) {
+export function SignUpScreen({ onBack, onEmailAuth, onAppleSignIn, onGoogleSignIn, mode = 'create' }: SignUpScreenProps) {
   const login = mode === 'login';
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [country, setCountry] = useState('+44');
+  const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
   const [agree, setAgree] = useState(true);
-  const dial = ['+44', '+353', '+34', '+49', '+31', '+1', '+33', '+39', '+351', '+81', '+971', '+65'];
   const emailOk = /\S+@\S+\.\S+/.test(email);
-  const phoneOk = phone.replace(/\D/g, '').length >= 7;
+  const passOk = password.length >= 8;
+  const canSubmit = emailOk && passOk && (login || agree);
 
   const [busy, setBusy] = useState<'apple' | 'google' | 'email' | null>(null);
   const [err, setErr] = useState('');
   const fail: Record<string, string> = {
     apple: 'Apple sign-in isn’t connected yet. Use email below for now.',
     google: 'Google sign-in isn’t connected yet. Use email below for now.',
-    email: 'We couldn’t send your code. Check the address and try again.',
+    email: login ? 'Couldn’t log you in. Check your details.' : 'Couldn’t create your account. Try again.',
   };
   const run = async (kind: 'apple' | 'google' | 'email', fn: () => void | Promise<void>) => {
     if (busy) return;
@@ -39,8 +39,9 @@ export function SignUpScreen({ onBack, onContinue, onSkipPhone, onAppleSignIn, o
     setBusy(kind);
     try {
       await fn();
-    } catch {
-      setErr(fail[kind]);
+    } catch (e) {
+      const m = e instanceof Error && e.message ? e.message : '';
+      setErr(kind === 'email' && m ? m : fail[kind]);
     } finally {
       setBusy(null);
     }
@@ -58,8 +59,8 @@ export function SignUpScreen({ onBack, onContinue, onSkipPhone, onAppleSignIn, o
         </div>
         <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
           {login
-            ? 'Use the Apple, Google or email account you signed up with.'
-            : 'One tap with Apple — straight to your dashboard. You can port your number whenever you’re ready.'}
+            ? 'Welcome back. Use the email and password you signed up with.'
+            : 'Set up in seconds — no SMS code needed. You can add or port a number once you’re in.'}
         </div>
 
         {err && (
@@ -133,40 +134,43 @@ export function SignUpScreen({ onBack, onContinue, onSkipPhone, onAppleSignIn, o
           <div style={{ flex: 1, height: 1, background: RC.line }} />
         </div>
 
+        {!login && (
+          <div style={{ marginTop: 14 }}>
+            <FieldLabel>Name</FieldLabel>
+            <Input value={name} onChange={setName} placeholder="Marie Devos" type="text" />
+          </div>
+        )}
+
         <div style={{ marginTop: 14 }}>
           <FieldLabel>Email</FieldLabel>
-          <Input value={email} onChange={setEmail} placeholder="you@you.com" type="email" />
+          <Input value={email} onChange={setEmail} placeholder="you@you.com" type="email" inputMode="email" />
         </div>
 
         <div style={{ marginTop: 16 }}>
-          <FieldLabel>
-            Phone <span style={{ color: RC.inkMute, fontWeight: 500 }}>· optional</span>
-          </FieldLabel>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
-            <select
-              value={country}
-              onChange={(e) => setCountry(e.target.value)}
+          <FieldLabel>Password</FieldLabel>
+          <div style={{ position: 'relative' }}>
+            <Input value={password} onChange={setPassword} placeholder={login ? 'Your password' : 'At least 8 characters'} type={showPw ? 'text' : 'password'} />
+            <button
+              type="button"
+              onClick={() => setShowPw((s) => !s)}
               style={{
-                height: 54, padding: '0 10px', borderRadius: 14,
-                border: `1.5px solid ${RC.line}`, background: RC.paper,
-                fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, color: RC.ink,
-                outline: 'none', cursor: 'pointer',
+                position: 'absolute', right: 12, top: 0, height: 54, border: 'none', background: 'transparent',
+                fontFamily: 'var(--font)', fontSize: 12.5, fontWeight: 600, color: RC.inkMute, cursor: 'pointer',
               }}
             >
-              {dial.map((d) => (
-                <option key={d} value={d}>{d}</option>
-              ))}
-            </select>
-            <div style={{ flex: 1 }}>
-              <Input value={phone} onChange={setPhone} placeholder="471 23 45 67" type="tel" inputMode="tel" />
+              {showPw ? 'Hide' : 'Show'}
+            </button>
+          </div>
+          {!login && password.length > 0 && !passOk && (
+            <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 11.5, color: RC.inkMute }}>
+              Use at least 8 characters.
             </div>
-          </div>
-          <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 11.5, color: RC.inkMute, lineHeight: 1.5 }}>
-            We’ll text a 6-digit code to verify it’s you.{' '}
-            <strong style={{ color: RC.inkStrong, fontWeight: 600 }}>You can also skip</strong> and add or port a number later.
-          </div>
+          )}
         </div>
 
+        {login ? (
+          <div style={{ marginTop: 18, height: 1 }} />
+        ) : (
         <label style={{ marginTop: 18, display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
           <span
             style={{
@@ -188,6 +192,7 @@ export function SignUpScreen({ onBack, onContinue, onSkipPhone, onAppleSignIn, o
             <span style={{ color: RC.inkStrong, fontWeight: 600 }}>Privacy Policy</span>. I understand identity verification is required to activate an eSIM.
           </span>
         </label>
+        )}
       </div>
 
       <div
@@ -198,23 +203,11 @@ export function SignUpScreen({ onBack, onContinue, onSkipPhone, onAppleSignIn, o
         }}
       >
         <RingoButton
-          disabled={!emailOk || !agree || (!!phone && !phoneOk) || !!busy}
-          onClick={() => run('email', () => (phoneOk ? onContinue({ email, phone: `${country} ${phone}` }) : onSkipPhone({ email })))}
+          disabled={!canSubmit || !!busy}
+          onClick={() => run('email', () => onEmailAuth({ name, email, password }))}
         >
-          {busy === 'email' ? 'Sending…' : phoneOk ? 'Send 6-digit code' : 'Continue with email'}
+          {busy === 'email' ? (login ? 'Logging in…' : 'Creating account…') : login ? 'Log in' : 'Create account'}
         </RingoButton>
-        {phoneOk && (
-          <button
-            disabled={!!busy}
-            onClick={() => run('email', () => onSkipPhone({ email }))}
-            style={{
-              border: 'none', background: 'transparent', cursor: busy ? 'default' : 'pointer',
-              fontFamily: 'var(--font)', fontWeight: 500, fontSize: 13, color: RC.inkMute, height: 36,
-            }}
-          >
-            Skip — add or port a number later
-          </button>
-        )}
       </div>
     </div>
   );

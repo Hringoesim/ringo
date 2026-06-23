@@ -72,6 +72,37 @@ function oauthRedirect(): string {
 }
 
 export const sbAuth = {
+  // Email + password sign-up. Accounts are created (pre-confirmed) by the
+  // `signup` Edge Function using the service-role key server-side, then we sign
+  // the user in to get a session. No email round-trip required.
+  async signUpPassword(name: string, email: string, password: string): Promise<{ ok: boolean; error?: string; session?: RingoSession | null }> {
+    const sb = await getSupabase();
+    if (!sb) return { ok: false, error: 'Supabase not configured' };
+    const { error: fnErr } = await sb.functions.invoke('signup', { body: { name, email, password } });
+    if (fnErr) {
+      let msg = 'Could not create your account. Please try again.';
+      try {
+        // FunctionsHttpError carries the Response in .context
+        const ctx = (fnErr as { context?: Response }).context;
+        const body = ctx && (await ctx.json());
+        if (body?.error) msg = body.error;
+      } catch { /* keep default */ }
+      return { ok: false, error: msg };
+    }
+    return this.signInPassword(email, password);
+  },
+  async signInPassword(email: string, password: string): Promise<{ ok: boolean; error?: string; session?: RingoSession | null }> {
+    const sb = await getSupabase();
+    if (!sb) return { ok: false, error: 'Supabase not configured' };
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) {
+      const msg = /invalid login/i.test(error.message)
+        ? 'Wrong email or password.'
+        : error.message;
+      return { ok: false, error: msg };
+    }
+    return { ok: true, session: writeSession(data.session as SbSession | null) };
+  },
   async startEmailOtp(email: string): Promise<void> {
     const sb = await getSupabase();
     if (!sb) throw new Error('Supabase not configured');
