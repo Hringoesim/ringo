@@ -10,6 +10,26 @@ redirect to Apple/Google, the user approves, and they land back in Ringo signed 
 
 ---
 
+## 0. Make EMAIL signup send a 6-digit CODE (2 min) — do this first
+
+Email signup already works, **but** Supabase's default email sends a *magic link*,
+while the app asks the user to type a *6-digit code*. Fix the mismatch so the email
+actually contains a code:
+
+1. Go to https://supabase.com/dashboard → your project →
+   **Authentication → Email Templates → Magic Link**.
+2. Replace the template body with this (the `{{ .Token }}` is the 6-digit code):
+   ```html
+   <h2>Your Ringo code</h2>
+   <p>Enter this code to sign in:</p>
+   <p style="font-size:28px;font-weight:700;letter-spacing:4px">{{ .Token }}</p>
+   <p>This code expires in 1 hour. If you didn't request it, ignore this email.</p>
+   ```
+3. **Save**. Now "Continue without phone" emails a code the user can type. ✅
+
+---
+
+
 ## 1. Supabase (the hub — free, ~5 min) — REQUIRED
 
 Supabase is the service that securely talks to Apple and Google for you.
