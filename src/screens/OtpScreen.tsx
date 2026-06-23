@@ -37,6 +37,7 @@ export function OtpScreen({ phone, devCode, onBack, onVerify, onResend }: OtpScr
 
   const full = code.join('');
   const ok = full.length === 6;
+  const isEmail = phone.includes('@');
 
   const [busy, setBusy] = useState(false);
 
@@ -80,7 +81,8 @@ export function OtpScreen({ phone, devCode, onBack, onVerify, onResend }: OtpScr
           Enter the 6-digit code.
         </div>
         <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
-          We just texted it to <strong style={{ color: RC.ink, fontWeight: 600 }}>{phone}</strong>. Code expires in 10 minutes.
+          We just {isEmail ? 'emailed' : 'texted'} it to <strong style={{ color: RC.ink, fontWeight: 600 }}>{phone}</strong>.{' '}
+          {isEmail ? 'It can take a moment to land — check your spam too.' : 'Code expires in 10 minutes.'}
         </div>
 
         {hint && (

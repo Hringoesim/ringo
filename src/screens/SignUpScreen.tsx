@@ -9,10 +9,10 @@ import { LOGO_SRC } from '../assets';
 
 interface SignUpScreenProps {
   onBack: () => void;
-  onContinue: (v: { email: string; phone: string }) => void;
-  onSkipPhone: (v: { email: string }) => void;
-  onAppleSignIn: () => void;
-  onGoogleSignIn: () => void;
+  onContinue: (v: { email: string; phone: string }) => void | Promise<void>;
+  onSkipPhone: (v: { email: string }) => void | Promise<void>;
+  onAppleSignIn: () => void | Promise<void>;
+  onGoogleSignIn: () => void | Promise<void>;
   mode?: 'create' | 'login';
 }
 
@@ -25,6 +25,26 @@ export function SignUpScreen({ onBack, onContinue, onSkipPhone, onAppleSignIn, o
   const dial = ['+44', '+353', '+34', '+49', '+31', '+1', '+33', '+39', '+351', '+81', '+971', '+65'];
   const emailOk = /\S+@\S+\.\S+/.test(email);
   const phoneOk = phone.replace(/\D/g, '').length >= 7;
+
+  const [busy, setBusy] = useState<'apple' | 'google' | 'email' | null>(null);
+  const [err, setErr] = useState('');
+  const fail: Record<string, string> = {
+    apple: 'Apple sign-in isn’t connected yet. Use email below for now.',
+    google: 'Google sign-in isn’t connected yet. Use email below for now.',
+    email: 'We couldn’t send your code. Check the address and try again.',
+  };
+  const run = async (kind: 'apple' | 'google' | 'email', fn: () => void | Promise<void>) => {
+    if (busy) return;
+    setErr('');
+    setBusy(kind);
+    try {
+      await fn();
+    } catch {
+      setErr(fail[kind]);
+    } finally {
+      setBusy(null);
+    }
+  };
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -42,41 +62,63 @@ export function SignUpScreen({ onBack, onContinue, onSkipPhone, onAppleSignIn, o
             : 'One tap with Apple — straight to your dashboard. You can port your number whenever you’re ready.'}
         </div>
 
+        {err && (
+          <div style={{ marginTop: 16, padding: '11px 14px', borderRadius: 12, background: 'rgba(229,67,26,0.10)', border: '1px solid rgba(229,67,26,0.22)', fontFamily: 'var(--font)', fontSize: 12.5, color: '#B7341A', lineHeight: 1.45 }}>
+            {err}
+          </div>
+        )}
+
         {/* Sign in with Apple — primary, top of stack (white on dark, black on light) */}
         <button
-          onClick={() => onAppleSignIn && onAppleSignIn()}
+          disabled={!!busy}
+          onClick={() => run('apple', onAppleSignIn)}
           style={{
-            marginTop: 24, width: '100%', height: 54, borderRadius: 14, border: 'none',
+            marginTop: err ? 12 : 24, width: '100%', height: 54, borderRadius: 14, border: 'none',
             background: RC.scheme === 'dark' ? '#FFFFFF' : '#000',
             color: RC.scheme === 'dark' ? '#000' : '#FFFFFF',
             fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, letterSpacing: -0.1,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            cursor: busy ? 'default' : 'pointer', opacity: busy && busy !== 'apple' ? 0.5 : 1,
             boxShadow: '0 8px 22px -12px rgba(0,0,0,0.45)',
           }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill={RC.scheme === 'dark' ? '#000' : '#FFFFFF'}>
-            <path d="M16.365 1.43c0 1.14-.39 2.21-1.13 3.04-.78.86-2.05 1.51-3.27 1.42-.13-1.13.41-2.27 1.12-3.05.79-.88 2.16-1.55 3.28-1.41zm3.74 17.05c-.66 1.45-.97 2.1-1.81 3.39-1.18 1.81-2.84 4.06-4.9 4.07-1.83.02-2.3-1.19-4.79-1.18-2.49.01-3.01 1.2-4.84 1.18-2.06-.02-3.63-2.06-4.81-3.86-3.3-5.05-3.65-10.97-1.61-14.13 1.45-2.25 3.74-3.57 5.89-3.57 2.19 0 3.57 1.2 5.39 1.2 1.76 0 2.83-1.2 5.37-1.2 1.92 0 3.95 1.05 5.4 2.85-4.74 2.6-3.97 9.36 .71 11.25z" />
-          </svg>
-          Sign in with Apple
+          {busy === 'apple' ? (
+            'Connecting…'
+          ) : (
+            <>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill={RC.scheme === 'dark' ? '#000' : '#FFFFFF'}>
+                <path d="M16.365 1.43c0 1.14-.39 2.21-1.13 3.04-.78.86-2.05 1.51-3.27 1.42-.13-1.13.41-2.27 1.12-3.05.79-.88 2.16-1.55 3.28-1.41zm3.74 17.05c-.66 1.45-.97 2.1-1.81 3.39-1.18 1.81-2.84 4.06-4.9 4.07-1.83.02-2.3-1.19-4.79-1.18-2.49.01-3.01 1.2-4.84 1.18-2.06-.02-3.63-2.06-4.81-3.86-3.3-5.05-3.65-10.97-1.61-14.13 1.45-2.25 3.74-3.57 5.89-3.57 2.19 0 3.57 1.2 5.39 1.2 1.76 0 2.83-1.2 5.37-1.2 1.92 0 3.95 1.05 5.4 2.85-4.74 2.6-3.97 9.36 .71 11.25z" />
+              </svg>
+              Sign in with Apple
+            </>
+          )}
         </button>
 
         {/* Continue with Google */}
         <button
-          onClick={() => onGoogleSignIn && onGoogleSignIn()}
+          disabled={!!busy}
+          onClick={() => run('google', onGoogleSignIn)}
           style={{
             marginTop: 10, width: '100%', height: 54, borderRadius: 14,
             border: `1.5px solid ${RC.lineStrong}`, background: RC.paper, color: RC.ink,
             fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, letterSpacing: -0.1,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+            cursor: busy ? 'default' : 'pointer', opacity: busy && busy !== 'google' ? 0.5 : 1,
           }}
         >
-          <svg width="18" height="18" viewBox="0 0 48 48">
-            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
-            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
-            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
-            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
-          </svg>
-          Continue with Google
+          {busy === 'google' ? (
+            'Connecting…'
+          ) : (
+            <>
+              <svg width="18" height="18" viewBox="0 0 48 48">
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+              </svg>
+              Continue with Google
+            </>
+          )}
         </button>
 
         <div
@@ -156,16 +198,17 @@ export function SignUpScreen({ onBack, onContinue, onSkipPhone, onAppleSignIn, o
         }}
       >
         <RingoButton
-          disabled={!emailOk || !agree || (!!phone && !phoneOk)}
-          onClick={() => (phoneOk ? onContinue({ email, phone: `${country} ${phone}` }) : onSkipPhone({ email }))}
+          disabled={!emailOk || !agree || (!!phone && !phoneOk) || !!busy}
+          onClick={() => run('email', () => (phoneOk ? onContinue({ email, phone: `${country} ${phone}` }) : onSkipPhone({ email })))}
         >
-          {phoneOk ? 'Send 6-digit code' : 'Continue without phone'}
+          {busy === 'email' ? 'Sending…' : phoneOk ? 'Send 6-digit code' : 'Continue with email'}
         </RingoButton>
         {phoneOk && (
           <button
-            onClick={() => onSkipPhone({ email })}
+            disabled={!!busy}
+            onClick={() => run('email', () => onSkipPhone({ email }))}
             style={{
-              border: 'none', background: 'transparent', cursor: 'pointer',
+              border: 'none', background: 'transparent', cursor: busy ? 'default' : 'pointer',
               fontFamily: 'var(--font)', fontWeight: 500, fontSize: 13, color: RC.inkMute, height: 36,
             }}
           >

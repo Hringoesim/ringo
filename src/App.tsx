@@ -163,9 +163,9 @@ export function App({ theme, onToggleTheme }: AppProps) {
             try { await auth.signInWithGoogle(); } catch { /* cancelled */ }
             finishToHome();
           }}
-          onContinue={({ email, phone }) => void beginOtp(email, phone)}
+          onContinue={({ email, phone }) => beginOtp(email, phone)}
           onSkipPhone={({ email }) => {
-            if (sb) { void beginOtp(email, ''); return; }
+            if (sb) return beginOtp(email, '');
             auth.signInEmailOnly(email);
             push('kyc');
           }}
