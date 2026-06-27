@@ -71,6 +71,18 @@ function oauthRedirect(): string {
   return window.location.origin + import.meta.env.BASE_URL;
 }
 
+// Which social providers are actually enabled in the Supabase project. A provider
+// is only usable once its OAuth credentials are configured server-side, so we gate
+// on an explicit allow-list (VITE_OAUTH_PROVIDERS="google,apple") rather than let
+// the user redirect to a "provider is not enabled" error page. Empty by default.
+export function isOAuthEnabled(provider: 'google' | 'apple'): boolean {
+  return (import.meta.env.VITE_OAUTH_PROVIDERS || '')
+    .toLowerCase()
+    .split(',')
+    .map((s) => s.trim())
+    .includes(provider);
+}
+
 export const sbAuth = {
   // Email + password sign-up. Accounts are created (pre-confirmed) by the
   // `signup` Edge Function using the service-role key server-side, then we sign
@@ -117,12 +129,14 @@ export const sbAuth = {
     return { ok: true, session: writeSession(data.session as SbSession | null) };
   },
   async google(): Promise<void> {
+    if (!isOAuthEnabled('google')) throw new Error('google-not-enabled');
     const sb = await getSupabase();
     if (!sb) return;
     const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: oauthRedirect() } });
     if (error) throw error;
   },
   async apple(): Promise<void> {
+    if (!isOAuthEnabled('apple')) throw new Error('apple-not-enabled');
     const sb = await getSupabase();
     if (!sb) return;
     const { error } = await sb.auth.signInWithOAuth({ provider: 'apple', options: { redirectTo: oauthRedirect() } });
