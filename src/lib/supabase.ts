@@ -11,6 +11,10 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 let client: SupabaseClient | null | undefined;
 
 export function isSupabaseConfigured(): boolean {
+  // Demo mode: pretend no backend is configured so the whole app (auth + data)
+  // runs on the bundled mock layer — every sign-in clicks straight through.
+  // Remove VITE_DEMO_MODE (or set it false) to restore real Supabase auth.
+  if (import.meta.env.VITE_DEMO_MODE === 'true') return false;
   return !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
 }
 
