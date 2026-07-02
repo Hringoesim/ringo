@@ -21,7 +21,7 @@ export function TiersScreen({ onBack }: { onBack: () => void }) {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <RingoHeader title="Membership" leading={<BackBtn onClick={onBack} />} />
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '0 20px 40px' }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1, textWrap: 'pretty' }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1, textWrap: 'pretty' }}>
           The more you roam,<br />the more you get.
         </div>
         <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>

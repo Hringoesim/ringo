@@ -57,7 +57,7 @@ export function SignUpScreen({ onBack, onEmailAuth, onAppleSignIn, onGoogleSignI
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}>
           <img src={LOGO_SRC} alt="Ringo" style={{ height: 30, width: 'auto' }} />
         </div>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 700, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1, textWrap: 'pretty' }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1, textWrap: 'pretty' }}>
           {login ? 'Log in to Ringo.' : 'Create your Ringo account.'}
         </div>
         <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>

@@ -81,7 +81,7 @@ export function LockScreen({
           <div style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 500, color: RC.inkMute, letterSpacing: 0.3 }}>
             Welcome back
           </div>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 700, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.1, marginTop: 2 }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 800, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.1, marginTop: 2 }}>
             {userName}
           </div>
         </div>

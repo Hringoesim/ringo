@@ -73,7 +73,7 @@ export function SettingsScreen({ onBack, theme, onToggleTheme, onSignOut, onNav 
       >
         ← Back
       </button>
-      <div style={{ marginTop: 16, fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 700, letterSpacing: -0.5 }}>Profile</div>
+      <div style={{ marginTop: 16, fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, letterSpacing: -0.5 }}>Profile</div>
 
       <RingoCard style={{ marginTop: 16, padding: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>

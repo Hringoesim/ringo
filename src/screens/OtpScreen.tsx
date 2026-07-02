@@ -77,7 +77,7 @@ export function OtpScreen({ phone, devCode, onBack, onVerify, onResend }: OtpScr
             <circle cx="12" cy="17" r="1" fill={RC.inkStrong} />
           </svg>
         </div>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 700, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1 }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1 }}>
           Enter the 6-digit code.
         </div>
         <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>

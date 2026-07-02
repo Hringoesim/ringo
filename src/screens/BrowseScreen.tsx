@@ -23,7 +23,7 @@ export function BrowseScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => vo
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <RingoHeader title="Browse" leading={<BackBtn onClick={onBack} />} trailing={null} />
       <div style={{ padding: '0 20px' }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 700, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1, textWrap: 'pretty' }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1, textWrap: 'pretty' }}>
           Where to next
           <span style={{ background: RC.grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>?</span>
         </div>

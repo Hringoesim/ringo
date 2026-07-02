@@ -61,7 +61,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
         {/* ── Greeting ────────────────────────────────────────── */}
         <div style={{ padding: '20px 20px 14px' }}>
           <div style={{ fontFamily: 'var(--font)', fontSize: 13, color: RC.inkMute, fontWeight: 500, letterSpacing: 0.2 }}>Good morning</div>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 700, color: RC.ink, letterSpacing: -0.7, lineHeight: 1.05 }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: RC.ink, letterSpacing: -0.7, lineHeight: 1.05 }}>
             {state.name}{' '}
             <span style={{ background: `linear-gradient(135deg, ${tier.c1}, ${tier.c2})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>·</span>{' '}
             {tier.name}
