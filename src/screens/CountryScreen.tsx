@@ -36,7 +36,7 @@ export function CountryScreen({ code, onNav, onBack, onAddCountry }: CountryScre
             {c.flag}
           </div>
           <div>
-            <div style={{ fontFamily: 'var(--font)', fontSize: 32, fontWeight: 600, color: RC.ink, letterSpacing: -0.6, lineHeight: 1 }}>{c.name}</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 700, color: RC.ink, letterSpacing: -0.6, lineHeight: 1 }}>{c.name}</div>
             <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute }}>{c.capital} · {c.region}</div>
           </div>
         </div>

@@ -43,7 +43,7 @@ export function InstallScreen({ onBack, onActivate }: { onBack: () => void; onAc
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <RingoHeader title="Install eSIM" leading={<BackBtn onClick={onBack} />} />
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '0 20px 130px' }}>
-        <div style={{ fontFamily: 'var(--font)', fontSize: 28, fontWeight: 600, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15 }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15 }}>
           Two taps and you’re live.
         </div>
         <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>

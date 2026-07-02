@@ -15,7 +15,7 @@ export function NumbersScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => v
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <RingoHeader title="Numbers" leading={<BackBtn onClick={onBack} />} />
       <div style={{ padding: '0 20px' }}>
-        <div style={{ fontFamily: 'var(--font)', fontSize: 30, fontWeight: 600, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1 }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 700, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1 }}>
           Your <span style={{ background: RC.grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>identity</span>, your call.
         </div>
         <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, fontWeight: 400, lineHeight: 1.5 }}>

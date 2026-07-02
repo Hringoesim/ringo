@@ -35,7 +35,7 @@ export function LandingScreen({ onCreate, onLogin }: { onCreate: () => void; onL
 
         <div
           style={{
-            marginTop: 4, fontFamily: 'var(--font)', fontSize: 34, fontWeight: 600,
+            marginTop: 4, fontFamily: 'var(--font-display)', fontSize: 34, fontWeight: 700,
             color: RC.ink, letterSpacing: -1, lineHeight: 1.05, textWrap: 'balance',
           }}
         >

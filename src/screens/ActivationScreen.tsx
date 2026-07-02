@@ -65,7 +65,7 @@ export function ActivationScreen({ onDone }: { onDone: () => void }) {
           transition: 'all .5s ease-out',
         }}
       >
-        <div style={{ fontFamily: 'var(--font)', fontSize: 32, fontWeight: 600, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1 }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 700, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1 }}>
           You’re on Ringo
           <span style={{ background: RC.grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>.</span>
         </div>

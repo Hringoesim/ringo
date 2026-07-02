@@ -39,7 +39,7 @@ export function AddNumberScreen({ preselect, onBack, onContinue }: AddNumberScre
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <RingoHeader title="New Ringo number" leading={<BackBtn onClick={onBack} />} />
       <div style={{ padding: '0 20px' }}>
-        <div style={{ fontFamily: 'var(--font)', fontSize: 28, fontWeight: 600, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15, textWrap: 'pretty' }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15, textWrap: 'pretty' }}>
           Pick a market for your new number.
         </div>
         <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 13, color: RC.inkMute, lineHeight: 1.5 }}>

@@ -56,7 +56,7 @@ export function PortNumberScreen({ onBack, onContinue }: PortNumberScreenProps) 
 
         {step === 0 && (
           <>
-            <div style={{ fontFamily: 'var(--font)', fontSize: 28, fontWeight: 600, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15, textWrap: 'pretty' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15, textWrap: 'pretty' }}>
               What number do you want to bring?
             </div>
             <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
@@ -109,7 +109,7 @@ export function PortNumberScreen({ onBack, onContinue }: PortNumberScreenProps) 
 
         {step === 1 && (
           <>
-            <div style={{ fontFamily: 'var(--font)', fontSize: 28, fontWeight: 600, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15 }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15 }}>
               Who’s your current carrier?
             </div>
             <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
@@ -140,7 +140,7 @@ export function PortNumberScreen({ onBack, onContinue }: PortNumberScreenProps) 
 
         {step === 2 && needsPac && (
           <>
-            <div style={{ fontFamily: 'var(--font)', fontSize: 28, fontWeight: 600, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15, textWrap: 'pretty' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15, textWrap: 'pretty' }}>
               Enter your PAC code.
             </div>
             <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
@@ -171,7 +171,7 @@ export function PortNumberScreen({ onBack, onContinue }: PortNumberScreenProps) 
 
         {step === 2 && !needsPac && (
           <>
-            <div style={{ fontFamily: 'var(--font)', fontSize: 28, fontWeight: 600, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15, textWrap: 'pretty' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15, textWrap: 'pretty' }}>
               Confirm your port.
             </div>
             <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>

@@ -112,7 +112,7 @@ function BrowserMockup({ theme, toggleTheme }: { theme: Scheme; toggleTheme: () 
       <div
         style={{
           position: 'absolute', top: 24, left: 28,
-          fontFamily: 'var(--font)', fontWeight: 700, fontSize: 18,
+          fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18,
           background: RC.grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
           letterSpacing: -0.4,
         }}
