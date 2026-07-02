@@ -38,7 +38,7 @@ const sb = isSupabaseConfigured();
 
 interface Frame {
   name: string;
-  params: { code?: string; preselect?: string; onboarding?: boolean; mode?: 'create' | 'login' };
+  params: { code?: string; preselect?: string; onboarding?: boolean; mode?: 'create' | 'login'; kycDone?: boolean };
 }
 type TabName = 'home' | 'browse' | 'numbers' | 'plan';
 
@@ -153,6 +153,10 @@ export function App({ theme, onToggleTheme }: AppProps) {
         <SignUpScreen
           mode={current.params.mode}
           onBack={pop}
+          onForgotPassword={async (email) => {
+            if (sb) return sbAuth.resetPassword(email);
+            return { ok: false, error: 'Password reset needs the live backend.' };
+          }}
           onAppleSignIn={async () => {
             if (sb) { await sbAuth.apple(); return; } // real Apple OAuth (redirect)
             await auth.signInWithApple();
@@ -210,13 +214,19 @@ export function App({ theme, onToggleTheme }: AppProps) {
       body = (
         <KycScreen
           onBack={pop}
-          onContinue={(payload) => { storeActions.submitKyc(payload || {}); push('numberSetup'); }}
+          onContinue={(payload) => {
+            // Only record a KYC submission when the user actually completed the
+            // steps — "I'll verify later" must not file an empty submission.
+            if (payload) storeActions.submitKyc(payload);
+            push('numberSetup', { kycDone: !!payload });
+          }}
         />
       );
       break;
     case 'numberSetup':
       body = (
         <NumberSetupScreen
+          kycDone={current.params.kycDone !== false}
           onNewNumber={() => push('addNumber', { onboarding: true })}
           onPortIn={() => push('port', { onboarding: true })}
           onSkip={finishToHome}
@@ -281,7 +291,7 @@ export function App({ theme, onToggleTheme }: AppProps) {
       break;
     case 'settings':
       body = (
-        <SettingsScreen onBack={pop} theme={theme} onToggleTheme={onToggleTheme} onSignOut={signOut} />
+        <SettingsScreen onBack={pop} theme={theme} onToggleTheme={onToggleTheme} onSignOut={signOut} onNav={onNav} />
       );
       break;
     default:

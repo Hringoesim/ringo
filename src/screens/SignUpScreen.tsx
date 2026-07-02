@@ -12,10 +12,11 @@ interface SignUpScreenProps {
   onEmailAuth: (v: { name: string; email: string; password: string }) => void | Promise<void>;
   onAppleSignIn: () => void | Promise<void>;
   onGoogleSignIn: () => void | Promise<void>;
+  onForgotPassword?: (email: string) => Promise<{ ok: boolean; error?: string }>;
   mode?: 'create' | 'login';
 }
 
-export function SignUpScreen({ onBack, onEmailAuth, onAppleSignIn, onGoogleSignIn, mode = 'create' }: SignUpScreenProps) {
+export function SignUpScreen({ onBack, onEmailAuth, onAppleSignIn, onGoogleSignIn, onForgotPassword, mode = 'create' }: SignUpScreenProps) {
   const login = mode === 'login';
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -28,6 +29,7 @@ export function SignUpScreen({ onBack, onEmailAuth, onAppleSignIn, onGoogleSignI
 
   const [busy, setBusy] = useState<'apple' | 'google' | 'email' | null>(null);
   const [err, setErr] = useState('');
+  const [note, setNote] = useState('');
   const fail: Record<string, string> = {
     apple: 'Apple sign-in isn’t connected yet. Use email below for now.',
     google: 'Google sign-in isn’t connected yet. Use email below for now.',
@@ -36,6 +38,7 @@ export function SignUpScreen({ onBack, onEmailAuth, onAppleSignIn, onGoogleSignI
   const run = async (kind: 'apple' | 'google' | 'email', fn: () => void | Promise<void>) => {
     if (busy) return;
     setErr('');
+    setNote('');
     setBusy(kind);
     try {
       await fn();
@@ -66,6 +69,11 @@ export function SignUpScreen({ onBack, onEmailAuth, onAppleSignIn, onGoogleSignI
         {err && (
           <div style={{ marginTop: 16, padding: '11px 14px', borderRadius: 12, background: 'rgba(229,67,26,0.10)', border: '1px solid rgba(229,67,26,0.22)', fontFamily: 'var(--font)', fontSize: 12.5, color: '#B7341A', lineHeight: 1.45 }}>
             {err}
+          </div>
+        )}
+        {note && (
+          <div style={{ marginTop: 16, padding: '11px 14px', borderRadius: 12, background: 'rgba(46,164,79,0.10)', border: '1px solid rgba(46,164,79,0.25)', fontFamily: 'var(--font)', fontSize: 12.5, color: '#1F7A38', lineHeight: 1.45 }}>
+            {note}
           </div>
         )}
 
@@ -170,7 +178,27 @@ export function SignUpScreen({ onBack, onEmailAuth, onAppleSignIn, onGoogleSignI
         </div>
 
         {login ? (
-          <div style={{ marginTop: 18, height: 1 }} />
+          <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              onClick={async () => {
+                if (busy) return;
+                setErr('');
+                setNote('');
+                if (!emailOk) { setErr('Enter your email above first, then tap “Forgot password?” again.'); return; }
+                if (!onForgotPassword) { setErr('Password reset isn’t available right now.'); return; }
+                const r = await onForgotPassword(email);
+                if (r.ok) setNote(`We’ve emailed a sign-in link to ${email}. Open it on this device to get back in.`);
+                else setErr(r.error || 'Couldn’t send the reset email. Try again.');
+              }}
+              style={{
+                border: 'none', background: 'transparent', cursor: 'pointer', padding: 0,
+                fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.inkStrong,
+              }}
+            >
+              Forgot password?
+            </button>
+          </div>
         ) : (
         <label style={{ marginTop: 18, display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
           <span

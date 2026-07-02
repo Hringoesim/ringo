@@ -23,7 +23,11 @@ export function LandingScreen({ onCreate, onLogin }: { onCreate: () => void; onL
           justifyContent: 'center', padding: '64px 24px 0', textAlign: 'center',
         }}
       >
-        <img src={LOGO_SRC} alt="Ringo" style={{ height: 30, width: 'auto' }} />
+        <img
+          src={LOGO_SRC}
+          alt="Ringo"
+          style={{ height: 36, width: 'auto', filter: 'drop-shadow(0 1px 6px rgba(255,255,255,0.55))' }}
+        />
 
         <div style={{ marginTop: 6 }}>
           <SaturnWorld size={288} />
@@ -45,18 +49,28 @@ export function LandingScreen({ onCreate, onLogin }: { onCreate: () => void; onL
         </div>
       </div>
 
-      <div style={{ padding: '0 24px 40px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ padding: '20px 24px 32px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         <RingoButton onClick={onCreate}>Create account</RingoButton>
         <button
           onClick={onLogin}
           style={{
             width: '100%', height: 52, borderRadius: 999, cursor: 'pointer',
-            border: `1.5px solid ${RC.lineStrong}`, background: 'transparent', color: RC.inkStrong,
+            border: `1.5px solid ${RC.lineStrong}`,
+            background: 'rgba(255,255,255,0.55)', color: RC.inkStrong,
             fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600,
+            backdropFilter: 'blur(6px)',
           }}
         >
           Log in
         </button>
+        <div
+          style={{
+            marginTop: 4, textAlign: 'center', fontFamily: 'var(--font)',
+            fontSize: 11.5, fontWeight: 500, color: RC.inkMute, letterSpacing: 0.1,
+          }}
+        >
+          No SMS code needed · Cancel anytime
+        </div>
       </div>
     </div>
   );

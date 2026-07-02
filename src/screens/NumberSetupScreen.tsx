@@ -7,9 +7,11 @@ interface NumberSetupScreenProps {
   onNewNumber: () => void;
   onPortIn: () => void;
   onSkip: () => void;
+  /** Whether the user actually completed the KYC steps (vs "verify later"). */
+  kycDone?: boolean;
 }
 
-export function NumberSetupScreen({ onNewNumber, onPortIn, onSkip }: NumberSetupScreenProps) {
+export function NumberSetupScreen({ onNewNumber, onPortIn, onSkip, kycDone = true }: NumberSetupScreenProps) {
   const options: { title: string; sub: string; cta: () => void; primary: boolean; icon: 'new' | 'port' | 'later' }[] = [
     { title: 'Get a new Ringo number', sub: 'We allocate a local UK or EU number instantly', cta: onNewNumber, primary: true, icon: 'new' },
     { title: 'Port your existing number', sub: 'Keep your number — UK ports complete in ~1 business day', cta: onPortIn, primary: false, icon: 'port' },
@@ -36,7 +38,9 @@ export function NumberSetupScreen({ onNewNumber, onPortIn, onSkip }: NumberSetup
           Set up your number.
         </div>
         <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 15, color: RC.inkMute, lineHeight: 1.55 }}>
-          Your identity check is in. Now choose how you want your Ringo number — get a fresh one, or bring your current one with you.
+          {kycDone
+            ? 'Your identity check is in. Now choose how you want your Ringo number — get a fresh one, or bring your current one with you.'
+            : 'Choose how you want your Ringo number — get a fresh one, or bring your current one with you. You can verify your identity any time.'}
         </div>
 
         <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 10 }}>

@@ -142,6 +142,14 @@ export const sbAuth = {
     const { error } = await sb.auth.signInWithOAuth({ provider: 'apple', options: { redirectTo: oauthRedirect() } });
     if (error) throw error;
   },
+  // Password recovery: Supabase emails a magic recovery link; opening it lands
+  // back on the app with a valid session via the auth bridge.
+  async resetPassword(email: string): Promise<{ ok: boolean; error?: string }> {
+    const sb = await getSupabase();
+    if (!sb) return { ok: false, error: 'Supabase not configured' };
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: oauthRedirect() });
+    return error ? { ok: false, error: error.message } : { ok: true };
+  },
   async signOut(): Promise<void> {
     const sb = await getSupabase();
     if (sb) await sb.auth.signOut();
