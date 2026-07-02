@@ -34,12 +34,13 @@ export function SaturnWorld({ size = 280 }: { size?: number }) {
 
   return (
     <div style={{ width: size, height: size, position: 'relative' }}>
-      {/* soft glow */}
+      {/* vivid halo */}
       <div
         style={{
-          position: 'absolute', left: cx - planet * 0.8, top: cy - planet * 0.8,
-          width: planet * 1.6, height: planet * 1.6, borderRadius: '50%',
-          background: RC.gradSoft, filter: 'blur(26px)', opacity: 0.9,
+          position: 'absolute', left: cx - planet * 0.85, top: cy - planet * 0.85,
+          width: planet * 1.7, height: planet * 1.7, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(255,94,30,0.50) 0%, rgba(245,51,126,0.34) 48%, rgba(230,36,154,0.12) 68%, transparent 78%)',
+          filter: 'blur(22px)',
         }}
       />
 
@@ -55,8 +56,8 @@ export function SaturnWorld({ size = 280 }: { size?: number }) {
             <stop offset="100%" stopColor="#E6249A" />
           </linearGradient>
         </defs>
-        <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill="none" stroke="url(#saturnRing)" strokeWidth="1.5" strokeOpacity="0.45" />
-        <ellipse cx={cx} cy={cy} rx={rx * 0.84} ry={ry * 0.84} fill="none" stroke="url(#saturnRing)" strokeWidth="1" strokeOpacity="0.25" />
+        <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill="none" stroke="url(#saturnRing)" strokeWidth="2" strokeOpacity="0.75" />
+        <ellipse cx={cx} cy={cy} rx={rx * 0.84} ry={ry * 0.84} fill="none" stroke="url(#saturnRing)" strokeWidth="1.2" strokeOpacity="0.4" />
       </svg>
 
       {/* planet — meridians sweep with `spin` so it reads as a turning 3D globe */}
@@ -64,7 +65,7 @@ export function SaturnWorld({ size = 280 }: { size?: number }) {
         style={{
           position: 'absolute', left: cx - planet / 2, top: cy - planet / 2,
           width: planet, height: planet, borderRadius: '50%', zIndex: 3,
-          boxShadow: `0 26px 60px -20px ${RC.pink}66`,
+          boxShadow: `0 30px 70px -18px ${RC.pink}99`,
         }}
       >
         <RingoGlobe size={planet} spin={t * 1.1} />

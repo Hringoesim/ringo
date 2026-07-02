@@ -10,10 +10,10 @@ export function LandingScreen({ onCreate, onLogin }: { onCreate: () => void; onL
       style={{
         flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative',
         background: [
-          'radial-gradient(115% 75% at 50% 6%, rgba(255,205,138,0.60) 0%, rgba(255,205,138,0) 46%)',
-          'radial-gradient(120% 85% at 82% 26%, rgba(255,132,158,0.38) 0%, rgba(255,132,158,0) 55%)',
-          'radial-gradient(110% 90% at 12% 72%, rgba(193,150,255,0.32) 0%, rgba(193,150,255,0) 60%)',
-          'linear-gradient(180deg, #FFF4EA 0%, #FFE7DB 36%, #FFD9E1 68%, #EFDcF4 100%)',
+          'radial-gradient(115% 75% at 50% 6%, rgba(255,169,77,0.72) 0%, rgba(255,169,77,0) 48%)',
+          'radial-gradient(120% 85% at 82% 26%, rgba(255,84,132,0.48) 0%, rgba(255,84,132,0) 55%)',
+          'radial-gradient(110% 90% at 12% 72%, rgba(158,102,255,0.42) 0%, rgba(158,102,255,0) 60%)',
+          'linear-gradient(180deg, #FFF1DE 0%, #FFD9BF 36%, #FFBFD2 68%, #E2C4FA 100%)',
         ].join(', '),
       }}
     >
@@ -29,8 +29,8 @@ export function LandingScreen({ onCreate, onLogin }: { onCreate: () => void; onL
           style={{ height: 36, width: 'auto', filter: 'drop-shadow(0 1px 6px rgba(255,255,255,0.55))' }}
         />
 
-        <div style={{ marginTop: 6 }}>
-          <SaturnWorld size={288} />
+        <div style={{ marginTop: 4 }}>
+          <SaturnWorld size={320} />
         </div>
 
         <div
