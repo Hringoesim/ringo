@@ -69,10 +69,10 @@ export function KycScreen({ onBack, onContinue }: KycScreenProps) {
           {step === 0 && (
             <>
               <FieldLabel>First name</FieldLabel>
-              <Input value={first} onChange={setFirst} placeholder="Marie" />
+              <Input value={first} onChange={setFirst} placeholder="Hippolyte" />
               <div style={{ height: 14 }} />
               <FieldLabel>Last name</FieldLabel>
-              <Input value={last} onChange={setLast} placeholder="Devos" />
+              <Input value={last} onChange={setLast} placeholder="Van Marcke" />
             </>
           )}
           {step === 1 && (

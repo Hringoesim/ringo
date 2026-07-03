@@ -134,8 +134,8 @@ const DB: {
 } = {
   profile: {
     id: 'usr_marie',
-    firstName: 'Marie',
-    lastName: 'Devos',
+    firstName: 'Hippolyte',
+    lastName: 'Van Marcke',
     email: 'marie@ringoesim.com',
     tier: 'orange',
     score: 4,

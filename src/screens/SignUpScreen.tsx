@@ -146,7 +146,7 @@ export function SignUpScreen({ onBack, onEmailAuth, onAppleSignIn, onGoogleSignI
         {!login && (
           <div style={{ marginTop: 14 }}>
             <FieldLabel>Name</FieldLabel>
-            <Input value={name} onChange={setName} placeholder="Marie Devos" type="text" />
+            <Input value={name} onChange={setName} placeholder="Hippolyte Van Marcke" type="text" />
           </div>
         )}
 

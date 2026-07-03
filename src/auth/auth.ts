@@ -70,7 +70,7 @@ function createSession(partial: Partial<RingoSession>): RingoSession {
   const s: RingoSession = {
     userId: 'usr_' + randToken().slice(0, 12),
     email: null,
-    name: 'Marie',
+    name: 'Hippolyte',
     provider: 'email',
     token: randToken(),
     onboarded: false,
@@ -180,7 +180,7 @@ export function signInEmailOnly(email: string): RingoSession {
 /** Instant demo session — drops straight into the populated app, no email/OTP.
  *  Lets the product be shown end-to-end live without waiting on a code. */
 export function signInDemo(): RingoSession {
-  return createSession({ email: 'marie@ringoesim.com', name: 'Marie', provider: 'email', onboarded: true });
+  return createSession({ email: 'hippolyte@ringoesim.com', name: 'Hippolyte', provider: 'email', onboarded: true });
 }
 
 // ── OAuth providers ───────────────────────────────────────────────────────────
@@ -203,10 +203,10 @@ export async function signInWithGoogle(): Promise<RingoSession> {
     const payload = JSON.parse(atob(credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
     return createSession({ email: payload.email, name: payload.given_name || nameFromEmail(payload.email), provider: 'google', token: credential });
   }
-  return createSession({ provider: 'google', name: 'Marie' });
+  return createSession({ provider: 'google', name: 'Hippolyte' });
 }
 
 export async function signInWithApple(): Promise<RingoSession> {
   // Real flow uses AppleID.auth.signIn() with a configured Service ID.
-  return createSession({ provider: 'apple', name: 'Marie' });
+  return createSession({ provider: 'apple', name: 'Hippolyte' });
 }

@@ -18,10 +18,10 @@ export function nextTier(score: number): Tier | null {
   return TIERS.find((x) => x.min > score) ?? null;
 }
 
-// Default user profile — Marie, a recurring crosser at 4 countries this year.
+// Default user profile — Hippolyte, a recurring crosser at 4 countries this year.
 // Anchored in the UK launch market.
 export const USER = {
-  name: 'Marie',
+  name: 'Hippolyte',
   score: 4,
   dataPct: 0.34,
   countries: 4,
