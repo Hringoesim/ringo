@@ -9,6 +9,15 @@ import type { PhoneNumber, Tier } from '../data/types';
 import type { OnNav } from '../navigation';
 import { LOGO_SRC } from '../assets';
 
+/** Time-of-day greeting from the device clock. */
+function greetingNow(): string {
+  const h = new Date().getHours();
+  if (h < 5) return 'Good night';
+  if (h < 12) return 'Good morning';
+  if (h < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
 export function HomeScreen({ onNav }: { onNav: OnNav }) {
   const { state } = useRingoState();
   const active = state.numbers.find((n) => n.id === state.activeNumberId) || state.numbers[0];
@@ -58,9 +67,9 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
           </div>
         </div>
 
-        {/* ── Greeting ────────────────────────────────────────── */}
+        {/* ── Greeting — follows the device clock ─────────────── */}
         <div style={{ padding: '20px 20px 14px' }}>
-          <div style={{ fontFamily: 'var(--font)', fontSize: 13, color: RC.inkMute, fontWeight: 500, letterSpacing: 0.2 }}>Good morning</div>
+          <div style={{ fontFamily: 'var(--font)', fontSize: 13, color: RC.inkMute, fontWeight: 500, letterSpacing: 0.2 }}>{greetingNow()}</div>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: RC.ink, letterSpacing: -0.7, lineHeight: 1.05 }}>
             {state.name}{' '}
             <span style={{ background: `linear-gradient(135deg, ${tier.c1}, ${tier.c2})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>·</span>{' '}
@@ -340,35 +349,21 @@ function WalletCard({ n, count, onMore }: { n: PhoneNumber | undefined; count: n
   );
 }
 
-// Polished action button — glyph tile + label, with press feedback.
+// Polished action button — colorful tile + 3D emoji glyph + label, with press
+// feedback. Each action gets its own hue so the rail reads bright and scannable.
 type ActionIcon = 'globe' | 'port' | 'plan' | 'qr';
 function ActionChip({ label, icon, onClick }: { label: string; icon: ActionIcon; onClick: () => void }) {
   const glyphs: Record<ActionIcon, ReactNode> = {
-    globe: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
-        <path d="M3 12h18M12 3c2.5 2.5 4 5.5 4 9s-1.5 6.5-4 9c-2.5-2.5-4-5.5-4-9s1.5-6.5 4-9z" stroke="currentColor" strokeWidth="1.8" />
-      </svg>
-    ),
-    port: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <path d="M9 17l-4-4 4-4M5 13h10a4 4 0 004-4V5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-    plan: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <rect x="3" y="6" width="18" height="13" rx="3" stroke="currentColor" strokeWidth="1.8" />
-        <path d="M3 11h18" stroke="currentColor" strokeWidth="1.8" />
-      </svg>
-    ),
-    qr: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
-        <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
-        <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
-        <path d="M14 14h3v3M21 14v3h-3M14 21h3M21 17v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      </svg>
-    ),
+    globe: <span style={{ fontSize: 30, lineHeight: 1, filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.18))' }}>🌍</span>,
+    port: <span style={{ fontSize: 30, lineHeight: 1, filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.18))' }}>🔄</span>,
+    plan: <span style={{ fontSize: 30, lineHeight: 1, filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.18))' }}>💳</span>,
+    qr: <span style={{ fontSize: 30, lineHeight: 1, filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.18))' }}>📲</span>,
+  };
+  const tints: Record<ActionIcon, string> = {
+    globe: 'linear-gradient(145deg, #FFE7C2 0%, #FFC98F 100%)', // sunny orange
+    port: 'linear-gradient(145deg, #E9E2FF 0%, #C9BBFF 100%)', // violet
+    plan: 'linear-gradient(145deg, #D9F6E6 0%, #A9ECC9 100%)', // mint
+    qr: 'linear-gradient(145deg, #FFDFEB 0%, #FFB3D1 100%)', // pink
   };
   const press = (v: string) => (e: MouseEvent<HTMLButtonElement>) => {
     e.currentTarget.style.transform = v;
@@ -388,7 +383,8 @@ function ActionChip({ label, icon, onClick }: { label: string; icon: ActionIcon;
       <div
         style={{
           width: '100%', aspectRatio: '1', borderRadius: 18,
-          background: RC.gradSoft, color: RC.inkStrong,
+          background: tints[icon],
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.65), 0 6px 14px -8px rgba(58,22,5,0.25)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >

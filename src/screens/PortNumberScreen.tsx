@@ -16,6 +16,7 @@ const CARRIERS: Record<string, string[]> = {
   ES: ['Movistar', 'Vodafone', 'Orange', 'Yoigo', 'Other'],
   DE: ['Telekom', 'Vodafone', 'O2', '1&1', 'Other'],
   NL: ['KPN', 'Vodafone', 'Odido', 'Other'],
+  BE: ['Proximus', 'Orange', 'BASE', 'Telenet', 'Mobile Vikings', 'Other'],
 };
 
 interface PortNumberScreenProps {

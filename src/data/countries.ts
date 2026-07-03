@@ -30,6 +30,11 @@ export const COUNTRIES: Country[] = [
     tier: 'A', popular: true, dial: 31, numberMarket: true,
     mnp: { regulator: 'ACM', flow: 'recipient-led', needsPac: false, sla: 'Completes almost immediately' },
   },
+  {
+    code: 'BE', name: 'Belgium', capital: 'Brussels', flag: '🇧🇪', region: 'Europe',
+    tier: 'A', popular: true, dial: 32, numberMarket: true,
+    mnp: { regulator: 'BIPT', flow: 'recipient-led', needsPac: false, sla: 'Within 1 business day (Easy Switch)' },
+  },
   // Global data destinations (roaming) — no local number market.
   { code: 'US', name: 'United States', capital: 'Washington', flag: '🇺🇸', region: 'Americas', tier: 'A', popular: true, dial: 1 },
   { code: 'JP', name: 'Japan',     capital: 'Tokyo',       flag: '🇯🇵', region: 'Asia',        tier: 'A', popular: true, dial: 81 },
