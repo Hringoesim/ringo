@@ -27,6 +27,7 @@ function Row({ label, value, tone, onClick, last }: { label: string; value?: str
   return (
     <div
       onClick={onClick}
+      className={onClick ? 'press' : undefined}
       style={{
         display: 'flex', alignItems: 'center', gap: 10, padding: '14px 2px',
         borderBottom: last ? 'none' : `1px solid ${RC.line}`,

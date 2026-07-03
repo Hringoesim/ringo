@@ -48,6 +48,7 @@ body {
 .no-bar {
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch; /* momentum scroll */
+  overscroll-behavior: contain; /* no scroll-chaining lurch between scrollers */
 }
 
 /* ── Native app feel ─────────────────────────────────────────────────────────
@@ -93,6 +94,10 @@ textarea,
   flex-direction: column;
   background: var(--bg);
   overflow: hidden;
+}
+/* Promote layers only WHILE animating — a permanent hint pins ~12MB of GPU
+   store per screen and hurts scroll tiling on iPhone. */
+.enter-push, .leave-push, .enter-pop, .leave-pop, .enter-fade, .leave-fade {
   will-change: transform, opacity;
 }
 @keyframes ringoInRight {
@@ -106,21 +111,17 @@ textarea,
 @keyframes ringoOutLeft {
   from {
     transform: translate3d(0, 0, 0);
-    filter: brightness(1);
   }
   to {
     transform: translate3d(-24%, 0, 0);
-    filter: brightness(0.9);
   }
 }
 @keyframes ringoInLeft {
   from {
     transform: translate3d(-24%, 0, 0);
-    filter: brightness(0.9);
   }
   to {
     transform: translate3d(0, 0, 0);
-    filter: brightness(1);
   }
 }
 @keyframes ringoOutRight {
@@ -178,4 +179,10 @@ textarea,
   .leave-fade {
     animation-duration: 0.01ms;
   }
+}
+
+/* SaturnWorld flag rings — compositor-only spin */
+@keyframes flagspin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }

@@ -1,6 +1,6 @@
 // HomeScreen — dashboard with membership tiers, metric strip, action rail,
 // wallet-style number card, KYC status and a discovery rail.
-import type { MouseEvent, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { RC } from '../theme';
 import { useRingoState } from '../store/store';
 import { COUNTRIES } from '../data/countries';
@@ -33,6 +33,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
           <img src={LOGO_SRC} alt="Ringo" style={{ height: 22, width: 'auto' }} />
           <div
             onClick={() => onNav('browse')}
+            className="press"
             style={{
               flex: 1, height: 40, padding: '0 14px', borderRadius: 999,
               background: RC.paper, border: `1px solid ${RC.line}`,
@@ -48,6 +49,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
           {/* avatar with tier ring */}
           <div
             onClick={() => onNav('settings')}
+            className="press"
             style={{
               width: 38, height: 38, borderRadius: '50%', cursor: 'pointer',
               background: `linear-gradient(135deg, ${tier.c1}, ${tier.c2})`,
@@ -114,6 +116,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
         <div style={{ padding: '24px 20px 0' }}>
           <div
             onClick={kycDone ? undefined : () => onNav('kyc')}
+            className={kycDone ? undefined : 'press'}
             style={{
               display: 'flex', alignItems: 'center', gap: 14, padding: 16,
               borderRadius: 20, background: RC.paper, border: `1px solid ${RC.line}`,
@@ -235,12 +238,13 @@ function TierCard({
   return (
     <div
       onClick={onClick}
+      className="press"
       style={{
         position: 'relative', overflow: 'hidden', cursor: 'pointer',
         borderRadius: 26, padding: '22px 22px 20px',
         background: `linear-gradient(135deg, ${tier.c1} 0%, ${tier.c2} 100%)`,
         color: '#FFFDFB',
-        boxShadow: `0 26px 52px -22px ${tier.glow}, 0 6px 14px -8px ${tier.glow}`,
+        boxShadow: `0 14px 28px -14px ${tier.glow}`,
       }}
     >
       {/* atmosphere */}
@@ -293,6 +297,7 @@ function MetricTile({ value, label, onClick }: { value: ReactNode; label: string
   return (
     <div
       onClick={onClick}
+      className="press"
       style={{
         borderRadius: 18, padding: '14px 12px', cursor: 'pointer',
         background: RC.paper, border: `1px solid ${RC.line}`,
@@ -396,19 +401,13 @@ function ActionChip({ label, icon, onClick }: { label: string; icon: ActionIcon;
     plan: 'linear-gradient(145deg, #D9F6E6 0%, #A9ECC9 100%)', // mint
     qr: 'linear-gradient(145deg, #FFDFEB 0%, #FFB3D1 100%)', // pink
   };
-  const press = (v: string) => (e: MouseEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.transform = v;
-  };
   return (
     <button
       onClick={onClick}
-      onMouseDown={press('scale(0.94)')}
-      onMouseUp={press('scale(1)')}
-      onMouseLeave={press('scale(1)')}
+      className="press"
       style={{
         border: 'none', background: 'transparent', cursor: 'pointer', padding: 0,
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-        transition: 'transform .12s ease',
       }}
     >
       <div

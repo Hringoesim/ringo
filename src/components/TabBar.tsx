@@ -58,8 +58,8 @@ export function RingoTabBar({
       style={{
         height: 84, paddingTop: 10, paddingBottom: 30, position: 'relative',
         background: RC.glassBar,
-        backdropFilter: 'blur(20px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+
+
         borderTop: `1px solid ${RC.line}`,
         display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr',
       }}

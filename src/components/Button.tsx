@@ -36,7 +36,7 @@ export function RingoButton({
   if (variant === 'primary')
     Object.assign(base, {
       background: RC.grad, color: '#FFFFFF',
-      boxShadow: '0 14px 28px -8px rgba(230,36,154,0.52), 0 5px 12px -4px rgba(255,94,30,0.45)',
+      boxShadow: '0 8px 18px -8px rgba(230,36,154,0.5)',
     });
   if (variant === 'soft') Object.assign(base, { background: RC.cream, color: RC.inkStrong });
   if (variant === 'ghost')

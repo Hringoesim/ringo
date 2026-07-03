@@ -56,9 +56,9 @@ export function LandingScreen({ onCreate, onLogin }: { onCreate: () => void; onL
           style={{
             width: '100%', height: 52, borderRadius: 999, cursor: 'pointer',
             border: `1.5px solid ${RC.lineStrong}`,
-            background: 'rgba(255,255,255,0.55)', color: RC.inkStrong,
+            background: 'rgba(255,255,255,0.72)', color: RC.inkStrong,
             fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600,
-            backdropFilter: 'blur(6px)',
+
           }}
         >
           Log in

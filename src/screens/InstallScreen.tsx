@@ -90,7 +90,7 @@ export function InstallScreen({ onBack, onActivate }: { onBack: () => void; onAc
       <div
         style={{
           padding: '14px 20px 24px', borderTop: `1px solid ${RC.line}`,
-          background: RC.glass, backdropFilter: 'blur(20px) saturate(180%)',
+          background: RC.glass,
         }}
       >
         <RingoButton onClick={onActivate}>Install on this device</RingoButton>

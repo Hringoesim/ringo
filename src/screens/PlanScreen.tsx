@@ -28,7 +28,7 @@ export function PlanScreen({ onBack, onInstall, onSwitchPlan }: PlanScreenProps)
 
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '0 20px 120px' }}>
         {/* Plan hero — reflects selected plan */}
-        <div style={{ borderRadius: 28, padding: '24px 22px', background: RC.grad, color: '#FFFDFB', boxShadow: '0 30px 60px -24px rgba(248,80,96,0.5)', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ borderRadius: 28, padding: '24px 22px', background: RC.grad, color: '#FFFDFB', boxShadow: '0 16px 32px -24px rgba(248,80,96,0.5)', position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', right: -30, top: -50, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,253,251,0.13)' }} />
           <div style={{ position: 'absolute', right: 30, bottom: -60, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,253,251,0.10)' }} />
 

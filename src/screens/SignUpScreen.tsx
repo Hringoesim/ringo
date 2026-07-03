@@ -227,7 +227,7 @@ export function SignUpScreen({ onBack, onEmailAuth, onAppleSignIn, onGoogleSignI
       <div
         style={{
           padding: '14px 24px 24px', borderTop: `1px solid ${RC.line}`,
-          background: RC.glass, backdropFilter: 'blur(20px) saturate(180%)',
+          background: RC.glass,
           display: 'flex', flexDirection: 'column', gap: 10,
         }}
       >

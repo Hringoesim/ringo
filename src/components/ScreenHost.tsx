@@ -1,7 +1,9 @@
 // ScreenHost.tsx — animated navigation container.
-// Renders the active screen with an iOS-style enter animation, and keeps a
-// frozen snapshot of the outgoing screen alive just long enough to animate it
-// out. Direction drives the motion: push (forward), pop (back), fade (tab).
+// Renders the active screen with an iOS-style enter animation while the
+// outgoing screen animates out. The outgoing subtree is MOVED (keyed array
+// reconciliation) into the leaving layer — never unmounted/remounted — so
+// transition start pays no double mount and running state (canvas, timers,
+// scroll) survives the exit animation.
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 export type NavDir = 'push' | 'pop' | 'fade';
@@ -11,28 +13,22 @@ const DURATION = 360; // ms — slightly longer than the CSS animation, to be sa
 export function ScreenHost({ navKey, dir, children }: { navKey: string; dir: NavDir; children: ReactNode }) {
   const lastKey = useRef(navKey);
   const lastNode = useRef<ReactNode>(children);
-  const seq = useRef(0);
-  const [leaving, setLeaving] = useState<{ node: ReactNode; dir: NavDir; id: number } | null>(null);
+  const [leaving, setLeaving] = useState<{ key: string; node: ReactNode; dir: NavDir } | null>(null);
 
-  const changed = navKey !== lastKey.current;
-  const outgoing = lastNode.current; // captured at render-time = previous screen
-  const outgoingDir = dir;
-
-  // Start the exit animation when the screen identity changes.
-  useEffect(() => {
-    if (!changed) return;
-    const id = ++seq.current;
-    setLeaving({ node: outgoing, dir: outgoingDir, id });
-    const t = window.setTimeout(() => setLeaving((l) => (l && l.id === id ? null : l)), DURATION);
-    return () => window.clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navKey]);
-
-  // After every render, remember what we just showed.
-  useEffect(() => {
+  // Adjust-state-during-render: the moment the screen identity changes, move
+  // the previous screen into the leaving layer synchronously (same render).
+  if (navKey !== lastKey.current) {
+    setLeaving({ key: lastKey.current, node: lastNode.current, dir });
     lastKey.current = navKey;
-    lastNode.current = children;
-  });
+  }
+  lastNode.current = children;
+
+  // Clear the leaving layer when its exit animation completes.
+  useEffect(() => {
+    if (!leaving) return;
+    const t = window.setTimeout(() => setLeaving(null), DURATION);
+    return () => window.clearTimeout(t);
+  }, [leaving]);
 
   const enterClass = dir === 'push' ? 'enter-push' : dir === 'pop' ? 'enter-pop' : 'enter-fade';
   const leaveClass =
@@ -41,16 +37,21 @@ export function ScreenHost({ navKey, dir, children }: { navKey: string; dir: Nav
   const enterZ = dir === 'pop' ? 1 : 2;
   const leaveZ = dir === 'pop' ? 2 : 1;
 
-  return (
-    <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
-      {leaving && (
-        <div className={`screen-layer ${leaveClass}`} style={{ zIndex: leaveZ }} aria-hidden>
-          {leaving.node}
-        </div>
-      )}
-      <div key={navKey} className={`screen-layer ${enterClass}`} style={{ zIndex: enterZ }}>
-        {children}
-      </div>
-    </div>
+  // Keyed ARRAY children: React matches by key across positions, so the old
+  // subtree moves (className change only) instead of unmount+remount.
+  const layers: ReactNode[] = [];
+  if (leaving && leaving.key !== navKey) {
+    layers.push(
+      <div key={leaving.key} className={`screen-layer ${leaveClass}`} style={{ zIndex: leaveZ }} aria-hidden>
+        {leaving.node}
+      </div>,
+    );
+  }
+  layers.push(
+    <div key={navKey} className={`screen-layer ${enterClass}`} style={{ zIndex: enterZ }}>
+      {children}
+    </div>,
   );
+
+  return <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>{layers}</div>;
 }

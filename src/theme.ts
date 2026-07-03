@@ -45,8 +45,8 @@ const DARK: Palette = {
   grad: 'linear-gradient(135deg,#FF7A2F 0%, #FB3E84 50%, #E92BA0 100%)',
   gradSoft: 'linear-gradient(135deg, rgba(255,122,47,0.20) 0%, rgba(233,43,160,0.20) 100%)',
   pink: '#FB3E84',
-  glass: 'rgba(16,12,24,0.86)',
-  glassBar: 'rgba(12,9,18,0.74)',
+  glass: 'rgb(18,14,26)',
+  glassBar: 'rgb(15,11,21)',
   pageBg:
     'radial-gradient(900px 600px at 18% 8%, rgba(255,122,47,0.12), transparent 60%),' +
     'radial-gradient(760px 520px at 86% 92%, rgba(233,43,160,0.14), transparent 60%), #07060C',
@@ -66,8 +66,8 @@ const LIGHT: Palette = {
   grad: 'linear-gradient(135deg,#FF5E1E 0%, #F5337E 50%, #E6249A 100%)',
   gradSoft: 'linear-gradient(135deg, rgba(255,94,30,0.20) 0%, rgba(230,36,154,0.20) 100%)',
   pink: '#E6249A',
-  glass: 'rgba(255,246,239,0.92)',
-  glassBar: 'rgba(255,246,239,0.82)',
+  glass: 'rgb(255,246,239)',
+  glassBar: 'rgb(253,243,235)',
   pageBg:
     'radial-gradient(900px 600px at 18% 12%, rgba(255,94,30,0.16), transparent 60%),' +
     'radial-gradient(700px 500px at 88% 90%, rgba(230,36,154,0.16), transparent 60%), #FFF6EF',

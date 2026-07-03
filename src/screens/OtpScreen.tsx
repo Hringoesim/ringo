@@ -130,7 +130,7 @@ export function OtpScreen({ phone, devCode, onBack, onVerify, onResend }: OtpScr
       <div
         style={{
           padding: '14px 24px 24px', borderTop: `1px solid ${RC.line}`,
-          background: RC.glass, backdropFilter: 'blur(20px) saturate(180%)',
+          background: RC.glass,
         }}
       >
         <RingoButton disabled={!ok || busy} onClick={submit}>{busy ? 'Verifying…' : 'Verify and continue'}</RingoButton>

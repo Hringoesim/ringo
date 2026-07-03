@@ -1,29 +1,17 @@
 // SaturnWorld — a globe with country flags orbiting in a Saturn-style ring.
-// The flags revolve along an ellipse; those at the front pass over the planet,
-// those at the back duck behind it, selling the 3D ring.
-import { useEffect, useRef, useState } from 'react';
+// Performance: the orbit is fully imperative — one rAF loop writes
+// compositor-friendly transform/opacity to static DOM nodes, so React renders
+// ZERO times per frame and the browser does no layout. The spinning chip rings
+// run as pure CSS animations. The globe itself is lazy-loaded (code-split).
+import { lazy, Suspense, useEffect, useRef } from 'react';
 import { RC } from '../theme';
-import { RingoGlobe } from './Globe';
+
+const RingoGlobe = lazy(() => import('./Globe').then((m) => ({ default: m.RingoGlobe })));
 
 const FLAGS = ['🇬🇧', '🇮🇪', '🇪🇸', '🇩🇪', '🇳🇱', '🇺🇸', '🇯🇵', '🇸🇬', '🇦🇪', '🇵🇹', '🇲🇽', '🇹🇭'];
 
 export function SaturnWorld({ size = 280 }: { size?: number }) {
-  const [t, setT] = useState(0);
-  const raf = useRef(0);
-
-  useEffect(() => {
-    const reduce = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce) return;
-    let last = performance.now();
-    const loop = (now: number) => {
-      const dt = Math.min(0.05, (now - last) / 1000);
-      last = now;
-      setT((prev) => prev + dt * 0.32); // slow orbit
-      raf.current = requestAnimationFrame(loop);
-    };
-    raf.current = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf.current);
-  }, []);
+  const wrapRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const cx = size / 2;
   const cy = size / 2;
@@ -32,15 +20,53 @@ export function SaturnWorld({ size = 280 }: { size?: number }) {
   const planet = size * 0.46;
   const tilt = -16; // degrees
 
+  useEffect(() => {
+    const reduce = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) return;
+    const rad = (tilt * Math.PI) / 180;
+    const front: (boolean | null)[] = FLAGS.map(() => null);
+    let t = 0;
+    let last = performance.now();
+    let raf = 0;
+    const loop = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      t += dt * 0.32; // slow orbit
+      for (let i = 0; i < FLAGS.length; i++) {
+        const el = wrapRefs.current[i];
+        if (!el) continue;
+        const a = t + (i / FLAGS.length) * Math.PI * 2;
+        const ex = rx * Math.cos(a);
+        const ey = ry * Math.sin(a);
+        const x = cx + ex * Math.cos(rad) - ey * Math.sin(rad);
+        const y = cy + ex * Math.sin(rad) + ey * Math.cos(rad);
+        const depth = (Math.sin(a) + 1) / 2; // 0 back … 1 front
+        el.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%,-50%) scale(${0.62 + 0.5 * depth})`;
+        el.style.opacity = String(0.5 + 0.5 * depth);
+        const isFront = Math.sin(a) > 0;
+        if (isFront !== front[i]) {
+          front[i] = isFront;
+          el.style.zIndex = isFront ? '6' : '1';
+        }
+      }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [size, cx, cy, rx, ry]);
+
+  const chip = 34;
+  const ring = chip + 9;
+
   return (
     <div style={{ width: size, height: size, position: 'relative' }}>
-      {/* vivid halo */}
+      {/* vivid halo — softness baked into the gradient (no blur filter) */}
       <div
         style={{
           position: 'absolute', left: cx - planet * 0.85, top: cy - planet * 0.85,
           width: planet * 1.7, height: planet * 1.7, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(255,94,30,0.50) 0%, rgba(245,51,126,0.34) 48%, rgba(230,36,154,0.12) 68%, transparent 78%)',
-          filter: 'blur(22px)',
+          background:
+            'radial-gradient(circle, rgba(255,94,30,0.44) 0%, rgba(250,70,100,0.34) 34%, rgba(245,51,126,0.22) 52%, rgba(230,36,154,0.10) 66%, rgba(230,36,154,0.03) 74%, transparent 80%)',
         }}
       />
 
@@ -60,72 +86,58 @@ export function SaturnWorld({ size = 280 }: { size?: number }) {
         <ellipse cx={cx} cy={cy} rx={rx * 0.84} ry={ry * 0.84} fill="none" stroke="url(#saturnRing)" strokeWidth="1.2" strokeOpacity="0.4" />
       </svg>
 
-      {/* planet — meridians sweep with `spin` so it reads as a turning 3D globe */}
+      {/* planet — lazy-loaded canvas globe (code-split with its map data) */}
       <div
         style={{
           position: 'absolute', left: cx - planet / 2, top: cy - planet / 2,
           width: planet, height: planet, borderRadius: '50%', zIndex: 3,
-          boxShadow: `0 30px 70px -18px ${RC.pink}99`,
+          boxShadow: `0 16px 36px -14px ${RC.pink}80`,
         }}
       >
-        <RingoGlobe size={planet} spin={t * 1.1} />
+        <Suspense fallback={<div style={{ width: planet, height: planet, borderRadius: '50%', background: RC.grad, opacity: 0.25 }} />}>
+          <RingoGlobe size={planet} />
+        </Suspense>
       </div>
 
-      {/* orbiting flags */}
-      {FLAGS.map((f, i) => {
-        const a = t + (i / FLAGS.length) * Math.PI * 2;
-        // position on the (tilted) ellipse
-        const rad = (tilt * Math.PI) / 180;
-        const ex = rx * Math.cos(a);
-        const ey = ry * Math.sin(a);
-        const x = cx + ex * Math.cos(rad) - ey * Math.sin(rad);
-        const y = cy + ex * Math.sin(rad) + ey * Math.cos(rad);
-        const front = Math.sin(a) > 0;
-        const depth = (Math.sin(a) + 1) / 2; // 0 back … 1 front
-        const scale = 0.62 + 0.5 * depth;
-        const chip = 34;
-        const ring = chip + 9;
-        // Live ring spins continuously; alternate direction per flag for life.
-        const ringSpin = (t * 150 * (i % 2 ? -1 : 1)) % 360;
-        return (
-          <div
-            key={i}
+      {/* orbiting flags — static nodes; the rAF loop moves them on the compositor */}
+      {FLAGS.map((f, i) => (
+        <div
+          key={i}
+          ref={(el) => { wrapRefs.current[i] = el; }}
+          style={{
+            position: 'absolute', left: 0, top: 0, zIndex: 1,
+            transform: `translate3d(${cx}px, ${cy}px, 0) translate(-50%,-50%)`,
+            willChange: 'transform, opacity',
+          }}
+        >
+          {/* spinning live ring — pure CSS animation */}
+          <svg
+            width={ring} height={ring} viewBox={`0 0 ${ring} ${ring}`}
             style={{
-              position: 'absolute', left: x, top: y,
-              transform: `translate(-50%,-50%) scale(${scale})`,
-              zIndex: front ? 6 : 1,
-              opacity: 0.5 + 0.5 * depth,
+              position: 'absolute', left: '50%', top: '50%',
+              margin: `${-ring / 2}px 0 0 ${-ring / 2}px`,
+              animation: `flagspin 2.6s linear infinite${i % 2 ? ' reverse' : ''}`,
             }}
           >
-            {/* spinning live ring */}
-            <svg
-              width={ring} height={ring} viewBox={`0 0 ${ring} ${ring}`}
-              style={{
-                position: 'absolute', left: '50%', top: '50%',
-                transform: `translate(-50%,-50%) rotate(${ringSpin}deg)`,
-              }}
-            >
-              <circle
-                cx={ring / 2} cy={ring / 2} r={ring / 2 - 1.5}
-                fill="none" stroke="url(#saturnRing)" strokeWidth="2"
-                strokeLinecap="round" strokeDasharray={`${ring * 0.7} ${ring * 1.2}`}
-                strokeOpacity={0.5 + 0.5 * depth}
-              />
-            </svg>
-            <div
-              style={{
-                position: 'relative',
-                width: chip, height: chip, borderRadius: '50%',
-                background: RC.paper, border: `1px solid ${RC.line}`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: front ? '0 8px 16px -8px rgba(0,0,0,0.35)' : 'none',
-              }}
-            >
-              <span style={{ fontSize: 18 }}>{f}</span>
-            </div>
+            <circle
+              cx={ring / 2} cy={ring / 2} r={ring / 2 - 1.5}
+              fill="none" stroke="url(#saturnRing)" strokeWidth="2"
+              strokeLinecap="round" strokeDasharray={`${ring * 0.7} ${ring * 1.2}`}
+              strokeOpacity={0.8}
+            />
+          </svg>
+          <div
+            style={{
+              position: 'relative',
+              width: chip, height: chip, borderRadius: '50%',
+              background: RC.paper, border: `1px solid ${RC.line}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <span style={{ fontSize: 18 }}>{f}</span>
           </div>
-        );
-      })}
+        </div>
+      ))}
     </div>
   );
 }

@@ -57,6 +57,7 @@ export function BrowseScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => vo
               {popular.map((c) => (
                 <div
                   key={c.code}
+                  className="press"
                   onClick={() => onNav('country', c.code)}
                   style={{ flex: '0 0 130px', padding: 14, borderRadius: 18, background: RC.gradSoft, border: '1px solid transparent', cursor: 'pointer' }}
                 >
@@ -78,6 +79,7 @@ export function BrowseScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => vo
               {list.map((c, i) => (
                 <div
                   key={c.code}
+                  className="press"
                   onClick={() => onNav('country', c.code)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px',
