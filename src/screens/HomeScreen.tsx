@@ -109,7 +109,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
           </button>
         </div>
         <div style={{ padding: '0 20px' }}>
-          <NumberBuckets numbers={state.numbers} onMore={() => onNav('numbers')} />
+          <NumberBuckets numbers={state.numbers} onMore={() => onNav('numbers')} onAdd={() => onNav('addNumber')} />
         </div>
 
         {/* ── KYC verification status ─────────────────────────── */}
@@ -313,7 +313,7 @@ function MetricTile({ value, label, onClick }: { value: ReactNode; label: string
 // Wise-style bucket list — every number is a first-class "account" (the IBAN
 // of your identity). One card, aligned rows: flag tile | number + label |
 // serving network chip. All rows share the same grid so numbers line up.
-function NumberBuckets({ numbers, onMore }: { numbers: PhoneNumber[]; onMore: () => void }) {
+function NumberBuckets({ numbers, onMore, onAdd }: { numbers: PhoneNumber[]; onMore: () => void; onAdd: () => void }) {
   if (!numbers.length) return null;
   return (
     <div
@@ -381,6 +381,38 @@ function NumberBuckets({ numbers, onMore }: { numbers: PhoneNumber[]; onMore: ()
           </div>
         </div>
       ))}
+      {/* Wise-style "open a new bucket" row */}
+      <div
+        onClick={onAdd}
+        className="press"
+        style={{
+          display: 'grid', gridTemplateColumns: '40px 1fr auto', alignItems: 'center',
+          gap: 10, padding: '14px 14px', cursor: 'pointer',
+          borderTop: numbers.length ? `1px solid ${RC.line}` : 'none',
+        }}
+      >
+        <div
+          style={{
+            width: 40, height: 40, borderRadius: '50%', background: RC.gradSoft,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M12 5v14M5 12h14" stroke={RC.inkStrong} strokeWidth="2.4" strokeLinecap="round" />
+          </svg>
+        </div>
+        <div>
+          <div style={{ fontFamily: 'var(--font)', fontSize: 15, fontWeight: 700, color: RC.inkStrong, letterSpacing: -0.2 }}>
+            Add a number
+          </div>
+          <div style={{ fontFamily: 'var(--font)', fontSize: 12, fontWeight: 500, color: RC.inkMute }}>
+            New local number or port yours in
+          </div>
+        </div>
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+          <path d="M6 3l5 5-5 5" stroke={RC.inkMute} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
     </div>
   );
 }
