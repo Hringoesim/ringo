@@ -18,12 +18,12 @@ export function nextTier(score: number): Tier | null {
   return TIERS.find((x) => x.min > score) ?? null;
 }
 
-// Default user profile — Hippolyte, a recurring crosser at 4 countries this year.
-// Anchored in the UK launch market.
+// Default user profile — real data only: Hippolyte, home market Belgium,
+// 1 country connected so far. Stats grow only from genuine activity.
 export const USER = {
   name: 'Hippolyte',
-  score: 4,
-  dataPct: 0.34,
-  countries: 4,
+  score: 1,
+  dataPct: 0,
+  countries: 1,
   currentCountry: 'BE',
 };

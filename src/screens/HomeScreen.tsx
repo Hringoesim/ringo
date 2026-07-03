@@ -323,17 +323,17 @@ function NumberBuckets({ numbers, onMore }: { numbers: PhoneNumber[]; onMore: ()
           onClick={onMore}
           className="press"
           style={{
-            display: 'grid', gridTemplateColumns: '44px 1fr auto', alignItems: 'center',
-            gap: 12, padding: '14px 16px', cursor: 'pointer',
+            display: 'grid', gridTemplateColumns: '40px 1fr auto', alignItems: 'center',
+            gap: 10, padding: '14px 14px', cursor: 'pointer',
             borderTop: i > 0 ? `1px solid ${RC.line}` : 'none',
           }}
         >
           {/* flag tile (Wise-style circular avatar) */}
           <div
             style={{
-              width: 44, height: 44, borderRadius: '50%', background: RC.cream,
+              width: 40, height: 40, borderRadius: '50%', background: RC.cream,
               border: `1px solid ${RC.line}`, display: 'flex', alignItems: 'center',
-              justifyContent: 'center', fontSize: 22,
+              justifyContent: 'center', fontSize: 20,
             }}
           >
             {n.flag}
@@ -342,8 +342,8 @@ function NumberBuckets({ numbers, onMore }: { numbers: PhoneNumber[]; onMore: ()
           <div style={{ minWidth: 0 }}>
             <div
               style={{
-                fontFamily: 'var(--font)', fontSize: 16.5, fontWeight: 700, color: RC.ink,
-                letterSpacing: -0.2, lineHeight: 1.25, fontVariantNumeric: 'tabular-nums',
+                fontFamily: 'var(--font)', fontSize: 15, fontWeight: 700, color: RC.ink,
+                letterSpacing: -0.3, lineHeight: 1.25, fontVariantNumeric: 'tabular-nums',
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
               }}
             >
@@ -358,7 +358,7 @@ function NumberBuckets({ numbers, onMore }: { numbers: PhoneNumber[]; onMore: ()
           <div
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
-              padding: '5px 10px', borderRadius: 999,
+              padding: '4px 8px', borderRadius: 999,
               background: n.active ? 'rgba(31,138,91,0.10)' : RC.cream,
               border: `1px solid ${n.active ? 'rgba(31,138,91,0.25)' : RC.line}`,
             }}
