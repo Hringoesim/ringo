@@ -5,9 +5,9 @@ import { RC } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { RingoCard } from '../components/Card';
-import { BackBtn, Row, SectionTitle } from '../components/ui';
+import { BackBtn, SectionTitle } from '../components/ui';
 import { useRingoState } from '../store/store';
-import { PLANS } from '../data/plans';
+import { PLANS, planPrice, fmtMoney } from '../data/plans';
 
 interface PlanScreenProps {
   onBack: () => void;
@@ -21,14 +21,6 @@ export function PlanScreen({ onBack, onInstall, onSwitchPlan }: PlanScreenProps)
   const [selected, setSelected] = useState(currentId);
   const cur = PLANS.find((p) => p.id === selected) || PLANS[0];
   const isCurrent = (id: string) => id === currentId;
-
-  const ADDONS = [
-    { id: 'ie-number', icon: 'call' as const, title: 'Extra Ireland number', sub: 'A second local number · +£3/mo' },
-    { id: 'tether', icon: 'hotspot' as const, title: 'Office tether', sub: 'Unlimited tethering · +£5/mo' },
-    { id: 'always5g', icon: 'speed' as const, title: 'Always 5G', sub: 'Skip fair-use throttle · +£9/mo' },
-  ];
-  const [addons, setAddons] = useState<Record<string, boolean>>({});
-  const toggleAddon = (id: string) => setAddons((a) => ({ ...a, [id]: !a[id] }));
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -48,7 +40,7 @@ export function PlanScreen({ onBack, onInstall, onSwitchPlan }: PlanScreenProps)
               )}
             </div>
             <div style={{ marginTop: 8, display: 'flex', alignItems: 'baseline', gap: 6 }}>
-              <span style={{ fontFamily: 'var(--font)', fontSize: 64, fontWeight: 700, letterSpacing: -2, lineHeight: 1 }}>£{cur.price}</span>
+              <span style={{ fontFamily: 'var(--font)', fontSize: 64, fontWeight: 700, letterSpacing: -2, lineHeight: 1 }}>{fmtMoney(planPrice(cur.id))}</span>
               <span style={{ fontFamily: 'var(--font)', fontSize: 15, fontWeight: 500, opacity: 0.85 }}>/ month</span>
             </div>
             <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 14, fontWeight: 400, opacity: 0.9, lineHeight: 1.5 }}>
@@ -113,7 +105,7 @@ export function PlanScreen({ onBack, onInstall, onSwitchPlan }: PlanScreenProps)
                       </div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontFamily: 'var(--font)', fontSize: 20, fontWeight: 700, color: RC.inkStrong, letterSpacing: -0.5, lineHeight: 1 }}>£{p.price}</div>
+                      <div style={{ fontFamily: 'var(--font)', fontSize: 20, fontWeight: 700, color: RC.inkStrong, letterSpacing: -0.5, lineHeight: 1 }}>{fmtMoney(planPrice(p.id))}</div>
                       <div style={{ fontFamily: 'var(--font)', fontSize: 10.5, color: RC.inkMute, fontWeight: 500 }}>/mo</div>
                     </div>
                   </div>
@@ -136,7 +128,7 @@ export function PlanScreen({ onBack, onInstall, onSwitchPlan }: PlanScreenProps)
           {!isCurrent(cur.id) && (
             <div style={{ marginTop: 14 }}>
               <RingoButton onClick={() => { actions.switchPlan(cur.id); if (onSwitchPlan) onSwitchPlan(cur.id); }}>
-                Switch to {cur.name} — £{cur.price}/mo
+                Switch to {cur.name} — {fmtMoney(planPrice(cur.id))}/mo
               </RingoButton>
             </div>
           )}
@@ -168,48 +160,12 @@ export function PlanScreen({ onBack, onInstall, onSwitchPlan }: PlanScreenProps)
         </div>
 
         <div style={{ marginTop: 22 }}>
-          <SectionTitle>Add-ons</SectionTitle>
-          <RingoCard style={{ padding: 0 }}>
-            {ADDONS.map((a, i) => {
-              const on = !!addons[a.id];
-              return (
-                <Row
-                  key={a.id}
-                  icon={a.icon}
-                  title={a.title}
-                  sub={a.sub}
-                  last={i === ADDONS.length - 1}
-                  active={on}
-                  onClick={() => toggleAddon(a.id)}
-                  trailing={
-                    <span
-                      style={{
-                        width: 46, height: 28, borderRadius: 999, flexShrink: 0, position: 'relative',
-                        background: on ? RC.grad : RC.line, transition: 'background 160ms ease',
-                      }}
-                    >
-                      <span
-                        style={{
-                          position: 'absolute', top: 3, left: on ? 21 : 3, width: 22, height: 22,
-                          borderRadius: '50%', background: '#FFFDFB', transition: 'left 160ms ease',
-                          boxShadow: '0 2px 6px -1px rgba(0,0,0,0.3)',
-                        }}
-                      />
-                    </span>
-                  }
-                />
-              );
-            })}
-          </RingoCard>
-        </div>
-
-        <div style={{ marginTop: 22 }}>
           <SectionTitle>Recent</SectionTitle>
           <RingoCard style={{ padding: 0 }}>
             {[
-              { d: 'Apr 28', t: 'Ringo Essentials', a: '£19.00' },
-              { d: 'Apr 12', t: 'Ireland number', a: '£3.00' },
-              { d: 'Mar 28', t: 'Ringo Essentials', a: '£19.00' },
+              { d: 'Apr 28', t: `Ringo ${cur.name}`, a: fmtMoney(planPrice(cur.id)) },
+              { d: 'Mar 28', t: `Ringo ${cur.name}`, a: fmtMoney(planPrice(cur.id)) },
+              { d: 'Feb 28', t: `Ringo ${cur.name}`, a: fmtMoney(planPrice(cur.id)) },
             ].map((r, i, arr) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', borderBottom: i === arr.length - 1 ? 'none' : `1px solid ${RC.line}` }}>
                 <div style={{ flex: 1 }}>

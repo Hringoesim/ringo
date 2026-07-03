@@ -40,6 +40,10 @@ export interface PhoneNumber {
   /** 'ringo' = allocated MSISDN, 'ported' = brought in via MNP. */
   source?: 'ringo' | 'ported';
   status?: NumberStatus;
+  /** Serving network the eSIM is currently attached to (e.g. 'EE'). */
+  network?: string;
+  /** Radio tech on that network (e.g. '5G', '4G+'). */
+  ran?: string;
   /** Set while a port (MNP) is in flight. */
   porting?: boolean;
   portEta?: string;

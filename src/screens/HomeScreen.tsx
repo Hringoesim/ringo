@@ -20,7 +20,6 @@ function greetingNow(): string {
 
 export function HomeScreen({ onNav }: { onNav: OnNav }) {
   const { state } = useRingoState();
-  const active = state.numbers.find((n) => n.id === state.activeNumberId) || state.numbers[0];
   const tier = tierFor(state.score);
   const next = nextTier(state.score);
   const toNext = next ? next.min - state.score : 0;
@@ -108,7 +107,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
           </button>
         </div>
         <div style={{ padding: '0 20px' }}>
-          <WalletCard n={active} count={state.numbers.length} onMore={() => onNav('numbers')} />
+          <NumberBuckets numbers={state.numbers} onMore={() => onNav('numbers')} />
         </div>
 
         {/* ── KYC verification status ─────────────────────────── */}
@@ -306,45 +305,77 @@ function MetricTile({ value, label, onClick }: { value: ReactNode; label: string
   );
 }
 
-// Wallet-style hero card — single primary number, big and quiet.
-function WalletCard({ n, count, onMore }: { n: PhoneNumber | undefined; count: number; onMore: () => void }) {
-  if (!n) return null;
+// Wise-style bucket list — every number is a first-class "account" (the IBAN
+// of your identity). One card, aligned rows: flag tile | number + label |
+// serving network chip. All rows share the same grid so numbers line up.
+function NumberBuckets({ numbers, onMore }: { numbers: PhoneNumber[]; onMore: () => void }) {
+  if (!numbers.length) return null;
   return (
     <div
-      onClick={onMore}
       style={{
-        position: 'relative', overflow: 'hidden', cursor: 'pointer',
-        borderRadius: 24, padding: '20px 22px 18px',
-        background: RC.paper, border: `1px solid ${RC.line}`,
-        boxShadow: '0 10px 28px -18px rgba(208,80,0,0.25)',
+        borderRadius: 24, background: RC.paper, border: `1px solid ${RC.line}`,
+        boxShadow: '0 10px 28px -18px rgba(208,80,0,0.25)', overflow: 'hidden',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 24 }}>{n.flag}</span>
-          <div>
-            <div style={{ fontFamily: 'var(--font)', fontSize: 12, fontWeight: 500, color: RC.inkMute, letterSpacing: 0.2 }}>{n.country} · {n.tag}</div>
-            <div style={{ fontFamily: 'var(--font)', fontSize: 20, fontWeight: 600, color: RC.ink, letterSpacing: -0.4, lineHeight: 1.2 }}>{n.number}</div>
+      {numbers.map((n, i) => (
+        <div
+          key={n.id}
+          onClick={onMore}
+          className="press"
+          style={{
+            display: 'grid', gridTemplateColumns: '44px 1fr auto', alignItems: 'center',
+            gap: 12, padding: '14px 16px', cursor: 'pointer',
+            borderTop: i > 0 ? `1px solid ${RC.line}` : 'none',
+          }}
+        >
+          {/* flag tile (Wise-style circular avatar) */}
+          <div
+            style={{
+              width: 44, height: 44, borderRadius: '50%', background: RC.cream,
+              border: `1px solid ${RC.line}`, display: 'flex', alignItems: 'center',
+              justifyContent: 'center', fontSize: 22,
+            }}
+          >
+            {n.flag}
+          </div>
+          {/* number = the account identifier */}
+          <div style={{ minWidth: 0 }}>
+            <div
+              style={{
+                fontFamily: 'var(--font)', fontSize: 16.5, fontWeight: 700, color: RC.ink,
+                letterSpacing: -0.2, lineHeight: 1.25, fontVariantNumeric: 'tabular-nums',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              }}
+            >
+              {n.number}
+            </div>
+            <div style={{ fontFamily: 'var(--font)', fontSize: 12, fontWeight: 500, color: RC.inkMute, letterSpacing: 0.1 }}>
+              {n.country} · {n.tag}
+              {n.porting && n.portEta ? ` · port ${n.portEta}` : ''}
+            </div>
+          </div>
+          {/* serving network — live connection chip */}
+          <div
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '5px 10px', borderRadius: 999,
+              background: n.active ? 'rgba(31,138,91,0.10)' : RC.cream,
+              border: `1px solid ${n.active ? 'rgba(31,138,91,0.25)' : RC.line}`,
+            }}
+          >
+            <span
+              style={{
+                width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+                background: n.active ? '#1F8A5B' : RC.inkMute,
+                boxShadow: n.active ? '0 0 0 3px rgba(31,138,91,0.18)' : 'none',
+              }}
+            />
+            <span style={{ fontFamily: 'var(--font)', fontSize: 11.5, fontWeight: 700, color: n.active ? '#1F7A4E' : RC.inkMute, whiteSpace: 'nowrap' }}>
+              {n.network ? `${n.network}${n.ran ? ' · ' + n.ran : ''}` : n.active ? 'Connected' : 'Standby'}
+            </span>
           </div>
         </div>
-        {/* eSIM glyph */}
-        <svg width="30" height="20" viewBox="0 0 32 22" fill="none" style={{ opacity: 0.5 }}>
-          <rect x="0.5" y="0.5" width="31" height="21" rx="3" stroke={RC.inkStrong} strokeOpacity="0.5" />
-          <path d="M10 4v14M22 4v14M5 9h7M5 13h7M20 9h7M20 13h7" stroke={RC.inkStrong} strokeWidth="1.2" strokeOpacity="0.5" />
-        </svg>
-      </div>
-      <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${RC.line}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', fontSize: 12, fontWeight: 500, color: RC.inkMute }}>
-          <span style={{ width: 7, height: 7, borderRadius: '50%', background: n.active ? '#1F8A5B' : RC.cream2 }} />
-          Main · calls, SMS &amp; codes
-        </div>
-        <div style={{ fontFamily: 'var(--font)', fontSize: 12, fontWeight: 600, color: RC.inkStrong, display: 'flex', alignItems: 'center', gap: 4 }}>
-          {count} numbers
-          <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
-            <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </div>
-      </div>
+      ))}
     </div>
   );
 }

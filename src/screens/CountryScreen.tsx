@@ -80,7 +80,7 @@ export function CountryScreen({ code, onNav, onBack, onAddCountry }: CountryScre
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, color: RC.ink }}>+{dial(c.code)} number in {c.name}</div>
-                  <div style={{ fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute }}>£3 / month · cancel any time</div>
+                  <div style={{ fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute }}>Included in your plan · cancel any time</div>
                 </div>
                 <button
                   onClick={() => onNav('addNumber', c.code)}

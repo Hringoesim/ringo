@@ -66,7 +66,7 @@ export function AddNumberScreen({ preselect, onBack, onContinue }: AddNumberScre
               >
                 <div style={{ fontSize: 26 }}>{co.flag}</div>
                 <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, color: RC.ink }}>{co.name}</div>
-                <div style={{ fontFamily: 'var(--font)', fontSize: 11, color: RC.inkMute }}>+{dial(co.code)} · £3/mo</div>
+                <div style={{ fontFamily: 'var(--font)', fontSize: 11, color: RC.inkMute }}>+{dial(co.code)} · included</div>
               </div>
             );
           })}
@@ -115,7 +115,7 @@ export function AddNumberScreen({ preselect, onBack, onContinue }: AddNumberScre
           <div style={{ fontFamily: 'var(--font)', fontSize: 13, color: RC.inkMute, fontWeight: 500 }}>
             {chosen ? chosen : `${c.flag} ${c.name} · monthly`}
           </div>
-          <div style={{ fontFamily: 'var(--font)', fontSize: 18, fontWeight: 600, color: RC.ink }}>£3/mo</div>
+          <div style={{ fontFamily: 'var(--font)', fontSize: 18, fontWeight: 600, color: RC.ink }}>Included</div>
         </div>
         <RingoButton onClick={() => onContinue(code)}>
           {chosen ? `Claim ${chosen}` : `Claim my ${c.name} number`}

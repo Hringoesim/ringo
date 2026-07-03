@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { RC } from '../theme';
 import { RingoCard } from '../components/Card';
 import { useRingoState } from '../store/store';
+import { PLANS, planPrice, fmtMoney } from '../data/plans';
 import type { OnNav } from '../navigation';
 
 interface SettingsScreenProps {
@@ -90,7 +91,7 @@ export function SettingsScreen({ onBack, theme, onToggleTheme, onSignOut, onNav 
       <SectionLabel>Account</SectionLabel>
       <RingoCard style={{ marginTop: 10, padding: '2px 16px' }}>
         <Row label="Identity verification" value={kycValue} tone={kycTone} onClick={kyc === 'pending' ? () => onNav('kyc') : undefined} />
-        <Row label="Plan & billing" value="Essentials · £19/mo" onClick={() => onNav('plan')} />
+        <Row label="Plan & billing" value={`${PLANS.find((p) => p.id === state.planId)?.name ?? 'Essentials'} · ${fmtMoney(planPrice(state.planId))}/mo`} onClick={() => onNav('plan')} />
         <Row label="Membership" value="Orange" onClick={() => onNav('tiers')} />
         <Row label="Your numbers" value={`${state.numbers.length}`} onClick={() => onNav('numbers')} last />
       </RingoCard>

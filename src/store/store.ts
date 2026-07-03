@@ -51,7 +51,7 @@ function defaults(): RingoState {
   const session = getSession();
   return {
     numbers: clone(NUMBERS),
-    activeNumberId: 'gb',
+    activeNumberId: 'be',
     planId: 'essentials',
     currentCountry: USER.currentCountry || 'GB',
     kycStatus: 'pending',

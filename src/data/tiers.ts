@@ -25,5 +25,5 @@ export const USER = {
   score: 4,
   dataPct: 0.34,
   countries: 4,
-  currentCountry: 'GB',
+  currentCountry: 'BE',
 };
