@@ -43,8 +43,10 @@ export function SignUpScreen({ onBack, onEmailAuth, onAppleSignIn, onGoogleSignI
     try {
       await fn();
     } catch (e) {
+      // Surface the real provider error (helps diagnose Apple/Google on device)
+      // rather than always hiding it behind the generic fallback copy.
       const m = e instanceof Error && e.message ? e.message : '';
-      setErr(kind === 'email' && m ? m : fail[kind]);
+      setErr(m || fail[kind]);
     } finally {
       setBusy(null);
     }

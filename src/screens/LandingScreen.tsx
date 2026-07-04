@@ -18,14 +18,18 @@ export function LandingScreen({
   onLogin: () => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
   const dark = RC.scheme === 'dark';
 
   const runApple = async () => {
     if (busy) return;
+    setErr('');
     haptic('medium');
     setBusy(true);
     try {
       await onApple();
+    } catch (e) {
+      setErr(e instanceof Error && e.message ? e.message : 'Apple sign-in failed.');
     } finally {
       setBusy(false);
     }
@@ -35,10 +39,13 @@ export function LandingScreen({
     <div
       style={{
         flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative',
-        // One soft sunset glow at the very top, dissolving into clean porcelain
-        // by the time it reaches the CTA stack — near-monochrome reads as trust.
-        background:
-          'radial-gradient(120% 82% at 50% -2%, rgba(255,146,74,0.22) 0%, rgba(240,86,107,0.10) 32%, rgba(255,255,255,0) 60%), ' + RC.bg,
+        // Vivid warm sunset sky — bright and colorful behind the orbiting world.
+        background: [
+          'radial-gradient(115% 75% at 50% 6%, rgba(255,169,77,0.72) 0%, rgba(255,169,77,0) 48%)',
+          'radial-gradient(120% 85% at 82% 26%, rgba(255,84,132,0.48) 0%, rgba(255,84,132,0) 55%)',
+          'radial-gradient(110% 90% at 12% 72%, rgba(158,102,255,0.42) 0%, rgba(158,102,255,0) 60%)',
+          'linear-gradient(180deg, #FFF1DE 0%, #FFD9BF 36%, #FFBFD2 68%, #E2C4FA 100%)',
+        ].join(', '),
       }}
     >
       <div
@@ -123,6 +130,18 @@ export function LandingScreen({
         >
           Log in
         </button>
+
+        {err && (
+          <div
+            style={{
+              marginTop: 2, padding: '10px 12px', borderRadius: 12, textAlign: 'center',
+              background: 'rgba(183,52,26,0.10)', border: '1px solid rgba(183,52,26,0.22)',
+              fontFamily: 'var(--font)', fontSize: 12, fontWeight: 500, color: '#B7341A', lineHeight: 1.4,
+            }}
+          >
+            {err}
+          </div>
+        )}
 
         <div
           style={{

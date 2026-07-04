@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import Capacitor
 import AuthenticationServices
 
@@ -59,6 +60,11 @@ public class SignInWithApplePlugin: CAPPlugin, CAPBridgedPlugin,
     }
 
     public func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-        return self.bridge?.viewController?.view.window ?? ASPresentationAnchor()
+        if let window = self.bridge?.viewController?.view.window { return window }
+        // Fall back to the app's active key window if the bridge VC has none.
+        let windows = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+        return windows.first(where: { $0.isKeyWindow }) ?? windows.first ?? ASPresentationAnchor()
     }
 }
