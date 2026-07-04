@@ -127,8 +127,17 @@ export function App({ theme, onToggleTheme }: AppProps) {
     push('otp');
   };
 
-  // Identity gate (L2): buying or porting a number requires a completed KYC.
+  // Guests can explore the dashboard freely; committing (buying/porting a number,
+  // subscribing) requires an account first.
+  const isGuest = () => !auth.getSession();
+  const requireAccount = (): boolean => {
+    if (isGuest()) { hapticNotify('warning'); push('signup', { mode: 'create' }); return true; }
+    return false;
+  };
+
+  // Identity gate (L2): buying or porting a number requires an account + KYC.
   const gateNumber = (target: 'addNumber' | 'port', arg?: string, onboarding = false) => {
+    if (requireAccount()) return;
     if (kycCleared(state)) {
       if (target === 'addNumber') push('addNumber', { preselect: arg, onboarding });
       else push('port', { onboarding });
@@ -137,8 +146,9 @@ export function App({ theme, onToggleTheme }: AppProps) {
       push('kyc', { mandatory: true, gateReturn: target, gateArg: arg, onboarding });
     }
   };
-  // Paywall gate: installing/activating the eSIM requires a paid plan.
+  // Paywall gate: installing/activating the eSIM requires an account + paid plan.
   const gateActivation = (target: 'install' | 'activate') => {
+    if (requireAccount()) return;
     if (state.subscribed) push(target);
     else { hapticNotify('warning'); push('checkout', { planId: state.planId, gateReturn: 'install' }); }
   };
@@ -178,6 +188,7 @@ export function App({ theme, onToggleTheme }: AppProps) {
     case 'landing':
       body = (
         <LandingScreen
+          onExplore={() => replace('home')}
           onCreate={() => push('signup', { mode: 'create' })}
           onLogin={() => push('signup', { mode: 'login' })}
         />
@@ -329,7 +340,7 @@ export function App({ theme, onToggleTheme }: AppProps) {
         <PlanScreen
           onBack={() => goTab('home')}
           onInstall={() => gateActivation('install')}
-          onCheckout={(planId) => push('checkout', { planId })}
+          onCheckout={(planId) => { if (requireAccount()) return; push('checkout', { planId }); }}
         />
       );
       break;

@@ -123,7 +123,8 @@ function defaults(): RingoState {
     score: live ? 0 : (USER.score ?? 4),
     countries: live ? 0 : (USER.countries ?? 4),
     dataPct: live ? 0 : (USER.dataPct ?? 0.34),
-    name: session?.name || USER.name || 'there',
+    // Live guest (no session) gets a neutral name; the offline demo keeps USER.
+    name: session?.name || (live ? 'Explorer' : USER.name) || 'there',
     email: session?.email ?? null,
     avatar: null,
     tierUp: null,

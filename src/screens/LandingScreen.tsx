@@ -7,7 +7,7 @@ import { SaturnWorld } from '../components/SaturnWorld';
 import { RingoButton } from '../components/Button';
 import { LOGO_SRC } from '../assets';
 
-export function LandingScreen({ onCreate, onLogin }: { onCreate: () => void; onLogin: () => void }) {
+export function LandingScreen({ onExplore, onCreate, onLogin }: { onExplore: () => void; onCreate: () => void; onLogin: () => void }) {
   const [globe, setGlobe] = useState(320);
   useEffect(() => {
     const compute = () => {
@@ -65,7 +65,8 @@ export function LandingScreen({ onCreate, onLogin }: { onCreate: () => void; onL
       </div>
 
       <div style={{ padding: '18px 24px 28px', display: 'flex', flexDirection: 'column', gap: 11 }}>
-        <RingoButton onClick={onCreate}>Create account</RingoButton>
+        {/* Explore first — get straight into the dashboard, sign in later */}
+        <RingoButton onClick={onExplore}>Explore Ringo</RingoButton>
         <button
           onClick={onLogin}
           className="press"
@@ -77,14 +78,15 @@ export function LandingScreen({ onCreate, onLogin }: { onCreate: () => void; onL
         >
           Log in
         </button>
-        <div
+        <button
+          onClick={onCreate}
           style={{
-            marginTop: 2, textAlign: 'center', fontFamily: 'var(--font)',
-            fontSize: 11.5, fontWeight: 500, color: '#A97187', letterSpacing: 0.1,
+            border: 'none', background: 'transparent', cursor: 'pointer', padding: '2px 0',
+            fontFamily: 'var(--font)', fontSize: 13.5, fontWeight: 600, color: '#9A5B6E',
           }}
         >
-          No SMS code needed · Cancel anytime
-        </div>
+          New to Ringo? <span style={{ color: RC.inkStrong, fontWeight: 700 }}>Create account</span>
+        </button>
       </div>
     </div>
   );
