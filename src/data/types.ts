@@ -47,6 +47,9 @@ export interface PhoneNumber {
   /** Set while a port (MNP) is in flight. */
   porting?: boolean;
   portEta?: string;
+  /** Scheduled to be released at the next renewal (a downgrade freed fewer
+   *  number slots than the account currently holds). Kept live until then. */
+  scheduledRelease?: boolean;
 }
 
 export interface Plan {
@@ -57,6 +60,8 @@ export interface Plan {
   tagline: string;
   popular?: boolean;
   current?: boolean;
+  /** Max phone numbers this plan includes (matches the "N numbers" feature). */
+  maxNumbers: number;
   feats: string[];
 }
 

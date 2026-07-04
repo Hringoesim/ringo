@@ -6,25 +6,38 @@ import type { Plan } from './types';
 export const PLANS: Plan[] = [
   {
     id: 'essentials', name: 'Essentials', price: 15, highspeed: '10 GB',
-    tagline: 'Light traveller', current: true,
+    tagline: 'Light traveller', current: true, maxNumbers: 1,
     feats: ['10 GB data / month', 'Calls & SMS in 60+ countries', '1 ported number', 'Cancel anytime'],
   },
   {
     id: 'plus', name: 'Plus', price: 28, highspeed: '50 GB',
-    tagline: 'Average user',
+    tagline: 'Average user', maxNumbers: 1,
     feats: ['50 GB data / month', 'Unlimited calls (in-network)', '180+ countries', '1 ported number'],
   },
   {
     id: 'pro', name: 'Pro', price: 47, highspeed: 'Unlimited',
-    tagline: 'Heavy nomad', popular: true,
+    tagline: 'Heavy nomad', popular: true, maxNumbers: 3,
     feats: ['Unlimited data', '1 virtual + 2 ported numbers', '180+ countries', 'Priority network'],
   },
   {
     id: 'unlimited', name: 'Unlimited', price: 71, highspeed: 'Unlimited',
-    tagline: 'Power user',
+    tagline: 'Power user', maxNumbers: 4,
     feats: ['Everything in Pro', '4 numbers (3 ported)', 'Partner perks: airline miles, lounge passes, travel insurance', 'Dedicated account manager'],
   },
 ];
+
+// ── Plan ordering + entitlements (used by the switch / proration logic) ──────
+/** Rank in the lineup: essentials 0 < plus 1 < pro 2 < unlimited 3. */
+export function planRank(planId: string): number {
+  const i = PLANS.findIndex((p) => p.id === planId);
+  return i < 0 ? 0 : i;
+}
+
+/** How many numbers a plan includes (the downgrade gate compares against this). */
+export function planMaxNumbers(planId: string): number {
+  const p = PLANS.find((x) => x.id === planId);
+  return p ? p.maxNumbers : 1;
+}
 
 // ── Multi-currency pricing (site-exact, from ringoesim.com) ──────────────────
 // Order matches PLANS: [essentials, plus, pro, unlimited].
@@ -91,5 +104,32 @@ export function fmtMoney(amount: number, currency = localCurrency()): string {
     }).format(amount);
   } catch {
     return `$${amount}`;
+  }
+}
+
+/** A monthly billing period is 30 days for proration purposes. */
+export const BILLING_DAYS = 30;
+
+/** Prorated charge to switch UP *today*: you pay the price difference, but only
+ *  for the days left in the month you've already paid for — the unused time on
+ *  the old plan is credited. Same model Stripe uses for immediate upgrades. */
+export function proratedUpgradeCharge(
+  fromId: string,
+  toId: string,
+  daysLeft: number,
+  currency = localCurrency(),
+): number {
+  const diff = planPrice(toId, currency) - planPrice(fromId, currency);
+  if (diff <= 0) return 0; // not an upgrade → nothing charged now
+  const frac = Math.max(0, Math.min(1, daysLeft / BILLING_DAYS));
+  return Math.max(0, Math.round(diff * frac));
+}
+
+/** Short human date for renewals, e.g. "3 Jul". */
+export function fmtDate(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat(navigator.language || 'en', { day: 'numeric', month: 'short' }).format(new Date(iso));
+  } catch {
+    return iso.slice(0, 10);
   }
 }

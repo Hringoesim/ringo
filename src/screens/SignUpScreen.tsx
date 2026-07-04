@@ -5,7 +5,7 @@ import { RC } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { BackBtn, FieldLabel, Input } from '../components/ui';
-import { LOGO_SRC } from '../assets';
+import { RingoWordmark, RingMark } from '../components/Wordmark';
 
 interface SignUpScreenProps {
   onBack: () => void;
@@ -54,8 +54,9 @@ export function SignUpScreen({ onBack, onEmailAuth, onAppleSignIn, onGoogleSignI
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <RingoHeader title="" leading={<BackBtn onClick={onBack} />} />
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '0 24px 16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}>
-          <img src={LOGO_SRC} alt="Ringo" style={{ height: 30, width: 'auto' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 24 }}>
+          <RingMark size={22} />
+          <RingoWordmark size={26} />
         </div>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1, textWrap: 'pretty' }}>
           {login ? 'Log in to Ringo.' : 'Create your Ringo account.'}
@@ -82,7 +83,7 @@ export function SignUpScreen({ onBack, onEmailAuth, onAppleSignIn, onGoogleSignI
           disabled={!!busy}
           onClick={() => run('apple', onAppleSignIn)}
           style={{
-            marginTop: err ? 12 : 24, width: '100%', height: 54, borderRadius: 14, border: 'none',
+            marginTop: err ? 12 : 24, width: '100%', height: 54, borderRadius: 16, border: 'none',
             background: RC.scheme === 'dark' ? '#FFFFFF' : '#000',
             color: RC.scheme === 'dark' ? '#000' : '#FFFFFF',
             fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, letterSpacing: -0.1,
@@ -109,7 +110,7 @@ export function SignUpScreen({ onBack, onEmailAuth, onAppleSignIn, onGoogleSignI
           disabled={!!busy}
           onClick={() => run('google', onGoogleSignIn)}
           style={{
-            marginTop: 10, width: '100%', height: 54, borderRadius: 14,
+            marginTop: 10, width: '100%', height: 54, borderRadius: 16,
             border: `1.5px solid ${RC.lineStrong}`, background: RC.paper, color: RC.ink,
             fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, letterSpacing: -0.1,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,

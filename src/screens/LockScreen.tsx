@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { RC, hexA } from '../theme';
 import { tierFor, USER } from '../data/tiers';
-import { LOGO_SRC } from '../assets';
+import { RingoWordmark, RingMark } from '../components/Wordmark';
 
 type Phase = 'idle' | 'scanning' | 'success';
 
@@ -72,11 +72,10 @@ export function LockScreen({
     >
       {/* Brand */}
       <div style={{ marginTop: 96, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
-        <img
-          src={LOGO_SRC}
-          alt="Ringo"
-          style={{ height: 48, width: 'auto', filter: `drop-shadow(0 14px 26px ${hexA(c2, 0.28)})` }}
-        />
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+          <RingMark size={30} />
+          <RingoWordmark size={40} variant="hero" />
+        </div>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 500, color: RC.inkMute, letterSpacing: 0.3 }}>
             Welcome back
@@ -110,7 +109,7 @@ export function LockScreen({
               border: phase === 'success' ? 'none' : `1px solid ${RC.line}`,
               boxShadow: phase === 'success'
                 ? `0 24px 48px -20px ${hexA(c2, 0.55)}`
-                : '0 12px 30px -18px rgba(208,80,0,0.25)',
+                : '0 1px 2px rgba(34,26,20,0.05), 0 12px 28px -20px rgba(34,26,20,0.18)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'all .4s cubic-bezier(0.34,1.56,0.64,1)',
             }}

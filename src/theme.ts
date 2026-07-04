@@ -22,6 +22,8 @@ export interface Palette {
   cream2: string;
   grad: string;
   gradSoft: string;
+  /** deeper sunset-into-dusk — reserved for the single hero surface */
+  gradDeep: string;
   pink: string;
   /** translucent surface for sticky footers / sheets */
   glass: string;
@@ -30,6 +32,11 @@ export interface Palette {
   /** ambient page background (around the device) */
   pageBg: string;
 }
+
+// Elevation — depth comes from soft warm shadows, not color. Cards float on the
+// warm canvas; the hero gets a deeper, dusk-tinted lift.
+export const SHADOW_CARD = '0 1px 2px rgba(34,26,20,0.05), 0 12px 28px -20px rgba(34,26,20,0.18)';
+export const SHADOW_HERO = '0 18px 40px -20px rgba(126,58,115,0.55)';
 
 const DARK: Palette = {
   scheme: 'dark',
@@ -44,6 +51,9 @@ const DARK: Palette = {
   cream2: 'rgba(255,255,255,0.15)',
   grad: 'linear-gradient(135deg,#FF7A2F 0%, #FB3E84 50%, #E92BA0 100%)',
   gradSoft: 'linear-gradient(135deg, rgba(255,122,47,0.20) 0%, rgba(233,43,160,0.20) 100%)',
+  gradDeep:
+    'radial-gradient(130% 150% at 12% 8%, rgba(255,178,98,0.55) 0%, rgba(255,178,98,0) 46%),' +
+    'linear-gradient(135deg, #E45E37 0%, #C4497F 52%, #7E3A73 100%)',
   pink: '#FB3E84',
   glass: 'rgb(18,14,26)',
   glassBar: 'rgb(15,11,21)',
@@ -54,23 +64,28 @@ const DARK: Palette = {
 
 const LIGHT: Palette = {
   scheme: 'light',
-  bg: '#FFF6EF',
-  paper: '#FFFFFF',
-  ink: '#3A1605',
-  inkStrong: '#E5431A',
-  inkMute: '#B25A2A',
-  line: 'rgba(230,60,40,0.14)',
-  lineStrong: 'rgba(230,60,40,0.24)',
-  cream: '#FFE7D6',
-  cream2: '#FCD4BE',
-  grad: 'linear-gradient(135deg,#FF5E1E 0%, #F5337E 50%, #E6249A 100%)',
-  gradSoft: 'linear-gradient(135deg, rgba(255,94,30,0.20) 0%, rgba(230,36,154,0.20) 100%)',
-  pink: '#E6249A',
-  glass: 'rgb(255,246,239)',
-  glassBar: 'rgb(253,243,235)',
+  bg: '#F4EFE9', // warm porcelain — no pink wash
+  paper: '#FFFFFF', // crisp white cards for elevation contrast
+  ink: '#221A14', // deep warm espresso (kills the muddy brown)
+  inkStrong: '#CE4A1E', // burnt-sunset ember for links / small accents
+  inkMute: '#82715F', // warm taupe-gray secondary text
+  line: 'rgba(34,26,20,0.08)', // NEUTRAL warm hairline (no pink tint)
+  lineStrong: 'rgba(34,26,20,0.14)',
+  cream: '#F4ECE2', // muted warm sand for soft chips/tiles
+  cream2: '#EADFD1',
+  // The refined sunset — orange → coral → plum, dropping the neon magenta.
+  grad: 'linear-gradient(135deg, #FF8A3D 0%, #F0566B 48%, #C74B8E 100%)',
+  gradSoft: 'linear-gradient(135deg, rgba(255,138,61,0.12) 0%, rgba(199,75,142,0.10) 100%)',
+  gradDeep:
+    'radial-gradient(130% 150% at 12% 8%, #FFB262 0%, rgba(255,178,98,0) 46%),' +
+    'linear-gradient(135deg, #E45E37 0%, #C4497F 52%, #7E3A73 100%)',
+  pink: '#C74B8E', // deep orchid (was neon magenta)
+  glass: 'rgb(247,242,236)',
+  glassBar: 'rgb(244,239,233)',
+  // One soft warm glow up top, a plum whisper in the corner, neutral warm base.
   pageBg:
-    'radial-gradient(900px 600px at 18% 12%, rgba(255,94,30,0.16), transparent 60%),' +
-    'radial-gradient(700px 500px at 88% 90%, rgba(230,36,154,0.16), transparent 60%), #FFF6EF',
+    'radial-gradient(1100px 720px at 50% -12%, rgba(255,138,61,0.10), transparent 55%),' +
+    'radial-gradient(760px 560px at 88% 108%, rgba(199,75,142,0.06), transparent 60%), #EFE9E1',
 };
 
 export const THEMES: Record<Scheme, Palette> = { dark: DARK, light: LIGHT };
@@ -88,6 +103,9 @@ export function applyTheme(name: Scheme): void {
     root.setProperty('--ink', p.ink);
     root.setProperty('--ink-strong', p.inkStrong);
     root.setProperty('--ink-mute', p.inkMute);
+    root.setProperty('--line', p.line);
+    root.setProperty('--line-strong', p.lineStrong);
+    root.setProperty('--grad', p.grad);
     document.body.style.background = p.pageBg;
     document.body.style.color = p.ink;
     const meta = document.querySelector('meta[name="theme-color"]');

@@ -8,22 +8,25 @@ import { RingoButton } from '../components/Button';
 import { RingoCard } from '../components/Card';
 import { BackBtn, SectionTitle } from '../components/ui';
 import { useRingoState } from '../store/store';
-import { PLANS, planPrice, fmtMoney } from '../data/plans';
+import { PLANS, planPrice, planRank, fmtMoney, fmtDate } from '../data/plans';
+import { PlanChangeSheet } from '../components/PlanChangeSheet';
 
 interface PlanScreenProps {
   onBack: () => void;
   onInstall: () => void;
-  onSwitchPlan?: (id: string) => void;
   /** Open checkout to pay for a plan (first subscription). */
   onCheckout?: (id: string) => void;
 }
 
-export function PlanScreen({ onBack, onInstall, onSwitchPlan, onCheckout }: PlanScreenProps) {
+export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
   const { state, actions } = useRingoState();
   const currentId = state.planId;
   const [selected, setSelected] = useState(currentId);
+  const [changeTo, setChangeTo] = useState<string | null>(null);
   const cur = PLANS.find((p) => p.id === selected) || PLANS[0];
   const isCurrent = (id: string) => id === currentId;
+  const pending = state.pendingPlanId ? PLANS.find((p) => p.id === state.pendingPlanId) : null;
+  const direction = planRank(cur.id) > planRank(currentId) ? 'Upgrade' : 'Downgrade';
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -58,6 +61,27 @@ export function PlanScreen({ onBack, onInstall, onSwitchPlan, onCheckout }: Plan
             </div>
           </div>
         </div>
+
+        {/* Scheduled downgrade banner */}
+        {pending && (
+          <div style={{ marginTop: 16, borderRadius: 18, padding: '14px 16px', background: RC.cream, border: `1px solid ${RC.line}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke={RC.inkStrong} strokeWidth="1.8" /><path d="M12 7v5l3 2" stroke={RC.inkStrong} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              <span style={{ fontFamily: 'var(--font)', fontSize: 13.5, fontWeight: 700, color: RC.ink }}>Downgrade to {pending.name} on {fmtDate(state.periodEnd)}</span>
+            </div>
+            <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 12.5, color: RC.inkMute, lineHeight: 1.5 }}>
+              You keep {PLANS.find((p) => p.id === currentId)?.name} and all its data until then.
+              {state.numbers.some((n) => n.scheduledRelease) ? ` ${state.numbers.filter((n) => n.scheduledRelease).length} number(s) will be released.` : ''}
+            </div>
+            <button
+              onClick={() => actions.cancelScheduledChange()}
+              className="press"
+              style={{ marginTop: 10, height: 40, padding: '0 16px', borderRadius: 999, border: `1.5px solid ${RC.lineStrong}`, background: RC.paper, color: RC.inkStrong, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            >
+              Cancel downgrade
+            </button>
+          </div>
+        )}
 
         {/* Plan picker */}
         <div style={{ marginTop: 22 }}>
@@ -136,8 +160,8 @@ export function PlanScreen({ onBack, onInstall, onSwitchPlan, onCheckout }: Plan
             </div>
           ) : !isCurrent(cur.id) ? (
             <div style={{ marginTop: 14 }}>
-              <RingoButton onClick={() => { actions.switchPlan(cur.id); if (onSwitchPlan) onSwitchPlan(cur.id); }}>
-                Switch to {cur.name} — {fmtMoney(planPrice(cur.id))}/mo
+              <RingoButton onClick={() => setChangeTo(cur.id)}>
+                {direction} to {cur.name} — {fmtMoney(planPrice(cur.id))}/mo
               </RingoButton>
             </div>
           ) : null}
@@ -162,7 +186,9 @@ export function PlanScreen({ onBack, onInstall, onSwitchPlan, onCheckout }: Plan
               <div style={{ flex: 1 }}>
                 <div style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, color: RC.ink }}>You’re flying.</div>
                 <div style={{ fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute, lineHeight: 1.5, marginTop: 2 }}>At this rate, you’ll stay at high speed all month.</div>
-                <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 11, color: RC.inkMute }}>Renews May 28 · Visa •• 4242</div>
+                <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 11, color: RC.inkMute }}>
+                  {pending ? `Switches to ${pending.name} ${fmtDate(state.periodEnd)}` : `Renews ${fmtDate(state.periodEnd)}`} · Visa •• 4242
+                </div>
               </div>
             </div>
           </RingoCard>
@@ -191,6 +217,20 @@ export function PlanScreen({ onBack, onInstall, onSwitchPlan, onCheckout }: Plan
           <RingoButton variant="ghost" onClick={onInstall}>Install eSIM on this device</RingoButton>
         </div>
       </div>
+
+      {changeTo && (
+        <PlanChangeSheet
+          targetId={changeTo}
+          onClose={() => setChangeTo(null)}
+          onDone={() => {
+            // Upgrades take effect now (sit on the new plan); downgrades are
+            // scheduled (stay on the current plan until renewal).
+            const wasUpgrade = planRank(changeTo) > planRank(currentId);
+            setSelected(wasUpgrade ? changeTo : currentId);
+            setChangeTo(null);
+          }}
+        />
+      )}
     </div>
   );
 }

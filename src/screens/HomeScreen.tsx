@@ -1,13 +1,13 @@
 // HomeScreen — dashboard with membership tiers, metric strip, action rail,
 // wallet-style number card, KYC status and a discovery rail.
 import { useEffect, type ReactNode } from 'react';
-import { RC } from '../theme';
+import { RC, SHADOW_CARD, SHADOW_HERO } from '../theme';
 import { useRingoState } from '../store/store';
 import { COUNTRIES } from '../data/countries';
 import { TIERS, tierFor, nextTier } from '../data/tiers';
 import type { PhoneNumber, Tier } from '../data/types';
 import type { OnNav } from '../navigation';
-import { LOGO_SRC } from '../assets';
+import { RingoWordmark } from '../components/Wordmark';
 import { hapticNotify } from '../lib/haptics';
 
 /** Time-of-day greeting from the device clock. */
@@ -33,13 +33,13 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', paddingTop: 54 }}>
         {/* ── App bar: logo · search · avatar ─────────────────── */}
         <div style={{ padding: '8px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-          <img src={LOGO_SRC} alt="Ringo" style={{ height: 22, width: 'auto' }} />
+          <RingoWordmark size={22} />
           <div
             onClick={() => onNav('browse')}
             className="press"
             style={{
               flex: 1, height: 40, padding: '0 14px', borderRadius: 999,
-              background: RC.paper, border: `1px solid ${RC.line}`,
+              background: RC.paper, border: `1px solid ${RC.line}`, boxShadow: SHADOW_CARD,
               display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
             }}
           >
@@ -154,7 +154,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
             style={{
               display: 'flex', alignItems: 'center', gap: 14, padding: 16,
               borderRadius: 20, background: RC.paper, border: `1px solid ${RC.line}`,
-              cursor: kycDone ? 'default' : 'pointer',
+              boxShadow: SHADOW_CARD, cursor: kycDone ? 'default' : 'pointer',
             }}
           >
             <div
@@ -198,9 +198,9 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
               <div
                 style={{
                   padding: '6px 12px', borderRadius: 999,
-                  background: state.kycStatus === 'in_review' ? RC.cream : RC.grad,
-                  color: state.kycStatus === 'in_review' ? RC.inkStrong : '#FFFDFB',
-                  fontFamily: 'var(--font)', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
+                  background: state.kycStatus === 'in_review' ? RC.cream : 'rgba(206,74,30,0.10)',
+                  color: RC.inkStrong,
+                  fontFamily: 'var(--font)', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
                 }}
               >
                 {state.kycStatus === 'in_review' ? 'Review' : 'Verify'}
@@ -226,7 +226,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
               onClick={() => onNav('country', c.code)}
               style={{
                 flex: '0 0 124px', borderRadius: 20, padding: 14,
-                background: RC.paper, border: `1px solid ${RC.line}`, cursor: 'pointer',
+                background: RC.paper, border: `1px solid ${RC.line}`, boxShadow: SHADOW_CARD, cursor: 'pointer',
                 display: 'flex', flexDirection: 'column', gap: 6,
               }}
             >
@@ -280,14 +280,16 @@ function TierCard({
       style={{
         position: 'relative', overflow: 'hidden', cursor: 'pointer',
         borderRadius: 26, padding: '22px 22px 20px',
-        background: `linear-gradient(135deg, ${tier.c1} 0%, ${tier.c2} 100%)`,
+        // The one sunset surface — a warm top-left light bloom over the per-tier
+        // gradient deepened toward dusk, lifted with a real shadow.
+        background: `radial-gradient(130% 150% at 12% 8%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 46%), linear-gradient(135deg, ${tier.c1} 0%, ${tier.c2} 100%)`,
         color: '#FFFDFB',
-        boxShadow: `0 14px 28px -14px ${tier.glow}`,
+        boxShadow: SHADOW_HERO,
       }}
     >
       {/* atmosphere */}
-      <div style={{ position: 'absolute', right: -60, top: -80, width: 240, height: 240, borderRadius: '50%', background: 'rgba(255,253,251,0.16)' }} />
-      <div style={{ position: 'absolute', left: -30, bottom: -90, width: 190, height: 190, borderRadius: '50%', background: 'rgba(255,253,251,0.08)' }} />
+      <div style={{ position: 'absolute', right: -60, top: -80, width: 240, height: 240, borderRadius: '50%', background: 'rgba(255,253,251,0.10)' }} />
+      <div style={{ position: 'absolute', left: -30, bottom: -90, width: 190, height: 190, borderRadius: '50%', background: 'rgba(255,253,251,0.06)' }} />
 
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -338,11 +340,11 @@ function MetricTile({ value, label, onClick }: { value: ReactNode; label: string
       className="press"
       style={{
         borderRadius: 18, padding: '14px 12px', cursor: 'pointer',
-        background: RC.paper, border: `1px solid ${RC.line}`,
+        background: RC.paper, border: `1px solid ${RC.line}`, boxShadow: SHADOW_CARD,
         display: 'flex', flexDirection: 'column', gap: 2,
       }}
     >
-      <div style={{ fontFamily: 'var(--font)', fontSize: 24, fontWeight: 700, color: RC.inkStrong, letterSpacing: -0.6, lineHeight: 1 }}>{value}</div>
+      <div style={{ fontFamily: 'var(--font)', fontSize: 24, fontWeight: 700, color: RC.ink, letterSpacing: -0.6, lineHeight: 1 }}>{value}</div>
       <div style={{ fontFamily: 'var(--font)', fontSize: 11.5, fontWeight: 500, color: RC.inkMute }}>{label}</div>
     </div>
   );
@@ -358,7 +360,7 @@ function NumberBuckets({ numbers, onMore, onAdd }: { numbers: PhoneNumber[]; onM
     <div
       style={{
         borderRadius: 24, background: RC.paper, border: `1px solid ${RC.line}`,
-        boxShadow: '0 10px 28px -18px rgba(208,80,0,0.25)', overflow: 'hidden',
+        boxShadow: SHADOW_CARD, overflow: 'hidden',
       }}
     >
       {numbers.map((n, i) => (
@@ -396,9 +398,20 @@ function NumberBuckets({ numbers, onMore, onAdd }: { numbers: PhoneNumber[]; onM
             <div style={{ fontFamily: 'var(--font)', fontSize: 12, fontWeight: 500, color: RC.inkMute, letterSpacing: 0.1 }}>
               {n.country} · {n.tag}
               {n.porting && n.portEta ? ` · port ${n.portEta}` : ''}
+              {n.scheduledRelease ? ' · releasing at renewal' : ''}
             </div>
           </div>
-          {/* serving network — live connection chip */}
+          {/* serving network — live connection chip (or a scheduled-release flag) */}
+          {n.scheduledRelease ? (
+            <div
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', borderRadius: 999,
+                background: 'rgba(206,74,30,0.10)', border: '1px solid rgba(206,74,30,0.22)',
+              }}
+            >
+              <span style={{ fontFamily: 'var(--font)', fontSize: 11.5, fontWeight: 700, color: RC.inkStrong, whiteSpace: 'nowrap' }}>Ending</span>
+            </div>
+          ) : (
           <div
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
@@ -418,6 +431,7 @@ function NumberBuckets({ numbers, onMore, onAdd }: { numbers: PhoneNumber[]; onM
               {n.network ? `${n.network}${n.ran ? ' · ' + n.ran : ''}` : n.active ? 'Connected' : 'Standby'}
             </span>
           </div>
+          )}
         </div>
       ))}
       {/* Wise-style "open a new bucket" row */}
@@ -456,22 +470,46 @@ function NumberBuckets({ numbers, onMore, onAdd }: { numbers: PhoneNumber[]; onM
   );
 }
 
-// Polished action button — colorful tile + 3D emoji glyph + label, with press
-// feedback. Each action gets its own hue so the rail reads bright and scannable.
+// Restrained action button — a uniform warm-sand tile with a monochrome
+// sunset-ember line icon. Color lives on the hero, not the rail, so the four
+// actions read as a calm, coherent family rather than candy.
 type ActionIcon = 'globe' | 'port' | 'plan' | 'qr';
+function ActionGlyph({ icon }: { icon: ActionIcon }) {
+  const s = RC.inkStrong;
+  if (icon === 'globe')
+    return (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="9" stroke={s} strokeWidth="1.8" />
+        <path d="M3 12h18M12 3c2.6 2.4 4 5.6 4 9s-1.4 6.6-4 9c-2.6-2.4-4-5.6-4-9s1.4-6.6 4-9z" stroke={s} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  if (icon === 'port')
+    return (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M4 9a8 8 0 0113.5-3.5L20 8" stroke={s} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M20 4v4h-4" stroke={s} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M20 15a8 8 0 01-13.5 3.5L4 16" stroke={s} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M4 20v-4h4" stroke={s} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  if (icon === 'plan')
+    return (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <rect x="3" y="5.5" width="18" height="13" rx="2.5" stroke={s} strokeWidth="1.8" />
+        <path d="M3 10h18" stroke={s} strokeWidth="1.8" />
+        <path d="M7 14.5h4" stroke={s} strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    );
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <rect x="4" y="4" width="7" height="7" rx="1.5" stroke={s} strokeWidth="1.8" />
+      <rect x="4" y="13" width="7" height="7" rx="1.5" stroke={s} strokeWidth="1.8" />
+      <rect x="13" y="4" width="7" height="7" rx="1.5" stroke={s} strokeWidth="1.8" />
+      <path d="M13 14h3v3M20 14v6M16 20h1" stroke={s} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 function ActionChip({ label, icon, onClick }: { label: string; icon: ActionIcon; onClick: () => void }) {
-  const glyphs: Record<ActionIcon, ReactNode> = {
-    globe: <span style={{ fontSize: 30, lineHeight: 1, filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.18))' }}>🌍</span>,
-    port: <span style={{ fontSize: 30, lineHeight: 1, filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.18))' }}>🔄</span>,
-    plan: <span style={{ fontSize: 30, lineHeight: 1, filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.18))' }}>💳</span>,
-    qr: <span style={{ fontSize: 30, lineHeight: 1, filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.18))' }}>📲</span>,
-  };
-  const tints: Record<ActionIcon, string> = {
-    globe: 'linear-gradient(145deg, #FFE7C2 0%, #FFC98F 100%)', // sunny orange
-    port: 'linear-gradient(145deg, #E9E2FF 0%, #C9BBFF 100%)', // violet
-    plan: 'linear-gradient(145deg, #D9F6E6 0%, #A9ECC9 100%)', // mint
-    qr: 'linear-gradient(145deg, #FFDFEB 0%, #FFB3D1 100%)', // pink
-  };
   return (
     <button
       onClick={onClick}
@@ -484,12 +522,12 @@ function ActionChip({ label, icon, onClick }: { label: string; icon: ActionIcon;
       <div
         style={{
           width: '100%', aspectRatio: '1', borderRadius: 18,
-          background: tints[icon],
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.65), 0 6px 14px -8px rgba(58,22,5,0.25)',
+          background: RC.cream, border: `1px solid ${RC.line}`,
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
-        {glyphs[icon]}
+        <ActionGlyph icon={icon} />
       </div>
       <div style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 600, color: RC.ink, letterSpacing: -0.1, textAlign: 'center', lineHeight: 1.2 }}>{label}</div>
     </button>
