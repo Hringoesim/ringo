@@ -22,9 +22,9 @@ const CITIES = [
   { dx: -0.12, dy: 0.14, flag: '🇧🇷' },
 ];
 
-const N = 3; // concurrent flights
-const DURATION = 2600; // ms in the air
-const HOLD = 1300; // ms the flag stays after landing
+const N = 4; // concurrent flights
+const DURATION = 1150; // ms in the air (fast)
+const HOLD = 520; // ms the flag stays after landing
 
 export function SaturnWorld({ size = 300 }: { size?: number }) {
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);

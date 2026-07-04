@@ -64,8 +64,8 @@ const DARK: Palette = {
 
 const LIGHT: Palette = {
   scheme: 'light',
-  bg: '#FBF8F4', // near-white with a hint of warmth
-  paper: '#FFFFFF', // crisp white cards for elevation contrast
+  bg: '#FFFFFF', // white
+  paper: '#FFFFFF', // cards (separated from bg by hairline + shadow)
   ink: '#221A14', // deep warm espresso (kills the muddy brown)
   inkStrong: '#CE4A1E', // burnt-sunset ember for links / small accents
   inkMute: '#82715F', // warm taupe-gray secondary text
@@ -84,8 +84,8 @@ const LIGHT: Palette = {
   glassBar: 'rgb(244,239,233)',
   // One soft warm glow up top, a plum whisper in the corner, neutral warm base.
   pageBg:
-    'radial-gradient(1100px 720px at 50% -12%, rgba(255,138,61,0.07), transparent 55%),' +
-    'radial-gradient(760px 560px at 88% 108%, rgba(199,75,142,0.05), transparent 60%), #F7F4EF',
+    'radial-gradient(1100px 720px at 50% -12%, rgba(255,138,61,0.04), transparent 55%),' +
+    'radial-gradient(760px 560px at 88% 108%, rgba(199,75,142,0.03), transparent 60%), #FFFFFF',
 };
 
 export const THEMES: Record<Scheme, Palette> = { dark: DARK, light: LIGHT };

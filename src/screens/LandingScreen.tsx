@@ -24,7 +24,8 @@ export function LandingScreen({
     const compute = () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
-      setGlobe(Math.max(240, Math.min(w * 0.94, h * 0.44, 420)));
+      // Fill the phone: the globe spans (almost) the full width, capped by height.
+      setGlobe(Math.max(280, Math.min(w * 1.02, h * 0.52, 500)));
     };
     compute();
     window.addEventListener('resize', compute);
