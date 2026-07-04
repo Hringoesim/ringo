@@ -64,15 +64,11 @@ export function LandingScreen({
           justifyContent: 'center', padding: '52px 26px 0', textAlign: 'center',
         }}
       >
-        {/* Real Ringo brand logo — white halo lifts it off the sunset */}
-        <img
-          src={LOGO_SRC}
-          alt="Ringo"
-          style={{
-            height: 48, width: 'auto',
-            filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.9)) drop-shadow(0 0 16px rgba(255,255,255,0.55)) drop-shadow(0 6px 14px rgba(0,0,0,0.22))',
-          }}
-        />
+        {/* Real Ringo brand logo (the gradient wordmark) on a clean white pill
+            so it always reads, on any background */}
+        <div style={{ background: '#FFFFFF', borderRadius: 999, padding: '8px 16px', boxShadow: '0 8px 20px -10px rgba(0,0,0,0.3)' }}>
+          <img src={LOGO_SRC} alt="Ringo" style={{ height: 30, width: 'auto', display: 'block' }} />
+        </div>
 
         <div style={{ marginTop: 4 }}>
           <SaturnWorld size={globe} />
