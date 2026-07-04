@@ -1,8 +1,10 @@
 // LockScreen — Face ID / Touch ID unlock for returning users.
 import { useCallback, useEffect, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { RC, hexA } from '../theme';
 import { tierFor, USER } from '../data/tiers';
 import { RingoWordmark } from '../components/Wordmark';
+import { BiometricAuth } from '../lib/biometric';
 
 type Phase = 'idle' | 'scanning' | 'success';
 
@@ -52,8 +54,16 @@ export function LockScreen({
   const authenticate = useCallback(() => {
     if (phase !== 'idle') return;
     setPhase('scanning');
-    setTimeout(() => setPhase('success'), 1300);
-    setTimeout(() => onUnlock(), 2050);
+    if (Capacitor.isNativePlatform()) {
+      // Real Face ID / Touch ID prompt on device.
+      BiometricAuth.authenticate({ reason: 'Unlock Ringo' })
+        .then(() => { setPhase('success'); setTimeout(onUnlock, 500); })
+        .catch(() => { setPhase('idle'); }); // cancelled / failed → let them retry
+    } else {
+      // Web preview: simulate the scan.
+      setTimeout(() => setPhase('success'), 1300);
+      setTimeout(() => onUnlock(), 2050);
+    }
   }, [phase, onUnlock]);
 
   // Auto-prompt on mount, like iOS apps do
