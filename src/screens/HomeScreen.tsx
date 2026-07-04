@@ -1,6 +1,6 @@
 // HomeScreen — dashboard with membership tiers, metric strip, action rail,
 // wallet-style number card, KYC status and a discovery rail.
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { RC, SHADOW_CARD, SHADOW_HERO } from '../theme';
 import { useRingoState } from '../store/store';
 import { COUNTRIES } from '../data/countries';
@@ -28,12 +28,66 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
   const leveledTo = state.tierUp ? TIERS.find((t) => t.id === state.tierUp) : null;
   useEffect(() => { if (state.tierUp) hapticNotify('success'); }, [state.tierUp]);
 
+  // ── Pull-to-refresh: drag down at the top to reload data ──────────────────
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const startY = useRef<number | null>(null);
+  const [pull, setPull] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const THRESHOLD = 64;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    startY.current = (scrollRef.current?.scrollTop ?? 0) <= 0 ? e.touches[0].clientY : null;
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (startY.current === null || refreshing) return;
+    if ((scrollRef.current?.scrollTop ?? 0) > 0) { startY.current = null; setPull(0); return; }
+    const dy = e.touches[0].clientY - startY.current;
+    if (dy > 0) setPull(Math.min(dy * 0.5, 96));
+  };
+  const onTouchEnd = async () => {
+    if (startY.current === null) return;
+    startY.current = null;
+    if (pull >= THRESHOLD && !refreshing) {
+      setRefreshing(true);
+      setPull(THRESHOLD);
+      hapticNotify('success');
+      try { await actions.hydrate(); } catch { /* keep state */ }
+      await new Promise((r) => setTimeout(r, 650));
+      setRefreshing(false);
+    }
+    setPull(0);
+  };
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <div className="no-bar" style={{ flex: 1, overflowY: 'auto', paddingTop: 54 }}>
+      <div
+        ref={scrollRef}
+        className="no-bar"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        style={{ flex: 1, overflowY: 'auto', paddingTop: 54, position: 'relative' }}
+      >
+        {/* pull-to-refresh spinner */}
+        <div
+          style={{
+            position: 'absolute', top: 18, left: 0, right: 0, display: 'flex', justifyContent: 'center',
+            pointerEvents: 'none', opacity: pull > 6 || refreshing ? 1 : 0, transition: 'opacity 0.2s',
+          }}
+        >
+          <div
+            style={{
+              width: 28, height: 28, borderRadius: '50%',
+              border: `2.5px solid ${RC.line}`, borderTopColor: RC.inkStrong,
+              transform: `rotate(${pull * 4}deg)`,
+              animation: refreshing ? 'ringoSpin 0.7s linear infinite' : 'none',
+            }}
+          />
+        </div>
+      <div style={{ transform: `translateY(${pull}px)`, transition: startY.current === null ? 'transform 0.25s cubic-bezier(0.2,0,0,1)' : 'none' }}>
         {/* ── App bar: logo · search · avatar ─────────────────── */}
         <div style={{ padding: '8px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-          <RingoWordmark size={22} />
+          <RingoWordmark size={23} />
           <div
             onClick={() => onNav('browse')}
             className="press"
@@ -77,7 +131,22 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
 
         {/* ── Greeting — follows the device clock ─────────────── */}
         <div style={{ padding: '20px 20px 14px' }}>
-          <div style={{ fontFamily: 'var(--font)', fontSize: 13, color: RC.inkMute, fontWeight: 500, letterSpacing: 0.2 }}>{greetingNow()}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ fontFamily: 'var(--font)', fontSize: 13, color: RC.inkMute, fontWeight: 500, letterSpacing: 0.2 }}>{greetingNow()}</div>
+            {state.pioneer && (
+              <span
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 999,
+                  background: RC.grad, color: '#FFFFFF', fontFamily: 'var(--font)', fontSize: 10,
+                  fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase',
+                  boxShadow: '0 4px 10px -4px rgba(199,75,142,0.5)',
+                }}
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="#FFFFFF"><path d="M12 2l2.6 5.6L21 8.3l-4.5 4.3L17.8 19 12 15.8 6.2 19l1.3-6.4L3 8.3l6.4-.7z" /></svg>
+                Pioneer
+              </span>
+            )}
+          </div>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: RC.ink, letterSpacing: -0.7, lineHeight: 1.05 }}>
             {state.name}{' '}
             <span style={{ background: `linear-gradient(135deg, ${tier.c1}, ${tier.c2})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>·</span>{' '}
@@ -249,7 +318,9 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
         </div>
 
         <div style={{ height: 30 }} />
+        </div>
       </div>
+      <style>{`@keyframes ringoSpin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 }

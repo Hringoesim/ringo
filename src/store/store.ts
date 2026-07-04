@@ -43,6 +43,8 @@ export interface RingoState {
   avatar: string | null;
   /** Tier id just unlocked (for the celebration), cleared once shown. */
   tierUp: string | null;
+  /** Early adopter who downloaded the app — a special founding membership. */
+  pioneer: boolean;
 }
 
 /** Whether the identity check is done enough to buy/port a number (L2 gate). */
@@ -105,22 +107,27 @@ const emit = () => subs.forEach((fn) => fn());
 
 function defaults(): RingoState {
   const session = getSession();
+  // Live accounts (real Supabase backend) start EMPTY — a new person does not
+  // inherit the demo's seeded Belgium number or stats. Only the bundled demo
+  // (no backend configured) seeds the sample fixtures for a populated preview.
+  const live = sb;
   return {
-    numbers: clone(NUMBERS),
-    activeNumberId: 'be',
+    numbers: live ? [] : clone(NUMBERS),
+    activeNumberId: live ? '' : 'be',
     planId: 'essentials',
     subscribed: false,
     periodEnd: isoIn(),
     pendingPlanId: null,
     currentCountry: USER.currentCountry || 'GB',
     kycStatus: 'pending',
-    score: USER.score ?? 4,
-    countries: USER.countries ?? 4,
-    dataPct: USER.dataPct ?? 0.34,
+    score: live ? 0 : (USER.score ?? 4),
+    countries: live ? 0 : (USER.countries ?? 4),
+    dataPct: live ? 0 : (USER.dataPct ?? 0.34),
     name: session?.name || USER.name || 'there',
     email: session?.email ?? null,
     avatar: null,
     tierUp: null,
+    pioneer: true, // everyone in this early cohort is a founding Pioneer
   };
 }
 

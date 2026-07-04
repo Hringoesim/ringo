@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { RC, hexA } from '../theme';
 import { tierFor, USER } from '../data/tiers';
-import { RingoWordmark, RingMark } from '../components/Wordmark';
+import { RingoWordmark } from '../components/Wordmark';
 
 type Phase = 'idle' | 'scanning' | 'success';
 
@@ -72,10 +72,7 @@ export function LockScreen({
     >
       {/* Brand */}
       <div style={{ marginTop: 96, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
-          <RingMark size={30} />
-          <RingoWordmark size={40} variant="hero" />
-        </div>
+        <RingoWordmark size={40} />
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 500, color: RC.inkMute, letterSpacing: 0.3 }}>
             Welcome back

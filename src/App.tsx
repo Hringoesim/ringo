@@ -375,7 +375,7 @@ export function App({ theme, onToggleTheme }: AppProps) {
       break;
     case 'settings':
       body = (
-        <SettingsScreen onBack={pop} theme={theme} onToggleTheme={onToggleTheme} onSignOut={signOut} onNav={onNav} />
+        <SettingsScreen onBack={pop} onSignOut={signOut} onNav={onNav} />
       );
       break;
     default:

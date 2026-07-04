@@ -11,8 +11,6 @@ import type { OnNav } from '../navigation';
 
 interface SettingsScreenProps {
   onBack: () => void;
-  theme: 'dark' | 'light';
-  onToggleTheme: () => void;
   onSignOut: () => void;
   onNav: OnNav;
 }
@@ -58,8 +56,7 @@ function Row({ label, value, tone, onClick, last }: { label: string; value?: str
   );
 }
 
-export function SettingsScreen({ onBack, theme, onToggleTheme, onSignOut, onNav }: SettingsScreenProps) {
-  const isDark = theme === 'dark';
+export function SettingsScreen({ onBack, onSignOut, onNav }: SettingsScreenProps) {
   const { state, actions } = useRingoState();
   const name = state.name || 'there';
   const email = state.email || 'Signed in with Apple';
@@ -163,7 +160,7 @@ export function SettingsScreen({ onBack, theme, onToggleTheme, onSignOut, onNav 
       <RingoCard style={{ marginTop: 10, padding: '2px 16px' }}>
         <Row label="Identity verification" value={kycValue} tone={kycTone} onClick={kyc === 'pending' ? () => onNav('kyc') : undefined} />
         <Row label="Plan & billing" value={`${PLANS.find((p) => p.id === state.planId)?.name ?? 'Essentials'} · ${fmtMoney(planPrice(state.planId))}/mo`} onClick={() => onNav('plan')} />
-        <Row label="Membership" value="Orange" onClick={() => onNav('tiers')} />
+        <Row label="Membership" value={state.pioneer ? 'Pioneer ★' : 'Member'} onClick={() => onNav('tiers')} />
         <Row label="Your numbers" value={`${state.numbers.length}`} onClick={() => onNav('numbers')} last />
       </RingoCard>
 
@@ -172,37 +169,8 @@ export function SettingsScreen({ onBack, theme, onToggleTheme, onSignOut, onNav 
         <Row label="Two-factor authentication" onClick={() => onNav('twofactor')} last />
       </RingoCard>
 
-      <SectionLabel>Appearance</SectionLabel>
-      <RingoCard style={{ marginTop: 10, padding: 6 }}>
-        <div style={{ display: 'flex', gap: 6 }}>
-          {(['dark', 'light'] as const).map((t) => {
-            const on = theme === t;
-            return (
-              <button
-                key={t}
-                onClick={() => { if (!on) onToggleTheme(); }}
-                style={{
-                  flex: 1, height: 44, borderRadius: 14, cursor: 'pointer', border: 'none',
-                  background: on ? RC.grad : 'transparent',
-                  color: on ? '#FFFFFF' : RC.ink,
-                  fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                }}
-              >
-                <span>{t === 'dark' ? '🌙' : '☀️'}</span>
-                {t === 'dark' ? 'Dark' : 'Light'}
-              </button>
-            );
-          })}
-        </div>
-      </RingoCard>
-      <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute, lineHeight: 1.5 }}>
-        {isDark ? 'Dark matches ringoesim.com.' : 'Warm light theme.'} You can switch any time.
-      </div>
-
       <SectionLabel>Support</SectionLabel>
       <RingoCard style={{ marginTop: 10, padding: '2px 16px' }}>
-        <Row label="Help centre" onClick={ext('https://www.ringoesim.com')} />
         <Row label="Contact us" onClick={ext('mailto:support@ringoesim.com')} last />
       </RingoCard>
 
