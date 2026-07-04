@@ -56,15 +56,19 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
               padding: 2, display: 'flex',
             }}
           >
-            <div
-              style={{
-                flex: 1, borderRadius: '50%', background: RC.paper,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: RC.inkStrong, fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13,
-              }}
-            >
-              {state.name.charAt(0)}
-            </div>
+            {state.avatar ? (
+              <img src={state.avatar} alt="" style={{ flex: 1, width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+            ) : (
+              <div
+                style={{
+                  flex: 1, borderRadius: '50%', background: RC.paper,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: RC.inkStrong, fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13,
+                }}
+              >
+                {state.name.charAt(0)}
+              </div>
+            )}
           </div>
         </div>
 

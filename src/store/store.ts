@@ -33,6 +33,8 @@ export interface RingoState {
   dataPct: number;
   name: string;
   email: string | null;
+  /** Profile photo as a data URL (demo: local; live: Supabase storage). */
+  avatar: string | null;
 }
 
 /** Whether the identity check is done enough to buy/port a number (L2 gate). */
@@ -72,6 +74,7 @@ function defaults(): RingoState {
     dataPct: USER.dataPct ?? 0.34,
     name: session?.name || USER.name || 'there',
     email: session?.email ?? null,
+    avatar: null,
   };
 }
 
@@ -93,8 +96,11 @@ function seed() {
     loaded = null;
   }
   const base = defaults();
-  // Merge persisted state forward-compatibly; always refresh identity from session.
-  state = loaded ? { ...base, ...loaded, name: base.name, email: base.email } : base;
+  // Merge persisted state forward-compatibly. Keep a user-edited name/avatar if
+  // present; otherwise take identity from the session.
+  state = loaded
+    ? { ...base, ...loaded, name: loaded.name || base.name, email: base.email }
+    : base;
 }
 
 function get(): RingoState {
@@ -283,6 +289,15 @@ export const actions = {
     } catch {
       /* offline / not reachable — keep local state */
     }
+  },
+
+  // Profile customization.
+  setName(name: string) {
+    const n = name.trim();
+    if (n) set({ name: n });
+  },
+  setAvatar(dataUrl: string | null) {
+    set({ avatar: dataUrl });
   },
 
   // Refresh identity from the current session (after sign-in).

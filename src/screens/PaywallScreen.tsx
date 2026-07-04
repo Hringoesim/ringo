@@ -9,6 +9,7 @@ import { RingoButton } from '../components/Button';
 import { BackBtn } from '../components/ui';
 import { useRingoState } from '../store/store';
 import { PLANS, planPrice, fmtMoney } from '../data/plans';
+import { checkPromo, referralCode, type Promo } from '../data/promo';
 import { haptic, hapticNotify } from '../lib/haptics';
 
 interface PaywallScreenProps {
@@ -18,12 +19,24 @@ interface PaywallScreenProps {
 }
 
 export function PaywallScreen({ planId, onBack, onPaid }: PaywallScreenProps) {
-  const { actions } = useRingoState();
+  const { state, actions } = useRingoState();
   const plan = PLANS.find((p) => p.id === planId) || PLANS[0];
-  const price = fmtMoney(planPrice(plan.id));
+  const base = planPrice(plan.id);
+  const ownCode = referralCode(state.name, state.email || state.name);
   const [method, setMethod] = useState<'apple' | 'card'>('apple');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [code, setCode] = useState('');
+  const [promo, setPromo] = useState<Promo | null>(null);
+
+  const discounted = promo?.valid ? Math.round(base * (1 - promo.discountPct / 100)) : base;
+  const price = fmtMoney(discounted);
+
+  const applyCode = () => {
+    const res = checkPromo(code, ownCode);
+    setPromo(res);
+    hapticNotify(res.valid ? 'success' : 'warning');
+  };
 
   const pay = async () => {
     if (busy) return;
@@ -64,9 +77,49 @@ export function PaywallScreen({ planId, onBack, onPaid }: PaywallScreenProps) {
           ))}
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: '14px 16px', borderTop: `1px solid ${RC.line}`, background: RC.cream }}>
             <span style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, color: RC.ink }}>Total today</span>
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color: RC.inkStrong }}>{price}<span style={{ fontSize: 12, fontWeight: 600, color: RC.inkMute }}>/mo</span></span>
+            <span style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+              {promo?.valid && (
+                <span style={{ fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, textDecoration: 'line-through' }}>{fmtMoney(base)}</span>
+              )}
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color: RC.inkStrong }}>{price}<span style={{ fontSize: 12, fontWeight: 600, color: RC.inkMute }}>/mo</span></span>
+            </span>
           </div>
         </div>
+
+        {/* Promo / Pioneer code */}
+        <div style={{ marginTop: 20, fontFamily: 'var(--font)', fontSize: 11, fontWeight: 600, color: RC.inkMute, letterSpacing: 0.6, textTransform: 'uppercase' }}>
+          Have an invite or Pioneer code?
+        </div>
+        <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+          <input
+            value={code}
+            onChange={(e) => { setCode(e.target.value); if (promo) setPromo(null); }}
+            placeholder="e.g. PIONEER or RINGO-…"
+            autoCapitalize="characters"
+            style={{
+              flex: 1, height: 48, padding: '0 14px', borderRadius: 12,
+              border: `1.5px solid ${promo?.valid ? 'rgba(31,138,91,0.5)' : RC.line}`,
+              background: RC.paper, color: RC.ink, fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600,
+              letterSpacing: 0.5, textTransform: 'uppercase', outline: 'none',
+            }}
+          />
+          <button
+            onClick={applyCode}
+            disabled={!code.trim()}
+            style={{
+              height: 48, padding: '0 18px', borderRadius: 12, border: 'none', cursor: code.trim() ? 'pointer' : 'default',
+              background: code.trim() ? RC.grad : RC.line, color: '#FFFDFB',
+              fontFamily: 'var(--font)', fontSize: 14, fontWeight: 700,
+            }}
+          >
+            Apply
+          </button>
+        </div>
+        {promo && (
+          <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 12.5, fontWeight: 500, color: promo.valid ? '#1F7A4E' : '#B7341A', lineHeight: 1.4 }}>
+            {promo.valid ? '✓ ' : ''}{promo.label}
+          </div>
+        )}
 
         {/* Payment method */}
         <div style={{ marginTop: 20, fontFamily: 'var(--font)', fontSize: 11, fontWeight: 600, color: RC.inkMute, letterSpacing: 0.6, textTransform: 'uppercase' }}>
