@@ -150,6 +150,45 @@ export const sbAuth = {
     const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: oauthRedirect() });
     return error ? { ok: false, error: error.message } : { ok: true };
   },
+  // ── Two-factor auth (TOTP) — Supabase native MFA ──────────────────────────
+  /** Whether a verified TOTP factor is active on this account. */
+  async mfaEnabled(): Promise<boolean> {
+    const sb = await getSupabase();
+    if (!sb) return false;
+    const { data } = await sb.auth.mfa.listFactors();
+    return !!data?.totp?.some((f) => f.status === 'verified');
+  },
+  /** Begin TOTP enrollment — returns the QR (SVG data URI) + secret to scan. */
+  async mfaEnroll(): Promise<{ ok: boolean; factorId?: string; qr?: string; secret?: string; error?: string }> {
+    const sb = await getSupabase();
+    if (!sb) return { ok: false, error: 'Supabase not configured' };
+    // Clean up any half-finished (unverified) factor first.
+    const { data: existing } = await sb.auth.mfa.listFactors();
+    for (const f of existing?.all || []) {
+      if (f.status === 'unverified') await sb.auth.mfa.unenroll({ factorId: f.id });
+    }
+    const { data, error } = await sb.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Ringo ' + Date.now() });
+    if (error || !data) return { ok: false, error: error?.message || 'Could not start 2FA.' };
+    return { ok: true, factorId: data.id, qr: data.totp.qr_code, secret: data.totp.secret };
+  },
+  /** Verify the 6-digit code to activate TOTP 2FA. */
+  async mfaVerify(factorId: string, code: string): Promise<{ ok: boolean; error?: string }> {
+    const sb = await getSupabase();
+    if (!sb) return { ok: false, error: 'Supabase not configured' };
+    const { data: ch, error: cErr } = await sb.auth.mfa.challenge({ factorId });
+    if (cErr || !ch) return { ok: false, error: cErr?.message || 'Challenge failed.' };
+    const { error } = await sb.auth.mfa.verify({ factorId, challengeId: ch.id, code });
+    return error ? { ok: false, error: /invalid/i.test(error.message) ? 'That code is incorrect — check your authenticator app.' : error.message } : { ok: true };
+  },
+  /** Turn 2FA off (remove all TOTP factors). */
+  async mfaDisable(): Promise<{ ok: boolean; error?: string }> {
+    const sb = await getSupabase();
+    if (!sb) return { ok: false, error: 'Supabase not configured' };
+    const { data } = await sb.auth.mfa.listFactors();
+    for (const f of data?.totp || []) await sb.auth.mfa.unenroll({ factorId: f.id });
+    return { ok: true };
+  },
+
   async signOut(): Promise<void> {
     const sb = await getSupabase();
     if (sb) await sb.auth.signOut();

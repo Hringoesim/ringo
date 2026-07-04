@@ -167,6 +167,11 @@ export function SettingsScreen({ onBack, theme, onToggleTheme, onSignOut, onNav 
         <Row label="Your numbers" value={`${state.numbers.length}`} onClick={() => onNav('numbers')} last />
       </RingoCard>
 
+      <SectionLabel>Security</SectionLabel>
+      <RingoCard style={{ marginTop: 10, padding: '2px 16px' }}>
+        <Row label="Two-factor authentication" onClick={() => onNav('twofactor')} last />
+      </RingoCard>
+
       <SectionLabel>Appearance</SectionLabel>
       <RingoCard style={{ marginTop: 10, padding: 6 }}>
         <div style={{ display: 'flex', gap: 6 }}>

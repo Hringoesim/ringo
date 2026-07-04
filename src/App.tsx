@@ -34,6 +34,7 @@ import { TiersScreen } from './screens/TiersScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { PaywallScreen } from './screens/PaywallScreen';
 import { LegalScreen } from './screens/LegalScreen';
+import { TwoFactorScreen } from './screens/TwoFactorScreen';
 
 const TABBED = new Set(['home', 'browse', 'numbers', 'plan']);
 const sb = isSupabaseConfigured();
@@ -157,6 +158,7 @@ export function App({ theme, onToggleTheme }: AppProps) {
     if (target === 'settings') return push('settings');
     if (target === 'terms') return push('terms');
     if (target === 'privacy') return push('privacy');
+    if (target === 'twofactor') return push('twofactor');
   };
 
   const onboarding = !!current.params.onboarding;
@@ -354,6 +356,9 @@ export function App({ theme, onToggleTheme }: AppProps) {
       break;
     case 'privacy':
       body = <LegalScreen doc="privacy" onBack={pop} />;
+      break;
+    case 'twofactor':
+      body = <TwoFactorScreen onBack={pop} />;
       break;
     case 'settings':
       body = (
