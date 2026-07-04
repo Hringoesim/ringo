@@ -40,10 +40,14 @@ export interface PortFormPayload {
   pac?: string;
 }
 
-const STATE_KEY = 'ringo_state_v1';
+// v2: bumped when the seed fixtures change so returning users don't keep a
+// stale persisted snapshot (old demo stats/numbers) shadowing the new defaults.
+const STATE_KEY = 'ringo_state_v2';
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
 
 let state: RingoState | null = null;
+// Bumped on reset(); deferred timers compare against it and no-op if stale.
+let generation = 0;
 const subs = new Set<() => void>();
 const emit = () => subs.forEach((fn) => fn());
 
@@ -129,6 +133,8 @@ export const actions = {
     set({ numbers: [...s.numbers, n] });
     try {
       if (sb) {
+        // FIXME(live): n.number is a masked display string; real allocation must
+        // come from the orchestrator edge function (returns the true MSISDN).
         await sbData.allocateNumber(code, n.number);
       } else {
         const created = await RingoAPI.numbers.allocate(code);
@@ -161,6 +167,7 @@ export const actions = {
       portEta: eta,
     };
     set({ numbers: [...s.numbers, n] });
+    const gen = generation;
     try {
       if (sb) {
         await sbData.portIn(payload);
@@ -176,6 +183,7 @@ export const actions = {
       /* keep optimistic state */
     }
     setTimeout(() => {
+      if (gen !== generation) return; // reset/sign-out happened — don't resurrect state
       set({
         numbers: get().numbers.map((x) =>
           x.id === id ? { ...x, status: 'active', porting: false, portEta: undefined } : x,
@@ -208,7 +216,13 @@ export const actions = {
     } catch {
       /* keep optimistic state */
     }
-    if (!sb) setTimeout(() => set({ kycStatus: 'verified' }), 2600);
+    if (!sb) {
+      const gen = generation;
+      setTimeout(() => {
+        if (gen !== generation) return; // reset/sign-out happened
+        set({ kycStatus: 'verified' });
+      }, 2600);
+    }
   },
 
   // Pull real data from the backend (Supabase or live API).
@@ -217,7 +231,12 @@ export const actions = {
       if (sb) {
         const [numbers, profile] = await Promise.all([sbData.getNumbers(), sbData.getProfile()]);
         const patch: Partial<RingoState> = {};
-        if (numbers.length) patch.numbers = numbers;
+        if (numbers.length) {
+          patch.numbers = numbers;
+          // Point the MAIN number at the real primary row (ids differ from the
+          // 'be' fixture id, so NumbersScreen would otherwise show no Main).
+          patch.activeNumberId = (numbers.find((n) => n.tag === 'Primary') || numbers[0]).id;
+        }
         if (profile) {
           if (profile.plan_id) patch.planId = String(profile.plan_id);
           if (profile.kyc_status) patch.kycStatus = profile.kyc_status as KycStatus;
@@ -232,7 +251,12 @@ export const actions = {
         RingoAPI.numbers.list() as Promise<PhoneNumber[]>,
         RingoAPI.billing.getUsage() as Promise<{ planId: string; fairUsePct: number; country: string }>,
       ]);
-      set({ numbers, planId: usage.planId, dataPct: usage.fairUsePct, currentCountry: usage.country });
+      const patch: Partial<RingoState> = { planId: usage.planId, dataPct: usage.fairUsePct, currentCountry: usage.country };
+      if (numbers.length) {
+        patch.numbers = numbers;
+        patch.activeNumberId = (numbers.find((n) => n.tag === 'Primary') || numbers[0]).id;
+      }
+      set(patch);
     } catch {
       /* offline / not reachable — keep local state */
     }
@@ -245,6 +269,7 @@ export const actions = {
   },
 
   reset() {
+    generation++; // invalidate any in-flight deferred timers
     try {
       localStorage.removeItem(STATE_KEY);
     } catch {

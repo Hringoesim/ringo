@@ -37,6 +37,7 @@ const TABBED = new Set(['home', 'browse', 'numbers', 'plan']);
 const sb = isSupabaseConfigured();
 
 interface Frame {
+  id: number;
   name: string;
   params: { code?: string; preselect?: string; onboarding?: boolean; mode?: 'create' | 'login'; kycDone?: boolean };
 }
@@ -48,41 +49,49 @@ interface AppProps {
 }
 
 export function App({ theme, onToggleTheme }: AppProps) {
+  // Each frame carries a unique monotonic id so distinct navigations never share
+  // a React key (prevents a screen instance being reused with stale params).
+  const seqRef = useRef(0);
+  const mkFrame = (name: string, params: Frame['params'] = {}): Frame => ({
+    id: ++seqRef.current,
+    name,
+    params,
+  });
   const [stack, setStack] = useState<Frame[]>(() => [
-    { name: auth.getSession() ? 'lock' : 'landing', params: {} },
+    { id: 0, name: auth.getSession() ? 'lock' : 'landing', params: {} },
   ]);
   const [otp, setOtp] = useState<{ challengeId: string; devCode: string; phone: string } | null>(null);
   const current = stack[stack.length - 1];
 
-  // Navigation transition: derive a stable key per screen + the motion direction
-  // (deeper stack = push, shallower = pop, same depth = tab/replace = fade).
+  // Motion direction is set EXPLICITLY by each navigation action (push=forward,
+  // pop=back, replace/tab=fade) rather than inferred from stack length — a
+  // whole-stack replace() collapses to length 1 and would otherwise read as a
+  // backwards 'pop'. navKey is the frame id, unique per navigation.
   const navDirRef = useRef<NavDir>('fade');
-  const navLenRef = useRef(stack.length);
-  const navKeyRef = useRef<string>('');
-  const navKey = `${current.name}|${current.params.code ?? ''}|${current.params.mode ?? ''}|${stack.length}`;
-  if (navKey !== navKeyRef.current) {
-    navDirRef.current =
-      stack.length > navLenRef.current ? 'push' : stack.length < navLenRef.current ? 'pop' : 'fade';
-    navLenRef.current = stack.length;
-    navKeyRef.current = navKey;
-  }
+  const navKey = String(current.id);
 
   useEffect(() => {
     void storeActions.hydrate();
   }, []);
 
   const push = (name: string, params: Frame['params'] = {}) => {
+    navDirRef.current = 'push';
     haptic('light');
-    setStack((s) => [...s, { name, params }]);
+    setStack((s) => [...s, mkFrame(name, params)]);
   };
   const pop = () => {
+    navDirRef.current = 'pop';
     haptic('light');
     setStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
   };
-  const replace = (name: string, params: Frame['params'] = {}) => setStack([{ name, params }]);
+  const replace = (name: string, params: Frame['params'] = {}) => {
+    navDirRef.current = 'fade';
+    setStack([mkFrame(name, params)]);
+  };
   const goTab = (name: TabName) => {
+    navDirRef.current = 'fade';
     haptic('light');
-    setStack([{ name, params: {} }]);
+    setStack([mkFrame(name, {})]);
   };
 
   const finishToHome = () => {

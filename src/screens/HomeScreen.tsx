@@ -234,7 +234,11 @@ function TierCard({
   score: number;
   onClick: () => void;
 }) {
-  const pct = next ? Math.min(100, Math.round((score / next.min) * 100)) : 100;
+  // Progress within the CURRENT tier band (this tier's floor → next tier), so
+  // the bar matches the "X more to unlock" copy instead of measuring from zero.
+  const pct = next
+    ? Math.min(100, Math.max(0, Math.round(((score - tier.min) / (next.min - tier.min)) * 100)))
+    : 100;
   return (
     <div
       onClick={onClick}
@@ -314,7 +318,8 @@ function MetricTile({ value, label, onClick }: { value: ReactNode; label: string
 // of your identity). One card, aligned rows: flag tile | number + label |
 // serving network chip. All rows share the same grid so numbers line up.
 function NumberBuckets({ numbers, onMore, onAdd }: { numbers: PhoneNumber[]; onMore: () => void; onAdd: () => void }) {
-  if (!numbers.length) return null;
+  // Even with zero numbers, keep the card + "Add a number" row (the only add
+  // affordance here) — the map below simply renders no rows.
   return (
     <div
       style={{

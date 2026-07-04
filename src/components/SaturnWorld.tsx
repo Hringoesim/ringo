@@ -19,11 +19,39 @@ export function SaturnWorld({ size = 280 }: { size?: number }) {
   const ry = size * 0.15; // ring height (tilt)
   const planet = size * 0.46;
   const tilt = -16; // degrees
+  const rad = (tilt * Math.PI) / 180;
+
+  // Position of flag i at orbit time t — used both for the static first paint /
+  // reduced-motion layout and inside the rAF loop, so flags always sit on the
+  // ring (never stacked at centre).
+  const place = (i: number, t: number) => {
+    const a = t + (i / FLAGS.length) * Math.PI * 2;
+    const ex = rx * Math.cos(a);
+    const ey = ry * Math.sin(a);
+    const x = cx + ex * Math.cos(rad) - ey * Math.sin(rad);
+    const y = cy + ex * Math.sin(rad) + ey * Math.cos(rad);
+    const depth = (Math.sin(a) + 1) / 2; // 0 back … 1 front
+    return {
+      transform: `translate3d(${x}px, ${y}px, 0) translate(-50%,-50%) scale(${0.62 + 0.5 * depth})`,
+      opacity: 0.5 + 0.5 * depth,
+      z: Math.sin(a) > 0 ? 6 : 1,
+    };
+  };
 
   useEffect(() => {
     const reduce = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce) return;
-    const rad = (tilt * Math.PI) / 180;
+    if (reduce) {
+      // Lay the ring out once, statically, so it reads as a ring (not a stack).
+      for (let i = 0; i < FLAGS.length; i++) {
+        const el = wrapRefs.current[i];
+        if (!el) continue;
+        const p = place(i, 0);
+        el.style.transform = p.transform;
+        el.style.opacity = String(p.opacity);
+        el.style.zIndex = String(p.z);
+      }
+      return;
+    }
     const front: (boolean | null)[] = FLAGS.map(() => null);
     let t = 0;
     let last = performance.now();
@@ -35,25 +63,20 @@ export function SaturnWorld({ size = 280 }: { size?: number }) {
       for (let i = 0; i < FLAGS.length; i++) {
         const el = wrapRefs.current[i];
         if (!el) continue;
-        const a = t + (i / FLAGS.length) * Math.PI * 2;
-        const ex = rx * Math.cos(a);
-        const ey = ry * Math.sin(a);
-        const x = cx + ex * Math.cos(rad) - ey * Math.sin(rad);
-        const y = cy + ex * Math.sin(rad) + ey * Math.cos(rad);
-        const depth = (Math.sin(a) + 1) / 2; // 0 back … 1 front
-        el.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%,-50%) scale(${0.62 + 0.5 * depth})`;
-        el.style.opacity = String(0.5 + 0.5 * depth);
-        const isFront = Math.sin(a) > 0;
-        if (isFront !== front[i]) {
-          front[i] = isFront;
-          el.style.zIndex = isFront ? '6' : '1';
+        const p = place(i, t);
+        el.style.transform = p.transform;
+        el.style.opacity = String(p.opacity);
+        if (p.z !== (front[i] ? 6 : 1)) {
+          front[i] = p.z === 6;
+          el.style.zIndex = String(p.z);
         }
       }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [size, cx, cy, rx, ry]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [size]);
 
   const chip = 34;
   const ring = chip + 9;
@@ -99,14 +122,18 @@ export function SaturnWorld({ size = 280 }: { size?: number }) {
         </Suspense>
       </div>
 
-      {/* orbiting flags — static nodes; the rAF loop moves them on the compositor */}
-      {FLAGS.map((f, i) => (
+      {/* orbiting flags — static nodes; the rAF loop moves them on the compositor.
+          Initial transform is the real t=0 ring position (no centre-stack flash). */}
+      {FLAGS.map((f, i) => {
+        const init = place(i, 0);
+        return (
         <div
           key={i}
           ref={(el) => { wrapRefs.current[i] = el; }}
           style={{
-            position: 'absolute', left: 0, top: 0, zIndex: 1,
-            transform: `translate3d(${cx}px, ${cy}px, 0) translate(-50%,-50%)`,
+            position: 'absolute', left: 0, top: 0, zIndex: init.z,
+            transform: init.transform,
+            opacity: init.opacity,
             willChange: 'transform, opacity',
           }}
         >
@@ -137,7 +164,8 @@ export function SaturnWorld({ size = 280 }: { size?: number }) {
             <span style={{ fontSize: 18 }}>{f}</span>
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
