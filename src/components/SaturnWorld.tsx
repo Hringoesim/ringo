@@ -17,7 +17,7 @@ export function SaturnWorld({ size = 300 }: { size?: number }) {
           position: 'absolute', left: size / 2 - planet * 0.62, top: size / 2 - planet * 0.62,
           width: planet * 1.24, height: planet * 1.24, borderRadius: '50%',
           background:
-            'radial-gradient(circle, rgba(255,255,255,0.32) 0%, rgba(255,190,120,0.26) 34%, rgba(255,120,90,0.14) 54%, transparent 72%)',
+            'radial-gradient(circle, rgba(255,190,215,0.34) 0%, rgba(255,140,180,0.18) 40%, rgba(255,120,90,0.08) 58%, transparent 74%)',
         }}
       />
       <div

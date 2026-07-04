@@ -106,16 +106,31 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; // easeInOut
         const interp = geoInterpolate([a.lng, a.lat], [b.lng, b.lat]);
 
+        // origin marker so the arc clearly starts on its country
+        if (visible(a.lng, a.lat)) {
+          const oxy = projection([a.lng, a.lat]);
+          if (oxy) {
+            ctx.beginPath();
+            ctx.arc(oxy[0], oxy[1], Math.max(2.2, R * 0.018), 0, Math.PI * 2);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fill();
+          }
+        }
+
         // arc revealed up to e — geoPath clips it to the visible hemisphere.
         const steps = 26;
         const coords: [number, number][] = [];
         for (let k = 0; k <= steps; k++) coords.push(interp((e * k) / steps) as [number, number]);
         ctx.beginPath();
         path({ type: 'LineString', coordinates: coords } as GeoPermissibleObjects);
-        ctx.strokeStyle = 'rgba(255,255,255,0.95)';
-        ctx.lineWidth = Math.max(1.2, R * 0.012);
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = Math.max(1.8, R * 0.02);
         ctx.setLineDash([]);
+        ctx.shadowColor = 'rgba(255,120,50,0.8)';
+        ctx.shadowBlur = R * 0.04;
         ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.shadowColor = 'transparent';
 
         if (flying) {
           // plane dot at the head of the arc (if on the near side)
@@ -124,8 +139,8 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
             const xy = projection(head);
             if (xy) {
               ctx.beginPath();
-              ctx.arc(xy[0], xy[1], Math.max(2, R * 0.02), 0, Math.PI * 2);
-              ctx.fillStyle = '#FFFFFF';
+              ctx.arc(xy[0], xy[1], Math.max(2.6, R * 0.024), 0, Math.PI * 2);
+              ctx.fillStyle = '#FFE08A';
               ctx.fill();
             }
           }
@@ -211,7 +226,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     const tick = (now: number) => {
       const dt = Math.min(0.1, (now - lastTs) / 1000);
       lastTs = now;
-      lambda += 7 * dt; // slow spin (~51s per rotation)
+      lambda += 4 * dt; // very slow spin (~90s per rotation) — easy to follow
       // Flights need smooth motion → draw every frame when flights are on;
       // otherwise throttle to ~30fps to save the main thread.
       if (showFlights || now - lastDraw >= 33) {

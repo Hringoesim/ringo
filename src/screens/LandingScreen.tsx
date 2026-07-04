@@ -1,7 +1,8 @@
-// LandingScreen — the entry screen, matched to ringoesim.com: a warm sunset sky,
-// the real Ringo logo, a live flight globe, and an Apple-first CTA. Fully
-// adaptive — the globe scales to the device's width and height.
+// LandingScreen — the entry screen. Clean white background with a light pink
+// glow, a big visible Ringo gradient logo, a large flight globe filling the
+// screen, and an Apple-first CTA. Fully adaptive to any device size.
 import { useEffect, useState } from 'react';
+import { RC } from '../theme';
 import { SaturnWorld } from '../components/SaturnWorld';
 import { LOGO_SRC } from '../assets';
 import { haptic } from '../lib/haptics';
@@ -17,15 +18,12 @@ export function LandingScreen({
 }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
-  // Adaptive globe — scales to the device (width and height), so it fits every
-  // screen from an SE to a Pro Max without clipping the copy or CTAs.
-  const [globe, setGlobe] = useState(320);
+  const [globe, setGlobe] = useState(340);
   useEffect(() => {
     const compute = () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
-      // Fill the phone: the globe spans (almost) the full width, capped by height.
-      setGlobe(Math.max(280, Math.min(w * 1.02, h * 0.52, 500)));
+      setGlobe(Math.max(300, Math.min(w * 1.06, h * 0.56, 560)));
     };
     compute();
     window.addEventListener('resize', compute);
@@ -50,50 +48,45 @@ export function LandingScreen({
     <div
       style={{
         flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative',
-        // Warm sunset sky — matches the ringoesim.com hero.
-        background: [
-          'radial-gradient(140% 120% at 12% 0%, rgba(176,38,28,0.55) 0%, rgba(176,38,28,0) 55%)',
-          'radial-gradient(130% 110% at 100% 100%, rgba(255,190,92,0.50) 0%, rgba(255,190,92,0) 60%)',
-          'linear-gradient(155deg, #EC5B2E 0%, #F0733A 42%, #F59A4B 100%)',
-        ].join(', '),
+        // White with a soft pink glow.
+        background:
+          'radial-gradient(130% 90% at 50% -6%, rgba(255,120,170,0.16) 0%, rgba(255,150,190,0.06) 46%, rgba(255,255,255,0) 72%), #FFFFFF',
       }}
     >
       <div
         style={{
           flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-          justifyContent: 'center', padding: '52px 26px 0', textAlign: 'center',
+          justifyContent: 'center', padding: '46px 22px 0', textAlign: 'center',
         }}
       >
-        {/* Real Ringo brand logo (the gradient wordmark) on a clean white pill
-            so it always reads, on any background */}
-        <div style={{ background: '#FFFFFF', borderRadius: 999, padding: '8px 16px', boxShadow: '0 8px 20px -10px rgba(0,0,0,0.3)' }}>
-          <img src={LOGO_SRC} alt="Ringo" style={{ height: 30, width: 'auto', display: 'block' }} />
-        </div>
+        {/* Big, visible Ringo gradient logo (clean, on white) */}
+        <img src={LOGO_SRC} alt="Ringo" style={{ height: 56, width: 'auto' }} />
 
-        <div style={{ marginTop: 4 }}>
+        {/* Large flight globe — fills the screen width */}
+        <div style={{ marginTop: 8 }}>
           <SaturnWorld size={globe} />
         </div>
 
         <div
           style={{
-            marginTop: 10, fontFamily: 'var(--font-display)', fontSize: 40, fontWeight: 800,
-            color: '#FFFFFF', letterSpacing: -1.4, lineHeight: 1.02, textWrap: 'balance',
-            textShadow: '0 2px 30px rgba(0,0,0,0.18)',
+            marginTop: 8, fontFamily: 'var(--font-display)', fontSize: 40, fontWeight: 800,
+            color: RC.ink, letterSpacing: -1.4, lineHeight: 1.02, textWrap: 'balance',
           }}
         >
-          One plan<br />anywhere.
+          One plan<br />
+          <span style={{ background: RC.grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>anywhere.</span>
         </div>
         <div
           style={{
-            marginTop: 14, fontFamily: 'var(--font)', fontSize: 15, fontWeight: 500,
-            color: 'rgba(255,255,255,0.88)', lineHeight: 1.55, maxWidth: 300,
+            marginTop: 12, fontFamily: 'var(--font)', fontSize: 15, fontWeight: 500,
+            color: RC.inkMute, lineHeight: 1.55, maxWidth: 300,
           }}
         >
           Keep your phone number live in 180+ countries. No roaming, no SIM swapping.
         </div>
       </div>
 
-      <div style={{ padding: '20px 26px 30px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ padding: '18px 22px 28px', display: 'flex', flexDirection: 'column', gap: 11 }}>
         {/* PRIMARY — Sign up with Apple */}
         <button
           className="press"
@@ -104,7 +97,7 @@ export function LandingScreen({
             background: '#000000', color: '#FFFFFF',
             fontFamily: 'var(--font)', fontSize: 16, fontWeight: 600, letterSpacing: -0.1,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            cursor: busy ? 'default' : 'pointer', boxShadow: '0 10px 26px -12px rgba(0,0,0,0.5)',
+            cursor: busy ? 'default' : 'pointer', boxShadow: '0 10px 24px -14px rgba(0,0,0,0.5)',
           }}
         >
           {busy ? (
@@ -124,8 +117,8 @@ export function LandingScreen({
           className="press"
           onClick={onCreate}
           style={{
-            width: '100%', height: 56, borderRadius: 16, cursor: 'pointer', border: 'none',
-            background: 'rgba(255,255,255,0.95)', color: '#3A1605',
+            width: '100%', height: 56, borderRadius: 16, cursor: 'pointer',
+            border: `1.5px solid ${RC.lineStrong}`, background: '#FFFFFF', color: RC.ink,
             fontFamily: 'var(--font)', fontSize: 16, fontWeight: 600, letterSpacing: -0.1,
           }}
         >
@@ -137,7 +130,7 @@ export function LandingScreen({
           onClick={onLogin}
           style={{
             border: 'none', background: 'transparent', cursor: 'pointer', padding: '2px 0',
-            fontFamily: 'var(--font)', fontSize: 14.5, fontWeight: 600, color: '#FFFFFF',
+            fontFamily: 'var(--font)', fontSize: 14.5, fontWeight: 600, color: RC.inkStrong,
           }}
         >
           Log in
@@ -147,8 +140,8 @@ export function LandingScreen({
           <div
             style={{
               marginTop: 2, padding: '10px 12px', borderRadius: 12, textAlign: 'center',
-              background: 'rgba(0,0,0,0.28)', border: '1px solid rgba(255,255,255,0.25)',
-              fontFamily: 'var(--font)', fontSize: 12, fontWeight: 500, color: '#FFFFFF', lineHeight: 1.4,
+              background: 'rgba(183,52,26,0.08)', border: '1px solid rgba(183,52,26,0.20)',
+              fontFamily: 'var(--font)', fontSize: 12, fontWeight: 500, color: '#B7341A', lineHeight: 1.4,
             }}
           >
             {err}
@@ -158,7 +151,7 @@ export function LandingScreen({
         <div
           style={{
             marginTop: 2, textAlign: 'center', fontFamily: 'var(--font)',
-            fontSize: 11.5, fontWeight: 500, color: 'rgba(255,255,255,0.72)', letterSpacing: 0.1,
+            fontSize: 11.5, fontWeight: 500, color: RC.inkMute, letterSpacing: 0.1,
           }}
         >
           Requires an iPhone with eSIM · No SMS code · Cancel anytime
