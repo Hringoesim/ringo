@@ -58,7 +58,7 @@ export function PortNumberScreen({ onBack, onContinue }: PortNumberScreenProps) 
         {step === 0 && (
           <>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15, textWrap: 'pretty' }}>
-              What number do you want to bring?
+              Which number to port
             </div>
             <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
               We keep your number, your contacts and your iMessage. Number portability is regulated per country.

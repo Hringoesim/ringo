@@ -24,11 +24,10 @@ export function BrowseScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => vo
       <RingoHeader title="Browse" leading={<BackBtn onClick={onBack} />} trailing={null} />
       <div style={{ padding: '0 20px' }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1, textWrap: 'pretty' }}>
-          Where to next
-          <span style={{ background: RC.grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>?</span>
+          Countries
         </div>
         <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, fontWeight: 400 }}>
-          180+ countries · added to your plan instantly
+          Included in your plan · added instantly
         </div>
       </div>
 

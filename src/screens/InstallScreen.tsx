@@ -44,7 +44,7 @@ export function InstallScreen({ onBack, onActivate }: { onBack: () => void; onAc
       <RingoHeader title="Install eSIM" leading={<BackBtn onClick={onBack} />} />
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '0 20px 130px' }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15 }}>
-          Two taps and you’re live.
+          Install your eSIM
         </div>
         <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
           Your profile is ready on Ringo’s SM-DP+. Scan this QR with another device, or install it on this iPhone via your eSIM (LPA).

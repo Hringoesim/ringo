@@ -6,7 +6,7 @@ import { TIERS, tierFor } from '../data/tiers';
 import { useRingoState } from '../store/store';
 
 const perksByTier: Record<string, string[]> = {
-  orange: ['Unlimited data in 180+ countries', 'One flat $19/mo plan', 'Keep multiple numbers'],
+  orange: ['Unlimited data in 180+ countries', 'One flat monthly plan', 'Keep multiple numbers'],
   coral: ['Everything in Orange', '1 free local number', '+20% faster after fair-use cap'],
   crimson: ['Everything in Coral', 'Airport lounge day-passes', 'Priority 24/7 human support'],
   aurora: ['Everything in Crimson', 'Free carrier-partner upgrades', 'Personal travel concierge'],
@@ -22,10 +22,10 @@ export function TiersScreen({ onBack }: { onBack: () => void }) {
       <RingoHeader title="Membership" leading={<BackBtn onClick={onBack} />} />
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '0 20px 40px' }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1, textWrap: 'pretty' }}>
-          The more you roam,<br />the more you get.
+          Membership
         </div>
         <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
-          Every traveler starts at Orange. Connect in more countries each year to climb — perks stack as you go.
+          You start at Orange. Connect in more countries each year to move up a tier — each tier adds perks.
         </div>
 
         <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>

@@ -66,11 +66,10 @@ export function ActivationScreen({ onDone }: { onDone: () => void }) {
         }}
       >
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 800, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1 }}>
-          You’re on Ringo
-          <span style={{ background: RC.grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>.</span>
+          Activated
         </div>
         <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 15, color: RC.inkMute, lineHeight: 1.55 }}>
-          Connected in the <strong style={{ color: RC.inkStrong, fontWeight: 600 }}>United Kingdom</strong>. Cross any border — we’ll switch automatically.
+          Your eSIM is active. Data, calls and texts are working now.
         </div>
       </div>
 

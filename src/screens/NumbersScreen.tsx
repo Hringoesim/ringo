@@ -16,7 +16,7 @@ export function NumbersScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => v
       <RingoHeader title="Numbers" leading={<BackBtn onClick={onBack} />} />
       <div style={{ padding: '0 20px' }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1 }}>
-          Your <span style={{ background: RC.grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>identity</span>, your call.
+          Your numbers
         </div>
         <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, fontWeight: 400, lineHeight: 1.5 }}>
           Your <strong style={{ color: RC.ink, fontWeight: 600 }}>main</strong> number handles calls and texts. The others stay live in the background to receive your verification codes.
@@ -121,7 +121,7 @@ export function NumbersScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => v
             </svg>
           </div>
           <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, color: RC.ink }}>Add a new number</div>
-          <div style={{ fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute }}>Local numbers from $3 / month</div>
+          <div style={{ fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute }}>Included in your plan</div>
         </div>
 
         {/* Port your number — bring your existing number to Ringo */}
