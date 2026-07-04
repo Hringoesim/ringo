@@ -3,12 +3,26 @@
 // Active only when VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY are set (see
 // isSupabaseConfigured). The mock backend is untouched until then. Tables/RLS
 // come from supabase/schema.sql.
+import { Capacitor } from '@capacitor/core';
+import { SignInWithApple } from './appleNative';
 import { getSupabase, isSupabaseConfigured } from './supabase';
 import type { RingoSession } from '../auth/auth';
 import type { PhoneNumber } from '../data/types';
 import type { PortFormPayload } from '../store/store';
 
 const SESSION_KEY = 'ringo_session_v1';
+
+// Random nonce for native Sign in with Apple. Apple receives the SHA-256 hash;
+// Supabase gets the raw value and re-hashes to verify the identity token.
+function randomNonce(len = 32): string {
+  const a = new Uint8Array(len);
+  crypto.getRandomValues(a);
+  return Array.from(a, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+async function sha256Hex(s: string): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, '0')).join('');
+}
 
 export { isSupabaseConfigured };
 
@@ -136,9 +150,30 @@ export const sbAuth = {
     if (error) throw error;
   },
   async apple(): Promise<void> {
-    if (!isOAuthEnabled('apple')) throw new Error('apple-not-enabled');
     const sb = await getSupabase();
     if (!sb) return;
+    // Native iOS: the system Sign in with Apple sheet (ASAuthorization), then
+    // verify the identity token with Supabase. No web redirect, and no
+    // Services-ID domain verification — only the App ID capability is needed.
+    if (Capacitor.isNativePlatform()) {
+      const rawNonce = randomNonce();
+      const hashedNonce = await sha256Hex(rawNonce);
+      const result = await SignInWithApple.authorize({ scopes: 'name email', nonce: hashedNonce });
+      const idToken = result.response?.identityToken;
+      if (!idToken) throw new Error('apple-no-token');
+      const { data, error } = await sb.auth.signInWithIdToken({ provider: 'apple', token: idToken, nonce: rawNonce });
+      if (error) throw error;
+      // Apple only returns the name on the very first authorization — persist it.
+      const given = result.response?.givenName;
+      const family = result.response?.familyName;
+      if (given || family) {
+        await sb.auth.updateUser({ data: { full_name: [given, family].filter(Boolean).join(' ') } }).catch(() => {});
+      }
+      writeSession(data.session as SbSession | null);
+      return;
+    }
+    // Web: OAuth redirect (requires the provider allow-list + Services ID).
+    if (!isOAuthEnabled('apple')) throw new Error('apple-not-enabled');
     const { error } = await sb.auth.signInWithOAuth({ provider: 'apple', options: { redirectTo: oauthRedirect() } });
     if (error) throw error;
   },

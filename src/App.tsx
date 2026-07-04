@@ -179,7 +179,11 @@ export function App({ theme, onToggleTheme }: AppProps) {
       body = (
         <LandingScreen
           onApple={async () => {
-            if (sb) { await sbAuth.apple(); return; } // real Apple OAuth (redirect)
+            if (sb) {
+              await sbAuth.apple(); // native: resolves signed-in; web: redirects away
+              if (auth.getSession()) { storeActions.syncIdentity(); finishToHome(); }
+              return;
+            }
             await auth.signInWithApple();
             finishToHome();
           }}
@@ -198,7 +202,11 @@ export function App({ theme, onToggleTheme }: AppProps) {
             return { ok: false, error: 'Password reset needs the live backend.' };
           }}
           onAppleSignIn={async () => {
-            if (sb) { await sbAuth.apple(); return; } // real Apple OAuth (redirect)
+            if (sb) {
+              await sbAuth.apple(); // native: resolves signed-in; web: redirects away
+              if (auth.getSession()) { storeActions.syncIdentity(); finishToHome(); }
+              return;
+            }
             await auth.signInWithApple();
             finishToHome();
           }}
