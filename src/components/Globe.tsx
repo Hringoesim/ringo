@@ -77,10 +77,20 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     // ── flight state ──────────────────────────────────────────────────────────
     const rnd = (n: number) => Math.floor(Math.random() * n);
     type Flight = { from: number; to: number; start: number };
+
+    // Is a lng/lat currently on the near (visible) hemisphere? (small margin so
+    // we don't pick a city right on the edge that's about to rotate away)
+    const visible = (lng: number, lat: number) => geoDistance([lng, lat], [-lambda, -TILT]) < Math.PI / 2 - 0.08;
+
+    // Pick a route whose BOTH endpoints are on the visible face right now, so the
+    // whole flight (leave → arrive) plays on screen. Falls back to any pair.
     const newFlight = (prev: number, now: number): Flight => {
-      const from = prev < 0 ? rnd(CITIES.length) : prev;
-      let to = rnd(CITIES.length);
-      while (to === from) to = rnd(CITIES.length);
+      const vis = CITIES.map((_, i) => i).filter((i) => visible(CITIES[i].lng, CITIES[i].lat));
+      const pool = vis.length >= 2 ? vis : CITIES.map((_, i) => i);
+      const from = prev >= 0 && pool.includes(prev) ? prev : pool[rnd(pool.length)];
+      let to = pool[rnd(pool.length)];
+      let guard = 0;
+      while (to === from && guard++ < 12) to = pool[rnd(pool.length)];
       return { from, to, start: now };
     };
     const now0 = performance.now();
@@ -88,9 +98,6 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ...newFlight(-1, now0),
       start: now0 + i * (DURATION * 0.5), // stagger
     }));
-
-    // Is a lng/lat currently on the near (visible) hemisphere?
-    const visible = (lng: number, lat: number) => geoDistance([lng, lat], [-lambda, -TILT]) < Math.PI / 2 - 0.02;
 
     const drawFlights = (now: number) => {
       for (let i = 0; i < NFLIGHTS; i++) {
@@ -106,13 +113,14 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; // easeInOut
         const interp = geoInterpolate([a.lng, a.lat], [b.lng, b.lat]);
 
+        const PINK = '#FF3D8B';
         // origin marker so the arc clearly starts on its country
         if (visible(a.lng, a.lat)) {
           const oxy = projection([a.lng, a.lat]);
           if (oxy) {
             ctx.beginPath();
             ctx.arc(oxy[0], oxy[1], Math.max(2.2, R * 0.018), 0, Math.PI * 2);
-            ctx.fillStyle = '#FFFFFF';
+            ctx.fillStyle = PINK;
             ctx.fill();
           }
         }
@@ -123,11 +131,11 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         for (let k = 0; k <= steps; k++) coords.push(interp((e * k) / steps) as [number, number]);
         ctx.beginPath();
         path({ type: 'LineString', coordinates: coords } as GeoPermissibleObjects);
-        ctx.strokeStyle = '#FFFFFF';
+        ctx.strokeStyle = PINK;
         ctx.lineWidth = Math.max(1.8, R * 0.02);
         ctx.setLineDash([]);
-        ctx.shadowColor = 'rgba(255,120,50,0.8)';
-        ctx.shadowBlur = R * 0.04;
+        ctx.shadowColor = 'rgba(255,61,139,0.85)';
+        ctx.shadowBlur = R * 0.045;
         ctx.stroke();
         ctx.shadowBlur = 0;
         ctx.shadowColor = 'transparent';
@@ -140,7 +148,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
             if (xy) {
               ctx.beginPath();
               ctx.arc(xy[0], xy[1], Math.max(2.6, R * 0.024), 0, Math.PI * 2);
-              ctx.fillStyle = '#FFE08A';
+              ctx.fillStyle = '#FFFFFF';
               ctx.fill();
             }
           }

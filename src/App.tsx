@@ -178,15 +178,6 @@ export function App({ theme, onToggleTheme }: AppProps) {
     case 'landing':
       body = (
         <LandingScreen
-          onApple={async () => {
-            if (sb) {
-              await sbAuth.apple(); // native: resolves signed-in; web: redirects away
-              if (auth.getSession()) { storeActions.syncIdentity(); finishToHome(); }
-              return;
-            }
-            await auth.signInWithApple();
-            finishToHome();
-          }}
           onCreate={() => push('signup', { mode: 'create' })}
           onLogin={() => push('signup', { mode: 'login' })}
         />
