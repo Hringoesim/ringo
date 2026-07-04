@@ -9,9 +9,12 @@ import type { KycPayload } from '../api/ringoApi';
 interface KycScreenProps {
   onBack: () => void;
   onContinue: (payload?: KycPayload) => void;
+  /** When true the "I'll verify later" escape is hidden — identity is required
+   *  (e.g. before buying or porting a number). */
+  mandatory?: boolean;
 }
 
-export function KycScreen({ onBack, onContinue }: KycScreenProps) {
+export function KycScreen({ onBack, onContinue, mandatory = false }: KycScreenProps) {
   const [step, setStep] = useState(0);
   const [first, setFirst] = useState('');
   const [last, setLast] = useState('');
@@ -231,7 +234,7 @@ export function KycScreen({ onBack, onContinue }: KycScreenProps) {
         >
           {step < 3 ? 'Continue' : 'Submit and continue'}
         </RingoButton>
-        {step < 3 && (
+        {step < 3 && !mandatory && (
           <button
             onClick={() => onContinue()}
             style={{

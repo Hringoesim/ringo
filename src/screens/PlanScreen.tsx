@@ -13,9 +13,11 @@ interface PlanScreenProps {
   onBack: () => void;
   onInstall: () => void;
   onSwitchPlan?: (id: string) => void;
+  /** Open checkout to pay for a plan (first subscription). */
+  onCheckout?: (id: string) => void;
 }
 
-export function PlanScreen({ onBack, onInstall, onSwitchPlan }: PlanScreenProps) {
+export function PlanScreen({ onBack, onInstall, onSwitchPlan, onCheckout }: PlanScreenProps) {
   const { state, actions } = useRingoState();
   const currentId = state.planId;
   const [selected, setSelected] = useState(currentId);
@@ -125,13 +127,19 @@ export function PlanScreen({ onBack, onInstall, onSwitchPlan }: PlanScreenProps)
               );
             })}
           </div>
-          {!isCurrent(cur.id) && (
+          {!state.subscribed ? (
+            <div style={{ marginTop: 14 }}>
+              <RingoButton onClick={() => onCheckout?.(cur.id)}>
+                Subscribe to {cur.name} — {fmtMoney(planPrice(cur.id))}/mo
+              </RingoButton>
+            </div>
+          ) : !isCurrent(cur.id) ? (
             <div style={{ marginTop: 14 }}>
               <RingoButton onClick={() => { actions.switchPlan(cur.id); if (onSwitchPlan) onSwitchPlan(cur.id); }}>
                 Switch to {cur.name} — {fmtMoney(planPrice(cur.id))}/mo
               </RingoButton>
             </div>
-          )}
+          ) : null}
         </div>
 
         <div style={{ marginTop: 22 }}>

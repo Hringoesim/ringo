@@ -9,8 +9,8 @@
 import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { RingoTabBar } from './components/TabBar';
 import { ScreenHost, type NavDir } from './components/ScreenHost';
-import { actions as storeActions } from './store/store';
-import { haptic } from './lib/haptics';
+import { actions as storeActions, useRingoState, kycCleared } from './store/store';
+import { haptic, hapticNotify } from './lib/haptics';
 import * as auth from './auth/auth';
 import { isSupabaseConfigured, sbAuth } from './lib/ringoSupabase';
 import type { NavTarget, OnNav } from './navigation';
@@ -32,6 +32,7 @@ import { InstallScreen } from './screens/InstallScreen';
 import { ActivationScreen } from './screens/ActivationScreen';
 import { TiersScreen } from './screens/TiersScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { PaywallScreen } from './screens/PaywallScreen';
 
 const TABBED = new Set(['home', 'browse', 'numbers', 'plan']);
 const sb = isSupabaseConfigured();
@@ -39,7 +40,10 @@ const sb = isSupabaseConfigured();
 interface Frame {
   id: number;
   name: string;
-  params: { code?: string; preselect?: string; onboarding?: boolean; mode?: 'create' | 'login'; kycDone?: boolean };
+  params: {
+    code?: string; preselect?: string; onboarding?: boolean; mode?: 'create' | 'login'; kycDone?: boolean;
+    planId?: string; gateReturn?: 'addNumber' | 'port' | 'install'; gateArg?: string; mandatory?: boolean;
+  };
 }
 type TabName = 'home' | 'browse' | 'numbers' | 'plan';
 
@@ -49,6 +53,7 @@ interface AppProps {
 }
 
 export function App({ theme, onToggleTheme }: AppProps) {
+  const { state } = useRingoState();
   // Each frame carries a unique monotonic id so distinct navigations never share
   // a React key (prevents a screen instance being reused with stale params).
   const seqRef = useRef(0);
@@ -120,16 +125,32 @@ export function App({ theme, onToggleTheme }: AppProps) {
     push('otp');
   };
 
+  // Identity gate (L2): buying or porting a number requires a completed KYC.
+  const gateNumber = (target: 'addNumber' | 'port', arg?: string, onboarding = false) => {
+    if (kycCleared(state)) {
+      if (target === 'addNumber') push('addNumber', { preselect: arg, onboarding });
+      else push('port', { onboarding });
+    } else {
+      hapticNotify('warning');
+      push('kyc', { mandatory: true, gateReturn: target, gateArg: arg, onboarding });
+    }
+  };
+  // Paywall gate: installing/activating the eSIM requires a paid plan.
+  const gateActivation = (target: 'install' | 'activate') => {
+    if (state.subscribed) push(target);
+    else { hapticNotify('warning'); push('checkout', { planId: state.planId, gateReturn: 'install' }); }
+  };
+
   const onNav: OnNav = (target: NavTarget, ...args: string[]) => {
     if (target === 'home') return goTab('home');
     if (target === 'browse') return goTab('browse');
     if (target === 'numbers') return goTab('numbers');
     if (target === 'plan') return goTab('plan');
     if (target === 'country') return push('country', { code: args[0] });
-    if (target === 'addNumber') return push('addNumber', { preselect: args[0] });
-    if (target === 'install') return push('install');
-    if (target === 'activate') return push('activate');
-    if (target === 'port') return push('port');
+    if (target === 'addNumber') return gateNumber('addNumber', args[0]);
+    if (target === 'install') return gateActivation('install');
+    if (target === 'activate') return gateActivation('activate');
+    if (target === 'port') return gateNumber('port');
     if (target === 'tiers') return push('tiers');
     if (target === 'kyc') return push('kyc');
     if (target === 'settings') return push('settings');
@@ -219,25 +240,33 @@ export function App({ theme, onToggleTheme }: AppProps) {
         />
       );
       break;
-    case 'kyc':
+    case 'kyc': {
+      const gateReturn = current.params.gateReturn;
+      const gateArg = current.params.gateArg;
+      const gateOnboarding = current.params.onboarding;
       body = (
         <KycScreen
           onBack={pop}
+          mandatory={!!current.params.mandatory}
           onContinue={(payload) => {
             // Only record a KYC submission when the user actually completed the
             // steps — "I'll verify later" must not file an empty submission.
             if (payload) storeActions.submitKyc(payload);
+            // If we came here to unlock a number action, continue to it now.
+            if (gateReturn === 'addNumber') return push('addNumber', { preselect: gateArg, onboarding: gateOnboarding });
+            if (gateReturn === 'port') return push('port', { onboarding: gateOnboarding });
             push('numberSetup', { kycDone: !!payload });
           }}
         />
       );
       break;
+    }
     case 'numberSetup':
       body = (
         <NumberSetupScreen
           kycDone={current.params.kycDone !== false}
-          onNewNumber={() => push('addNumber', { onboarding: true })}
-          onPortIn={() => push('port', { onboarding: true })}
+          onNewNumber={() => gateNumber('addNumber', undefined, true)}
+          onPortIn={() => gateNumber('port', undefined, true)}
           onSkip={finishToHome}
         />
       );
@@ -254,7 +283,7 @@ export function App({ theme, onToggleTheme }: AppProps) {
           code={current.params.code as string}
           onNav={onNav}
           onBack={pop}
-          onAddCountry={(code) => { storeActions.enableCountry(code); push('install'); }}
+          onAddCountry={(code) => { storeActions.enableCountry(code); gateActivation('install'); }}
         />
       );
       break;
@@ -268,7 +297,7 @@ export function App({ theme, onToggleTheme }: AppProps) {
           onBack={pop}
           onContinue={(code) => {
             storeActions.allocateNumber(code);
-            if (onboarding) push('install');
+            if (onboarding) gateActivation('install');
             else goTab('numbers');
           }}
         />
@@ -280,14 +309,33 @@ export function App({ theme, onToggleTheme }: AppProps) {
           onBack={pop}
           onContinue={(payload) => {
             storeActions.portNumber(payload);
-            if (onboarding) push('install');
+            if (onboarding) gateActivation('install');
             else goTab('numbers');
           }}
         />
       );
       break;
     case 'plan':
-      body = <PlanScreen onBack={() => goTab('home')} onInstall={() => push('install')} />;
+      body = (
+        <PlanScreen
+          onBack={() => goTab('home')}
+          onInstall={() => gateActivation('install')}
+          onCheckout={(planId) => push('checkout', { planId })}
+        />
+      );
+      break;
+    case 'checkout':
+      body = (
+        <PaywallScreen
+          planId={current.params.planId || state.planId}
+          onBack={pop}
+          onPaid={() => {
+            // Payment done → continue to whatever the paywall was gating.
+            if (current.params.gateReturn === 'install') replace('install');
+            else goTab('home');
+          }}
+        />
+      );
       break;
     case 'install':
       body = <InstallScreen onBack={pop} onActivate={() => push('activate')} />;

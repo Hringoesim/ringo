@@ -17,5 +17,18 @@ export function haptic(strength: Strength = 'light') {
 
 export function hapticSelection() {
   if (!Capacitor.isNativePlatform()) return;
-  void import('@capacitor/haptics').then(({ Haptics }) => Haptics.selectionStart()).catch(() => {});
+  void import('@capacitor/haptics').then(({ Haptics }) => Haptics.selectionChanged()).catch(() => {});
+}
+
+// Success / warning / error taptic — for confirmations (payment, activation),
+// gentle blocks (paywall/KYC gate), and failures.
+export function hapticNotify(type: 'success' | 'warning' | 'error' = 'success') {
+  if (!Capacitor.isNativePlatform()) return;
+  void import('@capacitor/haptics')
+    .then(({ Haptics, NotificationType }) => {
+      const t =
+        type === 'error' ? NotificationType.Error : type === 'warning' ? NotificationType.Warning : NotificationType.Success;
+      return Haptics.notification({ type: t });
+    })
+    .catch(() => {});
 }

@@ -24,6 +24,8 @@ export interface RingoState {
   numbers: PhoneNumber[];
   activeNumberId: string; // the MAIN number
   planId: string;
+  /** True once a plan has been paid for. Gates eSIM activation. */
+  subscribed: boolean;
   currentCountry: string;
   kycStatus: KycStatus;
   score: number;
@@ -31,6 +33,11 @@ export interface RingoState {
   dataPct: number;
   name: string;
   email: string | null;
+}
+
+/** Whether the identity check is done enough to buy/port a number (L2 gate). */
+export function kycCleared(s: RingoState): boolean {
+  return s.kycStatus === 'in_review' || s.kycStatus === 'verified';
 }
 
 export interface PortFormPayload {
@@ -57,6 +64,7 @@ function defaults(): RingoState {
     numbers: clone(NUMBERS),
     activeNumberId: 'be',
     planId: 'essentials',
+    subscribed: false,
     currentCountry: USER.currentCountry || 'GB',
     kycStatus: 'pending',
     score: USER.score ?? 4,
@@ -115,6 +123,21 @@ export const actions = {
     } catch {
       /* keep optimistic state */
     }
+  },
+
+  /** Pay for a plan. Demo simulates an instant successful charge; live mode
+   *  routes through the billing seam (Stripe Checkout/subscription) — the app
+   *  never sees card details. On success the account becomes `subscribed`,
+   *  which unlocks eSIM activation. */
+  async checkout(planId: string): Promise<{ ok: boolean; error?: string }> {
+    try {
+      if (sb) await sbData.switchPlan(planId); // FIXME(live): create Stripe subscription server-side
+      else await RingoAPI.billing.switchPlan(planId);
+    } catch {
+      return { ok: false, error: 'Payment could not be completed. Please try again.' };
+    }
+    set({ subscribed: true, planId });
+    return { ok: true };
   },
 
   async allocateNumber(code: string) {
