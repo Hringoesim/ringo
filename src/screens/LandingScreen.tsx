@@ -1,6 +1,7 @@
 // LandingScreen — the entry screen, matched to ringoesim.com: a warm sunset sky,
-// the white "Ringo" wordmark, the site's headline + copy, and an Apple-first CTA.
-import { useState } from 'react';
+// the real Ringo logo, a live flight globe, and an Apple-first CTA. Fully
+// adaptive — the globe scales to the device's width and height.
+import { useEffect, useState } from 'react';
 import { SaturnWorld } from '../components/SaturnWorld';
 import { LOGO_SRC } from '../assets';
 import { haptic } from '../lib/haptics';
@@ -16,6 +17,19 @@ export function LandingScreen({
 }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  // Adaptive globe — scales to the device (width and height), so it fits every
+  // screen from an SE to a Pro Max without clipping the copy or CTAs.
+  const [globe, setGlobe] = useState(320);
+  useEffect(() => {
+    const compute = () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      setGlobe(Math.max(240, Math.min(w * 0.94, h * 0.44, 420)));
+    };
+    compute();
+    window.addEventListener('resize', compute);
+    return () => window.removeEventListener('resize', compute);
+  }, []);
 
   const runApple = async () => {
     if (busy) return;
@@ -59,8 +73,8 @@ export function LandingScreen({
           }}
         />
 
-        <div style={{ marginTop: 6 }}>
-          <SaturnWorld size={356} />
+        <div style={{ marginTop: 4 }}>
+          <SaturnWorld size={globe} />
         </div>
 
         <div
