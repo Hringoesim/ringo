@@ -4,6 +4,7 @@
 // profile (Workstream A, p9–13).
 import { useState } from 'react';
 import { RC } from '../theme';
+import { hapticSelection } from '../lib/haptics';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { BackBtn } from '../components/ui';
@@ -73,7 +74,7 @@ export function PortNumberScreen({ onBack, onContinue }: PortNumberScreenProps) 
                   return (
                     <div
                       key={m.code}
-                      onClick={() => { setCountry(m.code); setCarrier(''); }}
+                      onClick={() => { hapticSelection(); setCountry(m.code); setCarrier(''); }}
                       style={{
                         padding: '8px 12px', borderRadius: 999, cursor: 'pointer',
                         display: 'flex', alignItems: 'center', gap: 6,

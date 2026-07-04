@@ -11,7 +11,9 @@ export type NavTarget =
   | 'port'
   | 'tiers'
   | 'kyc'
-  | 'settings';
+  | 'settings'
+  | 'terms'
+  | 'privacy';
 
 // Generic navigation handler. Extra args carry route params
 // (e.g. onNav('country', 'JP') or onNav('addNumber', 'PT')).

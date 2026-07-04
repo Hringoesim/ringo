@@ -2,6 +2,7 @@
 // fair-use ring, add-ons and recent invoices.
 import { useState } from 'react';
 import { RC } from '../theme';
+import { hapticSelection } from '../lib/haptics';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { RingoCard } from '../components/Card';
@@ -67,7 +68,7 @@ export function PlanScreen({ onBack, onInstall, onSwitchPlan, onCheckout }: Plan
               return (
                 <div
                   key={p.id}
-                  onClick={() => setSelected(p.id)}
+                  onClick={() => { hapticSelection(); setSelected(p.id); }}
                   style={{
                     borderRadius: 20, padding: '16px 18px', cursor: 'pointer',
                     background: sel ? RC.gradSoft : RC.paper,

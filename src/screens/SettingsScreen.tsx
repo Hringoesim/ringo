@@ -203,8 +203,8 @@ export function SettingsScreen({ onBack, theme, onToggleTheme, onSignOut, onNav 
 
       <SectionLabel>Legal</SectionLabel>
       <RingoCard style={{ marginTop: 10, padding: '2px 16px' }}>
-        <Row label="Terms of service" onClick={ext('https://www.ringoesim.com/terms')} />
-        <Row label="Privacy policy" onClick={ext('https://www.ringoesim.com/privacy')} last />
+        <Row label="Terms of service" onClick={() => onNav('terms')} />
+        <Row label="Privacy policy" onClick={() => onNav('privacy')} last />
       </RingoCard>
 
       <button

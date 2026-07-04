@@ -13,7 +13,7 @@ import { useEffect, useReducer } from 'react';
 import { RingoAPI, type KycPayload } from '../api/ringoApi';
 import { CO_BY_CODE } from '../data/countries';
 import { NUMBERS } from '../data/numbers';
-import { USER } from '../data/tiers';
+import { USER, tierFor } from '../data/tiers';
 import { getSession } from '../auth/auth';
 import { isSupabaseConfigured, sbData } from '../lib/ringoSupabase';
 import type { KycStatus, PhoneNumber } from '../data/types';
@@ -35,6 +35,8 @@ export interface RingoState {
   email: string | null;
   /** Profile photo as a data URL (demo: local; live: Supabase storage). */
   avatar: string | null;
+  /** Tier id just unlocked (for the celebration), cleared once shown. */
+  tierUp: string | null;
 }
 
 /** Whether the identity check is done enough to buy/port a number (L2 gate). */
@@ -75,6 +77,7 @@ function defaults(): RingoState {
     name: session?.name || USER.name || 'there',
     email: session?.email ?? null,
     avatar: null,
+    tierUp: null,
   };
 }
 
@@ -225,16 +228,24 @@ export const actions = {
   async enableCountry(code: string) {
     const s = get();
     const already = s.currentCountry === code;
+    const newScore = already ? s.score : s.score + 1;
+    // Membership climbs with each genuinely-new country connected this year.
+    const leveledUp = tierFor(newScore).id !== tierFor(s.score).id;
     set({
       currentCountry: code,
       countries: already ? s.countries : s.countries + 1,
-      score: already ? s.score : s.score + 1,
+      score: newScore,
+      tierUp: leveledUp ? tierFor(newScore).id : s.tierUp,
     });
     try {
       await RingoAPI.connectivity.enableCountry(code);
     } catch {
       /* keep optimistic state */
     }
+  },
+
+  clearTierUp() {
+    if (get().tierUp) set({ tierUp: null });
   },
 
   async submitKyc(payload: KycPayload) {

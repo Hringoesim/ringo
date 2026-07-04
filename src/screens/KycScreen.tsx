@@ -1,6 +1,7 @@
 // KycScreen — soft KYC: name → DOB → ID document → photo (skippable until activate).
 import { useState, useRef } from 'react';
 import { RC } from '../theme';
+import { hapticSelection } from '../lib/haptics';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { BackBtn, FieldLabel, Input } from '../components/ui';
@@ -94,7 +95,7 @@ export function KycScreen({ onBack, onContinue, mandatory = false }: KycScreenPr
                 return (
                   <div
                     key={d.id}
-                    onClick={() => setDocType(d.id)}
+                    onClick={() => { hapticSelection(); setDocType(d.id); }}
                     style={{
                       padding: '16px', borderRadius: 16, cursor: 'pointer',
                       background: sel ? RC.gradSoft : RC.paper,

@@ -1,13 +1,14 @@
 // HomeScreen — dashboard with membership tiers, metric strip, action rail,
 // wallet-style number card, KYC status and a discovery rail.
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { RC } from '../theme';
 import { useRingoState } from '../store/store';
 import { COUNTRIES } from '../data/countries';
-import { tierFor, nextTier } from '../data/tiers';
+import { TIERS, tierFor, nextTier } from '../data/tiers';
 import type { PhoneNumber, Tier } from '../data/types';
 import type { OnNav } from '../navigation';
 import { LOGO_SRC } from '../assets';
+import { hapticNotify } from '../lib/haptics';
 
 /** Time-of-day greeting from the device clock. */
 function greetingNow(): string {
@@ -19,11 +20,13 @@ function greetingNow(): string {
 }
 
 export function HomeScreen({ onNav }: { onNav: OnNav }) {
-  const { state } = useRingoState();
+  const { state, actions } = useRingoState();
   const tier = tierFor(state.score);
   const next = nextTier(state.score);
   const toNext = next ? next.min - state.score : 0;
   const kycDone = state.kycStatus === 'verified';
+  const leveledTo = state.tierUp ? TIERS.find((t) => t.id === state.tierUp) : null;
+  useEffect(() => { if (state.tierUp) hapticNotify('success'); }, [state.tierUp]);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -81,6 +84,33 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
             {tier.name}
           </div>
         </div>
+
+        {/* ── Tier-up celebration ─────────────────────────────── */}
+        {leveledTo && (
+          <div style={{ padding: '0 20px 12px' }}>
+            <div
+              onClick={() => { actions.clearTierUp(); onNav('tiers'); }}
+              className="press"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderRadius: 18, cursor: 'pointer',
+                background: `linear-gradient(135deg, ${leveledTo.c1}, ${leveledTo.c2})`, color: '#FFFDFB',
+                boxShadow: `0 12px 24px -14px ${leveledTo.glow}`,
+              }}
+            >
+              <span style={{ fontSize: 24 }}>🎉</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontFamily: 'var(--font)', fontSize: 14.5, fontWeight: 700 }}>You reached {leveledTo.name}!</div>
+                <div style={{ fontFamily: 'var(--font)', fontSize: 12, opacity: 0.9 }}>New perks unlocked — tap to see them</div>
+              </div>
+              <button
+                onClick={(e) => { e.stopPropagation(); actions.clearTierUp(); }}
+                style={{ border: 'none', background: 'rgba(255,253,251,0.25)', color: '#FFFDFB', width: 26, height: 26, borderRadius: '50%', cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 14, lineHeight: 1 }}
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* ── HERO: membership tier card ──────────────────────── */}
         <div style={{ padding: '0 20px' }}>

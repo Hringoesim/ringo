@@ -2,14 +2,18 @@
 import { useEffect, useState } from 'react';
 import { RC } from '../theme';
 import { RingoButton } from '../components/Button';
+import { hapticNotify } from '../lib/haptics';
 
 export function ActivationScreen({ onDone }: { onDone: () => void }) {
   const [phase, setPhase] = useState(0);
   useEffect(() => {
+    // Success taptic as the eSIM comes alive.
+    const th = setTimeout(() => hapticNotify('success'), 300);
     const t1 = setTimeout(() => setPhase(1), 250);
     const t2 = setTimeout(() => setPhase(2), 1100);
     const t3 = setTimeout(() => setPhase(3), 1900);
     return () => {
+      clearTimeout(th);
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);

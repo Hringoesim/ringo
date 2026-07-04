@@ -2,7 +2,7 @@
 import { RC } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { BackBtn } from '../components/ui';
-import { TIERS, tierFor } from '../data/tiers';
+import { TIERS, tierFor, nextTier } from '../data/tiers';
 import { useRingoState } from '../store/store';
 
 const perksByTier: Record<string, string[]> = {
@@ -16,6 +16,9 @@ export function TiersScreen({ onBack }: { onBack: () => void }) {
   const { state } = useRingoState();
   const score = state.score;
   const cur = tierFor(score);
+  const next = nextTier(score);
+  const toNext = next ? next.min - score : 0;
+  const bandPct = next ? Math.min(100, Math.max(4, Math.round(((score - cur.min) / (next.min - cur.min)) * 100))) : 100;
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -26,6 +29,19 @@ export function TiersScreen({ onBack }: { onBack: () => void }) {
         </div>
         <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
           You start at Orange. Connect in more countries each year to move up a tier — each tier adds perks.
+        </div>
+
+        {/* Progress to next tier */}
+        <div style={{ marginTop: 18, borderRadius: 18, background: RC.paper, border: `1px solid ${RC.line}`, padding: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+            <span style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.ink }}>{score} {score === 1 ? 'country' : 'countries'} this year</span>
+            <span style={{ fontFamily: 'var(--font)', fontSize: 12, fontWeight: 600, color: RC.inkMute }}>
+              {next ? `${toNext} more → ${next.name}` : 'Top tier reached'}
+            </span>
+          </div>
+          <div style={{ marginTop: 10, height: 8, borderRadius: 8, background: RC.cream2, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${bandPct}%`, borderRadius: 8, background: `linear-gradient(90deg, ${cur.c1}, ${(next || cur).c2})` }} />
+          </div>
         </div>
 
         <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -40,6 +56,8 @@ export function TiersScreen({ onBack }: { onBack: () => void }) {
                   border: `1.5px solid ${isCurrent ? 'transparent' : RC.line}`,
                   outline: isCurrent ? `2px solid ${t.c2}` : 'none',
                   background: RC.paper,
+                  opacity: unlocked ? 1 : 0.62,
+                  filter: unlocked ? 'none' : 'saturate(0.7)',
                 }}
               >
                 {/* color header */}
