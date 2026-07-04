@@ -82,7 +82,7 @@ export function LockScreen({
     >
       {/* Brand */}
       <div style={{ marginTop: 96, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
-        <img src={LOGO_SRC} alt="Ringo" style={{ height: 46, width: 'auto', filter: `drop-shadow(0 14px 26px ${hexA(c2, 0.24)})` }} />
+        <img src={LOGO_SRC} alt="Ringo" style={{ height: 44, width: 'auto' }} />
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 500, color: RC.inkMute, letterSpacing: 0.3 }}>
             Welcome back
