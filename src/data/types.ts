@@ -66,7 +66,7 @@ export interface Plan {
 }
 
 export interface Tier {
-  id: 'orange' | 'coral' | 'crimson' | 'aurora';
+  id: 'orange' | 'coral' | 'crimson' | 'aurora' | 'pioneer';
   name: string;
   min: number;
   c1: string;

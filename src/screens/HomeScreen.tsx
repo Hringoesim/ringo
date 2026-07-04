@@ -4,10 +4,10 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { RC, SHADOW_CARD, SHADOW_HERO } from '../theme';
 import { useRingoState } from '../store/store';
 import { COUNTRIES } from '../data/countries';
-import { TIERS, tierFor, nextTier } from '../data/tiers';
+import { TIERS, tierFor, nextTier, membershipFor } from '../data/tiers';
 import type { PhoneNumber, Tier } from '../data/types';
 import type { OnNav } from '../navigation';
-import { RingoWordmark } from '../components/Wordmark';
+import { LOGO_SRC } from '../assets';
 import { hapticNotify } from '../lib/haptics';
 
 /** Time-of-day greeting from the device clock. */
@@ -21,7 +21,8 @@ function greetingNow(): string {
 
 export function HomeScreen({ onNav }: { onNav: OnNav }) {
   const { state, actions } = useRingoState();
-  const tier = tierFor(state.score);
+  const rank = tierFor(state.score); // climbing rank (Orange → Coral → …)
+  const tier = membershipFor(state.score, state.pioneer); // shown membership (Pioneer or rank)
   const next = nextTier(state.score);
   const toNext = next ? next.min - state.score : 0;
   const kycDone = state.kycStatus === 'verified';
@@ -87,7 +88,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
       <div style={{ transform: `translateY(${pull}px)`, transition: startY.current === null ? 'transform 0.25s cubic-bezier(0.2,0,0,1)' : 'none' }}>
         {/* ── App bar: logo · search · avatar ─────────────────── */}
         <div style={{ padding: '8px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-          <RingoWordmark size={23} />
+          <img src={LOGO_SRC} alt="Ringo" style={{ height: 24, width: 'auto' }} />
           <div
             onClick={() => onNav('browse')}
             className="press"
@@ -131,22 +132,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
 
         {/* ── Greeting — follows the device clock ─────────────── */}
         <div style={{ padding: '20px 20px 14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ fontFamily: 'var(--font)', fontSize: 13, color: RC.inkMute, fontWeight: 500, letterSpacing: 0.2 }}>{greetingNow()}</div>
-            {state.pioneer && (
-              <span
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 999,
-                  background: RC.grad, color: '#FFFFFF', fontFamily: 'var(--font)', fontSize: 10,
-                  fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase',
-                  boxShadow: '0 4px 10px -4px rgba(199,75,142,0.5)',
-                }}
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="#FFFFFF"><path d="M12 2l2.6 5.6L21 8.3l-4.5 4.3L17.8 19 12 15.8 6.2 19l1.3-6.4L3 8.3l6.4-.7z" /></svg>
-                Pioneer
-              </span>
-            )}
-          </div>
+          <div style={{ fontFamily: 'var(--font)', fontSize: 13, color: RC.inkMute, fontWeight: 500, letterSpacing: 0.2 }}>{greetingNow()}</div>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: RC.ink, letterSpacing: -0.7, lineHeight: 1.05 }}>
             {state.name}{' '}
             <span style={{ background: `linear-gradient(135deg, ${tier.c1}, ${tier.c2})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>·</span>{' '}
@@ -183,7 +169,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
 
         {/* ── HERO: membership tier card ──────────────────────── */}
         <div style={{ padding: '0 20px' }}>
-          <TierCard tier={tier} next={next} toNext={toNext} score={state.score} onClick={() => onNav('tiers')} />
+          <TierCard tier={tier} rank={rank} next={next} toNext={toNext} score={state.score} onClick={() => onNav('tiers')} />
         </div>
 
         {/* ── Metric strip ────────────────────────────────────── */}
@@ -328,21 +314,24 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
 // Membership tier hero — big metric + progress to next tier.
 function TierCard({
   tier,
+  rank,
   next,
   toNext,
   score,
   onClick,
 }: {
   tier: Tier;
+  rank: Tier;
   next: Tier | null;
   toNext: number;
   score: number;
   onClick: () => void;
 }) {
-  // Progress within the CURRENT tier band (this tier's floor → next tier), so
-  // the bar matches the "X more to unlock" copy instead of measuring from zero.
+  // Progress within the current RANK band (rank floor → next rank), so the bar
+  // matches the "X more to unlock" copy. (For Pioneers the card colour/name come
+  // from `tier`, but the climb is still measured against the rank ladder.)
   const pct = next
-    ? Math.min(100, Math.max(0, Math.round(((score - tier.min) / (next.min - tier.min)) * 100)))
+    ? Math.min(100, Math.max(0, Math.round(((score - rank.min) / (next.min - rank.min)) * 100)))
     : 100;
   return (
     <div
@@ -545,42 +534,14 @@ function NumberBuckets({ numbers, onMore, onAdd }: { numbers: PhoneNumber[]; onM
 // sunset-ember line icon. Color lives on the hero, not the rail, so the four
 // actions read as a calm, coherent family rather than candy.
 type ActionIcon = 'globe' | 'port' | 'plan' | 'qr';
-function ActionGlyph({ icon }: { icon: ActionIcon }) {
-  const s = RC.inkStrong;
-  if (icon === 'globe')
-    return (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="9" stroke={s} strokeWidth="1.8" />
-        <path d="M3 12h18M12 3c2.6 2.4 4 5.6 4 9s-1.4 6.6-4 9c-2.6-2.4-4-5.6-4-9s1.4-6.6 4-9z" stroke={s} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    );
-  if (icon === 'port')
-    return (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <path d="M4 9a8 8 0 0113.5-3.5L20 8" stroke={s} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M20 4v4h-4" stroke={s} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M20 15a8 8 0 01-13.5 3.5L4 16" stroke={s} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M4 20v-4h4" stroke={s} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    );
-  if (icon === 'plan')
-    return (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <rect x="3" y="5.5" width="18" height="13" rx="2.5" stroke={s} strokeWidth="1.8" />
-        <path d="M3 10h18" stroke={s} strokeWidth="1.8" />
-        <path d="M7 14.5h4" stroke={s} strokeWidth="1.8" strokeLinecap="round" />
-      </svg>
-    );
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <rect x="4" y="4" width="7" height="7" rx="1.5" stroke={s} strokeWidth="1.8" />
-      <rect x="4" y="13" width="7" height="7" rx="1.5" stroke={s} strokeWidth="1.8" />
-      <rect x="13" y="4" width="7" height="7" rx="1.5" stroke={s} strokeWidth="1.8" />
-      <path d="M13 14h3v3M20 14v6M16 20h1" stroke={s} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
 function ActionChip({ label, icon, onClick }: { label: string; icon: ActionIcon; onClick: () => void }) {
+  const glyphs: Record<ActionIcon, string> = { globe: '🌍', port: '🔄', plan: '💳', qr: '📲' };
+  const tints: Record<ActionIcon, string> = {
+    globe: 'linear-gradient(145deg, #FFE7C2 0%, #FFC98F 100%)', // sunny orange
+    port: 'linear-gradient(145deg, #E9E2FF 0%, #C9BBFF 100%)', // violet
+    plan: 'linear-gradient(145deg, #D9F6E6 0%, #A9ECC9 100%)', // mint
+    qr: 'linear-gradient(145deg, #FFDFEB 0%, #FFB3D1 100%)', // pink
+  };
   return (
     <button
       onClick={onClick}
@@ -593,12 +554,12 @@ function ActionChip({ label, icon, onClick }: { label: string; icon: ActionIcon;
       <div
         style={{
           width: '100%', aspectRatio: '1', borderRadius: 18,
-          background: RC.cream, border: `1px solid ${RC.line}`,
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6)',
+          background: tints[icon],
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.65), 0 6px 14px -8px rgba(58,22,5,0.25)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
-        <ActionGlyph icon={icon} />
+        <span style={{ fontSize: 30, lineHeight: 1, filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.18))' }}>{glyphs[icon]}</span>
       </div>
       <div style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 600, color: RC.ink, letterSpacing: -0.1, textAlign: 'center', lineHeight: 1.2 }}>{label}</div>
     </button>

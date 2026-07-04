@@ -127,7 +127,10 @@ function defaults(): RingoState {
     email: session?.email ?? null,
     avatar: null,
     tierUp: null,
-    pioneer: true, // everyone in this early cohort is a founding Pioneer
+    // Pioneer is granted by a founding code. The offline demo user (Hippolyte)
+    // is a Pioneer; a new live account starts as a normal member until they
+    // redeem a Pioneer code.
+    pioneer: !live,
   };
 }
 
@@ -392,6 +395,11 @@ export const actions = {
 
   clearTierUp() {
     if (get().tierUp) set({ tierUp: null });
+  },
+
+  /** Redeem a valid Pioneer code → founding membership (ranks still climb). */
+  grantPioneer() {
+    if (!get().pioneer) set({ pioneer: true });
   },
 
   async submitKyc(payload: KycPayload) {

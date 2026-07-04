@@ -2,7 +2,7 @@
 // the white "Ringo" wordmark, the site's headline + copy, and an Apple-first CTA.
 import { useState } from 'react';
 import { SaturnWorld } from '../components/SaturnWorld';
-import { RingoWordmark } from '../components/Wordmark';
+import { LOGO_SRC } from '../assets';
 import { haptic } from '../lib/haptics';
 
 export function LandingScreen({
@@ -49,11 +49,18 @@ export function LandingScreen({
           justifyContent: 'center', padding: '52px 26px 0', textAlign: 'center',
         }}
       >
-        {/* Approved logo — white on the sunset, exactly like the site */}
-        <RingoWordmark size={30} light />
+        {/* Real Ringo brand logo — white halo lifts it off the sunset */}
+        <img
+          src={LOGO_SRC}
+          alt="Ringo"
+          style={{
+            height: 48, width: 'auto',
+            filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.9)) drop-shadow(0 0 16px rgba(255,255,255,0.55)) drop-shadow(0 6px 14px rgba(0,0,0,0.22))',
+          }}
+        />
 
-        <div style={{ marginTop: 10 }}>
-          <SaturnWorld size={288} />
+        <div style={{ marginTop: 6 }}>
+          <SaturnWorld size={356} />
         </div>
 
         <div
@@ -143,7 +150,7 @@ export function LandingScreen({
             fontSize: 11.5, fontWeight: 500, color: 'rgba(255,255,255,0.72)', letterSpacing: 0.1,
           }}
         >
-          No SMS code needed · Cancel anytime
+          Requires an iPhone with eSIM · No SMS code · Cancel anytime
         </div>
       </div>
     </div>

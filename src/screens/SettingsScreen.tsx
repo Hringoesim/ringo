@@ -5,6 +5,7 @@ import { RC } from '../theme';
 import { RingoCard } from '../components/Card';
 import { useRingoState } from '../store/store';
 import { PLANS, planPrice, fmtMoney } from '../data/plans';
+import { membershipFor } from '../data/tiers';
 import { referralCode } from '../data/promo';
 import { haptic, hapticNotify } from '../lib/haptics';
 import type { OnNav } from '../navigation';
@@ -160,7 +161,7 @@ export function SettingsScreen({ onBack, onSignOut, onNav }: SettingsScreenProps
       <RingoCard style={{ marginTop: 10, padding: '2px 16px' }}>
         <Row label="Identity verification" value={kycValue} tone={kycTone} onClick={kyc === 'pending' ? () => onNav('kyc') : undefined} />
         <Row label="Plan & billing" value={`${PLANS.find((p) => p.id === state.planId)?.name ?? 'Essentials'} · ${fmtMoney(planPrice(state.planId))}/mo`} onClick={() => onNav('plan')} />
-        <Row label="Membership" value={state.pioneer ? 'Pioneer ★' : 'Member'} onClick={() => onNav('tiers')} />
+        <Row label="Membership" value={membershipFor(state.score, state.pioneer).name} onClick={() => onNav('tiers')} />
         <Row label="Your numbers" value={`${state.numbers.length}`} onClick={() => onNav('numbers')} last />
       </RingoCard>
 
@@ -190,8 +191,9 @@ export function SettingsScreen({ onBack, onSignOut, onNav }: SettingsScreenProps
       >
         Sign out
       </button>
-      <div style={{ marginTop: 18, textAlign: 'center', fontFamily: 'var(--font)', fontSize: 11.5, color: RC.inkMute }}>
-        Ringo · version 0.1.0
+      <div style={{ marginTop: 18, textAlign: 'center', fontFamily: 'var(--font)', fontSize: 11.5, color: RC.inkMute, lineHeight: 1.6 }}>
+        Developed by Ringo Ltd · version 0.1.0<br />
+        Registered in England &amp; Wales (16972659) · Your data is protected — see our Privacy Policy.
       </div>
     </div>
   );

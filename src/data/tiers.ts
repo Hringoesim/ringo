@@ -8,10 +8,29 @@ export const TIERS: Tier[] = [
   { id: 'aurora',  name: 'Aurora',  min: 30, c1: '#B36BFF', c2: '#F8506B', glow: 'rgba(179,107,255,0.5)', perk: 'Free partner upgrades · 24/7 concierge' },
 ];
 
+// Pioneer — a special founding membership, granted by a Pioneer code (not by
+// score). It's the top, exclusive status; Pioneers STILL climb the rank ladder
+// above (Orange → Coral → …), so it layers over `tierFor`.
+export const PIONEER_TIER: Tier = {
+  id: 'pioneer',
+  name: 'Pioneer',
+  min: 0,
+  c1: '#F0733A',
+  c2: '#7E3A73',
+  glow: 'rgba(126,58,115,0.55)',
+  perk: 'Founding member — locked-in pricing & every perk',
+};
+
 export function tierFor(score: number): Tier {
   let t = TIERS[0];
   for (const x of TIERS) if (score >= x.min) t = x;
   return t;
+}
+
+/** The membership shown to the user: Pioneers show "Pioneer" (their rank still
+ *  climbs underneath); everyone else shows their current rank. */
+export function membershipFor(score: number, pioneer: boolean): Tier {
+  return pioneer ? PIONEER_TIER : tierFor(score);
 }
 
 export function nextTier(score: number): Tier | null {

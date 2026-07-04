@@ -35,6 +35,8 @@ export function PaywallScreen({ planId, onBack, onPaid }: PaywallScreenProps) {
   const applyCode = () => {
     const res = checkPromo(code, ownCode);
     setPromo(res);
+    // A valid founding code upgrades the account to Pioneer membership.
+    if (res.valid && res.kind === 'pioneer') actions.grantPioneer();
     hapticNotify(res.valid ? 'success' : 'warning');
   };
 
