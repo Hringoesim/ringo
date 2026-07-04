@@ -121,22 +121,6 @@ function BrowserMockup({ theme, toggleTheme }: { theme: Scheme; toggleTheme: () 
         <span style={{ display: 'inline-block', width: 5, height: 5, borderRadius: '50%', background: RC.grad, marginLeft: 2, transform: 'translateY(-1px)' }} />
       </div>
 
-      <button
-        onClick={toggleTheme}
-        style={{
-          position: 'absolute', top: 22, right: 26, zIndex: 5,
-          height: 30, padding: '0 12px', borderRadius: 999, cursor: 'pointer',
-          border: `1px solid ${RC.scheme === 'dark' ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)'}`,
-          background: RC.scheme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.7)',
-          color: RC.scheme === 'dark' ? '#FBEDE6' : '#3A1605',
-          fontFamily: 'var(--font)', fontSize: 12, fontWeight: 600,
-          display: 'flex', alignItems: 'center', gap: 7, backdropFilter: 'blur(8px)',
-        }}
-      >
-        <span style={{ fontSize: 13 }}>{theme === 'dark' ? '🌙' : '☀️'}</span>
-        {theme === 'dark' ? 'Dark' : 'Light'}
-      </button>
-
       <div style={{ transform: `scale(${scale})`, transformOrigin: 'center center' }}>
         <RingoDevice width={390} height={844}>
           <App theme={theme} onToggleTheme={toggleTheme} />
