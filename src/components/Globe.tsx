@@ -56,7 +56,16 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     let lambda = 0; // longitude rotation (degrees)
     let phi = -15; // latitude tilt (degrees) — gently tumbles N↔S
     let tacc = 0; // accumulated time (s) driving the tumble
+    let scale = R; // projection scale — grows when zooming into a country
+    let mode = 'roam'; // 'roam' (spin the world) | 'focus' (zoom a country)
+    let modeT = 0; // time in the current mode (s)
+    let focusI = 0; // city index being zoomed into
     let lastTs = performance.now();
+    // ease an angle (deg) toward a target along the shortest path
+    const easeAngle = (cur: number, target: number, k: number) => {
+      const d = ((target - cur + 540) % 360) - 180;
+      return cur + d * k;
+    };
     let lastDraw = 0;
     const showGraticule = size >= 200;
     const showFlights = size >= 150;
@@ -182,12 +191,19 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     const draw = (now: number) => {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, size, size);
-      projection.rotate([lambda, phi, 0]);
+      projection.scale(scale).rotate([lambda, phi, 0]);
 
+      // atmosphere glow (behind, fixed to the disc)
       ctx.beginPath();
       ctx.arc(cx, cy, R * 1.08, 0, Math.PI * 2);
       ctx.fillStyle = glow;
       ctx.fill();
+
+      // earth content — clipped to the disc so a zoom stays inside the circle
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.clip();
 
       ctx.beginPath();
       path({ type: 'Sphere' });
@@ -212,6 +228,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
 
       // flights sit on the surface, above land, below the limb shading
       if (showFlights) drawFlights(now);
+      ctx.restore();
 
       ctx.save();
       ctx.beginPath();
@@ -236,8 +253,25 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       const dt = Math.min(0.1, (now - lastTs) / 1000);
       lastTs = now;
       tacc += dt;
-      lambda += 4 * dt; // very slow spin (~90s per rotation) — easy to follow
-      phi = -12 + 17 * Math.sin(tacc * 0.32); // tumble N↔S (~-29°…+5°) to reveal the whole world
+      modeT += dt;
+      if (mode === 'roam') {
+        // Spin the world, but speed UP over the empty Pacific so we don't dwell
+        // on open ocean; tumble N↔S to show every continent.
+        const centerLng = (((-lambda + 180) % 360) + 360) % 360 - 180;
+        const overPacific = centerLng > 120 || centerLng < -120;
+        lambda += (overPacific ? 16 : 5) * dt;
+        const tumble = -12 + 17 * Math.sin(tacc * 0.32);
+        phi += (tumble - phi) * Math.min(1, dt * 2.2);
+        scale += (R - scale) * Math.min(1, dt * 2.5);
+        if (modeT > 8) { mode = 'focus'; modeT = 0; focusI = rnd(CITIES.length); }
+      } else {
+        // Focus: ease to centre a real country and zoom in, hold, then roam on.
+        const c = CITIES[focusI];
+        lambda = easeAngle(lambda, -c.lng, Math.min(1, dt * 1.8));
+        phi += (-c.lat - phi) * Math.min(1, dt * 1.8);
+        scale += (R * 1.55 - scale) * Math.min(1, dt * 1.8);
+        if (modeT > 4.5) { mode = 'roam'; modeT = 0; }
+      }
       // Flights need smooth motion → draw every frame when flights are on;
       // otherwise throttle to ~30fps to save the main thread.
       if (showFlights || now - lastDraw >= 33) {
