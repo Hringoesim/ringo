@@ -7,15 +7,16 @@ export function BackBtn({ onClick }: { onClick?: () => void }) {
     <button
       className="press"
       onClick={onClick}
+      aria-label="Back"
       style={{
-        width: 38, height: 38, borderRadius: '50%',
-        background: RC.paper, border: `1px solid ${RC.line}`,
+        width: 40, height: 40, borderRadius: '50%',
+        background: RC.cream, border: `1.5px solid ${RC.lineStrong}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        cursor: 'pointer', boxShadow: '0 4px 12px -6px rgba(208,80,0,0.2)',
+        cursor: 'pointer', boxShadow: '0 6px 16px -8px rgba(34,26,20,0.28)',
       }}
     >
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-        <path d="M10 2L4 8l6 6" stroke={RC.inkStrong} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M10 2L4 8l6 6" stroke={RC.inkStrong} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </button>
   );
