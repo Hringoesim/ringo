@@ -28,9 +28,9 @@ const CITIES: { lng: number; lat: number; flag: string }[] = [
   { lng: 4.35, lat: 50.85, flag: '🇧🇪' },
 ];
 
-const NFLIGHTS = 3;
+const NFLIGHTS = 5;
 const DURATION = 1700; // ms in the air
-const HOLD = 700; // ms the flag stays after landing
+const HOLD = 800; // ms the flag stays after landing
 
 export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -92,12 +92,13 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     // we don't pick a city right on the edge that's about to rotate away)
     const visible = (lng: number, lat: number) => geoDistance([lng, lat], [-lambda, -phi]) < Math.PI / 2 - 0.08;
 
-    // Pick a route whose BOTH endpoints are on the visible face right now, so the
-    // whole flight (leave → arrive) plays on screen. Falls back to any pair.
-    const newFlight = (prev: number, now: number): Flight => {
+    // Pick a fresh random route whose BOTH endpoints are on the visible face, so
+    // the whole flight (leave → arrive) plays on screen. Fresh from/to every time
+    // → lines come and go in all directions. Falls back to any pair.
+    const newFlight = (now: number): Flight => {
       const vis = CITIES.map((_, i) => i).filter((i) => visible(CITIES[i].lng, CITIES[i].lat));
       const pool = vis.length >= 2 ? vis : CITIES.map((_, i) => i);
-      const from = prev >= 0 && pool.includes(prev) ? prev : pool[rnd(pool.length)];
+      const from = pool[rnd(pool.length)];
       let to = pool[rnd(pool.length)];
       let guard = 0;
       while (to === from && guard++ < 12) to = pool[rnd(pool.length)];
@@ -105,8 +106,8 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     };
     const now0 = performance.now();
     const flights: Flight[] = Array.from({ length: NFLIGHTS }, (_, i) => ({
-      ...newFlight(-1, now0),
-      start: now0 + i * (DURATION * 0.5), // stagger
+      ...newFlight(now0),
+      start: now0 + i * (DURATION * 0.42), // stagger
     }));
 
     const drawFlights = (now: number) => {
@@ -116,7 +117,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         const b = CITIES[f.to];
         const elapsed = now - f.start;
         if (elapsed < 0) continue;
-        if (elapsed > DURATION + HOLD) { flights[i] = newFlight(f.to, now); continue; }
+        if (elapsed > DURATION + HOLD) { flights[i] = newFlight(now); continue; }
 
         const flying = elapsed <= DURATION;
         const t = flying ? Math.min(1, elapsed / DURATION) : 1;
@@ -163,25 +164,22 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
             }
           }
         } else {
-          // landed → flag chip at destination while it faces us
+          // landed → the destination flag itself (no white circle), with a soft
+          // shadow so it reads on the globe, while the country faces us.
           if (visible(b.lng, b.lat)) {
             const xy = projection([b.lng, b.lat]);
             if (xy) {
-              const rr = Math.max(10, R * 0.11);
-              ctx.beginPath();
-              ctx.arc(xy[0], xy[1], rr, 0, Math.PI * 2);
-              ctx.fillStyle = '#FFFFFF';
-              ctx.shadowColor = 'rgba(0,0,0,0.35)';
-              ctx.shadowBlur = rr * 0.5;
-              ctx.shadowOffsetY = rr * 0.2;
-              ctx.fill();
+              const fs = Math.max(16, R * 0.17);
+              ctx.font = `${fs}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.shadowColor = 'rgba(0,0,0,0.5)';
+              ctx.shadowBlur = fs * 0.32;
+              ctx.shadowOffsetY = 1;
+              ctx.fillText(b.flag, xy[0], xy[1]);
               ctx.shadowColor = 'transparent';
               ctx.shadowBlur = 0;
               ctx.shadowOffsetY = 0;
-              ctx.font = `${rr * 1.25}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
-              ctx.textAlign = 'center';
-              ctx.textBaseline = 'middle';
-              ctx.fillText(b.flag, xy[0], xy[1] + rr * 0.05);
             }
           }
         }
