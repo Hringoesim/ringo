@@ -187,9 +187,8 @@ export function SettingsScreen({ onBack, onSignOut, onNav }: SettingsScreenProps
       >
         Sign out
       </button>
-      <div style={{ marginTop: 18, textAlign: 'center', fontFamily: 'var(--font)', fontSize: 11.5, color: RC.inkMute, lineHeight: 1.6 }}>
-        Developed by Ringo Ltd · version 0.1.0<br />
-        Registered in England &amp; Wales (16972659) · Your data is protected — see our Privacy Policy.
+      <div style={{ marginTop: 18, textAlign: 'center', fontFamily: 'var(--font)', fontSize: 11.5, color: RC.inkMute }}>
+        Ringo · version 0.1.0
       </div>
     </div>
   );

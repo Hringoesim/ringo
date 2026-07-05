@@ -49,7 +49,7 @@ These Terms and any dispute relating to them are governed by the laws of England
 Questions about these Terms? Contact us at support@ringoesim.com or visit ringoesim.com.`;
 
 export const PRIVACY = `**1. Who we are**
-This Privacy Policy explains how Ringo Ltd ("Ringo", "we", "us") collects and uses your personal data. Ringo is the data controller: company number 16972659, registered office 3rd Floor, 86-90 Paul Street, London, England. It applies to the Ringo eSIM app and related services. For any privacy questions, contact privacy@ringoesim.com.
+The Ringo app is developed and operated by Ringo Ltd ("Ringo", "we", "us"). This Privacy Policy explains how we collect and use your personal data. Ringo Ltd is the data controller: company number 16972659, registered office 3rd Floor, 86-90 Paul Street, London, England. It applies to the Ringo eSIM app and related services. For any privacy questions, contact privacy@ringoesim.com.
 
 **2. Data we collect**
 Account information: your name, email, phone number, country, device and eSIM details, and account settings. Identity/KYC data: identity documents and checks are processed by our regulated KYC partner — Ringo does not store your KYC documents, only your verification status and a reference. Usage and connectivity data: information needed to deliver and support the Service. Payment data: payment tokens and billing status via Stripe — we never store your full card number. Support data: messages you share when you contact us.

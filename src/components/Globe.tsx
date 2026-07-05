@@ -4,7 +4,7 @@
 // great-circle arcs sit on the real countries and rotate with the globe; the
 // destination flag pops up on landing (only while that country faces us).
 import { useEffect, useRef } from 'react';
-import { geoOrthographic, geoPath, geoGraticule10, geoInterpolate, geoDistance, type GeoPermissibleObjects } from 'd3-geo';
+import { geoOrthographic, geoPath, geoGraticule10, geoDistance, type GeoPermissibleObjects } from 'd3-geo';
 import { feature } from 'topojson-client';
 import landTopo from 'world-atlas/land-110m.json';
 
@@ -46,7 +46,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
 
     const cx = size / 2;
     const cy = size / 2;
-    const R = size / 2 - size * 0.04;
+    const R = size * 0.36; // smaller disc → leaves space around it for the flight arcs to bow into
 
     const projection = geoOrthographic().scale(R).translate([cx, cy]).clipAngle(90);
     const path = geoPath(projection, ctx);
@@ -111,77 +111,83 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     }));
 
     const drawFlights = (now: number) => {
+      const PINK = '#FF3D8B';
       for (let i = 0; i < NFLIGHTS; i++) {
         const f = flights[i];
-        const a = CITIES[f.from];
-        const b = CITIES[f.to];
+        const A = CITIES[f.from];
+        const B = CITIES[f.to];
         const elapsed = now - f.start;
         if (elapsed < 0) continue;
         if (elapsed > DURATION + HOLD) { flights[i] = newFlight(now); continue; }
+        if (!visible(A.lng, A.lat) || !visible(B.lng, B.lat)) continue;
+        const a = projection([A.lng, A.lat]);
+        const b = projection([B.lng, B.lat]);
+        if (!a || !b) continue;
 
         const flying = elapsed <= DURATION;
         const t = flying ? Math.min(1, elapsed / DURATION) : 1;
         const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; // easeInOut
-        const interp = geoInterpolate([a.lng, a.lat], [b.lng, b.lat]);
 
-        const PINK = '#FF3D8B';
-        // origin marker so the arc clearly starts on its country
-        if (visible(a.lng, a.lat)) {
-          const oxy = projection([a.lng, a.lat]);
-          if (oxy) {
-            ctx.beginPath();
-            ctx.arc(oxy[0], oxy[1], Math.max(2.2, R * 0.018), 0, Math.PI * 2);
-            ctx.fillStyle = PINK;
-            ctx.fill();
-          }
-        }
+        // A 2D arc that bows OUTWARD from the globe centre — the line lifts off
+        // the surface into the space around the planet, so it never covers a
+        // country. Endpoints still sit on the real countries (projected).
+        const mx = (a[0] + b[0]) / 2;
+        const my = (a[1] + b[1]) / 2;
+        let nx = mx - cx, ny = my - cy;
+        let nl = Math.hypot(nx, ny);
+        if (nl < 1) { nx = 0; ny = -1; nl = 1; }
+        const dist = Math.hypot(b[0] - a[0], b[1] - a[1]);
+        const lift = dist * 0.3 + R * 0.42;
+        const px = mx + (nx / nl) * lift;
+        const py = my + (ny / nl) * lift;
+        const q = (u: number): [number, number] => {
+          const w = 1 - u;
+          return [w * w * a[0] + 2 * w * u * px + u * u * b[0], w * w * a[1] + 2 * w * u * py + u * u * b[1]];
+        };
 
-        // arc revealed up to e — geoPath clips it to the visible hemisphere.
-        const steps = 26;
-        const coords: [number, number][] = [];
-        for (let k = 0; k <= steps; k++) coords.push(interp((e * k) / steps) as [number, number]);
+        // arc revealed up to e
         ctx.beginPath();
-        path({ type: 'LineString', coordinates: coords } as GeoPermissibleObjects);
+        ctx.moveTo(a[0], a[1]);
+        const N = 28;
+        for (let k = 1; k <= N; k++) { const p = q((e * k) / N); ctx.lineTo(p[0], p[1]); }
         ctx.strokeStyle = PINK;
-        ctx.lineWidth = Math.max(1.8, R * 0.02);
-        ctx.setLineDash([]);
-        ctx.shadowColor = 'rgba(255,61,139,0.85)';
-        ctx.shadowBlur = R * 0.045;
+        ctx.lineWidth = Math.max(1.8, R * 0.022);
+        ctx.lineCap = 'round';
+        ctx.shadowColor = 'rgba(255,61,139,0.9)';
+        ctx.shadowBlur = R * 0.05;
         ctx.stroke();
         ctx.shadowBlur = 0;
         ctx.shadowColor = 'transparent';
 
+        // origin dot on its country
+        ctx.beginPath();
+        ctx.arc(a[0], a[1], Math.max(2.2, R * 0.022), 0, Math.PI * 2);
+        ctx.fillStyle = PINK;
+        ctx.fill();
+
         if (flying) {
-          // plane dot at the head of the arc (if on the near side)
-          const head = interp(e) as [number, number];
-          if (visible(head[0], head[1])) {
-            const xy = projection(head);
-            if (xy) {
-              ctx.beginPath();
-              ctx.arc(xy[0], xy[1], Math.max(2.6, R * 0.024), 0, Math.PI * 2);
-              ctx.fillStyle = '#FFFFFF';
-              ctx.fill();
-            }
-          }
+          const h = q(e);
+          ctx.beginPath();
+          ctx.arc(h[0], h[1], Math.max(2.8, R * 0.03), 0, Math.PI * 2);
+          ctx.fillStyle = '#FFFFFF';
+          ctx.shadowColor = 'rgba(255,255,255,0.9)';
+          ctx.shadowBlur = R * 0.035;
+          ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.shadowColor = 'transparent';
         } else {
-          // landed → the destination flag itself (no white circle), with a soft
-          // shadow so it reads on the globe, while the country faces us.
-          if (visible(b.lng, b.lat)) {
-            const xy = projection([b.lng, b.lat]);
-            if (xy) {
-              const fs = Math.max(16, R * 0.17);
-              ctx.font = `${fs}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
-              ctx.textAlign = 'center';
-              ctx.textBaseline = 'middle';
-              ctx.shadowColor = 'rgba(0,0,0,0.5)';
-              ctx.shadowBlur = fs * 0.32;
-              ctx.shadowOffsetY = 1;
-              ctx.fillText(b.flag, xy[0], xy[1]);
-              ctx.shadowColor = 'transparent';
-              ctx.shadowBlur = 0;
-              ctx.shadowOffsetY = 0;
-            }
-          }
+          // destination flag on the country (no white circle)
+          const fs = Math.max(16, R * 0.2);
+          ctx.font = `${fs}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.shadowColor = 'rgba(0,0,0,0.5)';
+          ctx.shadowBlur = fs * 0.3;
+          ctx.shadowOffsetY = 1;
+          ctx.fillText(B.flag, b[0], b[1]);
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetY = 0;
         }
       }
     };
@@ -224,8 +230,6 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.lineWidth = 0.4;
       ctx.stroke();
 
-      // flights sit on the surface, above land, below the limb shading
-      if (showFlights) drawFlights(now);
       ctx.restore();
 
       ctx.save();
@@ -243,6 +247,10 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.strokeStyle = 'rgba(180,220,255,0.6)';
       ctx.lineWidth = 1;
       ctx.stroke();
+
+      // flights drawn LAST, unclipped — the arcs bow into the space around the
+      // globe (above the surface), so they never cover a country.
+      if (showFlights) drawFlights(now);
 
       if (!reduce) raf = requestAnimationFrame(tick);
     };

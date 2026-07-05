@@ -27,6 +27,7 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
   const isCurrent = (id: string) => id === currentId;
   const pending = state.pendingPlanId ? PLANS.find((p) => p.id === state.pendingPlanId) : null;
   const direction = planRank(cur.id) > planRank(currentId) ? 'Upgrade' : 'Downgrade';
+  const usedPct = Math.max(0, Math.round(state.dataPct * 100)); // real fair-use %
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -174,18 +175,18 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
               <div
                 style={{
                   width: 80, height: 80, borderRadius: '50%',
-                  background: `conic-gradient(#FF7A2F 0%, #E92BA0 34%, ${RC.cream} 34%)`,
+                  background: `conic-gradient(#FF7A2F 0%, #E92BA0 ${usedPct}%, ${RC.cream} ${usedPct}%)`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
                 }}
               >
                 <div style={{ width: 62, height: 62, borderRadius: '50%', background: RC.paper, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  <div style={{ fontFamily: 'var(--font)', fontSize: 20, fontWeight: 700, color: RC.inkStrong, lineHeight: 1 }}>34%</div>
+                  <div style={{ fontFamily: 'var(--font)', fontSize: 20, fontWeight: 700, color: RC.inkStrong, lineHeight: 1 }}>{usedPct}%</div>
                   <div style={{ fontFamily: 'var(--font)', fontSize: 9, fontWeight: 500, color: RC.inkMute }}>fair-use</div>
                 </div>
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, color: RC.ink }}>You’re flying.</div>
-                <div style={{ fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute, lineHeight: 1.5, marginTop: 2 }}>At this rate, you’ll stay at high speed all month.</div>
+                <div style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, color: RC.ink }}>{usedPct === 0 ? 'Nothing used yet.' : 'You’re flying.'}</div>
+                <div style={{ fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute, lineHeight: 1.5, marginTop: 2 }}>{usedPct === 0 ? 'Your high-speed data is ready the moment you travel.' : 'At this rate, you’ll stay at high speed all month.'}</div>
                 <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 11, color: RC.inkMute }}>
                   {pending ? `Switches to ${pending.name} ${fmtDate(state.periodEnd)}` : `Renews ${fmtDate(state.periodEnd)}`} · Visa •• 4242
                 </div>
