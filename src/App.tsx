@@ -17,6 +17,7 @@ import type { NavTarget, OnNav } from './navigation';
 
 import { LockScreen } from './screens/LockScreen';
 import { LandingScreen } from './screens/LandingScreen';
+import { OnboardingScreen } from './screens/OnboardingScreen';
 import { SignUpScreen } from './screens/SignUpScreen';
 import { OtpScreen } from './screens/OtpScreen';
 import { KycScreen } from './screens/KycScreen';
@@ -188,9 +189,18 @@ export function App({ theme, onToggleTheme }: AppProps) {
     case 'landing':
       body = (
         <LandingScreen
-          onExplore={() => replace('home')}
+          onExplore={() => push('onboard')}
           onCreate={() => push('signup', { mode: 'create' })}
           onLogin={() => push('signup', { mode: 'login' })}
+        />
+      );
+      break;
+    case 'onboard':
+      body = (
+        <OnboardingScreen
+          onBack={pop}
+          onExplore={(planId) => { storeActions.selectPlan(planId); replace('home'); }}
+          onCreate={(planId) => { storeActions.selectPlan(planId); push('signup', { mode: 'create' }); }}
         />
       );
       break;

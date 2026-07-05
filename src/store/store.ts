@@ -403,6 +403,11 @@ export const actions = {
     if (!get().pioneer) set({ pioneer: true });
   },
 
+  /** Pre-select a plan (e.g. the onboarding recommendation) without charging. */
+  selectPlan(planId: string) {
+    set({ planId });
+  },
+
   async submitKyc(payload: KycPayload) {
     set({ kycStatus: 'in_review' });
     try {

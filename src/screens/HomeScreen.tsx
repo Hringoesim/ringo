@@ -140,6 +140,14 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
           </div>
         </div>
 
+        {/* ── Finish-setup checklist (hides once complete) ─────── */}
+        <SetupChecklist
+          kycDone={kycDone}
+          subscribed={state.subscribed}
+          hasNumber={state.numbers.length > 0}
+          onNav={onNav}
+        />
+
         {/* ── Tier-up celebration ─────────────────────────────── */}
         {leveledTo && (
           <div style={{ padding: '0 20px 12px' }}>
@@ -307,6 +315,50 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
         </div>
       </div>
       <style>{`@keyframes ringoSpin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
+}
+
+// Finish-setup checklist — a clear, persistent list of the steps to get live
+// (verify → plan → number). Disappears once every step is done.
+function SetupChecklist({ kycDone, subscribed, hasNumber, onNav }: { kycDone: boolean; subscribed: boolean; hasNumber: boolean; onNav: OnNav }) {
+  const steps: { label: string; done: boolean; to: 'kyc' | 'plan' | 'addNumber' }[] = [
+    { label: 'Verify your identity', done: kycDone, to: 'kyc' },
+    { label: 'Choose your plan', done: subscribed, to: 'plan' },
+    { label: 'Add or keep your number', done: hasNumber, to: 'addNumber' },
+  ];
+  const doneCount = steps.filter((s) => s.done).length;
+  if (doneCount === steps.length) return null;
+  return (
+    <div style={{ padding: '0 20px 6px' }}>
+      <div style={{ borderRadius: 20, background: RC.paper, border: `1px solid ${RC.line}`, boxShadow: SHADOW_CARD, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 6px' }}>
+          <span style={{ fontFamily: 'var(--font)', fontSize: 14.5, fontWeight: 700, color: RC.ink, letterSpacing: -0.2 }}>Finish setup</span>
+          <span style={{ fontFamily: 'var(--font)', fontSize: 12, fontWeight: 700, color: RC.inkMute }}>{doneCount}/{steps.length}</span>
+        </div>
+        {steps.map((s, i) => (
+          <div
+            key={s.to}
+            onClick={s.done ? undefined : () => onNav(s.to)}
+            className={s.done ? undefined : 'press'}
+            style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', cursor: s.done ? 'default' : 'pointer', borderTop: i ? `1px solid ${RC.line}` : 'none' }}
+          >
+            <div
+              style={{
+                width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+                background: s.done ? RC.grad : 'transparent', border: s.done ? 'none' : `2px solid ${RC.lineStrong}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              {s.done && <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+            </div>
+            <span style={{ flex: 1, fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, color: s.done ? RC.inkMute : RC.ink, textDecoration: s.done ? 'line-through' : 'none' }}>{s.label}</span>
+            {!s.done && (
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke={RC.inkStrong} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
