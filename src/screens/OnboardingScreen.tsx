@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { RC } from '../theme';
 import { RingoButton } from '../components/Button';
+import { BackBtn } from '../components/ui';
 import { PLANS, planPrice, fmtMoney } from '../data/plans';
 import { haptic, hapticSelection, hapticNotify } from '../lib/haptics';
 
@@ -65,9 +66,7 @@ export function OnboardingScreen({ onExplore, onCreate, onBack }: Props) {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: RC.bg }}>
       {/* Progress + back */}
       <div style={{ padding: '54px 20px 8px', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button onClick={back} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, display: 'flex' }} aria-label="Back">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke={RC.ink} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        </button>
+        <BackBtn onClick={back} />
         <div style={{ flex: 1, height: 6, borderRadius: 6, background: RC.cream, overflow: 'hidden' }}>
           <div style={{ height: '100%', width: `${((step + 1) / total) * 100}%`, background: RC.grad, borderRadius: 6, transition: 'width 0.35s cubic-bezier(0.2,0,0,1)' }} />
         </div>

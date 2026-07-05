@@ -3,6 +3,7 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { RC } from '../theme';
 import { RingoCard } from '../components/Card';
+import { BackBtn } from '../components/ui';
 import { useRingoState } from '../store/store';
 import { PLANS, planPrice, fmtMoney } from '../data/plans';
 import { membershipFor } from '../data/tiers';
@@ -95,12 +96,7 @@ export function SettingsScreen({ onBack, onSignOut, onNav }: SettingsScreenProps
   return (
     <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '70px 24px 40px', color: RC.ink }}>
       <input ref={fileRef} type="file" accept="image/*" onChange={pickPhoto} style={{ display: 'none' }} />
-      <button
-        onClick={onBack}
-        style={{ border: 'none', background: 'transparent', color: RC.inkStrong, fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, cursor: 'pointer', padding: 0 }}
-      >
-        ← Back
-      </button>
+      <BackBtn onClick={onBack} />
       <div style={{ marginTop: 16, fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, letterSpacing: -0.5 }}>Profile</div>
 
       <RingoCard style={{ marginTop: 16, padding: 16 }}>
