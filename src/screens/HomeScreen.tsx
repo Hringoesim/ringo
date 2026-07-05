@@ -404,12 +404,34 @@ function TierCard({
   const pct = next
     ? Math.min(100, Math.max(0, Math.round(((score - rank.min) / (next.min - rank.min)) * 100)))
     : 100;
+
+  // Tactile "catches light" hero (Revolut-style): tilts in 3D as you drag, with
+  // a gloss that sweeps across it. Progress bar fills on mount for momentum.
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [barPct, setBarPct] = useState(0);
+  useEffect(() => { const t = setTimeout(() => setBarPct(pct), 180); return () => clearTimeout(t); }, [pct]);
+  const tilt = (e: { clientX: number; clientY: number }) => {
+    const el = cardRef.current; if (!el) return;
+    const r = el.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width - 0.5;
+    const py = (e.clientY - r.top) / r.height - 0.5;
+    el.style.transition = 'none';
+    el.style.transform = `perspective(760px) rotateY(${px * 9}deg) rotateX(${-py * 9}deg) scale(1.012)`;
+  };
+  const untilt = () => {
+    const el = cardRef.current; if (!el) return;
+    el.style.transition = 'transform 0.55s cubic-bezier(0.22,1,0.36,1)';
+    el.style.transform = 'perspective(760px) rotateY(0deg) rotateX(0deg) scale(1)';
+  };
   return (
     <div
+      ref={cardRef}
       onClick={onClick}
-      className="press"
+      onPointerMove={tilt}
+      onPointerLeave={untilt}
+      onPointerUp={untilt}
       style={{
-        position: 'relative', overflow: 'hidden', cursor: 'pointer',
+        position: 'relative', overflow: 'hidden', cursor: 'pointer', willChange: 'transform',
         borderRadius: 26, padding: '22px 22px 20px',
         // The one sunset surface — a warm top-left light bloom over the per-tier
         // gradient deepened toward dusk, lifted with a real shadow.
@@ -421,6 +443,8 @@ function TierCard({
       {/* atmosphere */}
       <div style={{ position: 'absolute', right: -60, top: -80, width: 240, height: 240, borderRadius: '50%', background: 'rgba(255,253,251,0.10)' }} />
       <div style={{ position: 'absolute', left: -30, bottom: -90, width: 190, height: 190, borderRadius: '50%', background: 'rgba(255,253,251,0.06)' }} />
+      {/* gloss sweep — catches the light */}
+      <div style={{ position: 'absolute', top: 0, bottom: 0, left: '-45%', width: '45%', background: 'linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.33) 50%, transparent 100%)', transform: 'skewX(-12deg)', animation: 'ringoSheen 6s ease-in-out infinite', pointerEvents: 'none' }} />
 
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -448,7 +472,7 @@ function TierCard({
       {next ? (
         <div style={{ position: 'relative', marginTop: 18 }}>
           <div style={{ height: 7, borderRadius: 7, background: 'rgba(255,253,251,0.28)', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${pct}%`, borderRadius: 7, background: '#FFFDFB' }} />
+            <div style={{ height: '100%', width: `${barPct}%`, borderRadius: 7, background: '#FFFDFB', transition: 'width 0.9s cubic-bezier(0.22,1,0.36,1)' }} />
           </div>
           <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 12, fontWeight: 500, opacity: 0.95 }}>
             <strong style={{ fontWeight: 700 }}>{toNext} more</strong> to unlock {next.name} — {next.perk}

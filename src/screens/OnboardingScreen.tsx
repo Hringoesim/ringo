@@ -217,6 +217,7 @@ function Chip({ on, onClick, children, full }: { on: boolean; onClick: () => voi
         border: `1.5px solid ${on ? 'transparent' : RC.line}`,
         outline: on ? `1.5px solid ${RC.inkStrong}` : 'none',
         fontFamily: 'var(--font)', fontSize: 14.5, fontWeight: 600, color: RC.ink,
+        animation: on ? 'ringoPop 0.3s cubic-bezier(0.34,1.56,0.64,1)' : undefined,
       }}
     >
       {children}

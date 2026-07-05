@@ -187,3 +187,17 @@ textarea,
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+/* Premium gloss sweep — a highlight that periodically catches the light. */
+@keyframes ringoSheen {
+  0% { transform: translateX(0) skewX(-12deg); }
+  16% { transform: translateX(340%) skewX(-12deg); }
+  100% { transform: translateX(340%) skewX(-12deg); }
+}
+
+/* Selection pop — a small, rewarding bounce when you choose something. */
+@keyframes ringoPop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
