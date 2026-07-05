@@ -45,6 +45,8 @@ export interface RingoState {
   tierUp: string | null;
   /** Early adopter who downloaded the app — a special founding membership. */
   pioneer: boolean;
+  /** Destinations the user picked in onboarding — personalizes the dashboard. */
+  destinations: string[];
 }
 
 /** Whether the identity check is done enough to buy/port a number (L2 gate). */
@@ -132,6 +134,7 @@ function defaults(): RingoState {
     // is a Pioneer; a new live account starts as a normal member until they
     // redeem a Pioneer code.
     pioneer: !live,
+    destinations: [],
   };
 }
 
@@ -406,6 +409,12 @@ export const actions = {
   /** Pre-select a plan (e.g. the onboarding recommendation) without charging. */
   selectPlan(planId: string) {
     set({ planId });
+  },
+
+  /** Save the onboarding recommendation + chosen destinations (personalizes the
+   *  dashboard so it reflects what the user told us). */
+  applyOnboarding(planId: string, destinations: string[]) {
+    set({ planId, destinations });
   },
 
   async submitKyc(payload: KycPayload) {

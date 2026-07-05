@@ -7,6 +7,7 @@ import { RC } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { BackBtn } from '../components/ui';
+import { Confetti } from '../components/Confetti';
 import { useRingoState } from '../store/store';
 import { PLANS, planPrice, fmtMoney } from '../data/plans';
 import { checkPromo, referralCode, type Promo } from '../data/promo';
@@ -25,6 +26,7 @@ export function PaywallScreen({ planId, onBack, onPaid }: PaywallScreenProps) {
   const ownCode = referralCode(state.name, state.email || state.name);
   const [method, setMethod] = useState<'apple' | 'card'>('apple');
   const [busy, setBusy] = useState(false);
+  const [celebrate, setCelebrate] = useState(false);
   const [err, setErr] = useState('');
   const [code, setCode] = useState('');
   const [promo, setPromo] = useState<Promo | null>(null);
@@ -51,7 +53,8 @@ export function PaywallScreen({ planId, onBack, onPaid }: PaywallScreenProps) {
     setBusy(false);
     if (res.ok) {
       hapticNotify('success');
-      onPaid();
+      setCelebrate(true);
+      setTimeout(onPaid, 1100); // let the celebration play
     } else {
       hapticNotify('error');
       setErr(res.error || 'Payment failed.');
@@ -59,7 +62,8 @@ export function PaywallScreen({ planId, onBack, onPaid }: PaywallScreenProps) {
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+      {celebrate && <Confetti />}
       <RingoHeader title="Checkout" leading={<BackBtn onClick={onBack} />} />
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '8px 24px 16px' }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1 }}>

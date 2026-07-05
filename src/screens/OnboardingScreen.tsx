@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { RC } from '../theme';
 import { RingoButton } from '../components/Button';
 import { BackBtn } from '../components/ui';
+import { Confetti } from '../components/Confetti';
 import { PLANS, planPrice, fmtMoney } from '../data/plans';
 import { haptic, hapticSelection, hapticNotify } from '../lib/haptics';
 
@@ -39,8 +40,8 @@ function recommend(needs: string[], freq: string, destCount: number): string {
 }
 
 interface Props {
-  onExplore: (planId: string) => void; // finish → dashboard as guest
-  onCreate: (planId: string) => void; // create account
+  onExplore: (planId: string, destinations: string[]) => void; // finish → dashboard as guest
+  onCreate: (planId: string, destinations: string[]) => void; // create account
   onBack: () => void; // exit to landing
 }
 
@@ -63,7 +64,8 @@ export function OnboardingScreen({ onExplore, onCreate, onBack }: Props) {
   const nCountries = dests.includes('ALL') ? '180+' : String(Math.max(dests.length, 1) * 30);
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: RC.bg }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: RC.bg, position: 'relative' }}>
+      {step === 3 && <Confetti />}
       {/* Progress + back */}
       <div style={{ padding: '54px 20px 8px', display: 'flex', alignItems: 'center', gap: 12 }}>
         <BackBtn onClick={back} />
@@ -71,7 +73,7 @@ export function OnboardingScreen({ onExplore, onCreate, onBack }: Props) {
           <div style={{ height: '100%', width: `${((step + 1) / total) * 100}%`, background: RC.grad, borderRadius: 6, transition: 'width 0.35s cubic-bezier(0.2,0,0,1)' }} />
         </div>
         {step < total - 1 && (
-          <button onClick={() => onExplore(plan.id)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.inkMute }}>Skip</button>
+          <button onClick={() => onExplore(plan.id, dests)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.inkMute }}>Skip</button>
         )}
       </div>
 
@@ -110,7 +112,7 @@ export function OnboardingScreen({ onExplore, onCreate, onBack }: Props) {
           </Question>
         )}
         {step === 3 && (
-          <div>
+          <div style={{ animation: 'ringoFadeIn 0.45s cubic-bezier(0.34,1.4,0.64,1) both' }}>
             <div style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, color: RC.inkStrong, letterSpacing: 0.4, textTransform: 'uppercase' }}>Your plan</div>
             <div style={{ marginTop: 8, fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1 }}>
               You're set for <span style={{ background: RC.grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{nCountries} countries.</span>
@@ -176,9 +178,9 @@ export function OnboardingScreen({ onExplore, onCreate, onBack }: Props) {
           </RingoButton>
         ) : (
           <>
-            <RingoButton onClick={() => { hapticNotify('success'); onExplore(plan.id); }}>Start exploring with {plan.name}</RingoButton>
+            <RingoButton onClick={() => { hapticNotify('success'); onExplore(plan.id, dests); }}>Start exploring with {plan.name}</RingoButton>
             <button
-              onClick={() => onCreate(plan.id)}
+              onClick={() => onCreate(plan.id, dests)}
               style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '4px 0', fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, color: RC.inkStrong }}
             >
               Create an account to save this

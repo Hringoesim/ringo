@@ -8,7 +8,16 @@ import { TIERS, tierFor, nextTier, membershipFor } from '../data/tiers';
 import type { PhoneNumber, Tier } from '../data/types';
 import type { OnNav } from '../navigation';
 import { LOGO_SRC } from '../assets';
+import { Confetti } from '../components/Confetti';
 import { hapticNotify } from '../lib/haptics';
+
+// Onboarding destination picks → representative country codes for the dashboard.
+const DEST_MAP: Record<string, string[]> = {
+  US: ['US'], GB: ['GB'], JP: ['JP'], AE: ['AE'], AU: ['AU'],
+  TH: ['TH', 'SG', 'ID', 'JP'],
+  EU: ['ES', 'FR', 'DE', 'IT', 'PT', 'NL'],
+  ALL: [],
+};
 
 /** Time-of-day greeting from the device clock. */
 function greetingNow(): string {
@@ -28,6 +37,15 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
   const kycDone = state.kycStatus === 'verified';
   const leveledTo = state.tierUp ? TIERS.find((t) => t.id === state.tierUp) : null;
   useEffect(() => { if (state.tierUp) hapticNotify('success'); }, [state.tierUp]);
+
+  // Personalize the discovery rail with the destinations picked in onboarding.
+  const pickedCodes = Array.from(new Set(state.destinations.flatMap((d) => DEST_MAP[d] || [])));
+  const picked = pickedCodes
+    .map((c) => COUNTRIES.find((x) => x.code === c))
+    .filter((c): c is (typeof COUNTRIES)[number] => !!c)
+    .slice(0, 8);
+  const destList = picked.length ? picked : COUNTRIES.filter((c) => c.popular).slice(0, 6);
+  const destTitle = picked.length ? 'Your destinations' : 'Where to next';
 
   // ── Pull-to-refresh: drag down at the top to reload data ──────────────────
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -60,7 +78,8 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+      {leveledTo && <Confetti />}
       <div
         ref={scrollRef}
         className="no-bar"
@@ -274,7 +293,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
 
         {/* ── Discovery: trips ────────────────────────────────── */}
         <div style={{ padding: '28px 20px 10px', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <div style={{ fontFamily: 'var(--font)', fontSize: 18, fontWeight: 600, color: RC.ink, letterSpacing: -0.3 }}>Where to next</div>
+          <div style={{ fontFamily: 'var(--font)', fontSize: 18, fontWeight: 600, color: RC.ink, letterSpacing: -0.3 }}>{destTitle}</div>
           <button
             onClick={() => onNav('browse')}
             style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.inkStrong }}
@@ -283,7 +302,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
           </button>
         </div>
         <div className="no-bar" style={{ display: 'flex', gap: 10, overflowX: 'auto', padding: '0 20px 14px' }}>
-          {COUNTRIES.filter((c) => c.popular).slice(0, 6).map((c) => (
+          {destList.map((c) => (
             <div
               key={c.code}
               onClick={() => onNav('country', c.code)}

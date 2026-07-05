@@ -14,6 +14,7 @@
 		AAAA000100000000000000B1 /* SignInWithApplePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000100000000000000A1 /* SignInWithApplePlugin.swift */; };
 		AAAA000100000000000000B2 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000100000000000000A2 /* MainViewController.swift */; };
 		AAAA000100000000000000B3 /* BiometricAuthPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000100000000000000A3 /* BiometricAuthPlugin.swift */; };
+		AAAA000100000000000000B4 /* NotifyPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000100000000000000A4 /* NotifyPlugin.swift */; };
 		504EC30D1FED79650016851F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30B1FED79650016851F /* Main.storyboard */; };
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
@@ -28,6 +29,7 @@
 		AAAA000100000000000000A1 /* SignInWithApplePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInWithApplePlugin.swift; sourceTree = "<group>"; };
 		AAAA000100000000000000A2 /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
 		AAAA000100000000000000A3 /* BiometricAuthPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuthPlugin.swift; sourceTree = "<group>"; };
+		AAAA000100000000000000A4 /* NotifyPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotifyPlugin.swift; sourceTree = "<group>"; };
 		504EC30C1FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		504EC30E1FED79650016851F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		504EC3111FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -71,6 +73,7 @@
 				AAAA000100000000000000A1 /* SignInWithApplePlugin.swift */,
 				AAAA000100000000000000A2 /* MainViewController.swift */,
 				AAAA000100000000000000A3 /* BiometricAuthPlugin.swift */,
+				AAAA000100000000000000A4 /* NotifyPlugin.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -167,6 +170,7 @@
 				AAAA000100000000000000B1 /* SignInWithApplePlugin.swift in Sources */,
 				AAAA000100000000000000B2 /* MainViewController.swift in Sources */,
 				AAAA000100000000000000B3 /* BiometricAuthPlugin.swift in Sources */,
+				AAAA000100000000000000B4 /* NotifyPlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -318,7 +322,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 22;
+				CURRENT_PROJECT_VERSION = 23;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -341,7 +345,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 22;
+				CURRENT_PROJECT_VERSION = 23;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (

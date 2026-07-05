@@ -24,7 +24,9 @@ export function SignUpScreen({ onBack, onEmailAuth, onAppleSignIn, onGoogleSignI
   const [showPw, setShowPw] = useState(false);
   const [agree, setAgree] = useState(true);
   const emailOk = /\S+@\S+\.\S+/.test(email);
-  const passOk = password.length >= 8;
+  const hasLen = password.length >= 8;
+  const hasNum = /\d/.test(password);
+  const passOk = login ? password.length >= 4 : hasLen && hasNum;
   const canSubmit = emailOk && passOk && (login || agree);
 
   const [busy, setBusy] = useState<'apple' | 'google' | 'email' | null>(null);
@@ -172,9 +174,22 @@ export function SignUpScreen({ onBack, onEmailAuth, onAppleSignIn, onGoogleSignI
               {showPw ? 'Hide' : 'Show'}
             </button>
           </div>
-          {!login && password.length > 0 && !passOk && (
-            <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 11.5, color: RC.inkMute }}>
-              Use at least 8 characters.
+          {!login && password.length > 0 && (
+            <div style={{ marginTop: 10, display: 'flex', gap: 16 }}>
+              {([['At least 8 characters', hasLen], ['Contains a number', hasNum]] as const).map(([label, met]) => (
+                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span
+                    style={{
+                      width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
+                      background: met ? RC.grad : 'transparent', border: met ? 'none' : `1.5px solid ${RC.lineStrong}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >
+                    {met && <svg width="9" height="9" viewBox="0 0 12 12"><path d="M2 6l3 3 5-6" stroke="#FFFFFF" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                  </span>
+                  <span style={{ fontFamily: 'var(--font)', fontSize: 11.5, fontWeight: 500, color: met ? RC.ink : RC.inkMute }}>{label}</span>
+                </div>
+              ))}
             </div>
           )}
         </div>
