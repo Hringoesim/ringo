@@ -54,7 +54,8 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     const reduce = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     let raf = 0;
     let lambda = 0; // longitude rotation (degrees)
-    const TILT = -18;
+    let phi = -15; // latitude tilt (degrees) — gently tumbles N↔S
+    let tacc = 0; // accumulated time (s) driving the tumble
     let lastTs = performance.now();
     let lastDraw = 0;
     const showGraticule = size >= 200;
@@ -80,7 +81,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
 
     // Is a lng/lat currently on the near (visible) hemisphere? (small margin so
     // we don't pick a city right on the edge that's about to rotate away)
-    const visible = (lng: number, lat: number) => geoDistance([lng, lat], [-lambda, -TILT]) < Math.PI / 2 - 0.08;
+    const visible = (lng: number, lat: number) => geoDistance([lng, lat], [-lambda, -phi]) < Math.PI / 2 - 0.08;
 
     // Pick a route whose BOTH endpoints are on the visible face right now, so the
     // whole flight (leave → arrive) plays on screen. Falls back to any pair.
@@ -181,7 +182,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     const draw = (now: number) => {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, size, size);
-      projection.rotate([lambda, TILT, 0]);
+      projection.rotate([lambda, phi, 0]);
 
       ctx.beginPath();
       ctx.arc(cx, cy, R * 1.08, 0, Math.PI * 2);
@@ -234,7 +235,9 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     const tick = (now: number) => {
       const dt = Math.min(0.1, (now - lastTs) / 1000);
       lastTs = now;
+      tacc += dt;
       lambda += 4 * dt; // very slow spin (~90s per rotation) — easy to follow
+      phi = -12 + 17 * Math.sin(tacc * 0.32); // tumble N↔S (~-29°…+5°) to reveal the whole world
       // Flights need smooth motion → draw every frame when flights are on;
       // otherwise throttle to ~30fps to save the main thread.
       if (showFlights || now - lastDraw >= 33) {
