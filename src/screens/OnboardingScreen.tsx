@@ -140,6 +140,20 @@ export function OnboardingScreen({ onExplore, onCreate, onBack }: Props) {
               </div>
             </div>
 
+            {/* the real lever: concrete value vs roaming */}
+            <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div style={{ borderRadius: 16, padding: '14px 14px', background: RC.paper, border: `1px solid ${RC.line}` }}>
+                <div style={{ fontFamily: 'var(--font)', fontSize: 11.5, fontWeight: 700, color: RC.inkMute, textTransform: 'uppercase', letterSpacing: 0.4 }}>Roaming</div>
+                <div style={{ marginTop: 6, fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color: RC.inkMute, letterSpacing: -0.5 }}>~€10–15<span style={{ fontSize: 12, fontWeight: 600 }}>/day</span></div>
+                <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 11.5, color: RC.inkMute, lineHeight: 1.4 }}>Per country · bill shock · new SIM each trip</div>
+              </div>
+              <div style={{ borderRadius: 16, padding: '14px 14px', background: RC.gradSoft, border: `1.5px solid ${RC.inkStrong}` }}>
+                <div style={{ fontFamily: 'var(--font)', fontSize: 11.5, fontWeight: 700, color: RC.inkStrong, textTransform: 'uppercase', letterSpacing: 0.4 }}>Ringo {plan.name}</div>
+                <div style={{ marginTop: 6, fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color: RC.ink, letterSpacing: -0.5 }}>{fmtMoney(planPrice(plan.id))}<span style={{ fontSize: 12, fontWeight: 600 }}>/mo</span></div>
+                <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 11.5, color: RC.ink, lineHeight: 1.4 }}>Flat · 180+ countries · keep your number</div>
+              </div>
+            </div>
+
             {/* founder's note — human touch */}
             <div style={{ marginTop: 16, borderRadius: 18, padding: 16, background: RC.paper, border: `1px solid ${RC.line}` }}>
               <div style={{ fontFamily: 'var(--font)', fontSize: 13.5, color: RC.ink, lineHeight: 1.6 }}>
