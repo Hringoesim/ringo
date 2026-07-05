@@ -46,7 +46,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
 
     const cx = size / 2;
     const cy = size / 2;
-    const R = size * 0.36; // smaller disc → leaves space around it for the flight arcs to bow into
+    const R = size * 0.45; // large disc; a small margin lets arcs bow just off the surface
 
     const projection = geoOrthographic().scale(R).translate([cx, cy]).clipAngle(90);
     const path = geoPath(projection, ctx);
@@ -137,7 +137,9 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         let nl = Math.hypot(nx, ny);
         if (nl < 1) { nx = 0; ny = -1; nl = 1; }
         const dist = Math.hypot(b[0] - a[0], b[1] - a[1]);
-        const lift = dist * 0.3 + R * 0.42;
+        // gentle bow: the line lifts just off the surface and clearly connects
+        // the two countries (not a big detached arc).
+        const lift = dist * 0.16 + R * 0.06;
         const px = mx + (nx / nl) * lift;
         const py = my + (ny / nl) * lift;
         const q = (u: number): [number, number] => {

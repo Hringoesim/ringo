@@ -24,9 +24,9 @@ export function SignUpScreen({ onBack, onEmailAuth, onAppleSignIn, onGoogleSignI
   const [showPw, setShowPw] = useState(false);
   const [agree, setAgree] = useState(true);
   const emailOk = /\S+@\S+\.\S+/.test(email);
+  // Match Supabase / the signup edge function exactly: at least 8 characters.
   const hasLen = password.length >= 8;
-  const hasNum = /\d/.test(password);
-  const passOk = login ? password.length >= 4 : hasLen && hasNum;
+  const passOk = login ? password.length >= 4 : hasLen;
   const canSubmit = emailOk && passOk && (login || agree);
 
   const [busy, setBusy] = useState<'apple' | 'google' | 'email' | null>(null);
@@ -176,7 +176,7 @@ export function SignUpScreen({ onBack, onEmailAuth, onAppleSignIn, onGoogleSignI
           </div>
           {!login && password.length > 0 && (
             <div style={{ marginTop: 10, display: 'flex', gap: 16 }}>
-              {([['At least 8 characters', hasLen], ['Contains a number', hasNum]] as const).map(([label, met]) => (
+              {([['At least 8 characters', hasLen]] as const).map(([label, met]) => (
                 <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span
                     style={{

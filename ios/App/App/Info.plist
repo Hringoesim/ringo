@@ -24,6 +24,12 @@
 	<false/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Ringo uses Face ID to unlock your account securely.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Ringo uses the camera to photograph your ID for identity verification and to set your profile photo.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Ringo lets you choose a photo of your ID or a profile picture from your library.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Ringo can save images to your photo library.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

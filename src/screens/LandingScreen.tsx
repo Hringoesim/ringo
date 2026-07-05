@@ -13,7 +13,7 @@ export function LandingScreen({ onExplore, onCreate, onLogin }: { onExplore: () 
     const compute = () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
-      setGlobe(Math.max(280, Math.min(w * 0.9, h * 0.46, 430)));
+      setGlobe(Math.max(300, Math.min(w * 1.02, h * 0.5, 480)));
     };
     compute();
     window.addEventListener('resize', compute);
