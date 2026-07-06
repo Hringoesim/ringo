@@ -28,9 +28,9 @@ const CITIES: { lng: number; lat: number; flag: string }[] = [
   { lng: 4.35, lat: 50.85, flag: '🇧🇪' },
 ];
 
-const NFLIGHTS = 5;
-const DURATION = 1700; // ms in the air
-const HOLD = 800; // ms the flag stays after landing
+const NFLIGHTS = 2; // few, clear flights — no overlapping lines/flags
+const DURATION = 2000; // ms in the air (a touch slower → easy to follow)
+const HOLD = 900; // ms the flag stays after landing
 
 export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -92,23 +92,33 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     // we don't pick a city right on the edge that's about to rotate away)
     const visible = (lng: number, lat: number) => geoDistance([lng, lat], [-lambda, -phi]) < Math.PI / 2 - 0.08;
 
-    // Pick a fresh random route whose BOTH endpoints are on the visible face, so
-    // the whole flight (leave → arrive) plays on screen. Fresh from/to every time
-    // → lines come and go in all directions. Falls back to any pair.
-    const newFlight = (now: number): Flight => {
-      const vis = CITIES.map((_, i) => i).filter((i) => visible(CITIES[i].lng, CITIES[i].lat));
-      const pool = vis.length >= 2 ? vis : CITIES.map((_, i) => i);
+    const now0 = performance.now();
+    const flights: Flight[] = [];
+    const geoD = (i: number, j: number) => geoDistance([CITIES[i].lng, CITIES[i].lat], [CITIES[j].lng, CITIES[j].lat]);
+    // Cities already used by the OTHER flight(s) — so flags never stack and lines
+    // don't sit on top of each other.
+    const occupied = (exclude: number) => {
+      const s = new Set<number>();
+      flights.forEach((f, i) => { if (i !== exclude) { s.add(f.from); s.add(f.to); } });
+      return s;
+    };
+    // Pick a route: both endpoints visible, not used by the other flight, and far
+    // enough apart to read as one clear path.
+    const newFlight = (now: number, idx: number): Flight => {
+      const occ = occupied(idx);
+      const clear = (i: number) => ![...occ].some((o) => geoD(i, o) < 0.42); // not too close to a busy city
+      let pool = CITIES.map((_, i) => i).filter((i) => visible(CITIES[i].lng, CITIES[i].lat) && !occ.has(i) && clear(i));
+      if (pool.length < 2) pool = CITIES.map((_, i) => i).filter((i) => visible(CITIES[i].lng, CITIES[i].lat) && !occ.has(i));
+      if (pool.length < 2) pool = CITIES.map((_, i) => i).filter((i) => !occ.has(i));
       const from = pool[rnd(pool.length)];
-      let to = pool[rnd(pool.length)];
-      let guard = 0;
-      while (to === from && guard++ < 12) to = pool[rnd(pool.length)];
+      const far = pool.filter((i) => i !== from && geoD(i, from) > 0.55);
+      const cand = far.length ? far : pool.filter((i) => i !== from);
+      const to = cand.length ? cand[rnd(cand.length)] : from;
       return { from, to, start: now };
     };
-    const now0 = performance.now();
-    const flights: Flight[] = Array.from({ length: NFLIGHTS }, (_, i) => ({
-      ...newFlight(now0),
-      start: now0 + i * (DURATION * 0.42), // stagger
-    }));
+    for (let i = 0; i < NFLIGHTS; i++) {
+      flights.push({ ...newFlight(now0, i), start: now0 + i * (DURATION * 0.7) }); // strong stagger
+    }
 
     const drawFlights = (now: number) => {
       const PINK = '#FF3D8B';
@@ -118,7 +128,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         const B = CITIES[f.to];
         const elapsed = now - f.start;
         if (elapsed < 0) continue;
-        if (elapsed > DURATION + HOLD) { flights[i] = newFlight(now); continue; }
+        if (elapsed > DURATION + HOLD) { flights[i] = newFlight(now, i); continue; }
         if (!visible(A.lng, A.lat) || !visible(B.lng, B.lat)) continue;
         const a = projection([A.lng, A.lat]);
         const b = projection([B.lng, B.lat]);
