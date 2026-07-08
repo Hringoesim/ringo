@@ -36,9 +36,10 @@ const ROUTES: [string, string][] = [
   ['madrid', 'london'], // Spain → UK
 ];
 
-const ORIENT = 1.1; // s spinning the globe to bring the next route into view
-const FLY = 2.0; // s in the air (brisk, but still easy to follow)
-const HOLD = 1.0; // s the flag stays after landing
+const SPIN = 6; // deg/s — the globe spins CONSTANTLY, never settling
+const FLY = 2.2; // s in the air
+const HOLD = 1.2; // s the flag stays after landing
+const IDLE = 0.6; // s gap between flights
 
 // A springy ease that overshoots then settles — used for the arrival "pop".
 const easeOutBack = (x: number) => {
@@ -70,26 +71,34 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     const showFlights = size >= 150;
 
     // ── the route the globe is currently showing ────────────────────────────
-    const centreOf = (r: [string, string]) => {
-      const A = CITY[r[0]], B = CITY[r[1]];
-      return { lng: (A.lng + B.lng) / 2, lat: (A.lat + B.lat) / 2 };
-    };
-    // A gentle, clamped tilt — enough to frame the route squarely, never so much
-    // that we're staring down at the Arctic.
-    const tiltFor = (lat: number) => Math.max(-30, Math.min(30, -lat * 0.66));
-    let routeI = 0;
-    let phase: 'orient' | 'fly' | 'hold' = 'orient';
+    // The globe spins constantly; a flight only plays on a route whose BOTH
+    // endpoints are comfortably on the near face right now (so no impossible line,
+    // and it stays visible for the whole short flight as the earth keeps turning).
+    let phase: 'idle' | 'fly' | 'hold' = 'idle';
     let phaseT = 0; // s elapsed in the current phase
-    // start already facing the first route so the opening frame is meaningful
-    const c0 = centreOf(ROUTES[0]);
-    let lambda = -c0.lng; // longitude rotation (degrees)
-    let phi = tiltFor(c0.lat); // latitude tilt (degrees)
+    let cur: [string, string] | null = null; // route currently flying
+    let lastRoute = ''; // avoid repeating the same route back-to-back
+    let lambda = -40; // longitude rotation (degrees) — advances every frame
+    let phi = -12; // latitude tilt (degrees) — gently tumbles
+    let tacc = 0; // time accumulator for the tumble
     let lastTs = performance.now();
     let lastDraw = 0;
-    // ease an angle (deg) toward a target along the shortest path
-    const easeAngle = (cur: number, target: number, k: number) => {
-      const d = ((target - cur + 540) % 360) - 180;
-      return cur + d * k;
+    const geoToCentre = (p: City) => geoDistance([p.lng, p.lat], [-lambda, -phi]);
+    // Pick the best-framed visible route (both endpoints well inside the near
+    // face), not the one just shown; null if nothing is nicely in view yet.
+    const pickRoute = (): [string, string] | null => {
+      const margin = Math.PI / 2 - 0.55; // ~31° in from the limb
+      let best: [string, string] | null = null;
+      let bestScore = Infinity;
+      for (const r of ROUTES) {
+        const key = r.join('>');
+        if (key === lastRoute) continue;
+        const dA = geoToCentre(CITY[r[0]]), dB = geoToCentre(CITY[r[1]]);
+        if (dA >= margin || dB >= margin) continue;
+        const score = Math.max(dA, dB); // prefer the most centred route
+        if (score < bestScore) { bestScore = score; best = r; }
+      }
+      return best;
     };
 
     // Ocean lit from the upper-left, deepening to a rich navy on the far side
@@ -115,8 +124,8 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     // Nothing is drawn while the globe is still spinning the route into view.
     const isVisible = (p: City) => geoDistance([p.lng, p.lat], [-lambda, -phi]) < Math.PI / 2 - 0.02;
     const drawFlight = () => {
-      if (phase === 'orient') return;
-      const r = ROUTES[routeI];
+      if (!cur || phase === 'idle') return;
+      const r = cur;
       const A = CITY[r[0]], B = CITY[r[1]];
       if (!isVisible(A) || !isVisible(B)) return; // both endpoints must be on the near face
       const a = projection([A.lng, A.lat]);
@@ -256,10 +265,12 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.fillRect(0, 0, size, size);
       ctx.restore();
 
+      // No halo/atmosphere ring and no bright rim — just the sphere against the bg.
+      // A whisper-thin dark edge keeps the disc crisp without glowing.
       ctx.beginPath();
       ctx.arc(cx, cy, R, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(180,220,255,0.6)';
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(10,30,55,0.35)';
+      ctx.lineWidth = 0.75;
       ctx.stroke();
 
       // flight drawn LAST, unclipped — the arc bows into the space around the
@@ -273,20 +284,23 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       const dt = Math.min(0.1, (now - lastTs) / 1000);
       lastTs = now;
       phaseT += dt;
+      tacc += dt;
 
-      // Spin the globe so the CURRENT route faces us, then hold it steady while
-      // the plane flies — "spin the earth like that". The earth is driven by the
-      // route, so origin and destination are always both in view.
-      const c = centreOf(ROUTES[routeI]);
-      // during orient we swing fast into place; once flying, we hold nearly still
-      const k = phase === 'orient' ? Math.min(1, dt * 2.6) : Math.min(1, dt * 0.6);
-      lambda = easeAngle(lambda, -c.lng, k);
-      phi += (tiltFor(c.lat) - phi) * k;
+      // CONSTANT spin — the earth is always turning; plus a gentle N↔S tumble so
+      // every continent drifts into view over time.
+      lambda += SPIN * dt;
+      const tumble = -13 + 11 * Math.sin(tacc * 0.22);
+      phi += (tumble - phi) * Math.min(1, dt * 1.2);
 
-      // advance the little state machine: orient → fly → hold → next route
-      if (phase === 'orient' && phaseT >= ORIENT) { phase = 'fly'; phaseT = 0; }
-      else if (phase === 'fly' && phaseT >= FLY) { phase = 'hold'; phaseT = 0; }
-      else if (phase === 'hold' && phaseT >= HOLD) { routeI = (routeI + 1) % ROUTES.length; phase = 'orient'; phaseT = 0; }
+      // idle → fly → hold → idle. A flight starts only when a route is nicely in
+      // view; if none is (yet), we keep spinning and check again next frame.
+      if (phase === 'idle') {
+        if (phaseT >= IDLE) { const r = pickRoute(); if (r) { cur = r; lastRoute = r.join('>'); phase = 'fly'; phaseT = 0; } }
+      } else if (phase === 'fly') {
+        if (phaseT >= FLY) { phase = 'hold'; phaseT = 0; }
+      } else if (phaseT >= HOLD) {
+        phase = 'idle'; phaseT = 0; cur = null;
+      }
 
       // Flights need smooth motion → draw every frame when flights are on;
       // otherwise throttle to ~30fps to save the main thread.

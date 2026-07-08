@@ -24,7 +24,7 @@ export function LandingScreen({ onExplore, onCreate, onLogin }: { onExplore: () 
     <div
       style={{
         flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative',
-        // Vivid warm gradient sky.
+        // Vivid warm gradient sky (light).
         background: [
           'radial-gradient(115% 75% at 50% 6%, rgba(255,169,77,0.72) 0%, rgba(255,169,77,0) 48%)',
           'radial-gradient(120% 85% at 82% 26%, rgba(255,84,132,0.48) 0%, rgba(255,84,132,0) 55%)',
@@ -39,7 +39,7 @@ export function LandingScreen({ onExplore, onCreate, onLogin }: { onExplore: () 
           justifyContent: 'center', padding: '48px 24px 0', textAlign: 'center',
         }}
       >
-        <img src={LOGO_SRC} alt="Ringo" style={{ height: 52, width: 'auto', marginTop: 30 }} />
+        <img src={LOGO_SRC} alt="Ringo" style={{ height: 66, width: 'auto', marginTop: 38, filter: 'drop-shadow(0 4px 12px rgba(120,40,20,0.14))' }} />
 
         <div style={{ marginTop: 6 }}>
           <SaturnWorld size={globe} />
@@ -72,7 +72,7 @@ export function LandingScreen({ onExplore, onCreate, onLogin }: { onExplore: () 
           className="press"
           style={{
             width: '100%', height: 54, borderRadius: 999, cursor: 'pointer', border: 'none',
-            background: 'rgba(255,255,255,0.78)', color: RC.inkStrong,
+            background: 'rgba(255,255,255,0.82)', color: RC.inkStrong,
             fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600,
           }}
         >

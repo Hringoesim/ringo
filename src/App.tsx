@@ -103,11 +103,25 @@ export function App() {
   // otherwise fall back to the home root.
   const backOrHome = () => (stack.length > 1 ? pop() : goTab('home'));
 
+  // Ask for notifications only ONCE, and only after a real commitment (sign-in or
+  // purchase) — never upfront during a guest's exploration.
+  const NOTIFY_KEY = 'ringo_notify_asked';
+  const arriveHome = () => {
+    let asked = true;
+    try { asked = !!localStorage.getItem(NOTIFY_KEY); } catch { /* ignore */ }
+    if (!asked) {
+      try { localStorage.setItem(NOTIFY_KEY, '1'); } catch { /* ignore */ }
+      replace('notify');
+    } else {
+      replace('home');
+    }
+  };
+
   const finishToHome = () => {
     auth.completeOnboarding();
     if (sb) void sbAuth.completeOnboarding();
     storeActions.syncIdentity();
-    replace('home');
+    arriveHome(); // sign-in / activation complete → offer alerts (once)
   };
 
   const signOut = () => {
@@ -188,7 +202,7 @@ export function App() {
       body = (
         <OnboardingScreen
           onBack={pop}
-          onExplore={(planId, destinations) => { storeActions.applyOnboarding(planId, destinations); push('notify'); }}
+          onExplore={(planId, destinations) => { storeActions.applyOnboarding(planId, destinations); replace('home'); }}
           onCreate={(planId, destinations) => { storeActions.applyOnboarding(planId, destinations); push('signup', { mode: 'create' }); }}
         />
       );
@@ -335,7 +349,7 @@ export function App() {
             // the back stack is preserved and Back from Install still works —
             // never trap the user on a single-frame stack.
             if (current.params.gateReturn === 'install') { pop(); push('install'); }
-            else goTab('home');
+            else arriveHome(); // purchase complete → offer alerts (once)
           }}
         />
       );

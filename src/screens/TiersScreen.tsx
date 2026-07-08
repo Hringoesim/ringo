@@ -6,8 +6,8 @@ import { TIERS, tierFor, nextTier } from '../data/tiers';
 import { useRingoState } from '../store/store';
 
 const perksByTier: Record<string, string[]> = {
-  orange: ['Unlimited data in 180+ countries', 'One flat monthly plan', 'Keep multiple numbers'],
-  coral: ['Everything in Orange', '1 free local number', '+20% faster after fair-use cap'],
+  amber: ['Unlimited data in 180+ countries', 'One flat monthly plan', 'Keep multiple numbers'],
+  coral: ['Everything in Amber', '1 free local number', '+20% faster after fair-use cap'],
   crimson: ['Everything in Coral', 'Airport lounge day-passes', 'Priority 24/7 human support'],
   aurora: ['Everything in Crimson', 'Free carrier-partner upgrades', 'Personal travel concierge'],
 };

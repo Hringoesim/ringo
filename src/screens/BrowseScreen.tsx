@@ -16,13 +16,27 @@ export function BrowseScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => vo
   const { state, actions } = useRingoState();
   const waitCount = state.waitlist.length;
 
-  // Compact per-country waitlist toggle (stops the row's navigation on tap).
-  const WaitlistToggle = ({ code }: { code: string }) => {
-    const on = state.waitlist.includes(code);
+  // Per-country trailing tag. Launch (number-market) countries show a static
+  // "Coming soon" — we're actively rolling out there. Everywhere else gets the
+  // interactive waitlist toggle (stops the row's navigation on tap).
+  const CountryTag = ({ country }: { country: Country }) => {
+    if (country.numberMarket) {
+      return (
+        <span
+          style={{
+            flexShrink: 0, whiteSpace: 'nowrap', fontFamily: 'var(--font)', fontSize: 12, fontWeight: 600,
+            padding: '7px 12px', borderRadius: 999, background: RC.gradSoft, color: RC.inkStrong,
+          }}
+        >
+          Coming soon
+        </span>
+      );
+    }
+    const on = state.waitlist.includes(country.code);
     return (
       <button
         className="press"
-        onClick={(e) => { e.stopPropagation(); hapticSelection(); actions.toggleWaitlist(code); }}
+        onClick={(e) => { e.stopPropagation(); hapticSelection(); actions.toggleWaitlist(country.code); }}
         aria-pressed={on}
         style={{
           flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
@@ -119,7 +133,7 @@ export function BrowseScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => vo
                     <div style={{ fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, color: RC.ink }}>{c.name}</div>
                     <div style={{ fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute }}>{c.capital}</div>
                   </div>
-                  <WaitlistToggle code={c.code} />
+                  <CountryTag country={c} />
                 </div>
               ))}
             </RingoCard>

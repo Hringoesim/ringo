@@ -20,12 +20,26 @@ const DESTINATIONS = [
   { code: 'AU', label: 'Australia', flag: '🇦🇺' },
   { code: 'ALL', label: 'All over', flag: '🌍' },
 ];
-const NEEDS = [
-  { id: 'data', label: 'Mobile data', emoji: '📶' },
-  { id: 'keep', label: 'Keep my number', emoji: '☎️' },
-  { id: 'local', label: 'A local number', emoji: '📱' },
-  { id: 'calls', label: 'Calls & texts', emoji: '💬' },
+type NeedIcon = 'signal' | 'keep' | 'sim' | 'chat';
+const NEEDS: { id: string; label: string; icon: NeedIcon }[] = [
+  { id: 'data', label: 'Mobile data', icon: 'signal' },
+  { id: 'keep', label: 'Keep my number', icon: 'keep' },
+  { id: 'local', label: 'A local number', icon: 'sim' },
+  { id: 'calls', label: 'Calls & texts', icon: 'chat' },
 ];
+function needIcon(kind: NeedIcon) {
+  const p = { fill: 'none', stroke: RC.inkStrong, strokeWidth: 1.9, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
+  switch (kind) {
+    case 'signal':
+      return <svg width="19" height="19" viewBox="0 0 24 24"><path d="M4 20v-2.5M9.3 20v-6M14.6 20v-9.5M20 20v-13" {...p} /></svg>;
+    case 'keep':
+      return <svg width="19" height="19" viewBox="0 0 24 24"><path d="M15.5 21a13 13 0 01-13-13 2 2 0 012-2h2.4a1 1 0 011 .8l.85 3.1a1 1 0 01-.5 1.1L8 12a11 11 0 005 5l.9-1.35a1 1 0 011.1-.5l3.1.85a1 1 0 01.8 1V19a2 2 0 01-2 2z" {...p} /></svg>;
+    case 'sim':
+      return <svg width="19" height="19" viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="3" {...p} /><path d="M10 6h4" {...p} /></svg>;
+    case 'chat':
+      return <svg width="19" height="19" viewBox="0 0 24 24"><path d="M20 12a7 7 0 01-7 7H8l-4 3v-5.5A7 7 0 018 5h5a7 7 0 017 7z" {...p} /></svg>;
+  }
+}
 const FREQ = [
   { id: 'occasionally', label: 'Once in a while' },
   { id: 'few', label: 'A few times a year' },
@@ -97,7 +111,7 @@ export function OnboardingScreen({ onExplore, onCreate, onBack }: Props) {
             <ChipGrid>
               {NEEDS.map((n) => (
                 <Chip key={n.id} on={needs.includes(n.id)} onClick={() => toggle(needs, setNeeds, n.id)}>
-                  <span style={{ fontSize: 18 }}>{n.emoji}</span> {n.label}
+                  {needIcon(n.icon)} {n.label}
                 </Chip>
               ))}
             </ChipGrid>

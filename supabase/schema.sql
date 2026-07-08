@@ -8,7 +8,7 @@ create table if not exists public.profiles (
   id              uuid primary key references auth.users(id) on delete cascade,
   email           text,
   full_name       text,
-  tier            text    not null default 'orange',
+  tier            text    not null default 'amber',
   score           int     not null default 0,
   kyc_status      text    not null default 'pending',   -- pending|in_review|verified
   current_country text    not null default 'GB',
