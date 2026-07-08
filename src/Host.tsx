@@ -53,8 +53,6 @@ export function Host() {
         .catch(() => {});
     }
   };
-  const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
-
   // Re-evaluate full-screen vs mockup when the window resizes (desktop ↔ phone).
   const [fullScreen, setFullScreen] = useState(() => isStandalone() || isPhoneViewport());
   useEffect(() => {
@@ -81,16 +79,16 @@ export function Host() {
           background: RC.bg, overflow: 'hidden',
         }}
       >
-        <App theme={theme} onToggleTheme={toggleTheme} />
+        <App />
       </div>
     );
   }
 
   // ── Mockup frame (browser) ────────────────────────────────────────────────────
-  return <BrowserMockup theme={theme} toggleTheme={toggleTheme} />;
+  return <BrowserMockup />;
 }
 
-function BrowserMockup({ theme, toggleTheme }: { theme: Scheme; toggleTheme: () => void }) {
+function BrowserMockup() {
   const [scale, setScale] = useState(1);
   useEffect(() => {
     const compute = () => {
@@ -123,7 +121,7 @@ function BrowserMockup({ theme, toggleTheme }: { theme: Scheme; toggleTheme: () 
 
       <div style={{ transform: `scale(${scale})`, transformOrigin: 'center center' }}>
         <RingoDevice width={390} height={844}>
-          <App theme={theme} onToggleTheme={toggleTheme} />
+          <App />
         </RingoDevice>
       </div>
     </div>

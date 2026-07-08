@@ -88,6 +88,7 @@ export function SettingsScreen({ onBack, onSignOut, onNav }: SettingsScreenProps
     setTimeout(() => setCopied(false), 1600);
   };
   const shareInvite = () => {
+    haptic('light');
     const text = `Join me on Ringo — one plan, every country. Use my code ${invite} for a discount: https://ringoesim.com`;
     if (navigator.share) void navigator.share({ text }).catch(() => {});
     else copyInvite();
@@ -125,12 +126,12 @@ export function SettingsScreen({ onBack, onSignOut, onNav }: SettingsScreenProps
                   autoFocus
                   style={{ flex: 1, minWidth: 0, height: 36, padding: '0 10px', borderRadius: 10, border: `1.5px solid ${RC.lineStrong}`, background: RC.paper, color: RC.ink, fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600 }}
                 />
-                <button onClick={saveName} style={{ height: 36, padding: '0 12px', borderRadius: 10, border: 'none', background: RC.grad, color: '#FFFDFB', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Save</button>
+                <button onClick={saveName} className="press" style={{ height: 36, padding: '0 12px', borderRadius: 10, border: 'none', background: RC.grad, color: '#FFFDFB', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Save</button>
               </div>
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ fontFamily: 'var(--font)', fontSize: 17, fontWeight: 600, color: RC.ink, letterSpacing: -0.2 }}>{name}</div>
-                <button onClick={() => { setDraft(name); setEditing(true); }} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, fontFamily: 'var(--font)', fontSize: 12, fontWeight: 600, color: RC.inkStrong }}>Edit</button>
+                <button onClick={() => { setDraft(name); setEditing(true); }} className="press" style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, fontFamily: 'var(--font)', fontSize: 12, fontWeight: 600, color: RC.inkStrong }}>Edit</button>
               </div>
             )}
             <div style={{ fontFamily: 'var(--font)', fontSize: 13, color: RC.inkMute, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{email}</div>
@@ -178,7 +179,8 @@ export function SettingsScreen({ onBack, onSignOut, onNav }: SettingsScreenProps
       </RingoCard>
 
       <button
-        onClick={onSignOut}
+        onClick={() => { haptic('medium'); onSignOut(); }}
+        className="press"
         style={{
           marginTop: 28, width: '100%', height: 50, borderRadius: 14, cursor: 'pointer',
           border: `1.5px solid ${RC.lineStrong}`, background: 'transparent', color: RC.inkStrong,

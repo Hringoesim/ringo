@@ -4,7 +4,7 @@
 // profile (Workstream A, p9–13).
 import { useState } from 'react';
 import { RC } from '../theme';
-import { hapticSelection } from '../lib/haptics';
+import { haptic, hapticSelection } from '../lib/haptics';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { BackBtn } from '../components/ui';
@@ -48,7 +48,7 @@ export function PortNumberScreen({ onBack, onContinue }: PortNumberScreenProps) 
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <RingoHeader title="Port your number" leading={<BackBtn onClick={step > 0 ? () => setStep(step - 1) : onBack} />} />
+      <RingoHeader title="Port your number" leading={<BackBtn onClick={step > 0 ? () => { haptic('light'); setStep(step - 1); } : onBack} />} />
       <div style={{ padding: '0 20px' }}>
         <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
           {[0, 1, 2].map((i) => (

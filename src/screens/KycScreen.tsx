@@ -1,7 +1,7 @@
 // KycScreen — soft KYC: name → DOB → ID document → photo (skippable until activate).
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { RC } from '../theme';
-import { hapticSelection } from '../lib/haptics';
+import { haptic, hapticSelection } from '../lib/haptics';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { BackBtn, FieldLabel, Input } from '../components/ui';
@@ -25,6 +25,9 @@ export function KycScreen({ onBack, onContinue, mandatory = false }: KycScreenPr
   const [fileName, setFileName] = useState('');
   const [preview, setPreview] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+  // Each step starts at the top, never mid-scroll from the previous one.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { scrollRef.current?.scrollTo({ top: 0 }); }, [step]);
   const docs = [
     { id: 'passport', label: 'Passport', sub: 'Most reliable' },
     { id: 'id', label: 'National ID card', sub: 'EU residents' },
@@ -45,7 +48,7 @@ export function KycScreen({ onBack, onContinue, mandatory = false }: KycScreenPr
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <RingoHeader title="Verify identity" leading={<BackBtn onClick={step > 0 ? () => setStep(step - 1) : onBack} />} />
+      <RingoHeader title="Verify identity" leading={<BackBtn onClick={step > 0 ? () => { haptic('light'); setStep(step - 1); } : onBack} />} />
       <div style={{ padding: '0 24px' }}>
         <div style={{ display: 'flex', gap: 6 }}>
           {[0, 1, 2, 3].map((i) => (
@@ -60,7 +63,7 @@ export function KycScreen({ onBack, onContinue, mandatory = false }: KycScreenPr
         </div>
       </div>
 
-      <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '18px 24px 16px' }}>
+      <div ref={scrollRef} className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '18px 24px 16px' }}>
         <div style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 600, color: RC.inkStrong, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 10 }}>
           Step {step + 1} of 4
         </div>

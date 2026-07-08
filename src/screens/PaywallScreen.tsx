@@ -2,13 +2,15 @@
 // activated until a plan is paid for here. Payment runs through the store's
 // `checkout` seam (demo simulates a successful charge; live mode uses Stripe,
 // so the app never touches card data).
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { RC } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { BackBtn } from '../components/ui';
 import { Confetti } from '../components/Confetti';
 import { useRingoState } from '../store/store';
+import { isSupabaseConfigured } from '../lib/supabase';
+import { isIapAvailable, iapProductsByPlan, type IapProduct } from '../lib/iap';
 import { PLANS, planPrice, fmtMoney } from '../data/plans';
 import { checkPromo, referralCode, type Promo } from '../data/promo';
 import { haptic, hapticNotify } from '../lib/haptics';
@@ -24,15 +26,24 @@ export function PaywallScreen({ planId, onBack, onPaid }: PaywallScreenProps) {
   const plan = PLANS.find((p) => p.id === planId) || PLANS[0];
   const base = planPrice(plan.id);
   const ownCode = referralCode(state.name, state.email || state.name);
+  const iap = isIapAvailable(); // native iOS → Apple In-App Purchase
   const [method, setMethod] = useState<'apple' | 'card'>('apple');
   const [busy, setBusy] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   const [err, setErr] = useState('');
   const [code, setCode] = useState('');
   const [promo, setPromo] = useState<Promo | null>(null);
+  const [products, setProducts] = useState<Record<string, IapProduct>>({});
 
-  const discounted = promo?.valid ? Math.round(base * (1 - promo.discountPct / 100)) : base;
-  const price = fmtMoney(discounted);
+  useEffect(() => { if (iap) iapProductsByPlan().then(setProducts); }, [iap]);
+  const product = products[plan.id];
+
+  // A promo % discount can't be applied to a StoreKit charge (Apple bills its
+  // store price — only Apple offer codes can discount it), so on native we always
+  // show the App Store price. On web/demo the promo discount still applies.
+  const discounted = !iap && promo?.valid ? Math.round(base * (1 - promo.discountPct / 100)) : base;
+  const price = iap ? (product?.displayPrice ?? fmtMoney(base)) : fmtMoney(discounted);
 
   const applyCode = () => {
     const res = checkPromo(code, ownCode);
@@ -47,8 +58,9 @@ export function PaywallScreen({ planId, onBack, onPaid }: PaywallScreenProps) {
     setErr('');
     setBusy(true);
     haptic('medium');
-    // Demo: a short beat so it reads as a real charge; live mode awaits Stripe.
-    await new Promise((r) => setTimeout(r, 900));
+    // Demo only: a short beat so it reads as a real charge. Native IAP and a real
+    // backend both set their own pace, so no artificial delay there.
+    if (!iap && !isSupabaseConfigured()) await new Promise((r) => setTimeout(r, 900));
     const res = await actions.checkout(plan.id);
     setBusy(false);
     if (res.ok) {
@@ -59,6 +71,17 @@ export function PaywallScreen({ planId, onBack, onPaid }: PaywallScreenProps) {
       hapticNotify('error');
       setErr(res.error || 'Payment failed.');
     }
+  };
+
+  // App Review requires a visible "Restore purchases" path for subscriptions.
+  const restore = async () => {
+    if (restoring) return;
+    setErr('');
+    setRestoring(true);
+    const res = await actions.restorePurchases();
+    setRestoring(false);
+    if (res.ok) { hapticNotify('success'); onPaid(); }
+    else { hapticNotify('warning'); setErr(res.error || 'Nothing to restore.'); }
   };
 
   return (
@@ -84,7 +107,7 @@ export function PaywallScreen({ planId, onBack, onPaid }: PaywallScreenProps) {
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: '14px 16px', borderTop: `1px solid ${RC.line}`, background: RC.cream }}>
             <span style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, color: RC.ink }}>Total today</span>
             <span style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-              {promo?.valid && (
+              {!iap && promo?.valid && (
                 <span style={{ fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, textDecoration: 'line-through' }}>{fmtMoney(base)}</span>
               )}
               <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color: RC.inkStrong }}>{price}<span style={{ fontSize: 12, fontWeight: 600, color: RC.inkMute }}>/mo</span></span>
@@ -127,8 +150,10 @@ export function PaywallScreen({ planId, onBack, onPaid }: PaywallScreenProps) {
           </div>
         )}
 
-        {/* Payment method */}
-        <div style={{ marginTop: 20, fontFamily: 'var(--font)', fontSize: 11, fontWeight: 600, color: RC.inkMute, letterSpacing: 0.6, textTransform: 'uppercase' }}>
+        {/* Payment method — on native, purchases go through the App Store, so we
+            don't offer alternative methods (App Review requirement). */}
+        {!iap && (
+        <><div style={{ marginTop: 20, fontFamily: 'var(--font)', fontSize: 11, fontWeight: 600, color: RC.inkMute, letterSpacing: 0.6, textTransform: 'uppercase' }}>
           Pay with
         </div>
         <div style={{ marginTop: 10, display: 'flex', gap: 10 }}>
@@ -137,6 +162,7 @@ export function PaywallScreen({ planId, onBack, onPaid }: PaywallScreenProps) {
             return (
               <button
                 key={m}
+                className="press"
                 onClick={() => { haptic('light'); setMethod(m); }}
                 style={{
                   flex: 1, height: 52, borderRadius: 14, cursor: 'pointer',
@@ -151,7 +177,8 @@ export function PaywallScreen({ planId, onBack, onPaid }: PaywallScreenProps) {
               </button>
             );
           })}
-        </div>
+        </div></>
+        )}
 
         {err && (
           <div style={{ marginTop: 14, padding: '11px 14px', borderRadius: 12, background: 'rgba(229,67,26,0.10)', border: '1px solid rgba(229,67,26,0.22)', fontFamily: 'var(--font)', fontSize: 12.5, color: '#B7341A' }}>
@@ -160,14 +187,35 @@ export function PaywallScreen({ planId, onBack, onPaid }: PaywallScreenProps) {
         )}
 
         <div style={{ marginTop: 14, fontFamily: 'var(--font)', fontSize: 11.5, color: RC.inkMute, lineHeight: 1.5, textAlign: 'center' }}>
-          Secured by Stripe · No hidden fees · Cancel anytime
+          {iap ? 'Billed to your Apple ID · Cancel anytime in Settings' : 'Secured by Stripe · No hidden fees · Cancel anytime'}
         </div>
+
+        {/* Auto-renewable subscription disclosure — required by App Review. */}
+        {iap && (
+          <div style={{ marginTop: 12, fontFamily: 'var(--font)', fontSize: 10.5, color: RC.inkMute, lineHeight: 1.5 }}>
+            Ringo {plan.name} is a monthly auto-renewing subscription ({price}/month). Payment is charged to your Apple ID at purchase. It renews automatically unless turned off at least 24 hours before the current period ends; manage or cancel any time in your Apple ID settings.{' '}
+            <span className="press" onClick={() => { haptic('light'); window.open('https://ringoesim.com/terms', '_blank', 'noopener'); }} style={{ display: 'inline-block', color: RC.inkStrong, fontWeight: 600, textDecoration: 'underline', cursor: 'pointer' }}>Terms of Use</span>
+            {' · '}
+            <span className="press" onClick={() => { haptic('light'); window.open('https://ringoesim.com/privacy', '_blank', 'noopener'); }} style={{ display: 'inline-block', color: RC.inkStrong, fontWeight: 600, textDecoration: 'underline', cursor: 'pointer' }}>Privacy Policy</span>
+          </div>
+        )}
       </div>
 
       <div style={{ padding: '14px 24px 24px', borderTop: `1px solid ${RC.line}`, background: RC.glass }}>
-        <RingoButton disabled={busy} onClick={pay}>
-          {busy ? 'Processing…' : `Pay ${price} — subscribe`}
+        {/* Stay disabled through the celebration→navigation window so an eager
+            second tap can't fire a duplicate charge. */}
+        <RingoButton disabled={busy || celebrate} onClick={pay}>
+          {busy ? 'Processing…' : celebrate ? 'Done!' : iap ? `Subscribe · ${price}/mo` : `Pay ${price} — subscribe`}
         </RingoButton>
+        {iap && (
+          <button
+            onClick={restore}
+            disabled={restoring || busy || celebrate}
+            style={{ marginTop: 8, width: '100%', height: 40, border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.inkMute }}
+          >
+            {restoring ? 'Restoring…' : 'Restore purchases'}
+          </button>
+        )}
       </div>
     </div>
   );

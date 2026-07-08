@@ -2,12 +2,12 @@
 // and proves value BEFORE asking for an account (adapted from best-in-class
 // flows): one question per screen, a progress bar, conversational copy, then a
 // tailored plan recommendation + a founder's note. Users can skip anytime.
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { RC } from '../theme';
 import { RingoButton } from '../components/Button';
 import { BackBtn } from '../components/ui';
 import { Confetti } from '../components/Confetti';
-import { PLANS, planPrice, fmtMoney } from '../data/plans';
+import { PLANS, planPrice, fmtMoney, recommendPlan, estimateMonthlyGB, estimateTripSavings } from '../data/plans';
 import { haptic, hapticSelection, hapticNotify } from '../lib/haptics';
 
 const DESTINATIONS = [
@@ -33,12 +33,6 @@ const FREQ = [
   { id: 'abroad', label: 'I live abroad' },
 ];
 
-function recommend(needs: string[], freq: string, destCount: number): string {
-  if (freq === 'abroad') return 'unlimited';
-  if (freq === 'monthly' || destCount >= 4 || needs.includes('data')) return 'pro';
-  return 'plus';
-}
-
 interface Props {
   onExplore: (planId: string, destinations: string[]) => void; // finish → dashboard as guest
   onCreate: (planId: string, destinations: string[]) => void; // create account
@@ -60,7 +54,15 @@ export function OnboardingScreen({ onExplore, onCreate, onBack }: Props) {
   const next = () => { haptic('light'); setStep((s) => Math.min(total - 1, s + 1)); };
   const back = () => { haptic('light'); if (step === 0) onBack(); else setStep((s) => s - 1); };
 
-  const plan = PLANS.find((p) => p.id === recommend(needs, freq, dests.length)) || PLANS[1];
+  // Each step is a fresh question — start it at the top, never mid-scroll.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { scrollRef.current?.scrollTo({ top: 0 }); }, [step]);
+
+  // 'All over' counts as broad coverage for sizing; otherwise the chips picked.
+  const destCount = dests.includes('ALL') ? 8 : dests.length;
+  const plan = PLANS.find((p) => p.id === recommendPlan(needs, freq, destCount)) || PLANS[1];
+  const gbNeed = estimateMonthlyGB(freq, destCount);
+  const sav = estimateTripSavings(plan.id, freq);
   const nCountries = dests.includes('ALL') ? '180+' : String(Math.max(dests.length, 1) * 30);
 
   return (
@@ -70,14 +72,15 @@ export function OnboardingScreen({ onExplore, onCreate, onBack }: Props) {
       <div style={{ padding: '54px 20px 8px', display: 'flex', alignItems: 'center', gap: 12 }}>
         <BackBtn onClick={back} />
         <div style={{ flex: 1, height: 6, borderRadius: 6, background: RC.cream, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${((step + 1) / total) * 100}%`, background: RC.grad, borderRadius: 6, transition: 'width 0.35s cubic-bezier(0.2,0,0,1)' }} />
+          {/* transform (compositor) not width (layout) — no reflow per frame */}
+          <div style={{ height: '100%', width: '100%', background: RC.grad, borderRadius: 6, transformOrigin: 'left', transform: `scaleX(${(step + 1) / total})`, transition: 'transform 0.35s cubic-bezier(0.2,0,0,1)' }} />
         </div>
         {step < total - 1 && (
           <button onClick={() => onExplore(plan.id, dests)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.inkMute }}>Skip</button>
         )}
       </div>
 
-      <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '18px 22px 12px' }}>
+      <div ref={scrollRef} className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '18px 22px 12px' }}>
         {step === 0 && (
           <Question title="Where do you travel?" sub="Pick every place you go — we'll cover them all on one plan.">
             <ChipGrid>
@@ -118,7 +121,9 @@ export function OnboardingScreen({ onExplore, onCreate, onBack }: Props) {
               You're set for <span style={{ background: RC.grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{nCountries} countries.</span>
             </div>
             <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 15, color: RC.inkMute, lineHeight: 1.55 }}>
-              Based on your trips, <strong style={{ color: RC.ink }}>Ringo {plan.name}</strong> keeps you connected everywhere you go — no roaming, keep your number, one simple bill.
+              {plan.highspeed === 'Unlimited'
+                ? <>You lean on data (~{gbNeed} GB/mo across your trips), so we sized you to <strong style={{ color: RC.ink }}>unlimited</strong> — never think about it. Keep your number, one simple bill.</>
+                : <>We sized this to about <strong style={{ color: RC.ink }}>{gbNeed} GB a month</strong> across your trips. <strong style={{ color: RC.ink }}>Ringo {plan.name}</strong> covers that everywhere — no roaming, keep your number, one simple bill.</>}
             </div>
 
             {/* recommended plan card */}
@@ -141,17 +146,31 @@ export function OnboardingScreen({ onExplore, onCreate, onBack }: Props) {
               </div>
             </div>
 
-            {/* the real lever: concrete value vs roaming */}
-            <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div style={{ borderRadius: 16, padding: '14px 14px', background: RC.paper, border: `1px solid ${RC.line}` }}>
-                <div style={{ fontFamily: 'var(--font)', fontSize: 11.5, fontWeight: 700, color: RC.inkMute, textTransform: 'uppercase', letterSpacing: 0.4 }}>Roaming</div>
-                <div style={{ marginTop: 6, fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color: RC.inkMute, letterSpacing: -0.5 }}>~€10–15<span style={{ fontSize: 12, fontWeight: 600 }}>/day</span></div>
-                <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 11.5, color: RC.inkMute, lineHeight: 1.4 }}>Per country · bill shock · new SIM each trip</div>
+            {/* the real lever: a concrete, computed saving vs roaming — with the
+                working shown so it's transparent, not a made-up number */}
+            <div style={{ marginTop: 14, borderRadius: 20, padding: '18px 18px', background: RC.paper, border: `1px solid ${RC.line}` }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontFamily: 'var(--font)', fontSize: 13.5, fontWeight: 600, color: RC.inkMute }}>You’d save about</span>
+                <span style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, letterSpacing: -0.8, background: RC.grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{fmtMoney(sav.saved)}</span>
               </div>
-              <div style={{ borderRadius: 16, padding: '14px 14px', background: RC.gradSoft, border: `1.5px solid ${RC.inkStrong}` }}>
-                <div style={{ fontFamily: 'var(--font)', fontSize: 11.5, fontWeight: 700, color: RC.inkStrong, textTransform: 'uppercase', letterSpacing: 0.4 }}>Ringo {plan.name}</div>
-                <div style={{ marginTop: 6, fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color: RC.ink, letterSpacing: -0.5 }}>{fmtMoney(planPrice(plan.id))}<span style={{ fontSize: 12, fontWeight: 600 }}>/mo</span></div>
-                <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 11.5, color: RC.ink, lineHeight: 1.4 }}>Flat · 180+ countries · keep your number</div>
+              <div style={{ marginTop: 2, fontFamily: 'var(--font)', fontSize: 13.5, color: RC.ink }}>
+                on a typical <strong>{sav.days}-day trip</strong> vs pay-as-you-go roaming.
+              </div>
+              {/* the two sides, with the numbers that produce the saving */}
+              <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                  <div style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 700, color: RC.inkMute, textTransform: 'uppercase', letterSpacing: 0.4 }}>Roaming</div>
+                  <div style={{ marginTop: 5, fontFamily: 'var(--font-display)', fontSize: 21, fontWeight: 800, color: RC.inkMute, letterSpacing: -0.5, textDecoration: 'line-through', textDecorationColor: 'rgba(0,0,0,0.25)' }}>{fmtMoney(sav.roaming)}</div>
+                  <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 11, color: RC.inkMute, lineHeight: 1.4 }}>{sav.days} days × {fmtMoney(sav.perDay)}/day, per country</div>
+                </div>
+                <div>
+                  <div style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 700, color: RC.inkStrong, textTransform: 'uppercase', letterSpacing: 0.4 }}>Ringo {plan.name}</div>
+                  <div style={{ marginTop: 5, fontFamily: 'var(--font-display)', fontSize: 21, fontWeight: 800, color: RC.ink, letterSpacing: -0.5 }}>{fmtMoney(sav.ringo)}<span style={{ fontSize: 12, fontWeight: 600 }}>/mo</span></div>
+                  <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 11, color: RC.ink, lineHeight: 1.4 }}>Flat · 180+ countries · keep your number</div>
+                </div>
+              </div>
+              <div style={{ marginTop: 12, fontFamily: 'var(--font)', fontSize: 10.5, color: RC.inkMute, lineHeight: 1.45 }}>
+                Roaming based on a typical €10–15/day carrier day-pass. Your real saving grows with every extra country on the trip.
               </div>
             </div>
 

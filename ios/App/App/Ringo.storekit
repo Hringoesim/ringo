@@ -1,0 +1,114 @@
+{
+  "identifier" : "RINGO01",
+  "nonRenewingSubscriptions" : [],
+  "products" : [],
+  "settings" : {
+    "_applicationInternalID" : "6787133742",
+    "_developerTeamID" : "R226ARCXF4",
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : []
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "21600001",
+      "localizations" : [],
+      "name" : "Ringo Plan",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "89.00",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "10000001",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Everything in Pro, 4 numbers, partner perks.",
+              "displayName" : "Ringo Unlimited",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.ringoesim.app.sub.unlimited",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Ringo Unlimited",
+          "subscriptionGroupID" : "21600001",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : []
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "59.00",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "10000002",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Unlimited data, 1 virtual + 2 ported numbers.",
+              "displayName" : "Ringo Pro",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.ringoesim.app.sub.pro",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Ringo Pro",
+          "subscriptionGroupID" : "21600001",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : []
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "35.00",
+          "familyShareable" : false,
+          "groupNumber" : 3,
+          "internalID" : "10000003",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "50 GB data, unlimited in-network calls, 1 ported number.",
+              "displayName" : "Ringo Plus",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.ringoesim.app.sub.plus",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Ringo Plus",
+          "subscriptionGroupID" : "21600001",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : []
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "19.00",
+          "familyShareable" : false,
+          "groupNumber" : 4,
+          "internalID" : "10000004",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "10 GB data, calls & SMS in 60+ countries, 1 ported number.",
+              "displayName" : "Ringo Essentials",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.ringoesim.app.sub.essentials",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Ringo Essentials",
+          "subscriptionGroupID" : "21600001",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : []
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

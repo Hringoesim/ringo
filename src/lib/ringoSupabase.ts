@@ -6,6 +6,7 @@
 import { Capacitor } from '@capacitor/core';
 import { SignInWithApple } from './appleNative';
 import { getSupabase, isSupabaseConfigured } from './supabase';
+import { log } from './log';
 import type { RingoSession } from '../auth/auth';
 import type { PhoneNumber } from '../data/types';
 import type { PortFormPayload } from '../store/store';
@@ -67,14 +68,21 @@ let bridged = false;
 export async function initAuthBridge(onChange?: () => void): Promise<void> {
   if (!isSupabaseConfigured() || bridged) return;
   bridged = true;
-  const sb = await getSupabase();
-  if (!sb) return;
-  const { data } = await sb.auth.getSession();
-  writeSession(data.session as SbSession | null);
-  sb.auth.onAuthStateChange((_event, session) => {
-    writeSession(session as SbSession | null);
-    onChange?.();
-  });
+  try {
+    const sb = await getSupabase();
+    if (!sb) return;
+    const { data } = await sb.auth.getSession();
+    writeSession(data.session as SbSession | null);
+    sb.auth.onAuthStateChange((_event, session) => {
+      writeSession(session as SbSession | null);
+      onChange?.();
+    });
+  } catch (e) {
+    // Supabase unreachable at boot — don't block the app; it falls back to the
+    // locally-cached session and retries auth on the next user action.
+    bridged = false;
+    log.warn('initAuthBridge', e);
+  }
 }
 
 // ── auth ──────────────────────────────────────────────────────────────────────
@@ -297,6 +305,29 @@ export const sbData = {
     if (!u?.user) return;
     await sb.from('profiles').update({ plan_id: planId }).eq('id', u.user.id);
   },
+  /** Persist an Apple IAP subscription. Seeds the originalTransactionId → user
+   *  mapping so the App Store Server Notifications webhook can find this user on
+   *  later renewals/expiries (the webhook only knows Apple's transaction id). */
+  async recordSubscription(sub: {
+    planId: string;
+    productId?: string;
+    originalTransactionId?: string;
+    expiresDate?: number;
+    environment?: string;
+  }): Promise<void> {
+    const sb = await getSupabase();
+    if (!sb) return;
+    const { data: u } = await sb.auth.getUser();
+    if (!u?.user) return;
+    await sb.from('profiles').update({
+      plan_id: sub.planId,
+      subscription_status: 'active',
+      subscription_product_id: sub.productId ?? null,
+      subscription_original_transaction_id: sub.originalTransactionId ?? null,
+      subscription_expires_at: sub.expiresDate ? new Date(sub.expiresDate).toISOString() : null,
+      subscription_environment: sub.environment ?? null,
+    }).eq('id', u.user.id);
+  },
   async getProfile(): Promise<Record<string, unknown> | null> {
     const sb = await getSupabase();
     if (!sb) return null;
@@ -304,5 +335,30 @@ export const sbData = {
     if (!u?.user) return null;
     const { data } = await sb.from('profiles').select('*').eq('id', u.user.id).single();
     return data;
+  },
+  // ── country waitlist ──────────────────────────────────────────────────────
+  /** Register (on) or remove (off) the signed-in user's interest in a country. */
+  async setWaitlist(countryCode: string, on: boolean): Promise<void> {
+    const sb = await getSupabase();
+    if (!sb) return;
+    const { data: u } = await sb.auth.getUser();
+    if (!u?.user) return; // guests keep it local until they sign in
+    if (on) {
+      await sb.from('waitlist_signups').upsert(
+        { user_id: u.user.id, country_code: countryCode },
+        { onConflict: 'user_id,country_code', ignoreDuplicates: true },
+      );
+    } else {
+      await sb.from('waitlist_signups').delete().eq('user_id', u.user.id).eq('country_code', countryCode);
+    }
+  },
+  /** The signed-in user's registered country codes. */
+  async getWaitlist(): Promise<string[]> {
+    const sb = await getSupabase();
+    if (!sb) return [];
+    const { data: u } = await sb.auth.getUser();
+    if (!u?.user) return [];
+    const { data } = await sb.from('waitlist_signups').select('country_code').eq('user_id', u.user.id);
+    return (data || []).map((r) => String((r as { country_code: string }).country_code));
   },
 };

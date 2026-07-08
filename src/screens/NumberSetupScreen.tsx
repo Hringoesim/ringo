@@ -2,16 +2,18 @@
 // gate). Offers the two backend journeys: allocate a new Ringo MSISDN, or port
 // an existing number in via MNP.
 import { RC } from '../theme';
+import { BackBtn } from '../components/ui';
 
 interface NumberSetupScreenProps {
   onNewNumber: () => void;
   onPortIn: () => void;
   onSkip: () => void;
+  onBack: () => void;
   /** Whether the user actually completed the KYC steps (vs "verify later"). */
   kycDone?: boolean;
 }
 
-export function NumberSetupScreen({ onNewNumber, onPortIn, onSkip, kycDone = true }: NumberSetupScreenProps) {
+export function NumberSetupScreen({ onNewNumber, onPortIn, onSkip, onBack, kycDone = true }: NumberSetupScreenProps) {
   const options: { title: string; sub: string; cta: () => void; primary: boolean; icon: 'new' | 'port' | 'later' }[] = [
     { title: 'Get a new Ringo number', sub: 'We allocate a local UK or EU number instantly', cta: onNewNumber, primary: true, icon: 'new' },
     { title: 'Port your existing number', sub: 'Keep your number — UK ports complete in ~1 business day', cta: onPortIn, primary: false, icon: 'port' },
@@ -20,7 +22,9 @@ export function NumberSetupScreen({ onNewNumber, onPortIn, onSkip, kycDone = tru
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <div style={{ height: 80 }} />
+      <div style={{ padding: '54px 24px 8px' }}>
+        <BackBtn onClick={onBack} />
+      </div>
       <div style={{ padding: '0 24px', flex: 1 }}>
         <div
           style={{

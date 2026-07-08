@@ -5,7 +5,10 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules'] },
+  // Never lint build output or native platform folders (Capacitor copies web
+  // assets + vendors native-bridge.js into ios/android, which otherwise trips
+  // the linter and fails CI).
+  { ignores: ['dist', 'node_modules', 'ios', 'android', '**/build/**'] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],

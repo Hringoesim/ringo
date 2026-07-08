@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { bootConfig } from './config';
 import { Host } from './Host';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
 
 // iOS/WKWebView only engages :active (our .press feedback) on touch when a
@@ -13,7 +14,9 @@ document.addEventListener('touchstart', () => {}, { passive: true });
 bootConfig().finally(() => {
   ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <React.StrictMode>
-      <Host />
+      <ErrorBoundary>
+        <Host />
+      </ErrorBoundary>
     </React.StrictMode>,
   );
 });

@@ -16,6 +16,8 @@ import { NUMBERS } from '../data/numbers';
 import { USER, tierFor } from '../data/tiers';
 import { getSession } from '../auth/auth';
 import { isSupabaseConfigured, sbData } from '../lib/ringoSupabase';
+import { log } from '../lib/log';
+import { isIapAvailable, iapPurchasePlan, iapActivePlan } from '../lib/iap';
 import { planRank, planMaxNumbers, proratedUpgradeCharge, planPrice, BILLING_DAYS } from '../data/plans';
 import type { KycStatus, PhoneNumber } from '../data/types';
 
@@ -47,6 +49,9 @@ export interface RingoState {
   pioneer: boolean;
   /** Destinations the user picked in onboarding — personalizes the dashboard. */
   destinations: string[];
+  /** Country codes the user has registered interest in (the country waitlist).
+   *  Persisted locally and mirrored to the backend when signed in. */
+  waitlist: string[];
 }
 
 /** Whether the identity check is done enough to buy/port a number (L2 gate). */
@@ -135,6 +140,7 @@ function defaults(): RingoState {
     // redeem a Pioneer code.
     pioneer: !live,
     destinations: [],
+    waitlist: [],
   };
 }
 
@@ -178,7 +184,7 @@ function set(patch: Partial<RingoState>) {
 export const actions = {
   setActiveNumber(id: string) {
     set({ activeNumberId: id });
-    void RingoAPI.numbers.setMain(id).catch(() => {});
+    void RingoAPI.numbers.setMain(id).catch((e) => log.warn('setActiveNumber', e));
   },
 
   /** Preview what switching to `targetId` does — kind, prorated charge, renewal
@@ -232,11 +238,22 @@ export const actions = {
       return { ok: true };
     }
     if (pre.kind === 'upgrade') {
-      try {
-        if (sb) await sbData.switchPlan(targetId); // FIXME(live): Stripe proration_behavior=always_invoice
-        else await RingoAPI.billing.switchPlan(targetId);
-      } catch {
-        return { ok: false, error: 'Payment could not be completed. Please try again.' };
+      if (isIapAvailable()) {
+        // Native iOS: StoreKit charges the prorated difference and applies the
+        // upgrade immediately (same subscription group).
+        const r = await iapPurchasePlan(targetId);
+        if (r.cancelled) return { ok: false, error: 'Purchase cancelled.' };
+        if (r.pending) return { ok: false, error: 'Your purchase is pending approval.' };
+        if (!r.success) return { ok: false, error: r.error || 'Purchase could not be completed.' };
+        if (sb) { try { await sbData.switchPlan(targetId); } catch (e) { log.warn('changePlan.persist', e); } }
+      } else {
+        try {
+          if (sb) await sbData.switchPlan(targetId);
+          else await RingoAPI.billing.switchPlan(targetId);
+        } catch (e) {
+          log.error('changePlan', e, { targetId });
+          return { ok: false, error: 'Payment could not be completed. Please try again.' };
+        }
       }
       set({
         planId: targetId,
@@ -248,6 +265,14 @@ export const actions = {
       return { ok: true, charged: pre.chargeNow };
     }
     // downgrade — schedule for renewal, mark the numbers over the cap.
+    if (isIapAvailable()) {
+      // Native iOS: StoreKit queues the lower tier to take effect at the next
+      // renewal (no immediate charge). Confirming through Apple keeps our local
+      // schedule in step with the store.
+      const r = await iapPurchasePlan(targetId);
+      if (r.cancelled) return { ok: false, error: 'Change cancelled.' };
+      if (!r.success && !r.pending) return { ok: false, error: r.error || 'Could not schedule the change.' };
+    }
     const keep = new Set(keepIds && keepIds.length ? keepIds : pre.keepIds);
     keep.add(s.activeNumberId); // primary is never released
     set({
@@ -292,14 +317,46 @@ export const actions = {
    *  never sees card details. On success the account becomes `subscribed`,
    *  which unlocks eSIM activation and opens a fresh billing period. */
   async checkout(planId: string): Promise<{ ok: boolean; error?: string }> {
-    try {
-      if (sb) await sbData.switchPlan(planId); // FIXME(live): create Stripe subscription server-side
-      else await RingoAPI.billing.switchPlan(planId);
-    } catch {
-      return { ok: false, error: 'Payment could not be completed. Please try again.' };
+    if (isIapAvailable()) {
+      // Native iOS: charge through Apple In-App Purchase (StoreKit 2).
+      const r = await iapPurchasePlan(planId);
+      if (r.cancelled) return { ok: false, error: 'Purchase cancelled.' };
+      if (r.pending) return { ok: false, error: 'Your purchase is pending approval — we’ll unlock it once it clears.' };
+      if (!r.success) return { ok: false, error: r.error || 'Purchase could not be completed.' };
+      // Apple charged the card; persist the subscription + seed the Apple→user
+      // mapping so the server notifications webhook can track renewals.
+      if (sb) {
+        try {
+          await sbData.recordSubscription({
+            planId,
+            productId: r.productId,
+            originalTransactionId: r.originalTransactionId,
+            expiresDate: r.expiresDate,
+          });
+        } catch (e) { log.warn('checkout.persist', e); }
+      }
+    } else {
+      try {
+        if (sb) await sbData.switchPlan(planId); // FIXME(live): create Stripe subscription server-side
+        else await RingoAPI.billing.switchPlan(planId);
+      } catch (e) {
+        log.error('checkout', e, { planId });
+        return { ok: false, error: 'Payment could not be completed. Please try again.' };
+      }
     }
     set({ subscribed: true, planId, pendingPlanId: null, periodEnd: isoIn() });
     return { ok: true };
+  },
+
+  /** Restore purchases from the App Store (native iOS). Reflects the highest
+   *  active subscription into local state. Required by App Review. */
+  async restorePurchases(): Promise<{ ok: boolean; planId?: string; error?: string }> {
+    if (!isIapAvailable()) return { ok: false, error: 'Not available on this platform.' };
+    const active = await iapActivePlan();
+    if (!active) return { ok: false, error: 'No active Ringo subscription found on this Apple ID.' };
+    if (sb) { try { await sbData.switchPlan(active); } catch (e) { log.warn('restore.persist', e); } }
+    set({ subscribed: true, planId: active, pendingPlanId: null });
+    return { ok: true, planId: active };
   },
 
   async allocateNumber(code: string) {
@@ -328,8 +385,8 @@ export const actions = {
           set({ numbers: get().numbers.map((x) => (x.id === n.id ? { ...x, number: real.number } : x)) });
         }
       }
-    } catch {
-      /* keep optimistic state */
+    } catch (e) {
+      log.warn('allocateNumber', e, { code }); // keep optimistic state
     }
     return n;
   },
@@ -364,17 +421,22 @@ export const actions = {
           pac: payload.pac,
         });
       }
-    } catch {
-      /* keep optimistic state */
+    } catch (e) {
+      log.warn('portNumber', e); // keep optimistic state
     }
-    setTimeout(() => {
-      if (gen !== generation) return; // reset/sign-out happened — don't resurrect state
-      set({
-        numbers: get().numbers.map((x) =>
-          x.id === id ? { ...x, status: 'active', porting: false, portEta: undefined } : x,
-        ),
-      });
-    }, 3200);
+    // Demo only: simulate the port completing shortly. A real MNP takes ~1 business
+    // day, so in live mode we leave it 'porting' until the backend says otherwise —
+    // never fake an 'active' the user would see revert on the next refresh.
+    if (!sb) {
+      setTimeout(() => {
+        if (gen !== generation) return; // reset/sign-out happened — don't resurrect state
+        set({
+          numbers: get().numbers.map((x) =>
+            x.id === id ? { ...x, status: 'active', porting: false, portEta: undefined } : x,
+          ),
+        });
+      }, 3200);
+    }
     return n;
   },
 
@@ -392,13 +454,24 @@ export const actions = {
     });
     try {
       await RingoAPI.connectivity.enableCountry(code);
-    } catch {
-      /* keep optimistic state */
+    } catch (e) {
+      log.warn('enableCountry', e, { code }); // keep optimistic state
     }
   },
 
   clearTierUp() {
     if (get().tierUp) set({ tierUp: null });
+  },
+
+  /** Register or unregister interest in a country's waitlist. Toggles local state
+   *  (persisted immediately so the UI is instant) and sends the signup to the
+   *  backend when signed in. Returns the new on/off state. */
+  toggleWaitlist(code: string): boolean {
+    const s = get();
+    const on = !s.waitlist.includes(code);
+    set({ waitlist: on ? [...s.waitlist, code] : s.waitlist.filter((c) => c !== code) });
+    if (sb) sbData.setWaitlist(code, on).catch((e) => log.warn('toggleWaitlist', e, { code }));
+    return on;
   },
 
   /** Redeem a valid Pioneer code → founding membership (ranks still climb). */
@@ -422,8 +495,8 @@ export const actions = {
     try {
       if (sb) await sbData.submitKyc((payload || {}) as Record<string, unknown>);
       else await RingoAPI.identity.submitKyc(payload || {});
-    } catch {
-      /* keep optimistic state */
+    } catch (e) {
+      log.warn('submitKyc', e); // keep optimistic state
     }
     if (!sb) {
       const gen = generation;
@@ -453,6 +526,21 @@ export const actions = {
           if (profile.kyc_status) patch.kycStatus = profile.kyc_status as KycStatus;
           if (profile.current_country) patch.currentCountry = String(profile.current_country);
           if (typeof profile.score === 'number') patch.score = profile.score as number;
+          // Server is the source of truth for paid access (survives reinstall /
+          // new device), not client localStorage.
+          if (profile.subscription_status) {
+            patch.subscribed = profile.subscription_status === 'active' || profile.subscription_status === 'in_grace';
+          }
+        }
+        // Merge the server-side waitlist with anything collected locally (e.g. as a
+        // guest before signing in), pushing local-only signups up to the backend.
+        try {
+          const serverWl = await sbData.getWaitlist();
+          const localWl = get().waitlist;
+          for (const c of localWl) if (!serverWl.includes(c)) sbData.setWaitlist(c, true).catch(() => {});
+          patch.waitlist = Array.from(new Set([...serverWl, ...localWl]));
+        } catch (e) {
+          log.warn('waitlist.sync', e);
         }
         if (Object.keys(patch).length) set(patch);
         return;
@@ -468,8 +556,8 @@ export const actions = {
         patch.activeNumberId = (numbers.find((n) => n.tag === 'Primary') || numbers[0]).id;
       }
       set(patch);
-    } catch {
-      /* offline / not reachable — keep local state */
+    } catch (e) {
+      log.warn('hydrate', e); // offline / not reachable — keep local state
     }
   },
 

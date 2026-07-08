@@ -156,13 +156,13 @@ export function SignUpScreen({ onBack, onEmailAuth, onAppleSignIn, onGoogleSignI
 
         <div style={{ marginTop: 14 }}>
           <FieldLabel>Email</FieldLabel>
-          <Input value={email} onChange={setEmail} placeholder="you@you.com" type="email" inputMode="email" />
+          <Input value={email} onChange={(v) => { setEmail(v); if (err) setErr(''); }} placeholder="you@you.com" type="email" inputMode="email" />
         </div>
 
         <div style={{ marginTop: 16 }}>
           <FieldLabel>Password</FieldLabel>
           <div style={{ position: 'relative' }}>
-            <Input value={password} onChange={setPassword} placeholder={login ? 'Your password' : 'At least 8 characters'} type={showPw ? 'text' : 'password'} />
+            <Input value={password} onChange={(v) => { setPassword(v); if (err) setErr(''); }} placeholder={login ? 'Your password' : 'At least 8 characters'} type={showPw ? 'text' : 'password'} />
             <button
               type="button"
               onClick={() => setShowPw((s) => !s)}

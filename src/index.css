@@ -169,7 +169,9 @@ textarea,
   animation: ringoFadeIn 0.2s ease both;
 }
 .leave-fade {
-  animation: ringoFadeOut 0.18s ease both;
+  /* Match enter-fade exactly so the cross-fade has no opacity gap (no flash of
+     the background between screens). */
+  animation: ringoFadeOut 0.2s ease both;
 }
 @media (prefers-reduced-motion: reduce) {
   .enter-push,

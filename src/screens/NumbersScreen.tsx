@@ -4,6 +4,7 @@ import { RC } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { BackBtn } from '../components/ui';
 import { useRingoState } from '../store/store';
+import { hapticSelection } from '../lib/haptics';
 import type { OnNav } from '../navigation';
 
 export function NumbersScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => void }) {
@@ -29,7 +30,8 @@ export function NumbersScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => v
           return (
             <div
               key={n.id}
-              onClick={() => setActiveNumberId(n.id)}
+              className="press"
+              onClick={() => { if (!isActive) hapticSelection(); setActiveNumberId(n.id); }}
               style={{
                 borderRadius: 24, padding: 18, marginBottom: 12,
                 background: isActive ? RC.grad : RC.paper,

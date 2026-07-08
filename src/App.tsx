@@ -20,7 +20,6 @@ import { LandingScreen } from './screens/LandingScreen';
 import { OnboardingScreen } from './screens/OnboardingScreen';
 import { NotifyPrimer } from './screens/NotifyPrimer';
 import { SignUpScreen } from './screens/SignUpScreen';
-import { OtpScreen } from './screens/OtpScreen';
 import { KycScreen } from './screens/KycScreen';
 import { NumberSetupScreen } from './screens/NumberSetupScreen';
 import { HomeScreen } from './screens/HomeScreen';
@@ -51,12 +50,7 @@ interface Frame {
 }
 type TabName = 'home' | 'browse' | 'numbers' | 'plan';
 
-interface AppProps {
-  theme: 'dark' | 'light';
-  onToggleTheme: () => void;
-}
-
-export function App({ theme, onToggleTheme }: AppProps) {
+export function App() {
   const { state } = useRingoState();
   // Each frame carries a unique monotonic id so distinct navigations never share
   // a React key (prevents a screen instance being reused with stale params).
@@ -69,7 +63,6 @@ export function App({ theme, onToggleTheme }: AppProps) {
   const [stack, setStack] = useState<Frame[]>(() => [
     { id: 0, name: auth.getSession() ? 'lock' : 'landing', params: {} },
   ]);
-  const [otp, setOtp] = useState<{ challengeId: string; devCode: string; phone: string } | null>(null);
   const current = stack[stack.length - 1];
 
   // Motion direction is set EXPLICITLY by each navigation action (push=forward,
@@ -102,6 +95,13 @@ export function App({ theme, onToggleTheme }: AppProps) {
     haptic('light');
     setStack([mkFrame(name, {})]);
   };
+  // Navigate to a tab. Switching between tab roots replaces the (shallow) stack;
+  // but opening a tab screen from a pushed detail screen (e.g. Settings → Plan)
+  // PUSHES it, so Back returns to where you came from instead of stranding you.
+  const navTab = (name: TabName) => (TABBED.has(current.name) ? goTab(name) : push(name));
+  // Back handler for tab screens: pop when we were pushed here (history exists),
+  // otherwise fall back to the home root.
+  const backOrHome = () => (stack.length > 1 ? pop() : goTab('home'));
 
   const finishToHome = () => {
     auth.completeOnboarding();
@@ -115,18 +115,6 @@ export function App({ theme, onToggleTheme }: AppProps) {
     auth.signOut();
     storeActions.reset();
     replace('landing');
-  };
-
-  // Begin email verification (Supabase OTP if configured, else local mock OTP).
-  const beginOtp = async (email: string, phone: string) => {
-    if (sb) {
-      await sbAuth.startEmailOtp(email);
-      setOtp({ challengeId: email, devCode: '', phone: phone || email });
-    } else {
-      const { challengeId, devCode } = auth.startPhoneVerification(email, phone || email);
-      setOtp({ challengeId, devCode, phone: phone || email });
-    }
-    push('otp');
   };
 
   // Guests can explore the dashboard freely; committing (buying/porting a number,
@@ -157,9 +145,9 @@ export function App({ theme, onToggleTheme }: AppProps) {
 
   const onNav: OnNav = (target: NavTarget, ...args: string[]) => {
     if (target === 'home') return goTab('home');
-    if (target === 'browse') return goTab('browse');
-    if (target === 'numbers') return goTab('numbers');
-    if (target === 'plan') return goTab('plan');
+    if (target === 'browse') return navTab('browse');
+    if (target === 'numbers') return navTab('numbers');
+    if (target === 'plan') return navTab('plan');
     if (target === 'country') return push('country', { code: args[0] });
     if (target === 'addNumber') return gateNumber('addNumber', args[0]);
     if (target === 'install') return gateActivation('install');
@@ -251,29 +239,6 @@ export function App({ theme, onToggleTheme }: AppProps) {
         />
       );
       break;
-    case 'otp':
-      body = (
-        <OtpScreen
-          phone={otp?.phone || ''}
-          devCode={otp?.devCode}
-          onBack={pop}
-          onVerify={async (code) => {
-            if (sb) {
-              const r = await sbAuth.verifyEmailOtp(otp?.challengeId || '', code);
-              if (r.ok) { storeActions.syncIdentity(); push('kyc'); }
-              return { ok: r.ok, error: r.error };
-            }
-            const res = auth.verifyCode(otp?.challengeId || '', code);
-            if (res.ok) push('kyc');
-            return res;
-          }}
-          onResend={async () => {
-            if (sb) { await sbAuth.startEmailOtp(otp?.challengeId || ''); return null; }
-            return auth.resendCode(otp?.challengeId || '');
-          }}
-        />
-      );
-      break;
     case 'kyc': {
       const gateReturn = current.params.gateReturn;
       const gateArg = current.params.gateArg;
@@ -302,6 +267,7 @@ export function App({ theme, onToggleTheme }: AppProps) {
           onNewNumber={() => gateNumber('addNumber', undefined, true)}
           onPortIn={() => gateNumber('port', undefined, true)}
           onSkip={finishToHome}
+          onBack={pop}
         />
       );
       break;
@@ -309,7 +275,7 @@ export function App({ theme, onToggleTheme }: AppProps) {
       body = <HomeScreen onNav={onNav} />;
       break;
     case 'browse':
-      body = <BrowseScreen onNav={onNav} onBack={() => goTab('home')} />;
+      body = <BrowseScreen onNav={onNav} onBack={backOrHome} />;
       break;
     case 'country':
       body = (
@@ -322,7 +288,7 @@ export function App({ theme, onToggleTheme }: AppProps) {
       );
       break;
     case 'numbers':
-      body = <NumbersScreen onNav={onNav} onBack={() => goTab('home')} />;
+      body = <NumbersScreen onNav={onNav} onBack={backOrHome} />;
       break;
     case 'addNumber':
       body = (
@@ -352,7 +318,7 @@ export function App({ theme, onToggleTheme }: AppProps) {
     case 'plan':
       body = (
         <PlanScreen
-          onBack={() => goTab('home')}
+          onBack={backOrHome}
           onInstall={() => gateActivation('install')}
           onCheckout={(planId) => { if (requireAccount()) return; push('checkout', { planId }); }}
         />
@@ -364,8 +330,11 @@ export function App({ theme, onToggleTheme }: AppProps) {
           planId={current.params.planId || state.planId}
           onBack={pop}
           onPaid={() => {
-            // Payment done → continue to whatever the paywall was gating.
-            if (current.params.gateReturn === 'install') replace('install');
+            // Payment done → continue to whatever the paywall was gating. Replace
+            // the checkout frame with install (pop the paywall, push install) so
+            // the back stack is preserved and Back from Install still works —
+            // never trap the user on a single-frame stack.
+            if (current.params.gateReturn === 'install') { pop(); push('install'); }
             else goTab('home');
           }}
         />

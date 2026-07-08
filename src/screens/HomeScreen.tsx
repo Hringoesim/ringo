@@ -70,8 +70,12 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
       setRefreshing(true);
       setPull(THRESHOLD);
       hapticNotify('success');
+      // Show the spinner for a satisfying minimum, but never spin over already-
+      // loaded data: if hydrate is fast we top up to ~500ms; if it's slow, no wait.
+      const start = Date.now();
       try { await actions.hydrate(); } catch { /* keep state */ }
-      await new Promise((r) => setTimeout(r, 650));
+      const elapsed = Date.now() - start;
+      if (elapsed < 500) await new Promise((r) => setTimeout(r, 500 - elapsed));
       setRefreshing(false);
     }
     setPull(0);
@@ -472,7 +476,8 @@ function TierCard({
       {next ? (
         <div style={{ position: 'relative', marginTop: 18 }}>
           <div style={{ height: 7, borderRadius: 7, background: 'rgba(255,253,251,0.28)', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${barPct}%`, borderRadius: 7, background: '#FFFDFB', transition: 'width 0.9s cubic-bezier(0.22,1,0.36,1)' }} />
+            {/* animate transform (compositor) not width (layout) — no reflow per frame */}
+            <div style={{ height: '100%', width: '100%', borderRadius: 7, background: '#FFFDFB', transformOrigin: 'left', transform: `scaleX(${barPct / 100})`, transition: 'transform 0.9s cubic-bezier(0.22,1,0.36,1)' }} />
           </div>
           <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 12, fontWeight: 500, opacity: 0.95 }}>
             <strong style={{ fontWeight: 700 }}>{toNext} more</strong> to unlock {next.name} — {next.perk}

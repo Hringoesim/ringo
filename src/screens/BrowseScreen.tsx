@@ -1,15 +1,42 @@
-// BrowseScreen — country picker with live search + region grouping.
+// BrowseScreen — country picker with live search + region grouping. Every country
+// carries a waitlist toggle so users can register interest in where Ringo goes next.
 import { useState } from 'react';
 import { RC } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoCard } from '../components/Card';
 import { BackBtn } from '../components/ui';
 import { COUNTRIES } from '../data/countries';
+import { useRingoState } from '../store/store';
+import { hapticSelection } from '../lib/haptics';
 import type { Country } from '../data/types';
 import type { OnNav } from '../navigation';
 
 export function BrowseScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => void }) {
   const [q, setQ] = useState('');
+  const { state, actions } = useRingoState();
+  const waitCount = state.waitlist.length;
+
+  // Compact per-country waitlist toggle (stops the row's navigation on tap).
+  const WaitlistToggle = ({ code }: { code: string }) => {
+    const on = state.waitlist.includes(code);
+    return (
+      <button
+        className="press"
+        onClick={(e) => { e.stopPropagation(); hapticSelection(); actions.toggleWaitlist(code); }}
+        aria-pressed={on}
+        style={{
+          flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
+          fontFamily: 'var(--font)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+          padding: '7px 12px', borderRadius: 999,
+          border: on ? 'none' : `1.5px solid ${RC.lineStrong}`,
+          background: on ? RC.grad : 'transparent',
+          color: on ? '#FFFDFB' : RC.inkStrong,
+        }}
+      >
+        {on ? '✓ On the list' : 'Join waitlist'}
+      </button>
+    );
+  };
   const filtered = COUNTRIES.filter(
     (c) => c.name.toLowerCase().includes(q.toLowerCase()) || c.capital.toLowerCase().includes(q.toLowerCase()),
   );
@@ -27,7 +54,9 @@ export function BrowseScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => vo
           Countries
         </div>
         <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, fontWeight: 400 }}>
-          Included in your plan · added instantly
+          {waitCount > 0
+            ? <>You’re on the waitlist for <strong style={{ color: RC.inkStrong, fontWeight: 600 }}>{waitCount}</strong> {waitCount === 1 ? 'country' : 'countries'} · we’ll tell you when they’re live</>
+            : 'Join the waitlist for the countries you want Ringo in next'}
         </div>
       </div>
 
@@ -86,13 +115,11 @@ export function BrowseScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => vo
                   }}
                 >
                   <span style={{ fontSize: 24 }}>{c.flag}</span>
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, color: RC.ink }}>{c.name}</div>
                     <div style={{ fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute }}>{c.capital}</div>
                   </div>
-                  <div style={{ fontFamily: 'var(--font)', fontSize: 12, fontWeight: 600, color: RC.inkStrong, padding: '6px 10px', borderRadius: 999, background: RC.cream }}>
-                    Included
-                  </div>
+                  <WaitlistToggle code={c.code} />
                 </div>
               ))}
             </RingoCard>

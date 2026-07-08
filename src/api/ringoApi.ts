@@ -108,7 +108,7 @@ interface Profile {
   email: string;
   tier: Tier['id'];
   score: number;
-  kycStatus: 'none' | KycStatus;
+  kycStatus: KycStatus;
   kycStepsLeft: number;
   currentCountry: string;
   planId: string;

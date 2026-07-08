@@ -125,6 +125,61 @@ export function proratedUpgradeCharge(
   return Math.max(0, Math.round(diff * frac));
 }
 
+// ── Personalized recommendation + savings ───────────────────────────────────
+// The onboarding quiz asks three things — where you go, what you need, how often
+// you're away. We turn that into an estimated monthly data need and a numbers
+// need, then recommend the SMALLEST plan that covers you (so a light traveller
+// gets Essentials, not Pro), and compute a real trip-savings figure vs roaming.
+
+/** Estimated high-speed data need per month (GB). Frequency sets the base; each
+ *  extra destination adds a little (more places → more time on data). */
+export function estimateMonthlyGB(freq: string, destCount: number): number {
+  const base: Record<string, number> = { occasionally: 4, few: 10, monthly: 30, abroad: 60 };
+  const b = base[freq] ?? 10;
+  return Math.round(b * (1 + 0.12 * Math.max(0, destCount - 1)));
+}
+
+/** Recommend the smallest plan that covers the estimated data + number needs.
+ *  Data drives the tier; wanting a *local* (virtual) number or unlimited calls
+ *  can bump you up. "Mobile data" is NOT a bump — nearly everyone taps it. */
+export function recommendPlan(needs: string[], freq: string, destCount: number): string {
+  const gb = estimateMonthlyGB(freq, destCount);
+  let id = 'essentials'; // 10 GB
+  if (gb > 10) id = 'plus'; // 50 GB
+  if (gb > 45 || freq === 'monthly') id = 'pro'; // unlimited data
+  if (freq === 'abroad') id = 'unlimited'; // living abroad → perks + 4 numbers
+  const atLeast = (target: string) => { if (planRank(id) < planRank(target)) id = target; };
+  if (needs.includes('local')) atLeast('pro'); // Pro is the first plan with a virtual number
+  if (needs.includes('calls')) atLeast('plus'); // unlimited calls start on Plus
+  return id;
+}
+
+/** Roughly what mainstream carriers charge to roam, per day, in local currency
+ *  (~€12/day — the midpoint of typical €10–15 daily roaming passes). */
+const ROAMING_PER_DAY: Record<string, number> = {
+  EUR: 12, GBP: 11, USD: 13, AUD: 18, NZD: 20, CAD: 16, JPY: 1800, SGD: 18, HKD: 100, AED: 45,
+};
+
+/** A representative trip length (days) for each travel frequency. */
+export function typicalTripDays(freq: string): number {
+  return (({ occasionally: 7, few: 10, monthly: 14, abroad: 30 }) as Record<string, number>)[freq] ?? 10;
+}
+
+/** Estimated money saved vs pay-as-you-go roaming on ONE typical trip:
+ *  roaming day-rate × trip length, minus one month of the recommended plan.
+ *  Returns every number used so the UI can show the working (transparency). */
+export function estimateTripSavings(
+  planId: string,
+  freq: string,
+  currency = localCurrency(),
+): { days: number; perDay: number; roaming: number; ringo: number; saved: number } {
+  const days = typicalTripDays(freq);
+  const perDay = ROAMING_PER_DAY[currency] ?? ROAMING_PER_DAY.USD;
+  const roaming = days * perDay;
+  const ringo = planPrice(planId, currency);
+  return { days, perDay, roaming, ringo, saved: Math.max(0, roaming - ringo) };
+}
+
 /** Short human date for renewals, e.g. "3 Jul". */
 export function fmtDate(iso: string): string {
   try {

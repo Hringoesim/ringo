@@ -46,7 +46,7 @@ export function RingoButton({
 
   return (
     <button
-      className="press"
+      className={disabled ? undefined : 'press'}
       onClick={
         disabled
           ? undefined

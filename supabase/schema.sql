@@ -14,6 +14,13 @@ create table if not exists public.profiles (
   current_country text    not null default 'GB',
   plan_id         text    not null default 'essentials',
   data_pct        numeric not null default 0,
+  -- Subscription state (Apple IAP), written by the App Store Server Notifications
+  -- webhook and read on app startup. See migrations/20260708_subscription_status.sql.
+  subscription_status                  text default 'none',  -- none|active|in_grace|expired|revoked
+  subscription_product_id              text,
+  subscription_expires_at              timestamptz,
+  subscription_original_transaction_id text,
+  subscription_environment             text,
   created_at      timestamptz not null default now()
 );
 
@@ -54,6 +61,15 @@ create table if not exists public.kyc_submissions (
   created_at   timestamptz not null default now()
 );
 
+-- ── Country waitlist (demand signal — which countries users want next) ────────
+create table if not exists public.waitlist_signups (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid not null references auth.users(id) on delete cascade,
+  country_code text not null,
+  created_at   timestamptz not null default now(),
+  unique (user_id, country_code)
+);
+
 -- ── Catalog (public, read-only) ───────────────────────────────────────────────
 create table if not exists public.plans (
   id        text primary key,
@@ -81,6 +97,7 @@ alter table public.profiles        enable row level security;
 alter table public.numbers         enable row level security;
 alter table public.ports           enable row level security;
 alter table public.kyc_submissions enable row level security;
+alter table public.waitlist_signups enable row level security;
 alter table public.plans           enable row level security;
 alter table public.countries       enable row level security;
 
@@ -89,6 +106,7 @@ drop policy if exists "own profile"    on public.profiles;
 drop policy if exists "own numbers"    on public.numbers;
 drop policy if exists "own ports"      on public.ports;
 drop policy if exists "own kyc"        on public.kyc_submissions;
+drop policy if exists "own waitlist"   on public.waitlist_signups;
 drop policy if exists "read plans"     on public.plans;
 drop policy if exists "read countries" on public.countries;
 
@@ -97,6 +115,7 @@ create policy "own profile"  on public.profiles        for all using (auth.uid()
 create policy "own numbers"  on public.numbers         for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own ports"    on public.ports           for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own kyc"      on public.kyc_submissions for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "own waitlist" on public.waitlist_signups for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- Catalog is world-readable
 create policy "read plans"     on public.plans     for select using (true);

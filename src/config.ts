@@ -4,18 +4,13 @@
 //
 // See .env.example for all variables.
 import { RingoAPI } from './api/ringoApi';
-import { configureAuth } from './auth/auth';
+import { configureAuth, getSession } from './auth/auth';
 import { initAuthBridge } from './lib/ringoSupabase';
 
-const SESSION_KEY = 'ringo_session_v1';
-
+// Single source of truth for the bearer token: getSession() drops an expired
+// session, so the API never sends a stale/expired token.
 function sessionToken(): string | null {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    return raw ? (JSON.parse(raw).token as string) : null;
-  } catch {
-    return null;
-  }
+  return getSession()?.token ?? null;
 }
 
 export async function bootConfig(): Promise<void> {

@@ -8,7 +8,10 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 export type NavDir = 'push' | 'pop' | 'fade';
 
-const DURATION = 360; // ms — slightly longer than the CSS animation, to be safe
+// Slightly longer than the matching CSS animation, to be safe. Fades are quick
+// (0.2s), slides are 0.34s — clearing the leaving layer on time (not 160ms late)
+// keeps tab switches crisp.
+const DURATION: Record<NavDir, number> = { push: 380, pop: 380, fade: 240 };
 
 export function ScreenHost({ navKey, dir, children }: { navKey: string; dir: NavDir; children: ReactNode }) {
   const lastKey = useRef(navKey);
@@ -26,7 +29,7 @@ export function ScreenHost({ navKey, dir, children }: { navKey: string; dir: Nav
   // Clear the leaving layer when its exit animation completes.
   useEffect(() => {
     if (!leaving) return;
-    const t = window.setTimeout(() => setLeaving(null), DURATION);
+    const t = window.setTimeout(() => setLeaving(null), DURATION[leaving.dir]);
     return () => window.clearTimeout(t);
   }, [leaving]);
 

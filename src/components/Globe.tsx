@@ -1,36 +1,50 @@
 // Globe.tsx — a realistic rotating Earth with a live flight simulation.
-// Real coastlines (Natural Earth 110m land) drawn with a d3-geo orthographic
+// Real coastlines (Natural Earth 50m land) drawn with a d3-geo orthographic
 // projection onto a canvas. Flights are drawn in the SAME projection, so their
 // great-circle arcs sit on the real countries and rotate with the globe; the
 // destination flag pops up on landing (only while that country faces us).
 import { useEffect, useRef } from 'react';
-import { geoOrthographic, geoPath, geoGraticule10, geoDistance, type GeoPermissibleObjects } from 'd3-geo';
+import { geoOrthographic, geoPath, geoDistance, type GeoPermissibleObjects } from 'd3-geo';
 import { feature } from 'topojson-client';
-import landTopo from 'world-atlas/land-110m.json';
+import landTopo from 'world-atlas/land-50m.json';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const LAND = feature(landTopo as any, (landTopo as any).objects.land) as unknown as GeoPermissibleObjects;
-const GRATICULE = geoGraticule10() as unknown as GeoPermissibleObjects;
 
 // Real cities (lng, lat) so arcs land on the actual countries.
-const CITIES: { lng: number; lat: number; flag: string }[] = [
-  { lng: -0.1, lat: 51.5, flag: '🇬🇧' },
-  { lng: -74.0, lat: 40.7, flag: '🇺🇸' },
-  { lng: 139.7, lat: 35.7, flag: '🇯🇵' },
-  { lng: 55.3, lat: 25.2, flag: '🇦🇪' },
-  { lng: 103.8, lat: 1.35, flag: '🇸🇬' },
-  { lng: -3.7, lat: 40.4, flag: '🇪🇸' },
-  { lng: -46.6, lat: -23.5, flag: '🇧🇷' },
-  { lng: 28.0, lat: -26.2, flag: '🇿🇦' },
-  { lng: 151.2, lat: -33.9, flag: '🇦🇺' },
-  { lng: 13.4, lat: 52.5, flag: '🇩🇪' },
-  { lng: 72.8, lat: 19.0, flag: '🇮🇳' },
-  { lng: 4.35, lat: 50.85, flag: '🇧🇪' },
+type City = { lng: number; lat: number; flag: string };
+const CITY: Record<string, City> = {
+  london: { lng: -0.1, lat: 51.5, flag: '🇬🇧' },
+  newyork: { lng: -74.0, lat: 40.7, flag: '🇺🇸' },
+  mexico: { lng: -99.1, lat: 19.4, flag: '🇲🇽' },
+  buenosaires: { lng: -58.4, lat: -34.6, flag: '🇦🇷' },
+  bogota: { lng: -74.1, lat: 4.7, flag: '🇨🇴' },
+  madrid: { lng: -3.7, lat: 40.4, flag: '🇪🇸' },
+  sydney: { lng: 151.2, lat: -33.9, flag: '🇦🇺' },
+  bangkok: { lng: 100.5, lat: 13.7, flag: '🇹🇭' },
+};
+
+// Popular real routes. BOTH endpoints of every route sit on the same face of the
+// globe, so when we spin that face toward the viewer they're both visible — the
+// line always connects two countries you can actually see (no more USA→India
+// where India is round the back).
+const ROUTES: [string, string][] = [
+  ['london', 'newyork'], // UK → USA
+  ['newyork', 'mexico'], // USA → Mexico
+  ['buenosaires', 'newyork'], // Argentina → USA
+  ['bogota', 'madrid'], // Colombia → Spain
+  ['sydney', 'bangkok'], // Australia → Thailand
+  ['madrid', 'london'], // Spain → UK
 ];
 
-const NFLIGHTS = 2; // few, clear flights — no overlapping lines/flags
-const DURATION = 2000; // ms in the air (a touch slower → easy to follow)
-const HOLD = 900; // ms the flag stays after landing
+const ORIENT = 1.1; // s spinning the globe to bring the next route into view
+const FLY = 2.0; // s in the air (brisk, but still easy to follow)
+const HOLD = 1.0; // s the flag stays after landing
+
+// A springy ease that overshoots then settles — used for the arrival "pop".
+const easeOutBack = (x: number) => {
+  const c1 = 1.70158, c3 = c1 + 1;
+  return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
+};
 
 export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -53,169 +67,164 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
 
     const reduce = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     let raf = 0;
-    let lambda = 0; // longitude rotation (degrees)
-    let phi = -15; // latitude tilt (degrees) — gently tumbles N↔S
-    let tacc = 0; // accumulated time (s) driving the tumble
-    let scale = R; // projection scale — grows when zooming into a country
-    let mode = 'roam'; // 'roam' (spin the world) | 'focus' (zoom a country)
-    let modeT = 0; // time in the current mode (s)
-    let focusI = 0; // city index being zoomed into
+    const showFlights = size >= 150;
+
+    // ── the route the globe is currently showing ────────────────────────────
+    const centreOf = (r: [string, string]) => {
+      const A = CITY[r[0]], B = CITY[r[1]];
+      return { lng: (A.lng + B.lng) / 2, lat: (A.lat + B.lat) / 2 };
+    };
+    // A gentle, clamped tilt — enough to frame the route squarely, never so much
+    // that we're staring down at the Arctic.
+    const tiltFor = (lat: number) => Math.max(-30, Math.min(30, -lat * 0.66));
+    let routeI = 0;
+    let phase: 'orient' | 'fly' | 'hold' = 'orient';
+    let phaseT = 0; // s elapsed in the current phase
+    // start already facing the first route so the opening frame is meaningful
+    const c0 = centreOf(ROUTES[0]);
+    let lambda = -c0.lng; // longitude rotation (degrees)
+    let phi = tiltFor(c0.lat); // latitude tilt (degrees)
     let lastTs = performance.now();
+    let lastDraw = 0;
     // ease an angle (deg) toward a target along the shortest path
     const easeAngle = (cur: number, target: number, k: number) => {
       const d = ((target - cur + 540) % 360) - 180;
       return cur + d * k;
     };
-    let lastDraw = 0;
-    const showGraticule = size >= 200;
-    const showFlights = size >= 150;
 
-    const glow = ctx.createRadialGradient(cx, cy, R * 0.9, cx, cy, R * 1.08);
-    glow.addColorStop(0, 'rgba(90,170,255,0.35)');
-    glow.addColorStop(1, 'rgba(90,170,255,0)');
-    const ocean = ctx.createRadialGradient(cx - R * 0.35, cy - R * 0.4, R * 0.2, cx, cy, R);
-    ocean.addColorStop(0, '#3AA3E8');
-    ocean.addColorStop(0.65, '#1E6FB8');
-    ocean.addColorStop(1, '#0E3F73');
-    const shade = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.32, R * 0.45, cx, cy, R);
+    // Ocean lit from the upper-left, deepening to a rich navy on the far side
+    // (muted, satellite-like — not neon).
+    const ocean = ctx.createRadialGradient(cx - R * 0.38, cy - R * 0.42, R * 0.12, cx, cy, R);
+    ocean.addColorStop(0, '#2C79B4');
+    ocean.addColorStop(0.5, '#1A5A90');
+    ocean.addColorStop(1, '#0A2C4E');
+    // Directional day/night shade — clear on the lit side, deepening into the
+    // lower-right for a real spherical falloff.
+    const shade = ctx.createRadialGradient(cx - R * 0.36, cy - R * 0.4, R * 0.32, cx + R * 0.1, cy + R * 0.12, R * 1.05);
     shade.addColorStop(0, 'rgba(0,0,0,0)');
-    shade.addColorStop(1, 'rgba(2,12,30,0.45)');
-    const hi = ctx.createRadialGradient(cx - R * 0.34, cy - R * 0.38, 0, cx - R * 0.34, cy - R * 0.38, R * 0.7);
-    hi.addColorStop(0, 'rgba(255,255,255,0.35)');
+    shade.addColorStop(0.72, 'rgba(6,20,44,0.14)');
+    shade.addColorStop(1, 'rgba(3,12,30,0.6)');
+    // Tight specular highlight where the light hits.
+    const hi = ctx.createRadialGradient(cx - R * 0.4, cy - R * 0.44, 0, cx - R * 0.4, cy - R * 0.44, R * 0.55);
+    hi.addColorStop(0, 'rgba(255,255,255,0.42)');
     hi.addColorStop(1, 'rgba(255,255,255,0)');
 
-    // ── flight state ──────────────────────────────────────────────────────────
-    const rnd = (n: number) => Math.floor(Math.random() * n);
-    type Flight = { from: number; to: number; start: number };
+    // ── flight drawing ──────────────────────────────────────────────────────
+    // Draws the CURRENT route only: an arc bowing off the surface from origin to
+    // destination, revealed as the plane flies, with the flag popping on landing.
+    // Nothing is drawn while the globe is still spinning the route into view.
+    const isVisible = (p: City) => geoDistance([p.lng, p.lat], [-lambda, -phi]) < Math.PI / 2 - 0.02;
+    const drawFlight = () => {
+      if (phase === 'orient') return;
+      const r = ROUTES[routeI];
+      const A = CITY[r[0]], B = CITY[r[1]];
+      if (!isVisible(A) || !isVisible(B)) return; // both endpoints must be on the near face
+      const a = projection([A.lng, A.lat]);
+      const b = projection([B.lng, B.lat]);
+      if (!a || !b) return;
 
-    // Is a lng/lat currently on the near (visible) hemisphere? (small margin so
-    // we don't pick a city right on the edge that's about to rotate away)
-    const visible = (lng: number, lat: number) => geoDistance([lng, lat], [-lambda, -phi]) < Math.PI / 2 - 0.08;
-
-    const now0 = performance.now();
-    const flights: Flight[] = [];
-    const geoD = (i: number, j: number) => geoDistance([CITIES[i].lng, CITIES[i].lat], [CITIES[j].lng, CITIES[j].lat]);
-    // Cities already used by the OTHER flight(s) — so flags never stack and lines
-    // don't sit on top of each other.
-    const occupied = (exclude: number) => {
-      const s = new Set<number>();
-      flights.forEach((f, i) => { if (i !== exclude) { s.add(f.from); s.add(f.to); } });
-      return s;
-    };
-    // Pick a route: both endpoints visible, not used by the other flight, and far
-    // enough apart to read as one clear path.
-    const newFlight = (now: number, idx: number): Flight => {
-      const occ = occupied(idx);
-      const clear = (i: number) => ![...occ].some((o) => geoD(i, o) < 0.42); // not too close to a busy city
-      let pool = CITIES.map((_, i) => i).filter((i) => visible(CITIES[i].lng, CITIES[i].lat) && !occ.has(i) && clear(i));
-      if (pool.length < 2) pool = CITIES.map((_, i) => i).filter((i) => visible(CITIES[i].lng, CITIES[i].lat) && !occ.has(i));
-      if (pool.length < 2) pool = CITIES.map((_, i) => i).filter((i) => !occ.has(i));
-      const from = pool[rnd(pool.length)];
-      const far = pool.filter((i) => i !== from && geoD(i, from) > 0.55);
-      const cand = far.length ? far : pool.filter((i) => i !== from);
-      const to = cand.length ? cand[rnd(cand.length)] : from;
-      return { from, to, start: now };
-    };
-    for (let i = 0; i < NFLIGHTS; i++) {
-      flights.push({ ...newFlight(now0, i), start: now0 + i * (DURATION * 0.7) }); // strong stagger
-    }
-
-    const drawFlights = (now: number) => {
+      const flying = phase === 'fly';
+      const t = flying ? Math.min(1, phaseT / FLY) : 1;
+      const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; // easeInOut
       const PINK = '#FF3D8B';
-      for (let i = 0; i < NFLIGHTS; i++) {
-        const f = flights[i];
-        const A = CITIES[f.from];
-        const B = CITIES[f.to];
-        const elapsed = now - f.start;
-        if (elapsed < 0) continue;
-        if (elapsed > DURATION + HOLD) { flights[i] = newFlight(now, i); continue; }
-        if (!visible(A.lng, A.lat) || !visible(B.lng, B.lat)) continue;
-        const a = projection([A.lng, A.lat]);
-        const b = projection([B.lng, B.lat]);
-        if (!a || !b) continue;
 
-        const flying = elapsed <= DURATION;
-        const t = flying ? Math.min(1, elapsed / DURATION) : 1;
-        const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; // easeInOut
+      // A 2D arc bowing OUTWARD from the globe centre — the line lifts off the
+      // surface so it never covers a country, but stays close enough to clearly
+      // connect the two.
+      const mx = (a[0] + b[0]) / 2;
+      const my = (a[1] + b[1]) / 2;
+      let nx = mx - cx, ny = my - cy;
+      let nl = Math.hypot(nx, ny);
+      if (nl < 1) { nx = 0; ny = -1; nl = 1; }
+      const dist = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      // A gentle lift, clamped so the apex always stays comfortably inside the
+      // disc (never clipped by the canvas, never a detached arc in space). Most
+      // routes bow over open ocean, so it doesn't cover a country either.
+      const lift = Math.min(dist * 0.13 + R * 0.05, R * 0.24);
+      const px = mx + (nx / nl) * lift;
+      const py = my + (ny / nl) * lift;
+      const q = (u: number): [number, number] => {
+        const w = 1 - u;
+        return [w * w * a[0] + 2 * w * u * px + u * u * b[0], w * w * a[1] + 2 * w * u * py + u * u * b[1]];
+      };
 
-        // A 2D arc that bows OUTWARD from the globe centre — the line lifts off
-        // the surface into the space around the planet, so it never covers a
-        // country. Endpoints still sit on the real countries (projected).
-        const mx = (a[0] + b[0]) / 2;
-        const my = (a[1] + b[1]) / 2;
-        let nx = mx - cx, ny = my - cy;
-        let nl = Math.hypot(nx, ny);
-        if (nl < 1) { nx = 0; ny = -1; nl = 1; }
-        const dist = Math.hypot(b[0] - a[0], b[1] - a[1]);
-        // gentle bow: the line lifts just off the surface and clearly connects
-        // the two countries (not a big detached arc).
-        const lift = dist * 0.16 + R * 0.06;
-        const px = mx + (nx / nl) * lift;
-        const py = my + (ny / nl) * lift;
-        const q = (u: number): [number, number] => {
-          const w = 1 - u;
-          return [w * w * a[0] + 2 * w * u * px + u * u * b[0], w * w * a[1] + 2 * w * u * py + u * u * b[1]];
-        };
+      // arc revealed up to e, drawn with a gradient that fades from the origin
+      // into a bright leading edge — reads as motion, not a static wire.
+      const head = q(e);
+      const grad = ctx.createLinearGradient(a[0], a[1], head[0], head[1]);
+      grad.addColorStop(0, 'rgba(255,61,139,0.25)');
+      grad.addColorStop(0.6, 'rgba(255,61,139,0.9)');
+      grad.addColorStop(1, '#FF5BA0');
+      ctx.beginPath();
+      ctx.moveTo(a[0], a[1]);
+      const N = 40;
+      for (let k = 1; k <= N; k++) { const p = q((e * k) / N); ctx.lineTo(p[0], p[1]); }
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = Math.max(1.6, R * 0.02);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.shadowColor = 'rgba(255,61,139,0.55)';
+      ctx.shadowBlur = R * 0.06;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.shadowColor = 'transparent';
 
-        // arc revealed up to e
+      // small origin dot marks where the trip begins
+      ctx.beginPath();
+      ctx.arc(a[0], a[1], Math.max(1.8, R * 0.015), 0, Math.PI * 2);
+      ctx.fillStyle = PINK;
+      ctx.fill();
+
+      if (flying) {
+        // a departure pulse ripples out from the origin as the plane takes off
+        if (phaseT < 0.7) {
+          const pr = phaseT / 0.7;
+          ctx.beginPath();
+          ctx.arc(a[0], a[1], (0.015 + 0.07 * pr) * R, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(255,61,139,${0.55 * (1 - pr)})`;
+          ctx.lineWidth = Math.max(1, R * 0.008);
+          ctx.stroke();
+        }
+
+        // a soft comet head leads the trail — a white core in a pink glow
+        // (no arrow/plane marker)
         ctx.beginPath();
-        ctx.moveTo(a[0], a[1]);
-        const N = 28;
-        for (let k = 1; k <= N; k++) { const p = q((e * k) / N); ctx.lineTo(p[0], p[1]); }
-        ctx.strokeStyle = PINK;
-        ctx.lineWidth = Math.max(1.8, R * 0.022);
-        ctx.lineCap = 'round';
-        ctx.shadowColor = 'rgba(255,61,139,0.9)';
-        ctx.shadowBlur = R * 0.05;
-        ctx.stroke();
+        ctx.arc(head[0], head[1], Math.max(4, R * 0.045), 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,61,139,0.30)';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(head[0], head[1], Math.max(2.4, R * 0.026), 0, Math.PI * 2);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.shadowColor = 'rgba(255,255,255,0.9)';
+        ctx.shadowBlur = R * 0.03;
+        ctx.fill();
         ctx.shadowBlur = 0;
         ctx.shadowColor = 'transparent';
-
-        // origin dot on its country
-        ctx.beginPath();
-        ctx.arc(a[0], a[1], Math.max(2.2, R * 0.022), 0, Math.PI * 2);
-        ctx.fillStyle = PINK;
-        ctx.fill();
-
-        if (flying) {
-          const h = q(e);
-          ctx.beginPath();
-          ctx.arc(h[0], h[1], Math.max(2.8, R * 0.03), 0, Math.PI * 2);
-          ctx.fillStyle = '#FFFFFF';
-          ctx.shadowColor = 'rgba(255,255,255,0.9)';
-          ctx.shadowBlur = R * 0.035;
-          ctx.fill();
-          ctx.shadowBlur = 0;
-          ctx.shadowColor = 'transparent';
-        } else {
-          // destination flag on the country (no white circle)
-          const fs = Math.max(16, R * 0.2);
-          ctx.font = `${fs}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.shadowColor = 'rgba(0,0,0,0.5)';
-          ctx.shadowBlur = fs * 0.3;
-          ctx.shadowOffsetY = 1;
-          ctx.fillText(B.flag, b[0], b[1]);
-          ctx.shadowColor = 'transparent';
-          ctx.shadowBlur = 0;
-          ctx.shadowOffsetY = 0;
-        }
+      } else {
+        // destination flag on the country (no white circle), popping in with a
+        // little spring as the plane lands
+        const pop = 0.55 + 0.45 * easeOutBack(Math.min(1, phaseT / 0.45));
+        const fs = Math.max(15, R * 0.17);
+        ctx.save();
+        ctx.translate(b[0], b[1]);
+        ctx.scale(pop, pop);
+        ctx.font = `${fs}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = fs * 0.3;
+        ctx.shadowOffsetY = 1;
+        ctx.fillText(B.flag, 0, 0);
+        ctx.restore();
       }
     };
 
-    const draw = (now: number) => {
+    const draw = () => {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, size, size);
-      projection.scale(scale).rotate([lambda, phi, 0]);
+      projection.scale(R).rotate([lambda, phi, 0]);
 
-      // atmosphere glow (behind, fixed to the disc)
-      ctx.beginPath();
-      ctx.arc(cx, cy, R * 1.08, 0, Math.PI * 2);
-      ctx.fillStyle = glow;
-      ctx.fill();
-
-      // earth content — clipped to the disc so a zoom stays inside the circle
+      // earth content — clipped to the disc (no halo/atmosphere ring)
       ctx.save();
       ctx.beginPath();
       ctx.arc(cx, cy, R, 0, Math.PI * 2);
@@ -226,19 +235,12 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.fillStyle = ocean;
       ctx.fill();
 
-      if (showGraticule) {
-        ctx.beginPath();
-        path(GRATICULE);
-        ctx.strokeStyle = 'rgba(255,255,255,0.10)';
-        ctx.lineWidth = 0.5;
-        ctx.stroke();
-      }
-
+      // land — natural satellite green, crisp 50m coastlines
       ctx.beginPath();
       path(LAND);
-      ctx.fillStyle = '#3E9B5F';
+      ctx.fillStyle = '#3C6E3A';
       ctx.fill();
-      ctx.strokeStyle = 'rgba(20,80,45,0.55)';
+      ctx.strokeStyle = 'rgba(22,52,20,0.5)';
       ctx.lineWidth = 0.4;
       ctx.stroke();
 
@@ -260,9 +262,9 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      // flights drawn LAST, unclipped — the arcs bow into the space around the
-      // globe (above the surface), so they never cover a country.
-      if (showFlights) drawFlights(now);
+      // flight drawn LAST, unclipped — the arc bows into the space around the
+      // globe (above the surface), so it never covers a country.
+      if (showFlights) drawFlight();
 
       if (!reduce) raf = requestAnimationFrame(tick);
     };
@@ -270,37 +272,33 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     const tick = (now: number) => {
       const dt = Math.min(0.1, (now - lastTs) / 1000);
       lastTs = now;
-      tacc += dt;
-      modeT += dt;
-      if (mode === 'roam') {
-        // Spin the world, but speed UP over the empty Pacific so we don't dwell
-        // on open ocean; tumble N↔S to show every continent.
-        const centerLng = (((-lambda + 180) % 360) + 360) % 360 - 180;
-        const overPacific = centerLng > 120 || centerLng < -120;
-        lambda += (overPacific ? 16 : 5) * dt;
-        const tumble = -12 + 17 * Math.sin(tacc * 0.32);
-        phi += (tumble - phi) * Math.min(1, dt * 2.2);
-        scale += (R - scale) * Math.min(1, dt * 2.5);
-        if (modeT > 8) { mode = 'focus'; modeT = 0; focusI = rnd(CITIES.length); }
-      } else {
-        // Focus: ease to centre a real country and zoom in, hold, then roam on.
-        const c = CITIES[focusI];
-        lambda = easeAngle(lambda, -c.lng, Math.min(1, dt * 1.8));
-        phi += (-c.lat - phi) * Math.min(1, dt * 1.8);
-        scale += (R * 1.55 - scale) * Math.min(1, dt * 1.8);
-        if (modeT > 4.5) { mode = 'roam'; modeT = 0; }
-      }
+      phaseT += dt;
+
+      // Spin the globe so the CURRENT route faces us, then hold it steady while
+      // the plane flies — "spin the earth like that". The earth is driven by the
+      // route, so origin and destination are always both in view.
+      const c = centreOf(ROUTES[routeI]);
+      // during orient we swing fast into place; once flying, we hold nearly still
+      const k = phase === 'orient' ? Math.min(1, dt * 2.6) : Math.min(1, dt * 0.6);
+      lambda = easeAngle(lambda, -c.lng, k);
+      phi += (tiltFor(c.lat) - phi) * k;
+
+      // advance the little state machine: orient → fly → hold → next route
+      if (phase === 'orient' && phaseT >= ORIENT) { phase = 'fly'; phaseT = 0; }
+      else if (phase === 'fly' && phaseT >= FLY) { phase = 'hold'; phaseT = 0; }
+      else if (phase === 'hold' && phaseT >= HOLD) { routeI = (routeI + 1) % ROUTES.length; phase = 'orient'; phaseT = 0; }
+
       // Flights need smooth motion → draw every frame when flights are on;
       // otherwise throttle to ~30fps to save the main thread.
       if (showFlights || now - lastDraw >= 33) {
         lastDraw = now;
-        draw(now);
+        draw();
       } else {
         raf = requestAnimationFrame(tick);
       }
     };
 
-    draw(performance.now());
+    draw();
     return () => cancelAnimationFrame(raf);
   }, [size]);
 
