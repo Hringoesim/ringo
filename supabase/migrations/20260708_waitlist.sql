@@ -15,9 +15,11 @@ drop policy if exists "own waitlist" on public.waitlist_signups;
 create policy "own waitlist" on public.waitlist_signups
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
--- Aggregate demand per country (for prioritising launches). Readable by anyone;
--- exposes only counts, never who signed up.
-create or replace view public.waitlist_counts as
+-- Aggregate demand per country (counts only, no PII), for prioritising launches.
+-- Server-side/admin use only — NOT exposed to anon/authenticated via the API.
+create or replace view public.waitlist_counts
+  with (security_invoker = off) as
   select country_code, count(*)::int as signups
   from public.waitlist_signups
   group by country_code;
+revoke all on public.waitlist_counts from anon, authenticated;
