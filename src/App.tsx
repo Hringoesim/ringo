@@ -190,13 +190,9 @@ export function App() {
       );
       break;
     case 'landing':
-      body = (
-        <LandingScreen
-          onExplore={() => push('onboard')}
-          onCreate={() => push('signup', { mode: 'create' })}
-          onLogin={() => push('signup', { mode: 'login' })}
-        />
-      );
+      // Explore-first: straight into the dashboard. No subscription push, no
+      // sign-in wall up front — that comes later, only at a commit point.
+      body = <LandingScreen onExplore={() => replace('home')} />;
       break;
     case 'onboard':
       body = (

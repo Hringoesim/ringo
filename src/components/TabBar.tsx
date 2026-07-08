@@ -56,10 +56,9 @@ export function RingoTabBar({
   return (
     <div
       style={{
-        height: 84, paddingTop: 10, paddingBottom: 30, position: 'relative',
-        background: RC.glassBar,
-
-
+        // Adapts to the home-indicator inset on any device; never less than 24px.
+        paddingTop: 10, paddingBottom: 'max(24px, env(safe-area-inset-bottom, 0px))',
+        position: 'relative', background: RC.glassBar,
         borderTop: `1px solid ${RC.line}`,
         display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr',
       }}

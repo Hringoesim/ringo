@@ -504,7 +504,7 @@ function MetricTile({ value, label, onClick }: { value: ReactNode; label: string
         display: 'flex', flexDirection: 'column', gap: 2,
       }}
     >
-      <div style={{ fontFamily: 'var(--font)', fontSize: 24, fontWeight: 700, color: RC.ink, letterSpacing: -0.6, lineHeight: 1 }}>{value}</div>
+      <div style={{ fontFamily: 'var(--font)', fontSize: 24, fontWeight: 800, letterSpacing: -0.6, lineHeight: 1, background: RC.grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', width: 'fit-content' }}>{value}</div>
       <div style={{ fontFamily: 'var(--font)', fontSize: 11.5, fontWeight: 500, color: RC.inkMute }}>{label}</div>
     </div>
   );

@@ -12,8 +12,9 @@ export function RingoHeader({ title, leading, trailing }: RingoHeaderProps) {
   return (
     <div
       style={{
-        padding: '54px 20px 14px', display: 'flex',
-        alignItems: 'center', justifyContent: 'space-between', gap: 12,
+        // Adapts to any device's notch/Dynamic Island; never less than the base.
+        padding: 'max(54px, calc(env(safe-area-inset-top, 0px) + 12px)) 20px 14px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
       }}
     >
       <div style={{ minWidth: 36 }}>{leading}</div>

@@ -139,6 +139,43 @@ export function SettingsScreen({ onBack, onSignOut, onNav }: SettingsScreenProps
         </div>
       </RingoCard>
 
+      {/* Account completion — how far along the setup is */}
+      {(() => {
+        const steps = [
+          { done: kyc === 'verified' || kyc === 'in_review', label: 'Verify your identity', to: 'kyc' as const },
+          { done: state.subscribed, label: 'Choose your plan', to: 'plan' as const },
+          { done: state.numbers.length > 0, label: 'Add or keep your number', to: 'numbers' as const },
+          { done: !!state.avatar, label: 'Add a profile photo', to: null },
+        ];
+        const doneCount = steps.filter((s) => s.done).length;
+        const pct = Math.round((doneCount / steps.length) * 100);
+        const next = steps.find((s) => !s.done);
+        return (
+          <RingoCard style={{ marginTop: 12, padding: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+              <div style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 700, color: RC.ink }}>Account setup</div>
+              <div style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 800, background: RC.grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{pct}% complete</div>
+            </div>
+            <div style={{ marginTop: 10, height: 7, borderRadius: 7, background: RC.cream, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: '100%', borderRadius: 7, background: RC.grad, transformOrigin: 'left', transform: `scaleX(${doneCount / steps.length})`, transition: 'transform 0.6s cubic-bezier(0.22,1,0.36,1)' }} />
+            </div>
+            {next ? (
+              <div
+                onClick={next.to ? () => onNav(next.to) : undefined}
+                className={next.to ? 'press' : undefined}
+                style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10, cursor: next.to ? 'pointer' : 'default' }}
+              >
+                <div style={{ width: 20, height: 20, borderRadius: '50%', border: `2px solid ${RC.lineStrong}`, flexShrink: 0 }} />
+                <div style={{ flex: 1, fontFamily: 'var(--font)', fontSize: 13.5, fontWeight: 600, color: RC.ink }}>Next: {next.label}</div>
+                {next.to && <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke={RC.inkMute} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+              </div>
+            ) : (
+              <div style={{ marginTop: 12, fontFamily: 'var(--font)', fontSize: 13.5, fontWeight: 600, color: '#1F7A4E' }}>✓ Your account is all set.</div>
+            )}
+          </RingoCard>
+        );
+      })()}
+
       {/* Refer & earn — the user's own share code */}
       <SectionLabel>Refer &amp; earn</SectionLabel>
       <RingoCard style={{ marginTop: 10, padding: 16 }}>
