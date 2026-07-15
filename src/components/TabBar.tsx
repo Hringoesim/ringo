@@ -1,6 +1,7 @@
-// TabBar.tsx — warm bottom tab bar for the top-level destinations.
+// TabBar.tsx — floating Liquid Glass (iOS 26) tab bar for the top-level
+// destinations. A translucent, blurred capsule that hovers over the content.
 import type { ReactNode } from 'react';
-import { RC } from '../theme';
+import { RC, GLASS } from '../theme';
 
 type TabId = 'home' | 'browse' | 'numbers' | 'plan';
 type IconKind = 'home' | 'globe' | 'phone' | 'card';
@@ -55,57 +56,64 @@ export function RingoTabBar({
 }) {
   const activeIndex = tabs.findIndex((t) => t.id === active);
   return (
+    // Floats over the content; the margins let taps pass through to what's behind.
     <div
       style={{
-        // Adapts to the home-indicator inset on any device; never less than 24px.
-        paddingTop: 10, paddingBottom: 'max(24px, env(safe-area-inset-bottom, 0px))',
-        position: 'relative', background: RC.glassBar,
-        borderTop: `1px solid ${RC.line}`,
-        display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr',
+        position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 50, pointerEvents: 'none',
+        paddingLeft: 14, paddingRight: 14,
+        paddingBottom: 'max(10px, env(safe-area-inset-bottom, 0px))',
       }}
     >
-      {/* One gradient pill that MORPHS between tabs (slides), not a per-icon fade. */}
-      {activeIndex >= 0 && (
-        <div
-          style={{
-            position: 'absolute', top: 8, left: 0, width: '25%', height: 30,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
-            transform: `translateX(${activeIndex * 100}%)`,
-            transition: 'transform 0.36s cubic-bezier(0.34, 1.4, 0.64, 1)',
-          }}
-        >
-          <div style={{ width: 46, height: 30, borderRadius: 11, background: RC.gradSoft }} />
-        </div>
-      )}
-      {tabs.map((t) => {
-        const on = active === t.id;
-        return (
-          <button
-            key={t.id}
-            className="press"
-            onClick={() => onChange(t.id)}
+      <div
+        style={{
+          ...GLASS, borderRadius: 30, pointerEvents: 'auto', overflow: 'hidden',
+          position: 'relative', paddingTop: 9, paddingBottom: 9,
+          display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr',
+        }}
+      >
+        {/* One gradient pill that MORPHS between tabs (slides), not a per-icon fade. */}
+        {activeIndex >= 0 && (
+          <div
             style={{
-              border: 'none', background: 'none', padding: 0, cursor: 'pointer', position: 'relative',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-              color: on ? RC.inkStrong : RC.inkMute,
-              fontFamily: 'var(--font)', fontSize: 11, fontWeight: on ? 600 : 500,
-              transition: 'color .25s ease',
+              position: 'absolute', top: 7, left: 0, width: '25%', height: 34,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
+              transform: `translateX(${activeIndex * 100}%)`,
+              transition: 'transform 0.4s cubic-bezier(0.34, 1.4, 0.64, 1)',
             }}
           >
-            <span
+            <div style={{ width: '74%', height: 34, borderRadius: 15, background: RC.gradSoft }} />
+          </div>
+        )}
+        {tabs.map((t) => {
+          const on = active === t.id;
+          return (
+            <button
+              key={t.id}
+              className="press"
+              onClick={() => onChange(t.id)}
               style={{
-                width: 28, height: 28,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transform: on ? 'scale(1.06)' : 'scale(1)',
-                transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                border: 'none', background: 'none', padding: 0, cursor: 'pointer', position: 'relative',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                color: on ? RC.inkStrong : RC.inkMute,
+                fontFamily: 'var(--font)', fontSize: 11, fontWeight: on ? 600 : 500,
+                transition: 'color .25s ease',
               }}
             >
-              {t.icon(on ? RC.inkStrong : RC.inkMute)}
-            </span>
-            <span>{t.label}</span>
-          </button>
-        );
-      })}
+              <span
+                style={{
+                  width: 28, height: 28,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transform: on ? 'scale(1.06)' : 'scale(1)',
+                  transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                }}
+              >
+                {t.icon(on ? RC.inkStrong : RC.inkMute)}
+              </span>
+              <span>{t.label}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

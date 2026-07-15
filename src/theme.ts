@@ -7,7 +7,28 @@
 // DARK is the default — it matches ringoesim.com (near-black #0A0810 with the
 // orange→magenta gradient). LIGHT is the warm vibrant alternative.
 
+import type { CSSProperties } from 'react';
+
 export type Scheme = 'dark' | 'light';
+
+// ── Liquid Glass (iOS 26) material ───────────────────────────────────────────
+// Translucent, blurred, with a bright specular top edge and a soft float shadow.
+// Spread onto floating controls (tab bar, toolbars, pills) so content refracts
+// through them the way iOS 26 surfaces do.
+export const GLASS: CSSProperties = {
+  background: 'rgba(255,251,248,0.62)',
+  backdropFilter: 'blur(24px) saturate(185%)',
+  WebkitBackdropFilter: 'blur(24px) saturate(185%)',
+  border: '1px solid rgba(255,255,255,0.55)',
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.75), 0 12px 34px -12px rgba(34,26,20,0.28)',
+};
+// A lighter glass for inline chips / smaller controls.
+export const GLASS_THIN: CSSProperties = {
+  background: 'rgba(255,251,248,0.55)',
+  backdropFilter: 'blur(16px) saturate(170%)',
+  WebkitBackdropFilter: 'blur(16px) saturate(170%)',
+  border: '1px solid rgba(255,255,255,0.5)',
+};
 
 export interface Palette {
   scheme: Scheme;

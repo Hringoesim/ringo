@@ -380,7 +380,7 @@ export function App() {
   const showTabs = TABBED.has(current.name);
 
   return (
-    <div data-screen-label={`Ringo / ${current.name}`} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div data-screen-label={`Ringo / ${current.name}`} style={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       <ScreenHost navKey={navKey} dir={navDirRef.current}>
         {body}
       </ScreenHost>

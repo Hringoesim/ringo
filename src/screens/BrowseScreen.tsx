@@ -89,7 +89,7 @@ export function BrowseScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => vo
         </div>
       </div>
 
-      <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '10px 20px 100px' }}>
+      <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '10px 20px 116px' }}>
         {q.length === 0 && (
           <div>
             <div style={{ padding: '8px 0 10px', fontFamily: 'var(--font)', fontSize: 11, fontWeight: 600, color: RC.inkMute, letterSpacing: 0.6, textTransform: 'uppercase' }}>

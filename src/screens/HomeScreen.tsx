@@ -1,7 +1,7 @@
 // HomeScreen — dashboard with membership tiers, metric strip, action rail,
 // wallet-style number card, KYC status and a discovery rail.
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { RC, SHADOW_CARD, SHADOW_HERO } from '../theme';
+import { RC, SHADOW_CARD, SHADOW_HERO, GLASS_THIN } from '../theme';
 import { useRingoState } from '../store/store';
 import { COUNTRIES } from '../data/countries';
 import { TIERS, tierFor, nextTier, membershipFor } from '../data/tiers';
@@ -116,8 +116,8 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
             onClick={() => onNav('browse')}
             className="press"
             style={{
+              ...GLASS_THIN,
               flex: 1, height: 40, padding: '0 14px', borderRadius: 999,
-              background: RC.paper, border: `1px solid ${RC.line}`, boxShadow: SHADOW_CARD,
               display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
             }}
           >
@@ -334,7 +334,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
           ))}
         </div>
 
-        <div style={{ height: 30 }} />
+        <div style={{ height: 112 }} />
         </div>
       </div>
       <style>{`@keyframes ringoSpin{to{transform:rotate(360deg)}}`}</style>
