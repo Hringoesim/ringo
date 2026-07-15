@@ -53,6 +53,7 @@ export function RingoTabBar({
   active: string;
   onChange: (id: TabId) => void;
 }) {
+  const activeIndex = tabs.findIndex((t) => t.id === active);
   return (
     <div
       style={{
@@ -63,6 +64,19 @@ export function RingoTabBar({
         display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr',
       }}
     >
+      {/* One gradient pill that MORPHS between tabs (slides), not a per-icon fade. */}
+      {activeIndex >= 0 && (
+        <div
+          style={{
+            position: 'absolute', top: 8, left: 0, width: '25%', height: 30,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
+            transform: `translateX(${activeIndex * 100}%)`,
+            transition: 'transform 0.36s cubic-bezier(0.34, 1.4, 0.64, 1)',
+          }}
+        >
+          <div style={{ width: 46, height: 30, borderRadius: 11, background: RC.gradSoft }} />
+        </div>
+      )}
       {tabs.map((t) => {
         const on = active === t.id;
         return (
@@ -71,20 +85,19 @@ export function RingoTabBar({
             className="press"
             onClick={() => onChange(t.id)}
             style={{
-              border: 'none', background: 'none', padding: 0, cursor: 'pointer',
+              border: 'none', background: 'none', padding: 0, cursor: 'pointer', position: 'relative',
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
               color: on ? RC.inkStrong : RC.inkMute,
               fontFamily: 'var(--font)', fontSize: 11, fontWeight: on ? 600 : 500,
-              transition: 'color .2s ease',
+              transition: 'color .25s ease',
             }}
           >
             <span
               style={{
-                width: 28, height: 28, borderRadius: 10,
+                width: 28, height: 28,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: on ? RC.gradSoft : 'transparent',
-                transform: on ? 'scale(1)' : 'scale(0.9)',
-                transition: 'background .25s ease, transform .25s cubic-bezier(0.34,1.56,0.64,1)',
+                transform: on ? 'scale(1.06)' : 'scale(1)',
+                transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
               }}
             >
               {t.icon(on ? RC.inkStrong : RC.inkMute)}

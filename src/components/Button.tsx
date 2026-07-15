@@ -1,6 +1,6 @@
 // Button.tsx — reusable warm primary button (gradient) and variants.
 import type { CSSProperties, ReactNode } from 'react';
-import { RC } from '../theme';
+import { RC, SHADOW_BUTTON } from '../theme';
 import { haptic } from '../lib/haptics';
 
 interface RingoButtonProps {
@@ -36,7 +36,7 @@ export function RingoButton({
   if (variant === 'primary')
     Object.assign(base, {
       background: RC.grad, color: '#FFFFFF',
-      boxShadow: '0 8px 18px -8px rgba(199,75,142,0.38)',
+      boxShadow: SHADOW_BUTTON,
     });
   if (variant === 'soft') Object.assign(base, { background: RC.cream, color: RC.inkStrong });
   if (variant === 'ghost')

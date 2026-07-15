@@ -136,11 +136,11 @@ textarea,
 @keyframes ringoFadeIn {
   from {
     opacity: 0;
-    transform: scale(0.98);
+    transform: translate3d(0, 10px, 0);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: translate3d(0, 0, 0);
   }
 }
 @keyframes ringoFadeOut {
@@ -150,6 +150,21 @@ textarea,
   to {
     opacity: 0;
   }
+}
+/* Content settle-in — primary content of a screen eases up into place. Apply
+   `.rise` (optionally with an inline animation-delay) to hero blocks/list items. */
+@keyframes ringoRise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+.rise {
+  animation: ringoRise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .enter-push {
   animation: ringoInRight 0.34s cubic-bezier(0.32, 0.72, 0, 1) both;
@@ -166,12 +181,12 @@ textarea,
   box-shadow: -14px 0 30px -10px rgba(0, 0, 0, 0.16);
 }
 .enter-fade {
-  animation: ringoFadeIn 0.2s ease both;
+  /* Rise + fade — the incoming screen settles up into place (premium, not a pop). */
+  animation: ringoFadeIn 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .leave-fade {
-  /* Match enter-fade exactly so the cross-fade has no opacity gap (no flash of
-     the background between screens). */
-  animation: ringoFadeOut 0.2s ease both;
+  /* Same duration so the cross-fade has no opacity gap (no flash of background). */
+  animation: ringoFadeOut 0.26s ease both;
 }
 @media (prefers-reduced-motion: reduce) {
   .enter-push,

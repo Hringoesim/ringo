@@ -99,6 +99,9 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
                     background: sel ? RC.gradSoft : RC.paper,
                     border: `1.5px solid ${sel ? 'transparent' : RC.line}`,
                     outline: sel ? `1.5px solid ${RC.inkStrong}` : 'none',
+                    // Selected card lifts — clear depth feedback.
+                    boxShadow: sel ? '0 2px 4px rgba(34,26,20,0.08), 0 16px 34px -18px rgba(34,26,20,0.24)' : 'none',
+                    transition: 'box-shadow 0.25s ease',
                     position: 'relative',
                   }}
                 >

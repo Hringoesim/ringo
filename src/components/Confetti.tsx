@@ -37,7 +37,7 @@ export function Confetti({ count = 32 }: { count?: number }) {
             // custom props consumed by the keyframes
             ['--x' as string]: `${b.x}px`,
             ['--r' as string]: `${b.rot}deg`,
-            animation: `ringoConfetti ${b.dur}s cubic-bezier(0.2,0.55,0.35,1) ${b.delay}s forwards`,
+            animation: `ringoConfetti ${b.dur}s cubic-bezier(0.34,1.56,0.64,1) ${b.delay}s forwards`,
             willChange: 'transform, opacity',
           }}
         />

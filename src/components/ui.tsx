@@ -1,6 +1,6 @@
 // ui.tsx — small shared building blocks used across screens.
-import type { CSSProperties, ReactNode } from 'react';
-import { RC } from '../theme';
+import { useState, type CSSProperties, type ReactNode } from 'react';
+import { RC, RADIUS, hexA } from '../theme';
 
 export function BackBtn({ onClick }: { onClick?: () => void }) {
   return (
@@ -12,7 +12,7 @@ export function BackBtn({ onClick }: { onClick?: () => void }) {
         width: 40, height: 40, borderRadius: '50%',
         background: RC.cream, border: `1.5px solid ${RC.lineStrong}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        cursor: 'pointer', boxShadow: '0 6px 16px -8px rgba(34,26,20,0.28)',
+        cursor: 'pointer', boxShadow: '0 4px 12px -6px rgba(34,26,20,0.16)',
       }}
     >
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -44,19 +44,26 @@ interface InputProps {
 }
 
 export function Input({ value, onChange, placeholder, type = 'text', inputMode }: InputProps) {
+  const [focused, setFocused] = useState(false);
+  const active = focused || !!value;
   return (
     <input
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
       placeholder={placeholder}
       type={type}
       inputMode={inputMode}
       style={{
         width: '100%', height: 54, padding: '0 16px', boxSizing: 'border-box',
-        borderRadius: 14, background: RC.paper,
-        border: `1.5px solid ${value ? RC.inkStrong : RC.line}`,
+        borderRadius: RADIUS.md, background: RC.paper,
+        border: `1.5px solid ${active ? RC.inkStrong : RC.line}`,
+        // Soft ember focus ring — clear interactive feedback, smoothly eased.
+        boxShadow: focused ? `0 0 0 3px ${hexA(RC.inkStrong, 0.12)}` : 'none',
         outline: 'none', fontFamily: 'var(--font)', fontSize: 16, fontWeight: 500,
         color: RC.ink, letterSpacing: -0.1,
+        transition: 'border-color 0.18s ease, box-shadow 0.18s ease',
       }}
     />
   );
