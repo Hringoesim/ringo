@@ -112,17 +112,21 @@ textarea,
 @keyframes ringoOutLeft {
   from {
     transform: translate3d(0, 0, 0);
+    opacity: 1;
   }
   to {
-    transform: translate3d(-24%, 0, 0);
+    transform: translate3d(-22%, 0, 0);
+    opacity: 0.55;
   }
 }
 @keyframes ringoInLeft {
   from {
-    transform: translate3d(-24%, 0, 0);
+    transform: translate3d(-22%, 0, 0);
+    opacity: 0.55;
   }
   to {
     transform: translate3d(0, 0, 0);
+    opacity: 1;
   }
 }
 @keyframes ringoOutRight {
@@ -166,27 +170,29 @@ textarea,
 .rise {
   animation: ringoRise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+/* Smoother, longer travel with a gentle decelerating curve; the outgoing screen
+   dims as it parks (iOS-style depth), so pushes read as one fluid motion. */
 .enter-push {
-  animation: ringoInRight 0.34s cubic-bezier(0.32, 0.72, 0, 1) both;
-  box-shadow: -14px 0 30px -10px rgba(0, 0, 0, 0.16);
+  animation: ringoInRight 0.44s cubic-bezier(0.33, 0, 0.2, 1) both;
+  box-shadow: -16px 0 34px -12px rgba(0, 0, 0, 0.18);
 }
 .leave-push {
-  animation: ringoOutLeft 0.34s cubic-bezier(0.32, 0.72, 0, 1) both;
+  animation: ringoOutLeft 0.44s cubic-bezier(0.33, 0, 0.2, 1) both;
 }
 .enter-pop {
-  animation: ringoInLeft 0.34s cubic-bezier(0.32, 0.72, 0, 1) both;
+  animation: ringoInLeft 0.44s cubic-bezier(0.33, 0, 0.2, 1) both;
 }
 .leave-pop {
-  animation: ringoOutRight 0.34s cubic-bezier(0.32, 0.72, 0, 1) both;
-  box-shadow: -14px 0 30px -10px rgba(0, 0, 0, 0.16);
+  animation: ringoOutRight 0.44s cubic-bezier(0.33, 0, 0.2, 1) both;
+  box-shadow: -16px 0 34px -12px rgba(0, 0, 0, 0.18);
 }
 .enter-fade {
   /* Rise + fade — the incoming screen settles up into place (premium, not a pop). */
-  animation: ringoFadeIn 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: ringoFadeIn 0.36s cubic-bezier(0.33, 0, 0.2, 1) both;
 }
 .leave-fade {
   /* Same duration so the cross-fade has no opacity gap (no flash of background). */
-  animation: ringoFadeOut 0.26s ease both;
+  animation: ringoFadeOut 0.36s ease both;
 }
 @media (prefers-reduced-motion: reduce) {
   .enter-push,

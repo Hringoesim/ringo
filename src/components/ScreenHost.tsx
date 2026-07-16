@@ -11,7 +11,9 @@ export type NavDir = 'push' | 'pop' | 'fade';
 // Slightly longer than the matching CSS animation, to be safe. Fades are quick
 // (0.2s), slides are 0.34s — clearing the leaving layer on time (not 160ms late)
 // keeps tab switches crisp.
-const DURATION: Record<NavDir, number> = { push: 380, pop: 380, fade: 300 };
+// Slightly longer than the CSS animations so the leaving layer unmounts only
+// after the motion fully settles (matches index.css: push/pop 0.44s, fade 0.36s).
+const DURATION: Record<NavDir, number> = { push: 460, pop: 460, fade: 380 };
 
 export function ScreenHost({ navKey, dir, children, onSwipeBack }: { navKey: string; dir: NavDir; children: ReactNode; onSwipeBack?: () => void }) {
   const lastKey = useRef(navKey);
