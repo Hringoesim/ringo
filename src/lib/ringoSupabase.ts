@@ -7,6 +7,7 @@ import { Capacitor } from '@capacitor/core';
 import { SignInWithApple } from './appleNative';
 import { getSupabase, isSupabaseConfigured } from './supabase';
 import { log } from './log';
+import type { EsimProfile } from './esim';
 import type { RingoSession } from '../auth/auth';
 import type { PhoneNumber } from '../data/types';
 import type { PortFormPayload } from '../store/store';
@@ -360,5 +361,25 @@ export const sbData = {
     if (!u?.user) return [];
     const { data } = await sb.from('waitlist_signups').select('country_code').eq('user_id', u.user.id);
     return (data || []).map((r) => String((r as { country_code: string }).country_code));
+  },
+  // ── eSIM ──────────────────────────────────────────────────────────────────
+  /** Claim an available eSIM profile from the pool (or return the one already
+   *  assigned to this user). Runs server-side via the claim_esim() function. */
+  async claimEsim(): Promise<EsimProfile | null> {
+    const sb = await getSupabase();
+    if (!sb) return null;
+    const { data: u } = await sb.auth.getUser();
+    if (!u?.user) return null;
+    const { data, error } = await sb.rpc('claim_esim');
+    if (error) { log.warn('claimEsim', error); return null; }
+    const row = (Array.isArray(data) ? data[0] : data) as Record<string, string> | null;
+    if (!row || !row.iccid) return null;
+    return {
+      iccid: row.iccid,
+      matchingId: row.matching_id,
+      smdp: row.smdp_plus_address,
+      confirmationCode: row.confirmation_code ?? undefined,
+      provider: row.provider ?? undefined,
+    };
   },
 };

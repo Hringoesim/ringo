@@ -18,6 +18,7 @@ import { getSession } from '../auth/auth';
 import { isSupabaseConfigured, sbData } from '../lib/ringoSupabase';
 import { log } from '../lib/log';
 import { isIapAvailable, iapPurchasePlan, iapActivePlan } from '../lib/iap';
+import type { EsimProfile } from '../lib/esim';
 import { planRank, planMaxNumbers, proratedUpgradeCharge, planPrice, BILLING_DAYS } from '../data/plans';
 import type { KycStatus, PhoneNumber } from '../data/types';
 
@@ -52,6 +53,8 @@ export interface RingoState {
   /** Country codes the user has registered interest in (the country waitlist).
    *  Persisted locally and mirrored to the backend when signed in. */
   waitlist: string[];
+  /** The real eSIM profile assigned to this user (LPA activation data), or null. */
+  esim: EsimProfile | null;
 }
 
 /** Whether the identity check is done enough to buy/port a number (L2 gate). */
@@ -141,6 +144,7 @@ function defaults(): RingoState {
     pioneer: !live,
     destinations: [],
     waitlist: [],
+    esim: null,
   };
 }
 
@@ -461,6 +465,17 @@ export const actions = {
 
   clearTierUp() {
     if (get().tierUp) set({ tierUp: null });
+  },
+
+  /** Claim the user's real eSIM profile from the backend pool (idempotent).
+   *  Returns null on the mock backend or if the pool is exhausted. */
+  async claimEsim(): Promise<EsimProfile | null> {
+    const cur = get().esim;
+    if (cur) return cur;
+    if (!sb) return null;
+    const p = await sbData.claimEsim();
+    if (p) set({ esim: p });
+    return p;
   },
 
   /** Register or unregister interest in a country's waitlist. Toggles local state
