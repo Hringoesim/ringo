@@ -12,9 +12,13 @@ export interface EsimProfile {
   provider?: string;
 }
 
-/** The SGP.22 LPA activation string encoded in the QR / entered manually. */
+/** The SGP.22 LPA activation string encoded in the QR / entered manually.
+ *  Format: LPA:1$SM-DP+$MatchingID[$ConfirmationCode]. When the profile carries
+ *  a confirmation code we embed it (field 4) so iOS installs without stopping to
+ *  prompt for it — the CMI test profiles require one. */
 export function lpaString(p: EsimProfile): string {
-  return `LPA:1$${p.smdp}$${p.matchingId}`;
+  const base = `LPA:1$${p.smdp}$${p.matchingId}`;
+  return p.confirmationCode ? `${base}$${p.confirmationCode}` : base;
 }
 
 /** iOS 17.4+ universal link that opens the native "Add eSIM" flow pre-filled —
