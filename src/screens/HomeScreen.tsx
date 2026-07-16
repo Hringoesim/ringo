@@ -139,7 +139,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
               padding: 2, display: 'flex',
             }}
           >
-            <RingoAvatar name={state.name} avatar={state.avatar} size={34} />
+            <RingoAvatar name={state.name} avatar={state.avatar} pioneer={state.pioneer} size={34} />
           </div>
         </div>
 
