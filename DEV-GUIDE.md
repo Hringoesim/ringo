@@ -15,7 +15,7 @@ and edit each screen in plain English with an AI editor. ~10 minutes one-time.
 Open **Terminal** and paste these one at a time:
 ```bash
 git clone https://github.com/Hringoesim/ringo.git
-cd ringo/app
+cd ringo
 npm install
 ```
 
@@ -29,7 +29,7 @@ That's your app. **Leave this Terminal window running.**
 ## Editing a screen
 
 1. Open **Cursor** → **File → Open Folder** → choose the `ringo` folder.
-2. Each screen is one file in **`app/src/screens/`**:
+2. Each screen is one file in **`src/screens/`**:
 
    | Screen you see | File to open |
    | --- | --- |
@@ -53,7 +53,7 @@ That's your app. **Leave this Terminal window running.**
 ## When you're happy — make it live for everyone
 Back in the Terminal (open a second tab so the preview keeps running):
 ```bash
-cd ~/ringo/app
+cd ~/ringo
 git add -A
 git commit -m "Edited the home screen"
 git push
