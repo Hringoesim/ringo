@@ -7,7 +7,7 @@ import { SaturnWorld } from '../components/SaturnWorld';
 import { RingoButton } from '../components/Button';
 import { LOGO_SRC } from '../assets';
 
-export function LandingScreen({ onExplore }: { onExplore: () => void }) {
+export function LandingScreen({ onExplore, onLogin }: { onExplore: () => void; onLogin?: () => void }) {
   const [globe, setGlobe] = useState(320);
   useEffect(() => {
     const compute = () => {
@@ -67,6 +67,19 @@ export function LandingScreen({ onExplore }: { onExplore: () => void }) {
       <div style={{ padding: '18px 24px 30px', display: 'flex', flexDirection: 'column', gap: 11 }}>
         {/* Explore first — straight into the dashboard; sign in later at a commit point. */}
         <RingoButton onClick={onExplore}>Explore Ringo</RingoButton>
+        {/* Returning users need a way back in after sign-out / reinstall. */}
+        {onLogin && (
+          <button
+            onClick={onLogin}
+            className="press"
+            style={{
+              border: 'none', background: 'transparent', cursor: 'pointer', padding: '4px 0',
+              fontFamily: 'var(--font)', fontSize: 14.5, fontWeight: 600, color: '#9A5B6E',
+            }}
+          >
+            Already have an account? <span style={{ color: RC.inkStrong, fontWeight: 700 }}>Log in</span>
+          </button>
+        )}
       </div>
     </div>
   );

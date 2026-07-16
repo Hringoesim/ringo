@@ -74,6 +74,14 @@ export function InstallScreen({ onBack, onActivate }: { onBack: () => void; onAc
     onActivate();
   };
 
+  // If the pool is momentarily empty / the claim failed, let the user retry
+  // instead of staring at a spinner forever.
+  const retry = () => {
+    haptic('light');
+    setLoading(true);
+    void actions.claimEsim().finally(() => setLoading(false));
+  };
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <RingoHeader title="Install eSIM" leading={<BackBtn onClick={onBack} />} />
@@ -84,7 +92,7 @@ export function InstallScreen({ onBack, onActivate }: { onBack: () => void; onAc
         <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
           {esim
             ? <>Profile <strong style={{ color: RC.ink }}>{formatIccid(esim.iccid)}</strong> is ready. Install it on this iPhone, or scan the QR with another device.</>
-            : 'Preparing your profile from the network…'}
+            : loading ? 'Preparing your profile from the network…' : 'No eSIM is available right now. Please try again in a moment.'}
         </div>
 
         {/* Reveal celebration — the honest "you're connected" beat, only on a
@@ -119,12 +127,14 @@ export function InstallScreen({ onBack, onActivate }: { onBack: () => void; onAc
           <div style={{ width: 210, height: 210, borderRadius: 20, padding: 12, background: '#FFFFFF', boxShadow: 'inset 0 0 0 1px ' + RC.line, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {esim ? (
               <img src={qrDataUri(esim)} alt="eSIM activation QR" style={{ width: '100%', height: '100%', imageRendering: 'pixelated' }} />
-            ) : (
+            ) : loading ? (
               <div style={{ width: 30, height: 30, borderRadius: '50%', border: `3px solid ${RC.line}`, borderTopColor: RC.inkStrong, animation: 'ringoSpin 0.7s linear infinite' }} />
+            ) : (
+              <div style={{ textAlign: 'center', padding: 8, fontFamily: 'var(--font)', fontSize: 12, fontWeight: 600, color: RC.inkMute, lineHeight: 1.4 }}>No eSIM<br />available yet</div>
             )}
           </div>
           <div style={{ marginTop: 14, fontFamily: 'var(--font)', fontSize: 12, fontWeight: 500, color: RC.inkMute, letterSpacing: 0.4, textTransform: 'uppercase' }}>
-            {esim ? `${esim.provider ?? 'eSIM'} · SM-DP+ ${esim.smdp}` : 'Fetching activation code…'}
+            {esim ? `${esim.provider ?? 'eSIM'} · SM-DP+ ${esim.smdp}` : loading ? 'Fetching activation code…' : 'Tap “Try again” below'}
           </div>
         </div>
 
@@ -160,8 +170,8 @@ export function InstallScreen({ onBack, onActivate }: { onBack: () => void; onAc
       </div>
 
       <div style={{ padding: '14px 20px 24px', borderTop: `1px solid ${RC.line}`, background: RC.glass }}>
-        <RingoButton loading={loading} disabled={!esim} onClick={installOnDevice}>
-          {loading ? 'Preparing…' : esim ? 'Install on this iPhone' : 'No profile available'}
+        <RingoButton loading={loading} disabled={loading} onClick={esim ? installOnDevice : retry}>
+          {loading ? 'Preparing…' : esim ? 'Install on this iPhone' : 'Try again'}
         </RingoButton>
       </div>
       <style>{`@keyframes ringoSpin{to{transform:rotate(360deg)}}`}</style>

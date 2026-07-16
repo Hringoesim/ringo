@@ -121,6 +121,10 @@ export function App() {
     auth.completeOnboarding();
     if (sb) void sbAuth.completeOnboarding();
     storeActions.syncIdentity();
+    // Pull the REAL account (numbers, plan, subscription, eSIM) now that we're
+    // authenticated — otherwise a mid-session sign-in shows stale guest defaults
+    // until the next relaunch.
+    void storeActions.hydrate();
     arriveHome(); // sign-in / activation complete → offer alerts (once)
   };
 
@@ -150,11 +154,13 @@ export function App() {
       push('kyc', { mandatory: true, gateReturn: target, gateArg: arg, onboarding });
     }
   };
-  // Paywall gate: installing/activating the eSIM requires an account + paid plan.
+  // Alpha gate: installing/activating the eSIM requires an ACCOUNT only — not a
+  // paid plan. The IAP subscription products aren't live in App Store Connect
+  // yet, so a paywall here would dead-end on TestFlight (the owner could never
+  // reach the eSIM). Re-add `state.subscribed` once billing is live.
   const gateActivation = (target: 'install' | 'activate') => {
     if (requireAccount()) return;
-    if (state.subscribed) push(target);
-    else { hapticNotify('warning'); push('checkout', { planId: state.planId, gateReturn: 'install' }); }
+    push(target);
   };
 
   const onNav: OnNav = (target: NavTarget, ...args: string[]) => {
@@ -192,7 +198,7 @@ export function App() {
     case 'landing':
       // Explore-first: straight into the dashboard. No subscription push, no
       // sign-in wall up front — that comes later, only at a commit point.
-      body = <LandingScreen onExplore={() => replace('home')} />;
+      body = <LandingScreen onExplore={() => replace('home')} onLogin={() => push('signup', { mode: 'login' })} />;
       break;
     case 'onboard':
       body = (
