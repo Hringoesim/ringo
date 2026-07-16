@@ -9,7 +9,7 @@ import { RingoCard } from '../components/Card';
 import { BackBtn, SectionTitle, Step } from '../components/ui';
 import { useRingoState } from '../store/store';
 import { qrDataUri, appleInstallUrl, formatIccid } from '../lib/esim';
-import { haptic, hapticSelection } from '../lib/haptics';
+import { haptic, hapticSelection, hapticNotify } from '../lib/haptics';
 
 function DetailRow({ label, value, last }: { label: string; value: string; last?: boolean }) {
   const [copied, setCopied] = useState(false);
@@ -46,12 +46,22 @@ export function InstallScreen({ onBack, onActivate }: { onBack: () => void; onAc
   const esim = state.esim;
   const [loading, setLoading] = useState(!esim);
   const [showManual, setShowManual] = useState(false);
+  // Celebrate the REAL reveal — the genuine moment the profile lands — not a
+  // faked wait (variable-reward "celebration" stage, done honestly: no theater).
+  const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
     let alive = true;
+    const wasEmpty = !esim; // only celebrate a fresh claim, not a re-visit
     void (async () => {
       await actions.claimEsim();
-      if (alive) setLoading(false);
+      if (!alive) return;
+      setLoading(false);
+      if (wasEmpty) {
+        hapticNotify('success');
+        setRevealed(true);
+        setTimeout(() => { if (alive) setRevealed(false); }, 2400);
+      }
     })();
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -77,12 +87,33 @@ export function InstallScreen({ onBack, onActivate }: { onBack: () => void; onAc
             : 'Preparing your profile from the network…'}
         </div>
 
+        {/* Reveal celebration — the honest "you're connected" beat, only on a
+            fresh claim; auto-dismisses. Real outcome, not engagement theater. */}
+        {revealed && (
+          <div
+            className="rise"
+            style={{
+              marginTop: 18, display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px',
+              borderRadius: 14, background: 'rgba(31,138,91,0.10)', border: '1px solid rgba(31,138,91,0.24)',
+            }}
+          >
+            <span style={{ fontSize: 18 }}>🎉</span>
+            <div style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, color: '#1F7A4E', letterSpacing: -0.1 }}>
+              You’re connected — data in 180+ countries is ready.
+            </div>
+          </div>
+        )}
+
         {/* QR card — the REAL LPA activation code */}
         <div
+          className={esim ? 'rise' : undefined}
           style={{
             marginTop: 22, padding: 24, borderRadius: 28,
-            background: RC.paper, border: `1px solid ${RC.line}`,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: SHADOW_CARD,
+            background: RC.paper,
+            border: `1px solid ${revealed ? 'rgba(31,138,91,0.4)' : RC.line}`,
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            boxShadow: revealed ? '0 0 0 4px rgba(31,138,91,0.12), ' + SHADOW_CARD : SHADOW_CARD,
+            transition: 'border-color 0.5s ease, box-shadow 0.5s ease',
           }}
         >
           <div style={{ width: 210, height: 210, borderRadius: 20, padding: 12, background: '#FFFFFF', boxShadow: 'inset 0 0 0 1px ' + RC.line, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
