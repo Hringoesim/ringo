@@ -90,7 +90,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
 
     const cx = size / 2;
     const cy = size / 2;
-    const R = size * 0.45; // large disc; a small margin lets arcs bow just off the surface
+    const R = size * 0.49; // zoomed-in — the planet nearly fills the frame (close camera)
 
     const projection = geoOrthographic().scale(R).translate([cx, cy]).clipAngle(90);
     const path = geoPath(projection, ctx);
@@ -194,7 +194,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       // A gentle lift, clamped so the apex always stays comfortably inside the
       // disc (never clipped by the canvas, never a detached arc in space). Most
       // routes bow over open ocean, so it doesn't cover a country either.
-      const lift = Math.min(dist * 0.13 + R * 0.05, R * 0.24);
+      const lift = Math.min(dist * 0.11 + R * 0.04, R * 0.15);
       const px = mx + (nx / nl) * lift;
       const py = my + (ny / nl) * lift;
       const q = (u: number): [number, number] => {
