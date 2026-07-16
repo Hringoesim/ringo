@@ -9,6 +9,7 @@ import type { PhoneNumber, Tier } from '../data/types';
 import type { OnNav } from '../navigation';
 import { LOGO_SRC } from '../assets';
 import { Confetti } from '../components/Confetti';
+import { RingoAvatar } from '../components/Avatar';
 import { hapticNotify } from '../lib/haptics';
 
 // Onboarding destination picks → representative country codes for the dashboard.
@@ -137,19 +138,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
               padding: 2, display: 'flex',
             }}
           >
-            {state.avatar ? (
-              <img src={state.avatar} alt="" style={{ flex: 1, width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
-            ) : (
-              <div
-                style={{
-                  flex: 1, borderRadius: '50%', background: RC.paper,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: RC.inkStrong, fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13,
-                }}
-              >
-                {state.name.charAt(0)}
-              </div>
-            )}
+            <RingoAvatar name={state.name} avatar={state.avatar} size={34} />
           </div>
         </div>
 

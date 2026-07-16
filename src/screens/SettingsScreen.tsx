@@ -3,6 +3,7 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { RC } from '../theme';
 import { RingoCard } from '../components/Card';
+import { RingoAvatar } from '../components/Avatar';
 import { BackBtn } from '../components/ui';
 import { useRingoState } from '../store/store';
 import { PLANS, planPrice, fmtMoney } from '../data/plans';
@@ -62,7 +63,6 @@ export function SettingsScreen({ onBack, onSignOut, onNav }: SettingsScreenProps
   const { state, actions } = useRingoState();
   const name = state.name || 'there';
   const email = state.email || 'Signed in with Apple';
-  const initial = (name[0] || 'R').toUpperCase();
   const kyc = state.kycStatus;
   const kycValue = kyc === 'verified' ? 'Verified' : kyc === 'in_review' ? 'In review' : 'Verify now';
   const kycTone = kyc === 'verified' ? ('ok' as const) : kyc === 'in_review' ? undefined : ('warn' as const);
@@ -108,11 +108,7 @@ export function SettingsScreen({ onBack, onSignOut, onNav }: SettingsScreenProps
             className="press"
             style={{ position: 'relative', width: 56, height: 56, borderRadius: '50%', cursor: 'pointer', flexShrink: 0 }}
           >
-            {state.avatar ? (
-              <img src={state.avatar} alt="" style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover' }} />
-            ) : (
-              <div style={{ width: 56, height: 56, borderRadius: '50%', background: RC.grad, color: '#FFFDFB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 22 }}>{initial}</div>
-            )}
+            <RingoAvatar name={name} avatar={state.avatar} size={56} />
             <div style={{ position: 'absolute', right: -2, bottom: -2, width: 22, height: 22, borderRadius: '50%', background: RC.paper, border: `1px solid ${RC.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M4 8h3l1.5-2h7L18 8h3v11H4z" stroke={RC.inkStrong} strokeWidth="2" strokeLinejoin="round" /><circle cx="12" cy="13" r="3" stroke={RC.inkStrong} strokeWidth="2" /></svg>
             </div>

@@ -24,8 +24,9 @@ export function BrowseScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => vo
       return (
         <span
           style={{
-            flexShrink: 0, whiteSpace: 'nowrap', fontFamily: 'var(--font)', fontSize: 12, fontWeight: 600,
-            padding: '7px 12px', borderRadius: 999, background: RC.gradSoft, color: RC.inkStrong,
+            flexShrink: 0, whiteSpace: 'nowrap', fontFamily: 'var(--font)', fontSize: 12, fontWeight: 700,
+            padding: '7px 12px', borderRadius: 999,
+            background: 'rgba(31,138,91,0.12)', color: '#1F7A4E', border: '1px solid rgba(31,138,91,0.22)',
           }}
         >
           Coming soon
