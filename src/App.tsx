@@ -381,7 +381,7 @@ export function App() {
 
   return (
     <div data-screen-label={`Ringo / ${current.name}`} style={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-      <ScreenHost navKey={navKey} dir={navDirRef.current}>
+      <ScreenHost navKey={navKey} dir={navDirRef.current} onSwipeBack={() => { if (stack.length > 1) pop(); }}>
         {body}
       </ScreenHost>
       {showTabs && <RingoTabBar active={current.name} onChange={goTab} />}

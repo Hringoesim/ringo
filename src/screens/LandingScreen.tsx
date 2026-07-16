@@ -39,7 +39,7 @@ export function LandingScreen({ onExplore }: { onExplore: () => void }) {
           justifyContent: 'center', padding: '48px 24px 0', textAlign: 'center',
         }}
       >
-        <img src={LOGO_SRC} alt="Ringo" style={{ height: 66, width: 'auto', marginTop: 38, filter: 'drop-shadow(0 4px 12px rgba(120,40,20,0.14))' }} />
+        <img src={LOGO_SRC} alt="Ringo" style={{ height: 82, width: 'auto', marginTop: 34, filter: 'drop-shadow(0 6px 16px rgba(120,40,20,0.22))' }} />
 
         <div style={{ marginTop: 6 }}>
           <SaturnWorld size={globe} />

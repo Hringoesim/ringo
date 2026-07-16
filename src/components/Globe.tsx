@@ -41,6 +41,21 @@ const FLY = 2.2; // s in the air
 const HOLD = 1.2; // s the flag stays after landing
 const IDLE = 0.6; // s gap between flights
 
+// Cartoon 3D-style landmark icons (Apple emoji render glossy/3D) pinned to real
+// coordinates — a playful, unmistakably-Ringo earth.
+const LANDMARKS: { lng: number; lat: number; icon: string }[] = [
+  { lng: 2.35, lat: 48.85, icon: '🗼' }, // Paris
+  { lng: -74.04, lat: 40.69, icon: '🗽' }, // New York
+  { lng: -0.12, lat: 51.5, icon: '🎡' }, // London
+  { lng: 139.7, lat: 35.68, icon: '🏯' }, // Tokyo
+  { lng: 12.49, lat: 41.89, icon: '🏛️' }, // Rome
+  { lng: 55.27, lat: 25.2, icon: '🕌' }, // Dubai
+  { lng: -122.4, lat: 37.8, icon: '🌉' }, // San Francisco
+  { lng: 151.2, lat: -33.86, icon: '🏙️' }, // Sydney
+  { lng: 28.98, lat: 41.0, icon: '🕌' }, // Istanbul
+  { lng: -43.2, lat: -22.9, icon: '⛰️' }, // Rio
+];
+
 // A springy ease that overshoots then settles — used for the arrival "pop".
 const easeOutBack = (x: number) => {
   const c1 = 1.70158, c3 = c1 + 1;
@@ -103,16 +118,16 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
 
     // Ocean lit from the upper-left, deepening to a rich navy on the far side
     // (muted, satellite-like — not neon).
+    // Bright, friendly "Ringo" ocean — a cheerful cartoon blue, lit upper-left.
     const ocean = ctx.createRadialGradient(cx - R * 0.38, cy - R * 0.42, R * 0.12, cx, cy, R);
-    ocean.addColorStop(0, '#2C79B4');
-    ocean.addColorStop(0.5, '#1A5A90');
-    ocean.addColorStop(1, '#0A2C4E');
-    // Directional day/night shade — clear on the lit side, deepening into the
-    // lower-right for a real spherical falloff.
+    ocean.addColorStop(0, '#4EB6EE');
+    ocean.addColorStop(0.5, '#2E93D6');
+    ocean.addColorStop(1, '#1567AC');
+    // Gentle day/night shade — softer than realistic so the globe stays playful.
     const shade = ctx.createRadialGradient(cx - R * 0.36, cy - R * 0.4, R * 0.32, cx + R * 0.1, cy + R * 0.12, R * 1.05);
     shade.addColorStop(0, 'rgba(0,0,0,0)');
-    shade.addColorStop(0.72, 'rgba(6,20,44,0.14)');
-    shade.addColorStop(1, 'rgba(3,12,30,0.6)');
+    shade.addColorStop(0.72, 'rgba(8,24,50,0.09)');
+    shade.addColorStop(1, 'rgba(4,16,36,0.42)');
     // Tight specular highlight where the light hits.
     const hi = ctx.createRadialGradient(cx - R * 0.4, cy - R * 0.44, 0, cx - R * 0.4, cy - R * 0.44, R * 0.55);
     hi.addColorStop(0, 'rgba(255,255,255,0.42)');
@@ -228,6 +243,31 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       }
     };
 
+    // ── cartoon landmarks + a sailing boat ──────────────────────────────────
+    const drawEmojiAt = (lng: number, lat: number, icon: string, sz: number) => {
+      if (geoDistance([lng, lat], [-lambda, -phi]) >= Math.PI / 2 - 0.06) return; // round the back
+      const pt = projection([lng, lat]);
+      if (!pt) return;
+      ctx.font = `${sz}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      ctx.shadowColor = 'rgba(0,0,0,0.35)';
+      ctx.shadowBlur = sz * 0.16;
+      ctx.shadowOffsetY = 1;
+      ctx.fillText(icon, pt[0], pt[1]); // baseline on the coordinate → icon stands on it
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+    };
+    const drawLandmarks = () => {
+      const sz = Math.max(12, R * 0.15);
+      for (const lm of LANDMARKS) drawEmojiAt(lm.lng, lm.lat, lm.icon, sz);
+      // a little boat sailing eastward across the Pacific, bobbing as it goes
+      const boatLng = -178 + ((tacc * 4) % 82);
+      const boatLat = 6 + 2.4 * Math.sin(tacc * 0.7);
+      drawEmojiAt(boatLng, boatLat, '⛵', Math.max(13, R * 0.15));
+    };
+
     const draw = () => {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, size, size);
@@ -244,12 +284,12 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.fillStyle = ocean;
       ctx.fill();
 
-      // land — natural satellite green, crisp 50m coastlines
+      // land — bright, friendly "Ringo" green, crisp 50m coastlines
       ctx.beginPath();
       path(LAND);
-      ctx.fillStyle = '#3C6E3A';
+      ctx.fillStyle = '#57B364';
       ctx.fill();
-      ctx.strokeStyle = 'rgba(22,52,20,0.5)';
+      ctx.strokeStyle = 'rgba(30,88,44,0.45)';
       ctx.lineWidth = 0.4;
       ctx.stroke();
 
@@ -272,6 +312,9 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.strokeStyle = 'rgba(10,30,55,0.35)';
       ctx.lineWidth = 0.75;
       ctx.stroke();
+
+      // cartoon landmarks + the sailing boat sit on the surface
+      if (showFlights) drawLandmarks();
 
       // flight drawn LAST, unclipped — the arc bows into the space around the
       // globe (above the surface), so it never covers a country.

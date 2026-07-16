@@ -13,7 +13,7 @@ export type NavDir = 'push' | 'pop' | 'fade';
 // keeps tab switches crisp.
 const DURATION: Record<NavDir, number> = { push: 380, pop: 380, fade: 300 };
 
-export function ScreenHost({ navKey, dir, children }: { navKey: string; dir: NavDir; children: ReactNode }) {
+export function ScreenHost({ navKey, dir, children, onSwipeBack }: { navKey: string; dir: NavDir; children: ReactNode; onSwipeBack?: () => void }) {
   const lastKey = useRef(navKey);
   const lastNode = useRef<ReactNode>(children);
   const [leaving, setLeaving] = useState<{ key: string; node: ReactNode; dir: NavDir } | null>(null);
@@ -56,5 +56,26 @@ export function ScreenHost({ navKey, dir, children }: { navKey: string; dir: Nav
     </div>,
   );
 
-  return <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>{layers}</div>;
+  // iOS-style edge-swipe back: a drag that STARTS near the left edge and moves
+  // clearly rightward pops the screen (real horizontal scrollers live inboard, so
+  // the edge start avoids conflicts).
+  const swipe = useRef<{ x: number; y: number } | null>(null);
+  const onTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    swipe.current = t && t.clientX <= 28 ? { x: t.clientX, y: t.clientY } : null;
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (!swipe.current || !onSwipeBack) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - swipe.current.x;
+    const dy = Math.abs(t.clientY - swipe.current.y);
+    swipe.current = null;
+    if (dx > 64 && dy < 48) onSwipeBack();
+  };
+
+  return (
+    <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
+      {layers}
+    </div>
+  );
 }

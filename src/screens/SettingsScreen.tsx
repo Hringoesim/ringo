@@ -183,7 +183,7 @@ export function SettingsScreen({ onBack, onSignOut, onNav }: SettingsScreenProps
             {invite}
           </div>
           <button onClick={copyInvite} className="press" style={{ height: 46, padding: '0 14px', borderRadius: 12, border: `1.5px solid ${RC.line}`, background: RC.paper, color: RC.inkStrong, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{copied ? 'Copied' : 'Copy'}</button>
-          <button onClick={shareInvite} className="press" style={{ height: 46, padding: '0 14px', borderRadius: 12, border: 'none', background: RC.grad, color: '#FFFDFB', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Share</button>
+          <button onClick={shareInvite} className="press" style={{ height: 46, padding: '0 14px', borderRadius: 12, border: 'none', background: '#FF7A2F', color: '#FFFFFF', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Share</button>
         </div>
       </RingoCard>
 

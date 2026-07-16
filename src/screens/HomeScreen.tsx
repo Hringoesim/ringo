@@ -453,30 +453,42 @@ function TierCard({
         </svg>
       </div>
 
-      {/* Big metric */}
-      <div style={{ position: 'relative', marginTop: 20, display: 'flex', alignItems: 'flex-end', gap: 10 }}>
-        <div style={{ fontFamily: 'var(--font)', fontSize: 54, fontWeight: 700, letterSpacing: -2, lineHeight: 0.9 }}>{score}</div>
-        <div style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 500, opacity: 0.9, paddingBottom: 8 }}>
-          countries<br />this year
+      {/* Completion ring — real countries connected inside a closing loop
+          (Apple-rings / Gestalt closure: the mind wants to close the ring).
+          The number is EVIDENCE — actual countries, not a badge. */}
+      <div style={{ position: 'relative', marginTop: 16, display: 'flex', alignItems: 'center', gap: 18 }}>
+        <div style={{ position: 'relative', width: 104, height: 104, flexShrink: 0 }}>
+          <svg width="104" height="104" viewBox="0 0 104 104" style={{ transform: 'rotate(-90deg)' }}>
+            <circle cx="52" cy="52" r="46" fill="none" stroke="rgba(255,253,251,0.26)" strokeWidth="9" />
+            <circle
+              cx="52" cy="52" r="46" fill="none" stroke="#FFFDFB" strokeWidth="9" strokeLinecap="round"
+              strokeDasharray={2 * Math.PI * 46}
+              strokeDashoffset={2 * Math.PI * 46 * (1 - (next ? barPct / 100 : 1))}
+              style={{ transition: 'stroke-dashoffset 0.9s cubic-bezier(0.22,1,0.36,1)' }}
+            />
+          </svg>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ fontFamily: 'var(--font)', fontSize: 34, fontWeight: 700, letterSpacing: -1.5, lineHeight: 1 }}>{score}</div>
+            <div style={{ fontFamily: 'var(--font)', fontSize: 9.5, fontWeight: 600, opacity: 0.9, letterSpacing: 0.4, textTransform: 'uppercase' }}>countries</div>
+          </div>
+        </div>
+        <div style={{ flex: 1 }}>
+          {next ? (
+            <>
+              <div style={{ fontFamily: 'var(--font)', fontSize: 15.5, fontWeight: 700, lineHeight: 1.25 }}>
+                <strong style={{ fontWeight: 800 }}>{toNext} more</strong> to unlock {next.name}
+              </div>
+              <div style={{ marginTop: 5, fontFamily: 'var(--font)', fontSize: 12.5, fontWeight: 500, opacity: 0.92, lineHeight: 1.4 }}>
+                {next.perk}
+              </div>
+            </>
+          ) : (
+            <div style={{ fontFamily: 'var(--font)', fontSize: 14.5, fontWeight: 600, opacity: 0.95, lineHeight: 1.4 }}>
+              Top tier reached — {tier.perk}
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Progress to next tier */}
-      {next ? (
-        <div style={{ position: 'relative', marginTop: 18 }}>
-          <div style={{ height: 7, borderRadius: 7, background: 'rgba(255,253,251,0.28)', overflow: 'hidden' }}>
-            {/* animate transform (compositor) not width (layout) — no reflow per frame */}
-            <div style={{ height: '100%', width: '100%', borderRadius: 7, background: '#FFFDFB', transformOrigin: 'left', transform: `scaleX(${barPct / 100})`, transition: 'transform 0.9s cubic-bezier(0.22,1,0.36,1)' }} />
-          </div>
-          <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 12, fontWeight: 500, opacity: 0.95 }}>
-            <strong style={{ fontWeight: 700 }}>{toNext} more</strong> to unlock {next.name} — {next.perk}
-          </div>
-        </div>
-      ) : (
-        <div style={{ position: 'relative', marginTop: 16, fontFamily: 'var(--font)', fontSize: 12, fontWeight: 500, opacity: 0.95 }}>
-          Top tier unlocked — {tier.perk}
-        </div>
-      )}
     </div>
   );
 }
