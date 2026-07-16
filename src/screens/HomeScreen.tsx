@@ -11,6 +11,7 @@ import { LOGO_SRC } from '../assets';
 import { Confetti } from '../components/Confetti';
 import { RingoAvatar } from '../components/Avatar';
 import { hapticNotify } from '../lib/haptics';
+import { ICON_3D } from '../assets/icons3d';
 
 // Onboarding destination picks → representative country codes for the dashboard.
 const DEST_MAP: Record<string, string[]> = {
@@ -631,41 +632,10 @@ function NumberBuckets({ numbers, onMore, onAdd }: { numbers: PhoneNumber[]; onM
   );
 }
 
-// Restrained action button — a uniform warm-sand tile with a monochrome
-// sunset-ember line icon (not emoji), so the four actions read as a calm,
-// coherent, professional family. Color lives on the hero, not the rail.
+// Action tiles — each a rendered 3D object (Microsoft Fluent 3D set, MIT-
+// licensed) on a clean white tile, so the four primary actions read as a
+// bright, tactile, coherent family.
 type ActionIcon = 'globe' | 'port' | 'plan' | 'qr';
-function actionSvg(kind: ActionIcon): ReactNode {
-  const gid = `rag-${kind}`;
-  const grad = (
-    <defs>
-      <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stopColor="#FF8A3D" />
-        <stop offset="0.5" stopColor="#F0566B" />
-        <stop offset="1" stopColor="#C74B8E" />
-      </linearGradient>
-    </defs>
-  );
-  const p = { fill: 'none', stroke: `url(#${gid})`, strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
-  switch (kind) {
-    case 'globe':
-      return (
-        <svg width="24" height="24" viewBox="0 0 24 24">{grad}<circle cx="12" cy="12" r="9" {...p} /><path d="M3 12h18M12 3c2.6 2.5 4 5.6 4 9s-1.4 6.5-4 9c-2.6-2.5-4-5.6-4-9s1.4-6.5 4-9z" {...p} /></svg>
-      );
-    case 'port':
-      return (
-        <svg width="24" height="24" viewBox="0 0 24 24">{grad}<path d="M4 9h13m0 0l-3.5-3.5M17 9l-3.5 3.5M20 15H7m0 0l3.5-3.5M7 15l3.5 3.5" {...p} /></svg>
-      );
-    case 'plan':
-      return (
-        <svg width="24" height="24" viewBox="0 0 24 24">{grad}<circle cx="12" cy="12" r="9" {...p} /><path d="M12 8v8M8 12h8" {...p} /></svg>
-      );
-    case 'qr':
-      return (
-        <svg width="24" height="24" viewBox="0 0 24 24">{grad}<rect x="4" y="4" width="6" height="6" rx="1.4" {...p} /><rect x="14" y="4" width="6" height="6" rx="1.4" {...p} /><rect x="4" y="14" width="6" height="6" rx="1.4" {...p} /><path d="M14 14.5h2.5V17M20 14v6h-6" {...p} /></svg>
-      );
-  }
-}
 function ActionChip({ label, icon, onClick }: { label: string; icon: ActionIcon; onClick: () => void }) {
   return (
     <button
@@ -678,13 +648,19 @@ function ActionChip({ label, icon, onClick }: { label: string; icon: ActionIcon;
     >
       <div
         style={{
-          width: '100%', aspectRatio: '1', borderRadius: 16,
-          background: RC.paper, border: '1.5px solid rgba(206,74,30,0.22)',
+          width: '100%', aspectRatio: '1', borderRadius: 18,
+          background: RC.paper, border: `1px solid ${RC.line}`,
           boxShadow: SHADOW_CARD,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
-        {actionSvg(icon)}
+        <img
+          src={ICON_3D[icon]}
+          alt=""
+          width={44}
+          height={44}
+          style={{ width: 44, height: 44, objectFit: 'contain', filter: 'drop-shadow(0 4px 6px rgba(30,20,10,0.18))' }}
+        />
       </div>
       <div style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 600, color: RC.ink, letterSpacing: -0.1, textAlign: 'center', lineHeight: 1.2 }}>{label}</div>
     </button>
