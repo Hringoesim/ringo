@@ -182,7 +182,7 @@ export function SettingsScreen({ onBack, onSignOut, onNav }: SettingsScreenProps
           <div style={{ flex: 1, height: 46, borderRadius: 12, border: `1.5px dashed ${RC.lineStrong}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font)', fontSize: 16, fontWeight: 800, letterSpacing: 1, color: RC.inkStrong, background: RC.gradSoft }}>
             {invite}
           </div>
-          <button onClick={copyInvite} className="press" style={{ height: 46, padding: '0 14px', borderRadius: 12, border: `1.5px solid ${RC.line}`, background: RC.paper, color: RC.inkStrong, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{copied ? 'Copied' : 'Copy'}</button>
+          <button onClick={copyInvite} className="press" style={{ height: 46, padding: '0 14px', borderRadius: 12, border: `1.5px solid ${copied ? 'rgba(31,138,91,0.3)' : RC.line}`, background: RC.paper, color: copied ? '#1F7A4E' : RC.inkStrong, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'color 0.2s ease, border-color 0.2s ease' }}>{copied ? <span key="c" style={{ display: 'inline-block', animation: 'ringoConfirm 1.6s ease both' }}>Copied ✓</span> : 'Copy'}</button>
           <button onClick={shareInvite} className="press" style={{ height: 46, padding: '0 14px', borderRadius: 12, border: 'none', background: '#FF7A2F', color: '#FFFFFF', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Share</button>
         </div>
       </RingoCard>

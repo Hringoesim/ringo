@@ -67,7 +67,7 @@ export function KycScreen({ onBack, onContinue, mandatory = false }: KycScreenPr
         <div style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 600, color: RC.inkStrong, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 10 }}>
           Step {step + 1} of 4
         </div>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15, textWrap: 'pretty' }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, color: RC.ink, letterSpacing: -0.7, lineHeight: 1.15, textWrap: 'pretty' }}>
           {titles[step]}
         </div>
         <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>{subs[step]}</div>

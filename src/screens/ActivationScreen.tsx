@@ -68,7 +68,7 @@ export function ActivationScreen({ onDone }: { onDone: () => void }) {
           transition: 'all .5s ease-out',
         }}
       >
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 800, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1 }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 800, color: RC.ink, letterSpacing: -0.85, lineHeight: 1.1 }}>
           Activated
         </div>
         <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 15, color: RC.inkMute, lineHeight: 1.55 }}>

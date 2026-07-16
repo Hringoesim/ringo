@@ -32,7 +32,11 @@ function DetailRow({ label, value, last }: { label: string; value: string; last?
         <div style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 600, color: RC.inkMute, letterSpacing: 0.4, textTransform: 'uppercase' }}>{label}</div>
         <div style={{ marginTop: 2, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 13, fontWeight: 600, color: RC.ink, wordBreak: 'break-all' }}>{value}</div>
       </div>
-      <span style={{ flexShrink: 0, fontFamily: 'var(--font)', fontSize: 12, fontWeight: 700, color: RC.inkStrong }}>{copied ? 'Copied' : 'Copy'}</span>
+      <span style={{ flexShrink: 0, fontFamily: 'var(--font)', fontSize: 12, fontWeight: 700, color: copied ? '#1F7A4E' : RC.inkStrong }}>
+        {copied
+          ? <span key={value} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, animation: 'ringoConfirm 1.4s ease both' }}>Copied ✓</span>
+          : 'Copy'}
+      </span>
     </div>
   );
 }
@@ -64,7 +68,7 @@ export function InstallScreen({ onBack, onActivate }: { onBack: () => void; onAc
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <RingoHeader title="Install eSIM" leading={<BackBtn onClick={onBack} />} />
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '0 20px 130px' }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15 }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, color: RC.ink, letterSpacing: -0.7, lineHeight: 1.15 }}>
           Install your eSIM
         </div>
         <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
@@ -125,7 +129,7 @@ export function InstallScreen({ onBack, onActivate }: { onBack: () => void; onAc
       </div>
 
       <div style={{ padding: '14px 20px 24px', borderTop: `1px solid ${RC.line}`, background: RC.glass }}>
-        <RingoButton disabled={loading || !esim} onClick={installOnDevice}>
+        <RingoButton loading={loading} disabled={!esim} onClick={installOnDevice}>
           {loading ? 'Preparing…' : esim ? 'Install on this iPhone' : 'No profile available'}
         </RingoButton>
       </div>

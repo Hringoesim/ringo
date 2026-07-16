@@ -38,7 +38,7 @@ export function NumberSetupScreen({ onNewNumber, onPortIn, onSkip, onBack, kycDo
             <circle cx="12" cy="17.5" r="1" fill="#FFFDFB" />
           </svg>
         </div>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.15, textWrap: 'pretty' }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: RC.ink, letterSpacing: -0.8, lineHeight: 1.15, textWrap: 'pretty' }}>
           Add your number
         </div>
         <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 15, color: RC.inkMute, lineHeight: 1.55 }}>

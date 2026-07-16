@@ -89,7 +89,7 @@ export function PaywallScreen({ planId, onBack, onPaid }: PaywallScreenProps) {
       {celebrate && <Confetti />}
       <RingoHeader title="Checkout" leading={<BackBtn onClick={onBack} />} />
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '8px 24px 16px' }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1 }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, color: RC.ink, letterSpacing: -0.7, lineHeight: 1.1 }}>
           Ringo {plan.name}
         </div>
         <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
@@ -204,7 +204,7 @@ export function PaywallScreen({ planId, onBack, onPaid }: PaywallScreenProps) {
       <div style={{ padding: '14px 24px 24px', borderTop: `1px solid ${RC.line}`, background: RC.glass }}>
         {/* Stay disabled through the celebration→navigation window so an eager
             second tap can't fire a duplicate charge. */}
-        <RingoButton disabled={busy || celebrate} onClick={pay}>
+        <RingoButton loading={busy} disabled={celebrate} onClick={pay}>
           {busy ? 'Processing…' : celebrate ? 'Done!' : iap ? `Subscribe · ${price}/mo` : `Pay ${price} — subscribe`}
         </RingoButton>
         {iap && (

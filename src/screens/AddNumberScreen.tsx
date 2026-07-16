@@ -40,7 +40,7 @@ export function AddNumberScreen({ preselect, onBack, onContinue }: AddNumberScre
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <RingoHeader title="New Ringo number" leading={<BackBtn onClick={onBack} />} />
       <div style={{ padding: '0 20px' }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15, textWrap: 'pretty' }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, color: RC.ink, letterSpacing: -0.7, lineHeight: 1.15, textWrap: 'pretty' }}>
           Choose a country
         </div>
         <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 13, color: RC.inkMute, lineHeight: 1.5 }}>

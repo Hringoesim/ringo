@@ -131,7 +131,7 @@ export function OnboardingScreen({ onExplore, onCreate, onBack }: Props) {
         {step === 3 && (
           <div style={{ animation: 'ringoFadeIn 0.45s cubic-bezier(0.34,1.4,0.64,1) both' }}>
             <div style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, color: RC.inkStrong, letterSpacing: 0.4, textTransform: 'uppercase' }}>Your plan</div>
-            <div style={{ marginTop: 8, fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1 }}>
+            <div style={{ marginTop: 8, fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: RC.ink, letterSpacing: -0.8, lineHeight: 1.1 }}>
               You're set for <span style={{ background: RC.grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{nCountries} countries.</span>
             </div>
             <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 15, color: RC.inkMute, lineHeight: 1.55 }}>
@@ -228,7 +228,7 @@ export function OnboardingScreen({ onExplore, onCreate, onBack }: Props) {
 function Question({ title, sub, children }: { title: string; sub: string; children: React.ReactNode }) {
   return (
     <div>
-      <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.12 }}>{title}</div>
+      <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, color: RC.ink, letterSpacing: -0.7, lineHeight: 1.12 }}>{title}</div>
       <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 14.5, color: RC.inkMute, lineHeight: 1.5 }}>{sub}</div>
       <div style={{ marginTop: 22 }}>{children}</div>
     </div>

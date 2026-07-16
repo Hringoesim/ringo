@@ -65,7 +65,7 @@ export function BrowseScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => vo
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <RingoHeader title="Browse" leading={<BackBtn onClick={onBack} />} trailing={null} />
       <div style={{ padding: '0 20px' }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.1, textWrap: 'pretty' }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: RC.ink, letterSpacing: -0.8, lineHeight: 1.1, textWrap: 'pretty' }}>
           Countries
         </div>
         <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, fontWeight: 400 }}>

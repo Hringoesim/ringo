@@ -14,7 +14,7 @@ export function LegalScreen({ doc, onBack }: { doc: 'terms' | 'privacy'; onBack:
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <RingoHeader title={title} leading={<BackBtn onClick={onBack} />} />
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '8px 24px 40px' }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 800, color: RC.ink, letterSpacing: -0.5, lineHeight: 1.15 }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 800, color: RC.ink, letterSpacing: -0.65, lineHeight: 1.15 }}>
           {title}
         </div>
         <div style={{ marginTop: 4, marginBottom: 8, fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute }}>

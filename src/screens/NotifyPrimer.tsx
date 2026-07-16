@@ -27,7 +27,7 @@ export function NotifyPrimer({ onDone }: { onDone: () => void }) {
             <path d="M13.7 21a2 2 0 01-3.4 0" stroke={RC.inkStrong} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
-        <div style={{ marginTop: 22, fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: RC.ink, letterSpacing: -0.6, lineHeight: 1.12 }}>
+        <div style={{ marginTop: 22, fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: RC.ink, letterSpacing: -0.8, lineHeight: 1.12 }}>
           Never miss a connection.
         </div>
         <div style={{ marginTop: 12, fontFamily: 'var(--font)', fontSize: 15, color: RC.inkMute, lineHeight: 1.55, maxWidth: 300 }}>

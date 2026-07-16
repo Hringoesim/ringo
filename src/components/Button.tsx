@@ -11,6 +11,8 @@ interface RingoButtonProps {
   size?: 'lg' | 'sm';
   icon?: ReactNode;
   disabled?: boolean;
+  /** Shows a spinner + blocks taps while an action is in flight. */
+  loading?: boolean;
 }
 
 export function RingoButton({
@@ -21,9 +23,11 @@ export function RingoButton({
   size = 'lg',
   icon = null,
   disabled = false,
+  loading = false,
 }: RingoButtonProps) {
+  const off = disabled || loading;
   const base: CSSProperties = {
-    border: 'none', cursor: disabled ? 'not-allowed' : 'pointer',
+    border: 'none', cursor: off ? 'not-allowed' : 'pointer',
     fontFamily: 'var(--font)', fontWeight: 600,
     fontSize: size === 'lg' ? 16 : 14, letterSpacing: -0.1,
     height: size === 'lg' ? 56 : 44,
@@ -31,7 +35,7 @@ export function RingoButton({
     borderRadius: 999,
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
     width: full ? '100%' : 'auto',
-    opacity: disabled ? 0.5 : 1,
+    opacity: disabled ? 0.5 : 1, // loading stays full-strength (it's active, just busy)
   };
   if (variant === 'primary')
     Object.assign(base, {
@@ -46,9 +50,9 @@ export function RingoButton({
 
   return (
     <button
-      className={disabled ? undefined : 'press'}
+      className={off ? undefined : 'press'}
       onClick={
-        disabled
+        off
           ? undefined
           : () => {
               haptic('medium');
@@ -56,9 +60,21 @@ export function RingoButton({
             }
       }
       style={base}
-      disabled={disabled}
+      disabled={off}
+      aria-busy={loading}
     >
-      {icon}
+      {loading ? (
+        <span
+          aria-hidden
+          style={{
+            width: 17, height: 17, borderRadius: '50%',
+            border: '2px solid currentColor', borderTopColor: 'transparent',
+            display: 'inline-block', animation: 'ringoSpin 0.7s linear infinite',
+          }}
+        />
+      ) : (
+        icon
+      )}
       {children}
     </button>
   );

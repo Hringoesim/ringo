@@ -218,3 +218,16 @@ textarea,
   40% { transform: scale(1.05); }
   100% { transform: scale(1); }
 }
+
+/* Loading spinner (buttons, fetches). */
+@keyframes ringoSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* Micro-interaction: a confirmation chip that slides up + fades in (e.g. "Copied"). */
+@keyframes ringoConfirm {
+  0% { opacity: 0; transform: translateY(6px); }
+  15% { opacity: 1; transform: translateY(0); }
+  85% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-4px); }
+}
