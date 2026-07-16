@@ -69,10 +69,10 @@ export function ActivationScreen({ onDone }: { onDone: () => void }) {
         }}
       >
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 800, color: RC.ink, letterSpacing: -0.85, lineHeight: 1.1 }}>
-          Activated
+          Your eSIM is ready
         </div>
         <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 15, color: RC.inkMute, lineHeight: 1.55 }}>
-          Your eSIM is active. Data, calls and texts are working now.
+          Finish adding it in Settings, then turn on Ringo data to get connected.
         </div>
       </div>
 

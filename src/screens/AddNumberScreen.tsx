@@ -44,7 +44,7 @@ export function AddNumberScreen({ preselect, onBack, onContinue }: AddNumberScre
           Choose a country
         </div>
         <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 13, color: RC.inkMute, lineHeight: 1.5 }}>
-          Allocated instantly from Ringo’s number inventory.
+          Preview — Ringo numbers go live soon. This shows how choosing one will work.
         </div>
       </div>
 

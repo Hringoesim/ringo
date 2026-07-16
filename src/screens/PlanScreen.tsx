@@ -171,6 +171,7 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
           ) : null}
         </div>
 
+        {state.subscribed && (<>
         <div style={{ marginTop: 22 }}>
           <SectionTitle>This month</SectionTitle>
           <RingoCard style={{ padding: 18 }}>
@@ -191,7 +192,7 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
                 <div style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, color: RC.ink }}>{usedPct === 0 ? 'Nothing used yet.' : 'You’re flying.'}</div>
                 <div style={{ fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute, lineHeight: 1.5, marginTop: 2 }}>{usedPct === 0 ? 'Your high-speed data is ready the moment you travel.' : 'At this rate, you’ll stay at high speed all month.'}</div>
                 <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 11, color: RC.inkMute }}>
-                  {pending ? `Switches to ${pending.name} ${fmtDate(state.periodEnd)}` : `Renews ${fmtDate(state.periodEnd)}`} · Visa •• 4242
+                  {pending ? `Switches to ${pending.name} ${fmtDate(state.periodEnd)}` : `Renews ${fmtDate(state.periodEnd)}`} · Billed to your Apple ID
                 </div>
               </div>
             </div>
@@ -200,22 +201,13 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
 
         <div style={{ marginTop: 22 }}>
           <SectionTitle>Recent</SectionTitle>
-          <RingoCard style={{ padding: 0 }}>
-            {[
-              { d: 'Apr 28', t: `Ringo ${cur.name}`, a: fmtMoney(planPrice(cur.id)) },
-              { d: 'Mar 28', t: `Ringo ${cur.name}`, a: fmtMoney(planPrice(cur.id)) },
-              { d: 'Feb 28', t: `Ringo ${cur.name}`, a: fmtMoney(planPrice(cur.id)) },
-            ].map((r, i, arr) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', borderBottom: i === arr.length - 1 ? 'none' : `1px solid ${RC.line}` }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, color: RC.ink }}>{r.t}</div>
-                  <div style={{ fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute }}>{r.d}</div>
-                </div>
-                <div style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, color: RC.inkStrong }}>{r.a}</div>
-              </div>
-            ))}
+          <RingoCard style={{ padding: '18px 16px' }}>
+            <div style={{ fontFamily: 'var(--font)', fontSize: 13.5, color: RC.inkMute, textAlign: 'center', lineHeight: 1.5 }}>
+              No charges yet. Your receipts appear here after your first billing date.
+            </div>
           </RingoCard>
         </div>
+        </>)}
 
         <div style={{ marginTop: 22 }}>
           <RingoButton variant="ghost" onClick={onInstall}>Install eSIM on this device</RingoButton>

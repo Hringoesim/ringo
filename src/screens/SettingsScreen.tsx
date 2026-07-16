@@ -190,7 +190,7 @@ export function SettingsScreen({ onBack, onSignOut, onNav }: SettingsScreenProps
       <SectionLabel>Account</SectionLabel>
       <RingoCard style={{ marginTop: 10, padding: '2px 16px' }}>
         <Row label="Identity verification" value={kycValue} tone={kycTone} onClick={kyc === 'pending' ? () => onNav('kyc') : undefined} />
-        <Row label="Plan & billing" value={`${PLANS.find((p) => p.id === state.planId)?.name ?? 'Essentials'} · ${fmtMoney(planPrice(state.planId))}/mo`} onClick={() => onNav('plan')} />
+        <Row label="Plan & billing" value={state.subscribed ? `${PLANS.find((p) => p.id === state.planId)?.name ?? 'Essentials'} · ${fmtMoney(planPrice(state.planId))}/mo` : 'No active plan'} onClick={() => onNav('plan')} />
         <Row label="Membership" value={membershipFor(state.score, state.pioneer).name} onClick={() => onNav('tiers')} />
         <Row label="Your numbers" value={`${state.numbers.length}`} onClick={() => onNav('numbers')} last />
       </RingoCard>
