@@ -56,6 +56,20 @@ const LANDMARKS: { lng: number; lat: number; icon: string }[] = [
   { lng: -43.2, lat: -22.9, icon: '⛰️' }, // Rio
 ];
 
+// A drifting cloud layer — soft white puffs pinned to geo coords, rotating a
+// touch FASTER than the surface so they parallax over the continents. That
+// independent motion is what gives the globe its depth / "alive" feel.
+const CLOUDS: { lng: number; lat: number; r: number }[] = [
+  { lng: -30, lat: 22, r: 0.30 }, { lng: -62, lat: -12, r: 0.34 },
+  { lng: 18, lat: 6, r: 0.26 }, { lng: 58, lat: 32, r: 0.30 },
+  { lng: 102, lat: -18, r: 0.36 }, { lng: 140, lat: 12, r: 0.28 },
+  { lng: 172, lat: -34, r: 0.30 }, { lng: -122, lat: 42, r: 0.32 },
+  { lng: -92, lat: -30, r: 0.26 }, { lng: 2, lat: 52, r: 0.24 },
+  { lng: 46, lat: -42, r: 0.28 }, { lng: -150, lat: 8, r: 0.34 },
+  { lng: 122, lat: 46, r: 0.26 }, { lng: -18, lat: -26, r: 0.30 },
+  { lng: 82, lat: 22, r: 0.24 }, { lng: 158, lat: 28, r: 0.28 },
+];
+
 // A springy ease that overshoots then settles — used for the arrival "pop".
 const easeOutBack = (x: number) => {
   const c1 = 1.70158, c3 = c1 + 1;
@@ -80,6 +94,9 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
 
     const projection = geoOrthographic().scale(R).translate([cx, cy]).clipAngle(90);
     const path = geoPath(projection, ctx);
+    // A second sphere for the clouds — same size, rotated slightly ahead of the
+    // surface so the two layers drift apart (parallax depth).
+    const cloudProjection = geoOrthographic().scale(R).translate([cx, cy]).clipAngle(90);
 
     const reduce = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     let raf = 0;
@@ -94,6 +111,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     let cur: [string, string] | null = null; // route currently flying
     let lastRoute = ''; // avoid repeating the same route back-to-back
     let lambda = -40; // longitude rotation (degrees) — advances every frame
+    let cloudLambda = -40; // clouds drift a touch faster → parallax
     let phi = -12; // latitude tilt (degrees) — gently tumbles
     let tacc = 0; // time accumulator for the tumble
     let lastTs = performance.now();
@@ -123,15 +141,27 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     ocean.addColorStop(0, '#4EB6EE');
     ocean.addColorStop(0.5, '#2E93D6');
     ocean.addColorStop(1, '#1567AC');
-    // Gentle day/night shade — softer than realistic so the globe stays playful.
-    const shade = ctx.createRadialGradient(cx - R * 0.36, cy - R * 0.4, R * 0.32, cx + R * 0.1, cy + R * 0.12, R * 1.05);
+    // Day/night terminator — deepened so the globe reads as a lit SPHERE with
+    // real form (the far side falls into dusk), while the palette stays warm.
+    const shade = ctx.createRadialGradient(cx - R * 0.34, cy - R * 0.4, R * 0.28, cx + R * 0.14, cy + R * 0.16, R * 1.08);
     shade.addColorStop(0, 'rgba(0,0,0,0)');
-    shade.addColorStop(0.72, 'rgba(8,24,50,0.09)');
-    shade.addColorStop(1, 'rgba(4,16,36,0.42)');
-    // Tight specular highlight where the light hits.
-    const hi = ctx.createRadialGradient(cx - R * 0.4, cy - R * 0.44, 0, cx - R * 0.4, cy - R * 0.44, R * 0.55);
-    hi.addColorStop(0, 'rgba(255,255,255,0.42)');
+    shade.addColorStop(0.58, 'rgba(10,26,54,0.06)');
+    shade.addColorStop(0.82, 'rgba(7,20,46,0.26)');
+    shade.addColorStop(1, 'rgba(3,12,30,0.60)');
+    // Bright, tight specular where the sun hits the upper-left ocean — a strong
+    // 3D cue that the surface curves toward the light.
+    const hi = ctx.createRadialGradient(cx - R * 0.4, cy - R * 0.44, 0, cx - R * 0.4, cy - R * 0.44, R * 0.5);
+    hi.addColorStop(0, 'rgba(255,255,255,0.55)');
+    hi.addColorStop(0.5, 'rgba(255,255,255,0.14)');
     hi.addColorStop(1, 'rgba(255,255,255,0)');
+    // Inner atmosphere — a cool bright limb hugging the INSIDE of the sphere
+    // (the "blue-marble" glow), clipped to the disc so it's on the planet, never
+    // an outer halo ring.
+    const atmo = ctx.createRadialGradient(cx, cy, R * 0.72, cx, cy, R);
+    atmo.addColorStop(0, 'rgba(150,220,255,0)');
+    atmo.addColorStop(0.84, 'rgba(150,220,255,0)');
+    atmo.addColorStop(0.95, 'rgba(178,230,255,0.30)');
+    atmo.addColorStop(1, 'rgba(120,195,240,0.12)');
 
     // ── flight drawing ──────────────────────────────────────────────────────
     // Draws the CURRENT route only: an arc bowing off the surface from origin to
@@ -259,6 +289,34 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.shadowBlur = 0;
       ctx.shadowOffsetY = 0;
     };
+    // Soft cloud puffs on their own (faster) sphere — the parallax layer that
+    // gives the globe depth. Foreshortened + faded toward the limb so they wrap.
+    const drawClouds = () => {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.clip();
+      const centre: [number, number] = [-cloudLambda, -phi];
+      const limit = Math.PI / 2 - 0.02;
+      for (const c of CLOUDS) {
+        const d = geoDistance([c.lng, c.lat], centre);
+        if (d >= limit) continue;
+        const pt = cloudProjection([c.lng, c.lat]);
+        if (!pt) continue;
+        const edge = 1 - d / limit; // 1 at centre → 0 at the limb
+        const alpha = 0.46 * Math.min(1, edge * 1.7);
+        const rad = c.r * R * (0.55 + 0.45 * edge);
+        const g = ctx.createRadialGradient(pt[0], pt[1], 0, pt[0], pt[1], rad);
+        g.addColorStop(0, `rgba(255,255,255,${alpha})`);
+        g.addColorStop(0.55, `rgba(255,255,255,${alpha * 0.45})`);
+        g.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(pt[0], pt[1], rad, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    };
     const drawLandmarks = () => {
       const sz = Math.max(12, R * 0.15);
       for (const lm of LANDMARKS) drawEmojiAt(lm.lng, lm.lat, lm.icon, sz);
@@ -272,6 +330,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, size, size);
       projection.scale(R).rotate([lambda, phi, 0]);
+      cloudProjection.scale(R).rotate([cloudLambda, phi, 0]);
 
       // earth content — clipped to the disc (no halo/atmosphere ring)
       ctx.save();
@@ -295,6 +354,9 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
 
       ctx.restore();
 
+      // drifting cloud layer — parallax depth over the surface
+      if (showFlights) drawClouds();
+
       ctx.save();
       ctx.beginPath();
       ctx.arc(cx, cy, R, 0, Math.PI * 2);
@@ -302,6 +364,9 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.fillStyle = shade;
       ctx.fillRect(0, 0, size, size);
       ctx.fillStyle = hi;
+      ctx.fillRect(0, 0, size, size);
+      // inner atmosphere limb (on the sphere, clipped — not an outer halo)
+      ctx.fillStyle = atmo;
       ctx.fillRect(0, 0, size, size);
       ctx.restore();
 
@@ -332,6 +397,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       // CONSTANT spin — the earth is always turning; plus a gentle N↔S tumble so
       // every continent drifts into view over time.
       lambda += SPIN * dt;
+      cloudLambda += SPIN * 1.13 * dt; // 13% faster → clouds visibly parallax over land
       const tumble = -13 + 11 * Math.sin(tacc * 0.22);
       phi += (tumble - phi) * Math.min(1, dt * 1.2);
 
