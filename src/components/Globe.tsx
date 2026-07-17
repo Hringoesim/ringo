@@ -63,6 +63,12 @@ const CLOUDS: { lng: number; lat: number; r: number }[] = [
   { lng: 82, lat: 22, r: 0.24 }, { lng: 158, lat: 28, r: 0.28 },
 ];
 
+// A springy ease that overshoots then settles — gives the markers their pop.
+const easeOutBack = (x: number) => {
+  const c1 = 1.70158, c3 = c1 + 1;
+  return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
+};
+
 export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
 
@@ -127,24 +133,37 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     atmo.addColorStop(1, 'rgba(120,195,240,0.12)');
 
     // ── surface icons (landmarks) ───────────────────────────────────────────
-    const drawEmojiAt = (lng: number, lat: number, icon: string, sz: number) => {
-      if (geoDistance([lng, lat], [-lambda, -phi]) >= Math.PI / 2 - 0.06) return; // round the back
+    // A landmark POPS in as it rotates onto the near face and pops back out as it
+    // reaches the limb — scale + fade driven by how far it is from the limb, so it
+    // grows out of the surface (with a contact shadow) rather than blinking on.
+    const dLimit = Math.PI / 2 - 0.06; // gone by here (at the horizon)
+    const dNear = Math.PI / 2 - 0.62; // fully present once this close to centre
+    const drawMarker = (lng: number, lat: number, icon: string, baseSz: number) => {
+      const d = geoDistance([lng, lat], [-lambda, -phi]);
+      if (d >= dLimit) return;
+      const p = Math.max(0, Math.min(1, (dLimit - d) / (dLimit - dNear))); // 0 at limb → 1 near centre
+      const scale = easeOutBack(p); // punchy pop, overshoots then settles
+      if (scale <= 0.03) return;
       const pt = projection([lng, lat]);
       if (!pt) return;
+      const sz = baseSz * scale;
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, p * 1.6); // fade with the pop
+      // soft contact shadow grounds the icon on the sphere
+      ctx.beginPath();
+      ctx.ellipse(pt[0], pt[1] + baseSz * 0.05, sz * 0.32, sz * 0.12, 0, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(8,26,40,0.22)';
+      ctx.fill();
+      // the icon, lifting just off the surface as it pops
       ctx.font = `${sz}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'alphabetic';
-      ctx.shadowColor = 'rgba(0,0,0,0.35)';
-      ctx.shadowBlur = sz * 0.16;
-      ctx.shadowOffsetY = 1;
       ctx.fillText(icon, pt[0], pt[1]);
-      ctx.shadowColor = 'transparent';
-      ctx.shadowBlur = 0;
-      ctx.shadowOffsetY = 0;
+      ctx.restore();
     };
     const drawLandmarks = () => {
-      const sz = Math.max(12, R * 0.14);
-      for (const lm of LANDMARKS) drawEmojiAt(lm.lng, lm.lat, lm.icon, sz);
+      const sz = Math.max(12, R * 0.13);
+      for (const lm of LANDMARKS) drawMarker(lm.lng, lm.lat, lm.icon, sz);
     };
 
     // Soft cloud puffs on their own drifting sphere — parallax depth.
