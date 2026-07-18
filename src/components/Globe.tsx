@@ -136,12 +136,15 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     // A landmark POPS in as it rotates onto the near face and pops back out as it
     // reaches the limb — scale + fade driven by how far it is from the limb, so it
     // grows out of the surface (with a contact shadow) rather than blinking on.
-    const dLimit = Math.PI / 2 - 0.06; // gone by here (at the horizon)
-    const dNear = Math.PI / 2 - 0.62; // fully present once this close to centre
+    const dLimit = Math.PI / 2 - 0.05; // behind the globe past here — never draw
+    const nearPlane = 0.3; // fully present when the plane is this close (rad)
+    const farPlane = 0.9; // faded out once the plane is this far away
     const drawMarker = (lng: number, lat: number, icon: string, baseSz: number) => {
-      const d = geoDistance([lng, lat], [-lambda, -phi]);
-      if (d >= dLimit) return;
-      const p = Math.max(0, Math.min(1, (dLimit - d) / (dLimit - dNear))); // 0 at limb → 1 near centre
+      if (geoDistance([lng, lat], [-lambda, -phi]) >= dLimit) return; // far side of the globe
+      // The pop is tied to the PLANE: a landmark comes in as the plane approaches
+      // and fades out as the plane flies on.
+      const dp = geoDistance([lng, lat], [planeLng, planeLat]);
+      const p = Math.max(0, Math.min(1, (farPlane - dp) / (farPlane - nearPlane)));
       const scale = easeOutBack(p); // punchy pop, overshoots then settles
       if (scale <= 0.03) return;
       const pt = projection([lng, lat]);
