@@ -1,11 +1,11 @@
 // Globe.tsx — the Earth seen from a little plane that flies a smooth, continuous
 // great-circle world tour; the camera follows it so countries scroll beneath.
-// Major landmarks are 4D — sprite-baked emoji that lift off the surface with a
-// pinned contact shadow (parallax = height), a springy pop-in, a gentle bob, and
-// a hop as the plane flies over — and they COME as the plane nears each place and
-// FADE as it flies on. Real coastlines (Natural Earth 50m) via a d3-geo
-// orthographic projection on a 2D canvas, a drifting cloud layer, and a
-// blue-marble inner atmosphere (no outer halo). Not interactive by design.
+// Major landmarks are REAL vector icons (each city its own distinct landmark, no
+// emoji) that read as 4D — baked to sprites, lifted off the surface with a pinned
+// contact shadow (parallax = height), a springy pop-in, a gentle bob and a hop as
+// the plane flies over — coming as the plane nears and fading as it flies on.
+// Real coastlines (Natural Earth 50m) via a d3-geo orthographic projection on a
+// 2D canvas, a drifting cloud layer, and a blue-marble inner atmosphere (no halo).
 import { useEffect, useRef } from 'react';
 import { geoOrthographic, geoPath, geoDistance, geoInterpolate, type GeoPermissibleObjects } from 'd3-geo';
 import { feature } from 'topojson-client';
@@ -14,7 +14,6 @@ import landTopo from 'world-atlas/land-50m.json';
 const LAND = feature(landTopo as any, (landTopo as any).objects.land) as unknown as GeoPermissibleObjects;
 const clamp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
 
-// The world tour — a continuous eastbound loop that visits every continent.
 const TOUR: [number, number][] = [
   [-0.1, 51.5], // London
   [12.5, 41.9], // Rome
@@ -34,23 +33,103 @@ const TOUR: [number, number][] = [
   [3.4, 6.5], // Lagos
 ];
 
-const ANG_SPEED = 0.16; // rad/s the plane travels along the surface (leisurely)
+const ANG_SPEED = 0.16; // rad/s the plane travels along the surface
 
-// Cartoon landmark icons pinned to real coordinates — a playful, Ringo earth.
-const LANDMARKS: { lng: number; lat: number; icon: string }[] = [
-  { lng: 2.35, lat: 48.85, icon: '🗼' }, // Paris
-  { lng: -74.04, lat: 40.69, icon: '🗽' }, // New York
-  { lng: -0.12, lat: 51.5, icon: '🎡' }, // London
-  { lng: 139.7, lat: 35.68, icon: '🏯' }, // Tokyo
-  { lng: 12.49, lat: 41.89, icon: '🏛️' }, // Rome
-  { lng: 55.27, lat: 25.2, icon: '🕌' }, // Dubai
-  { lng: -122.4, lat: 37.8, icon: '🌉' }, // San Francisco
-  { lng: 151.2, lat: -33.86, icon: '🏙️' }, // Sydney
-  { lng: 28.98, lat: 41.0, icon: '🕌' }, // Istanbul
-  { lng: -43.2, lat: -22.9, icon: '⛰️' }, // Rio
+// One DISTINCT landmark per city (kind → drawn below). No emoji, no duplicates.
+const LANDMARKS: { lng: number; lat: number; kind: string }[] = [
+  { lng: 2.35, lat: 48.85, kind: 'eiffel' }, // Paris
+  { lng: -74.04, lat: 40.69, kind: 'skyline' }, // New York
+  { lng: -0.12, lat: 51.5, kind: 'bigben' }, // London
+  { lng: 139.7, lat: 35.68, kind: 'torii' }, // Tokyo
+  { lng: 12.49, lat: 41.89, kind: 'colosseum' }, // Rome
+  { lng: 55.27, lat: 25.2, kind: 'burj' }, // Dubai
+  { lng: -122.4, lat: 37.8, kind: 'bridge' }, // San Francisco
+  { lng: 151.2, lat: -33.86, kind: 'opera' }, // Sydney
+  { lng: 28.98, lat: 41.0, kind: 'mosque' }, // Istanbul
+  { lng: -43.2, lat: -22.9, kind: 'christ' }, // Rio
 ];
 
-// A drifting cloud layer — parallax depth over the continents.
+// Simple, bold vector silhouettes drawn in a 0..100 box (ground ≈ 94). Filled
+// warm-white with a dark outline so each reads on land, ocean or cloud.
+const IW = '#FDFBF7';
+const IO = 'rgba(28,20,14,0.55)';
+const fs = (g: CanvasRenderingContext2D) => { g.fill(); g.stroke(); };
+const ICON_DRAW: Record<string, (g: CanvasRenderingContext2D) => void> = {
+  eiffel(g) {
+    g.beginPath();
+    g.moveTo(50, 6);
+    g.quadraticCurveTo(45, 45, 27, 94); g.lineTo(40, 94);
+    g.quadraticCurveTo(47, 55, 50, 48); g.quadraticCurveTo(53, 55, 60, 94);
+    g.lineTo(73, 94); g.quadraticCurveTo(55, 45, 50, 6); g.closePath(); fs(g);
+    g.beginPath(); g.rect(35, 52, 30, 6); fs(g);
+    g.beginPath(); g.rect(28, 78, 44, 6); fs(g);
+  },
+  skyline(g) {
+    for (const [x, w, h] of [[20, 16, 42], [40, 20, 62], [64, 16, 36]] as const) {
+      g.beginPath(); g.rect(x, 94 - h, w, h); fs(g);
+    }
+    g.beginPath(); g.moveTo(50, 32); g.lineTo(50, 16); g.stroke();
+    g.beginPath(); g.arc(50, 14, 3, 0, Math.PI * 2); fs(g);
+  },
+  bigben(g) {
+    g.beginPath(); g.rect(38, 30, 24, 64); fs(g);
+    g.beginPath(); g.moveTo(33, 30); g.lineTo(50, 8); g.lineTo(67, 30); g.closePath(); fs(g);
+    g.beginPath(); g.arc(50, 44, 7, 0, Math.PI * 2); fs(g);
+    g.beginPath(); g.arc(50, 44, 2.4, 0, Math.PI * 2); g.fillStyle = IO; g.fill(); g.fillStyle = IW;
+  },
+  torii(g) {
+    g.beginPath(); g.rect(26, 30, 9, 64); fs(g);
+    g.beginPath(); g.rect(65, 30, 9, 64); fs(g);
+    g.beginPath(); g.moveTo(13, 26); g.quadraticCurveTo(50, 17, 87, 26);
+    g.lineTo(87, 35); g.quadraticCurveTo(50, 27, 13, 35); g.closePath(); fs(g);
+    g.beginPath(); g.rect(30, 41, 40, 7); fs(g);
+  },
+  colosseum(g) {
+    g.beginPath();
+    g.moveTo(18, 92); g.lineTo(18, 52);
+    g.quadraticCurveTo(18, 32, 50, 32); g.quadraticCurveTo(82, 32, 82, 52);
+    g.lineTo(82, 92); g.closePath(); fs(g);
+    g.fillStyle = IO;
+    for (const x of [28, 42, 56, 70]) { g.beginPath(); g.rect(x - 4, 52, 8, 14); g.fill(); }
+    for (const x of [28, 42, 56, 70]) { g.beginPath(); g.rect(x - 4, 74, 8, 12); g.fill(); }
+    g.fillStyle = IW;
+  },
+  burj(g) {
+    g.beginPath();
+    g.moveTo(50, 6); g.lineTo(56, 42); g.lineTo(61, 94); g.lineTo(39, 94); g.lineTo(44, 42); g.closePath(); fs(g);
+    g.beginPath(); g.moveTo(50, 6); g.lineTo(50, 0); g.stroke();
+  },
+  bridge(g) {
+    g.beginPath(); g.rect(8, 66, 84, 7); fs(g);
+    g.beginPath(); g.rect(28, 34, 7, 40); fs(g);
+    g.beginPath(); g.rect(65, 34, 7, 40); fs(g);
+    g.beginPath(); g.moveTo(9, 50); g.lineTo(31, 34); g.quadraticCurveTo(50, 60, 68, 34); g.lineTo(91, 50); g.stroke();
+  },
+  opera(g) {
+    g.beginPath(); g.rect(14, 84, 72, 8); fs(g);
+    const sail = (x: number, w: number, h: number) => {
+      g.beginPath(); g.moveTo(x, 84); g.quadraticCurveTo(x, 84 - h, x + w, 84); g.closePath(); fs(g);
+    };
+    sail(24, 20, 34); sail(42, 24, 46); sail(62, 20, 34);
+  },
+  mosque(g) {
+    g.beginPath(); g.rect(30, 54, 40, 40); fs(g);
+    g.beginPath(); g.arc(50, 54, 20, Math.PI, 0); fs(g);
+    g.beginPath(); g.moveTo(50, 34); g.lineTo(50, 25); g.stroke();
+    g.beginPath(); g.arc(50, 23, 2.6, 0, Math.PI * 2); fs(g);
+    g.beginPath(); g.rect(20, 44, 7, 50); fs(g);
+    g.beginPath(); g.rect(73, 44, 7, 50); fs(g);
+    g.beginPath(); g.moveTo(20, 44); g.lineTo(23.5, 36); g.lineTo(27, 44); g.closePath(); fs(g);
+    g.beginPath(); g.moveTo(73, 44); g.lineTo(76.5, 36); g.lineTo(80, 44); g.closePath(); fs(g);
+  },
+  christ(g) {
+    g.beginPath(); g.moveTo(16, 94); g.lineTo(50, 52); g.lineTo(84, 94); g.closePath(); fs(g);
+    g.beginPath(); g.rect(48, 30, 4, 26); fs(g);
+    g.beginPath(); g.rect(33, 37, 34, 4.5); fs(g);
+    g.beginPath(); g.arc(50, 27, 4.5, 0, Math.PI * 2); fs(g);
+  },
+};
+
 const CLOUDS: { lng: number; lat: number; r: number }[] = [
   { lng: -30, lat: 22, r: 0.30 }, { lng: -62, lat: -12, r: 0.34 },
   { lng: 18, lat: 6, r: 0.26 }, { lng: 58, lat: 32, r: 0.30 },
@@ -76,7 +155,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
 
     const cx = size / 2;
     const cy = size / 2;
-    const R = size * 0.49; // zoomed-in — the planet nearly fills the frame
+    const R = size * 0.49;
 
     const projection = geoOrthographic().scale(R).translate([cx, cy]).clipAngle(90);
     const path = geoPath(projection, ctx);
@@ -84,27 +163,29 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
 
     const reduce = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     let raf = 0;
-    const flying = size >= 150; // plane tour only on the large landing globe
+    const flying = size >= 150;
 
-    // Bake each unique emoji to an offscreen sprite once — drawImage per frame is
-    // far cheaper than fillText×10 every frame.
+    // Bake each distinct landmark icon to a 128px sprite once (drawImage per frame).
     const sprites = new Map<string, HTMLCanvasElement>();
     for (const lm of LANDMARKS) {
-      if (sprites.has(lm.icon)) continue;
+      if (sprites.has(lm.kind)) continue;
       const sc = document.createElement('canvas');
       sc.width = 128;
       sc.height = 128;
-      const sctx = sc.getContext('2d');
-      if (sctx) {
-        sctx.font = `${128 * 0.8}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
-        sctx.textAlign = 'center';
-        sctx.textBaseline = 'middle';
-        sctx.fillText(lm.icon, 64, 66);
+      const g = sc.getContext('2d');
+      if (g) {
+        g.translate(6, 6);
+        g.scale(1.16, 1.16); // fill most of the sprite
+        g.fillStyle = IW;
+        g.strokeStyle = IO;
+        g.lineWidth = 6;
+        g.lineJoin = 'round';
+        g.lineCap = 'round';
+        ICON_DRAW[lm.kind]?.(g);
       }
-      sprites.set(lm.icon, sc);
+      sprites.set(lm.kind, sc);
     }
 
-    // Per-landmark runtime state.
     const lmS = LANDMARKS.map(() => ({
       pop: 0, popV: 0, jump: 0, jumpV: 0, gd: 9,
       bobPh: Math.random() * Math.PI * 2, bobSp: 0.9 + Math.random() * 0.4,
@@ -112,7 +193,6 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     }));
     const order = LANDMARKS.map((_, i) => i);
 
-    // ── camera + plane state ────────────────────────────────────────────────
     let seg = 0;
     let segT = 0;
     let planeLng = TOUR[0][0];
@@ -121,14 +201,13 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     let aheadLat = TOUR[1][1];
     let lambda = -TOUR[0][0];
     let phi = -TOUR[0][1];
-    let heading = NaN; // smoothed plane bearing (screen radians) — banks gently
+    let heading = NaN;
     let cloudOffset = 0;
     let tacc = 0;
     const trail: [number, number][] = [];
     let lastTs = performance.now();
     let lastDraw = 0;
 
-    // ── static gradients ──────────────────────────────────────────────────────
     const ocean = ctx.createRadialGradient(cx - R * 0.38, cy - R * 0.42, R * 0.12, cx, cy, R);
     ocean.addColorStop(0, '#4EB6EE');
     ocean.addColorStop(0.5, '#2E93D6');
@@ -150,7 +229,6 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
 
     const dLimit = Math.PI / 2 - 0.05;
 
-    // ── 4D landmark marker ─────────────────────────────────────────────────────
     const drawMarker = (i: number, baseSz: number) => {
       const lm = LANDMARKS[i];
       const s = lmS[i];
@@ -166,17 +244,15 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       const hN = Math.min(1, liftPx / (baseSz * 0.5));
       const vstr = clamp(1 + (s.popV + s.jumpV) * 0.012, 0.82, 1.28);
 
-      // pinned contact shadow (opposition to the lifted icon reads as height)
       ctx.save();
       ctx.globalAlpha = 0.26 * pop * (1 - 0.5 * hN);
       ctx.beginPath();
-      ctx.ellipse(pt[0], pt[1] + baseSz * 0.04, sz * 0.33 * (1 - 0.15 * hN), sz * 0.12 * (0.6 + 0.4 * facing) * (1 - 0.15 * hN), 0, 0, Math.PI * 2);
+      ctx.ellipse(pt[0], pt[1] + baseSz * 0.06, sz * 0.3 * (1 - 0.15 * hN), sz * 0.11 * (0.6 + 0.4 * facing) * (1 - 0.15 * hN), 0, 0, Math.PI * 2);
       ctx.fillStyle = '#0a1a28';
       ctx.fill();
       ctx.restore();
 
-      // the lifted icon, with squash/stretch from spring velocity
-      const sprite = sprites.get(lm.icon);
+      const sprite = sprites.get(lm.kind);
       if (sprite) {
         ctx.save();
         ctx.globalAlpha = Math.min(1, pop * 1.5);
@@ -188,12 +264,11 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       s.vis = true;
     };
     const drawLandmarks = () => {
-      const baseSz = Math.max(14, R * 0.14);
-      order.sort((a, b) => lmS[b].gd - lmS[a].gd); // far → near (painter's occlusion)
+      const baseSz = Math.max(18, R * 0.17);
+      order.sort((a, b) => lmS[b].gd - lmS[a].gd);
       for (const i of order) drawMarker(i, baseSz);
     };
 
-    // ── drifting clouds ─────────────────────────────────────────────────────────
     const drawClouds = () => {
       ctx.save();
       ctx.beginPath();
@@ -209,11 +284,11 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         const edge = 1 - d / limit;
         const alpha = 0.46 * Math.min(1, edge * 1.7);
         const rad = c.r * R * (0.55 + 0.45 * edge);
-        const g = ctx.createRadialGradient(pt[0], pt[1], 0, pt[0], pt[1], rad);
-        g.addColorStop(0, `rgba(255,255,255,${alpha})`);
-        g.addColorStop(0.55, `rgba(255,255,255,${alpha * 0.45})`);
-        g.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.fillStyle = g;
+        const gr = ctx.createRadialGradient(pt[0], pt[1], 0, pt[0], pt[1], rad);
+        gr.addColorStop(0, `rgba(255,255,255,${alpha})`);
+        gr.addColorStop(0.55, `rgba(255,255,255,${alpha * 0.45})`);
+        gr.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = gr;
         ctx.beginPath();
         ctx.arc(pt[0], pt[1], rad, 0, Math.PI * 2);
         ctx.fill();
@@ -221,7 +296,21 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.restore();
     };
 
-    // ── plane + contrail ───────────────────────────────────────────────────────
+    // A real vector plane (top-down airliner), nose pointing up (−y).
+    const planePath = () => {
+      const p = new Path2D();
+      p.moveTo(0, -20);
+      p.quadraticCurveTo(3.2, -14, 3.2, -4);
+      p.lineTo(19, 6); p.lineTo(19, 11); p.lineTo(3.2, 6.5);
+      p.lineTo(3.2, 16); p.lineTo(8, 21); p.lineTo(8, 24); p.lineTo(0, 22);
+      p.lineTo(-8, 24); p.lineTo(-8, 21); p.lineTo(-3.2, 16);
+      p.lineTo(-3.2, 6.5); p.lineTo(-19, 11); p.lineTo(-19, 6); p.lineTo(-3.2, -4);
+      p.quadraticCurveTo(-3.2, -14, 0, -20);
+      p.closePath();
+      return p;
+    };
+    const PLANE = planePath();
+
     const drawPlane = () => {
       ctx.save();
       ctx.beginPath();
@@ -244,8 +333,6 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
 
       const p = projection([planeLng, planeLat]);
       if (!p) return;
-      // Smooth the heading so the plane banks gently through waypoint turns
-      // instead of snapping (shortest-angle ease toward the travel direction).
       const pa = projection([aheadLng, aheadLat]);
       const target = pa ? Math.atan2(pa[1] - p[1], pa[0] - p[0]) : (isNaN(heading) ? 0 : heading);
       if (isNaN(heading)) heading = target;
@@ -254,21 +341,25 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         da = ((da + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
         heading += da * 0.1;
       }
-      const fs = Math.max(16, R * 0.15);
+      const scl = Math.max(0.7, R * 0.008);
       ctx.save();
       ctx.translate(p[0], p[1]);
-      ctx.rotate(heading + Math.PI / 4);
-      ctx.font = `${fs}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.shadowColor = 'rgba(0,0,0,0.3)';
-      ctx.shadowBlur = fs * 0.18;
-      ctx.shadowOffsetY = 1;
-      ctx.fillText('✈️', 0, 0);
+      ctx.rotate(heading + Math.PI / 2); // nose-up plane aligned to travel
+      ctx.scale(scl, scl);
+      ctx.shadowColor = 'rgba(0,0,0,0.28)';
+      ctx.shadowBlur = 6;
+      ctx.shadowOffsetY = 1.5;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fill(PLANE);
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = 2.2;
+      ctx.strokeStyle = 'rgba(28,20,14,0.5)';
+      ctx.stroke(PLANE);
       ctx.restore();
     };
 
-    // ── landmark simulation (springs) — presence tied to the PLANE ─────────────
     const stepLandmarks = (dt: number) => {
       const sdt = Math.min(dt, 1 / 60);
       for (let i = 0; i < LANDMARKS.length; i++) {
@@ -276,13 +367,13 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         const s = lmS[i];
         s.gd = geoDistance([lm.lng, lm.lat], [-lambda, -phi]);
         const dPlane = geoDistance([lm.lng, lm.lat], [planeLng, planeLat]);
-        const present = dPlane < 0.6 ? 1 : 0; // comes as the plane nears, fades as it leaves
-        s.popV += (170 * (present - s.pop) - 14 * s.popV) * sdt; // presence spring
+        const present = dPlane < 0.6 ? 1 : 0;
+        s.popV += (170 * (present - s.pop) - 14 * s.popV) * sdt;
         s.pop += s.popV * sdt;
         const near = dPlane < 0.3;
-        if (near && !s.wasNear) s.jumpV += 6; // plane fly-over → hop
+        if (near && !s.wasNear) s.jumpV += 6;
         s.wasNear = near;
-        s.jumpV += (-120 * s.jump - 9 * s.jumpV) * sdt; // hop spring
+        s.jumpV += (-120 * s.jump - 9 * s.jumpV) * sdt;
         s.jump += s.jumpV * sdt;
       }
     };
@@ -345,7 +436,6 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       cloudOffset += 0.9 * dt;
 
       if (flying) {
-        // advance the plane smoothly along the great-circle tour
         let A = TOUR[seg];
         let B = TOUR[(seg + 1) % TOUR.length];
         let segLen = geoDistance(A, B) || 0.001;
@@ -368,7 +458,6 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         trail.push([planeLng, planeLat]);
         if (trail.length > 140) trail.shift();
 
-        // camera follows the plane — a smooth, steady chase (shortest way round)
         const k = Math.min(1, dt * 2.4);
         const dL = (((-planeLng - lambda) % 360) + 540) % 360 - 180;
         lambda += dL * k;
