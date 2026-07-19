@@ -10,6 +10,7 @@ import { useEffect, useRef } from 'react';
 import { geoOrthographic, geoPath, geoDistance, geoInterpolate, type GeoPermissibleObjects } from 'd3-geo';
 import { feature } from 'topojson-client';
 import landTopo from 'world-atlas/land-50m.json';
+import { LANDMARK_SRC } from '../assets/landmarks3d';
 
 const LAND = feature(landTopo as any, (landTopo as any).objects.land) as unknown as GeoPermissibleObjects;
 const clamp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
@@ -35,100 +36,20 @@ const TOUR: [number, number][] = [
 
 const ANG_SPEED = 0.16; // rad/s the plane travels along the surface
 
-// One DISTINCT landmark per city (kind → drawn below). No emoji, no duplicates.
+// One DISTINCT 3D landmark per city (kind → a Fluent 3D render, MIT-licensed).
+// No emoji, no icon reused — Dubai and Istanbul are now different icons.
 const LANDMARKS: { lng: number; lat: number; kind: string }[] = [
-  { lng: 2.35, lat: 48.85, kind: 'eiffel' }, // Paris
-  { lng: -74.04, lat: 40.69, kind: 'skyline' }, // New York
-  { lng: -0.12, lat: 51.5, kind: 'bigben' }, // London
-  { lng: 139.7, lat: 35.68, kind: 'torii' }, // Tokyo
-  { lng: 12.49, lat: 41.89, kind: 'colosseum' }, // Rome
-  { lng: 55.27, lat: 25.2, kind: 'burj' }, // Dubai
-  { lng: -122.4, lat: 37.8, kind: 'bridge' }, // San Francisco
-  { lng: 151.2, lat: -33.86, kind: 'opera' }, // Sydney
+  { lng: -0.12, lat: 51.5, kind: 'ferriswheel' }, // London — London Eye
+  { lng: 12.49, lat: 41.89, kind: 'classical' }, // Rome — Colosseum
   { lng: 28.98, lat: 41.0, kind: 'mosque' }, // Istanbul
-  { lng: -43.2, lat: -22.9, kind: 'christ' }, // Rio
+  { lng: 55.27, lat: 25.2, kind: 'cityscape' }, // Dubai
+  { lng: 72.88, lat: 19.07, kind: 'temple' }, // Mumbai
+  { lng: 139.7, lat: 35.68, kind: 'tokyotower' }, // Tokyo
+  { lng: 135.77, lat: 35.01, kind: 'torii' }, // Kyoto
+  { lng: 151.2, lat: -33.86, kind: 'bridge' }, // Sydney — Harbour Bridge
+  { lng: -43.2, lat: -22.9, kind: 'mountain' }, // Rio — Sugarloaf
+  { lng: -74.04, lat: 40.69, kind: 'liberty' }, // New York — Statue of Liberty
 ];
-
-// Simple, bold vector silhouettes drawn in a 0..100 box (ground ≈ 94). Filled
-// warm-white with a dark outline so each reads on land, ocean or cloud.
-const IW = '#FDFBF7';
-const IO = 'rgba(28,20,14,0.55)';
-const fs = (g: CanvasRenderingContext2D) => { g.fill(); g.stroke(); };
-const ICON_DRAW: Record<string, (g: CanvasRenderingContext2D) => void> = {
-  eiffel(g) {
-    g.beginPath();
-    g.moveTo(50, 6);
-    g.quadraticCurveTo(45, 45, 27, 94); g.lineTo(40, 94);
-    g.quadraticCurveTo(47, 55, 50, 48); g.quadraticCurveTo(53, 55, 60, 94);
-    g.lineTo(73, 94); g.quadraticCurveTo(55, 45, 50, 6); g.closePath(); fs(g);
-    g.beginPath(); g.rect(35, 52, 30, 6); fs(g);
-    g.beginPath(); g.rect(28, 78, 44, 6); fs(g);
-  },
-  skyline(g) {
-    for (const [x, w, h] of [[20, 16, 42], [40, 20, 62], [64, 16, 36]] as const) {
-      g.beginPath(); g.rect(x, 94 - h, w, h); fs(g);
-    }
-    g.beginPath(); g.moveTo(50, 32); g.lineTo(50, 16); g.stroke();
-    g.beginPath(); g.arc(50, 14, 3, 0, Math.PI * 2); fs(g);
-  },
-  bigben(g) {
-    g.beginPath(); g.rect(38, 30, 24, 64); fs(g);
-    g.beginPath(); g.moveTo(33, 30); g.lineTo(50, 8); g.lineTo(67, 30); g.closePath(); fs(g);
-    g.beginPath(); g.arc(50, 44, 7, 0, Math.PI * 2); fs(g);
-    g.beginPath(); g.arc(50, 44, 2.4, 0, Math.PI * 2); g.fillStyle = IO; g.fill(); g.fillStyle = IW;
-  },
-  torii(g) {
-    g.beginPath(); g.rect(26, 30, 9, 64); fs(g);
-    g.beginPath(); g.rect(65, 30, 9, 64); fs(g);
-    g.beginPath(); g.moveTo(13, 26); g.quadraticCurveTo(50, 17, 87, 26);
-    g.lineTo(87, 35); g.quadraticCurveTo(50, 27, 13, 35); g.closePath(); fs(g);
-    g.beginPath(); g.rect(30, 41, 40, 7); fs(g);
-  },
-  colosseum(g) {
-    g.beginPath();
-    g.moveTo(18, 92); g.lineTo(18, 52);
-    g.quadraticCurveTo(18, 32, 50, 32); g.quadraticCurveTo(82, 32, 82, 52);
-    g.lineTo(82, 92); g.closePath(); fs(g);
-    g.fillStyle = IO;
-    for (const x of [28, 42, 56, 70]) { g.beginPath(); g.rect(x - 4, 52, 8, 14); g.fill(); }
-    for (const x of [28, 42, 56, 70]) { g.beginPath(); g.rect(x - 4, 74, 8, 12); g.fill(); }
-    g.fillStyle = IW;
-  },
-  burj(g) {
-    g.beginPath();
-    g.moveTo(50, 6); g.lineTo(56, 42); g.lineTo(61, 94); g.lineTo(39, 94); g.lineTo(44, 42); g.closePath(); fs(g);
-    g.beginPath(); g.moveTo(50, 6); g.lineTo(50, 0); g.stroke();
-  },
-  bridge(g) {
-    g.beginPath(); g.rect(8, 66, 84, 7); fs(g);
-    g.beginPath(); g.rect(28, 34, 7, 40); fs(g);
-    g.beginPath(); g.rect(65, 34, 7, 40); fs(g);
-    g.beginPath(); g.moveTo(9, 50); g.lineTo(31, 34); g.quadraticCurveTo(50, 60, 68, 34); g.lineTo(91, 50); g.stroke();
-  },
-  opera(g) {
-    g.beginPath(); g.rect(14, 84, 72, 8); fs(g);
-    const sail = (x: number, w: number, h: number) => {
-      g.beginPath(); g.moveTo(x, 84); g.quadraticCurveTo(x, 84 - h, x + w, 84); g.closePath(); fs(g);
-    };
-    sail(24, 20, 34); sail(42, 24, 46); sail(62, 20, 34);
-  },
-  mosque(g) {
-    g.beginPath(); g.rect(30, 54, 40, 40); fs(g);
-    g.beginPath(); g.arc(50, 54, 20, Math.PI, 0); fs(g);
-    g.beginPath(); g.moveTo(50, 34); g.lineTo(50, 25); g.stroke();
-    g.beginPath(); g.arc(50, 23, 2.6, 0, Math.PI * 2); fs(g);
-    g.beginPath(); g.rect(20, 44, 7, 50); fs(g);
-    g.beginPath(); g.rect(73, 44, 7, 50); fs(g);
-    g.beginPath(); g.moveTo(20, 44); g.lineTo(23.5, 36); g.lineTo(27, 44); g.closePath(); fs(g);
-    g.beginPath(); g.moveTo(73, 44); g.lineTo(76.5, 36); g.lineTo(80, 44); g.closePath(); fs(g);
-  },
-  christ(g) {
-    g.beginPath(); g.moveTo(16, 94); g.lineTo(50, 52); g.lineTo(84, 94); g.closePath(); fs(g);
-    g.beginPath(); g.rect(48, 30, 4, 26); fs(g);
-    g.beginPath(); g.rect(33, 37, 34, 4.5); fs(g);
-    g.beginPath(); g.arc(50, 27, 4.5, 0, Math.PI * 2); fs(g);
-  },
-};
 
 const CLOUDS: { lng: number; lat: number; r: number }[] = [
   { lng: -30, lat: 22, r: 0.30 }, { lng: -62, lat: -12, r: 0.34 },
@@ -165,25 +86,14 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     let raf = 0;
     const flying = size >= 150;
 
-    // Bake each distinct landmark icon to a 128px sprite once (drawImage per frame).
-    const sprites = new Map<string, HTMLCanvasElement>();
+    // Load each distinct 3D landmark image once; drawn per frame with drawImage.
+    const imgs = new Map<string, HTMLImageElement>();
     for (const lm of LANDMARKS) {
-      if (sprites.has(lm.kind)) continue;
-      const sc = document.createElement('canvas');
-      sc.width = 128;
-      sc.height = 128;
-      const g = sc.getContext('2d');
-      if (g) {
-        g.translate(6, 6);
-        g.scale(1.16, 1.16); // fill most of the sprite
-        g.fillStyle = IW;
-        g.strokeStyle = IO;
-        g.lineWidth = 6;
-        g.lineJoin = 'round';
-        g.lineCap = 'round';
-        ICON_DRAW[lm.kind]?.(g);
-      }
-      sprites.set(lm.kind, sc);
+      if (imgs.has(lm.kind)) continue;
+      const im = new Image();
+      im.decoding = 'async';
+      im.src = LANDMARK_SRC[lm.kind];
+      imgs.set(lm.kind, im);
     }
 
     const lmS = LANDMARKS.map(() => ({
@@ -252,19 +162,19 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.fill();
       ctx.restore();
 
-      const sprite = sprites.get(lm.kind);
-      if (sprite) {
+      const img = imgs.get(lm.kind);
+      if (img && img.complete && img.naturalWidth > 0) {
         ctx.save();
         ctx.globalAlpha = Math.min(1, pop * 1.5);
         ctx.translate(pt[0], pt[1] - liftPx);
         ctx.scale(1 / Math.sqrt(vstr), vstr);
-        ctx.drawImage(sprite, -sz / 2, -sz / 2, sz, sz);
+        ctx.drawImage(img, -sz / 2, -sz / 2, sz, sz);
         ctx.restore();
       }
       s.vis = true;
     };
     const drawLandmarks = () => {
-      const baseSz = Math.max(18, R * 0.17);
+      const baseSz = Math.max(22, R * 0.19); // 3D icons a touch larger for their detail
       order.sort((a, b) => lmS[b].gd - lmS[a].gd);
       for (const i of order) drawMarker(i, baseSz);
     };
