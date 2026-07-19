@@ -10,7 +10,7 @@ import { useEffect, useRef } from 'react';
 import { geoOrthographic, geoPath, geoDistance, geoInterpolate, type GeoPermissibleObjects } from 'd3-geo';
 import { feature } from 'topojson-client';
 import landTopo from 'world-atlas/land-50m.json';
-import { LANDMARK_SRC } from '../assets/landmarks3d';
+import pinSrc from '../assets/landmarks3d/pin.webp';
 
 const LAND = feature(landTopo as any, (landTopo as any).objects.land) as unknown as GeoPermissibleObjects;
 const clamp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
@@ -86,15 +86,10 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     let raf = 0;
     const flying = size >= 150;
 
-    // Load each distinct 3D landmark image once; drawn per frame with drawImage.
-    const imgs = new Map<string, HTMLImageElement>();
-    for (const lm of LANDMARKS) {
-      if (imgs.has(lm.kind)) continue;
-      const im = new Image();
-      im.decoding = 'async';
-      im.src = LANDMARK_SRC[lm.kind];
-      imgs.set(lm.kind, im);
-    }
+    // One real 3D map-pin (3dicons, CC0 — not an emoji) marks every city.
+    const pin = new Image();
+    pin.decoding = 'async';
+    pin.src = pinSrc;
 
     const lmS = LANDMARKS.map(() => ({
       pop: 0, popV: 0, jump: 0, jumpV: 0, gd: 9,
@@ -162,13 +157,12 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.fill();
       ctx.restore();
 
-      const img = imgs.get(lm.kind);
-      if (img && img.complete && img.naturalWidth > 0) {
+      if (pin.complete && pin.naturalWidth > 0) {
         ctx.save();
         ctx.globalAlpha = Math.min(1, pop * 1.5);
         ctx.translate(pt[0], pt[1] - liftPx);
         ctx.scale(1 / Math.sqrt(vstr), vstr);
-        ctx.drawImage(img, -sz / 2, -sz / 2, sz, sz);
+        ctx.drawImage(pin, -sz / 2, -sz / 2, sz, sz);
         ctx.restore();
       }
       s.vis = true;
