@@ -94,9 +94,6 @@ export function InstallScreen({ onBack, onActivate }: { onBack: () => void; onAc
             ? <>Profile <strong style={{ color: RC.ink }}>{formatIccid(esim.iccid)}</strong> is ready. Install it on this iPhone, or scan the QR with another device.</>
             : loading ? 'Preparing your profile from the network…' : 'No eSIM is available right now. Please try again in a moment.'}
         </div>
-        <div style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 11px', borderRadius: 999, background: 'rgba(46,147,214,0.12)', border: '1px solid rgba(46,147,214,0.22)', fontFamily: 'var(--font)', fontSize: 11.5, fontWeight: 600, color: '#1567AC' }}>
-          Data-only eSIM — keep your current SIM for calls &amp; texts
-        </div>
 
         {/* Reveal celebration — the honest "you're connected" beat, only on a
             fresh claim; auto-dismisses. Real outcome, not engagement theater. */}
