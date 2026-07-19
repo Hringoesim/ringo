@@ -1,19 +1,15 @@
 // Globe.tsx — the Earth seen from a little plane that flies a smooth, continuous
 // great-circle world tour; the camera follows it so countries scroll beneath.
-// Major landmarks are REAL vector icons (each city its own distinct landmark, no
-// emoji) that read as 4D — baked to sprites, lifted off the surface with a pinned
-// contact shadow (parallax = height), a springy pop-in, a gentle bob and a hop as
-// the plane flies over — coming as the plane nears and fading as it flies on.
 // Real coastlines (Natural Earth 50m) via a d3-geo orthographic projection on a
-// 2D canvas, a drifting cloud layer, and a blue-marble inner atmosphere (no halo).
+// 2D canvas, a drifting cloud layer, a blue-marble inner atmosphere (no outer
+// halo), and a banking vector plane with a fading contrail. Clean and premium —
+// no landmark icons (see git history for the icon experiments).
 import { useEffect, useRef } from 'react';
 import { geoOrthographic, geoPath, geoDistance, geoInterpolate, type GeoPermissibleObjects } from 'd3-geo';
 import { feature } from 'topojson-client';
 import landTopo from 'world-atlas/land-50m.json';
-import pinSrc from '../assets/landmarks3d/pin.webp';
 
 const LAND = feature(landTopo as any, (landTopo as any).objects.land) as unknown as GeoPermissibleObjects;
-const clamp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
 
 const TOUR: [number, number][] = [
   [-0.1, 51.5], // London
@@ -35,21 +31,6 @@ const TOUR: [number, number][] = [
 ];
 
 const ANG_SPEED = 0.16; // rad/s the plane travels along the surface
-
-// One DISTINCT 3D landmark per city (kind → a Fluent 3D render, MIT-licensed).
-// No emoji, no icon reused — Dubai and Istanbul are now different icons.
-const LANDMARKS: { lng: number; lat: number; kind: string }[] = [
-  { lng: -0.12, lat: 51.5, kind: 'ferriswheel' }, // London — London Eye
-  { lng: 12.49, lat: 41.89, kind: 'classical' }, // Rome — Colosseum
-  { lng: 28.98, lat: 41.0, kind: 'mosque' }, // Istanbul
-  { lng: 55.27, lat: 25.2, kind: 'cityscape' }, // Dubai
-  { lng: 72.88, lat: 19.07, kind: 'temple' }, // Mumbai
-  { lng: 139.7, lat: 35.68, kind: 'tokyotower' }, // Tokyo
-  { lng: 135.77, lat: 35.01, kind: 'torii' }, // Kyoto
-  { lng: 151.2, lat: -33.86, kind: 'bridge' }, // Sydney — Harbour Bridge
-  { lng: -43.2, lat: -22.9, kind: 'mountain' }, // Rio — Sugarloaf
-  { lng: -74.04, lat: 40.69, kind: 'liberty' }, // New York — Statue of Liberty
-];
 
 const CLOUDS: { lng: number; lat: number; r: number }[] = [
   { lng: -30, lat: 22, r: 0.30 }, { lng: -62, lat: -12, r: 0.34 },
@@ -86,18 +67,6 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     let raf = 0;
     const flying = size >= 150;
 
-    // One real 3D map-pin (3dicons, CC0 — not an emoji) marks every city.
-    const pin = new Image();
-    pin.decoding = 'async';
-    pin.src = pinSrc;
-
-    const lmS = LANDMARKS.map(() => ({
-      pop: 0, popV: 0, jump: 0, jumpV: 0, gd: 9,
-      bobPh: Math.random() * Math.PI * 2, bobSp: 0.9 + Math.random() * 0.4,
-      wasNear: false, vis: false,
-    }));
-    const order = LANDMARKS.map((_, i) => i);
-
     let seg = 0;
     let segT = 0;
     let planeLng = TOUR[0][0];
@@ -108,7 +77,6 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     let phi = -TOUR[0][1];
     let heading = NaN;
     let cloudOffset = 0;
-    let tacc = 0;
     const trail: [number, number][] = [];
     let lastTs = performance.now();
     let lastDraw = 0;
@@ -131,47 +99,6 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     atmo.addColorStop(0.84, 'rgba(150,220,255,0)');
     atmo.addColorStop(0.95, 'rgba(178,230,255,0.30)');
     atmo.addColorStop(1, 'rgba(120,195,240,0.12)');
-
-    const dLimit = Math.PI / 2 - 0.05;
-
-    const drawMarker = (i: number, baseSz: number) => {
-      const lm = LANDMARKS[i];
-      const s = lmS[i];
-      const pop = reduce ? (geoDistance([lm.lng, lm.lat], [planeLng, planeLat]) < 0.6 && Math.cos(s.gd) > 0.15 ? 1 : 0) : Math.max(0, s.pop);
-      if (pop < 0.02 || s.gd >= dLimit) { s.vis = false; return; }
-      const pt = projection([lm.lng, lm.lat]);
-      if (!pt) { s.vis = false; return; }
-      const facing = Math.cos(s.gd);
-      const persp = 0.85 + 0.15 * facing;
-      const sz = baseSz * pop * persp;
-      const bob = reduce ? 0 : Math.sin(tacc * s.bobSp + s.bobPh);
-      const liftPx = sz * (0.28 + 0.10 * bob) + s.jump * baseSz * 0.6;
-      const hN = Math.min(1, liftPx / (baseSz * 0.5));
-      const vstr = clamp(1 + (s.popV + s.jumpV) * 0.012, 0.82, 1.28);
-
-      ctx.save();
-      ctx.globalAlpha = 0.26 * pop * (1 - 0.5 * hN);
-      ctx.beginPath();
-      ctx.ellipse(pt[0], pt[1] + baseSz * 0.06, sz * 0.3 * (1 - 0.15 * hN), sz * 0.11 * (0.6 + 0.4 * facing) * (1 - 0.15 * hN), 0, 0, Math.PI * 2);
-      ctx.fillStyle = '#0a1a28';
-      ctx.fill();
-      ctx.restore();
-
-      if (pin.complete && pin.naturalWidth > 0) {
-        ctx.save();
-        ctx.globalAlpha = Math.min(1, pop * 1.5);
-        ctx.translate(pt[0], pt[1] - liftPx);
-        ctx.scale(1 / Math.sqrt(vstr), vstr);
-        ctx.drawImage(pin, -sz / 2, -sz / 2, sz, sz);
-        ctx.restore();
-      }
-      s.vis = true;
-    };
-    const drawLandmarks = () => {
-      const baseSz = Math.max(22, R * 0.19); // 3D icons a touch larger for their detail
-      order.sort((a, b) => lmS[b].gd - lmS[a].gd);
-      for (const i of order) drawMarker(i, baseSz);
-    };
 
     const drawClouds = () => {
       ctx.save();
@@ -201,7 +128,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     };
 
     // A real vector plane (top-down airliner), nose pointing up (−y).
-    const planePath = () => {
+    const PLANE = (() => {
       const p = new Path2D();
       p.moveTo(0, -20);
       p.quadraticCurveTo(3.2, -14, 3.2, -4);
@@ -212,8 +139,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       p.quadraticCurveTo(-3.2, -14, 0, -20);
       p.closePath();
       return p;
-    };
-    const PLANE = planePath();
+    })();
 
     const drawPlane = () => {
       ctx.save();
@@ -248,7 +174,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       const scl = Math.max(0.7, R * 0.008);
       ctx.save();
       ctx.translate(p[0], p[1]);
-      ctx.rotate(heading + Math.PI / 2); // nose-up plane aligned to travel
+      ctx.rotate(heading + Math.PI / 2);
       ctx.scale(scl, scl);
       ctx.shadowColor = 'rgba(0,0,0,0.28)';
       ctx.shadowBlur = 6;
@@ -262,24 +188,6 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.strokeStyle = 'rgba(28,20,14,0.5)';
       ctx.stroke(PLANE);
       ctx.restore();
-    };
-
-    const stepLandmarks = (dt: number) => {
-      const sdt = Math.min(dt, 1 / 60);
-      for (let i = 0; i < LANDMARKS.length; i++) {
-        const lm = LANDMARKS[i];
-        const s = lmS[i];
-        s.gd = geoDistance([lm.lng, lm.lat], [-lambda, -phi]);
-        const dPlane = geoDistance([lm.lng, lm.lat], [planeLng, planeLat]);
-        const present = dPlane < 0.6 ? 1 : 0;
-        s.popV += (170 * (present - s.pop) - 14 * s.popV) * sdt;
-        s.pop += s.popV * sdt;
-        const near = dPlane < 0.3;
-        if (near && !s.wasNear) s.jumpV += 6;
-        s.wasNear = near;
-        s.jumpV += (-120 * s.jump - 9 * s.jumpV) * sdt;
-        s.jump += s.jumpV * sdt;
-      }
     };
 
     const draw = () => {
@@ -325,10 +233,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.lineWidth = 0.75;
       ctx.stroke();
 
-      if (flying) {
-        drawLandmarks();
-        drawPlane();
-      }
+      if (flying) drawPlane();
 
       if (!reduce) raf = requestAnimationFrame(tick);
     };
@@ -336,7 +241,6 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     const tick = (now: number) => {
       const dt = Math.min(0.1, (now - lastTs) / 1000);
       lastTs = now;
-      tacc += dt;
       cloudOffset += 0.9 * dt;
 
       if (flying) {
@@ -366,8 +270,6 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         const dL = (((-planeLng - lambda) % 360) + 540) % 360 - 180;
         lambda += dL * k;
         phi += (-planeLat - phi) * k;
-
-        stepLandmarks(dt);
       } else {
         lambda += 6 * dt;
         phi += (-8 - phi) * Math.min(1, dt);
