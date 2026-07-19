@@ -1,11 +1,11 @@
-// Globe.tsx — an INTERACTIVE Earth. A plane flies a continuous great-circle
-// world tour and the camera chases it; grab-and-drag to spin the globe yourself
-// (with flick momentum), and it eases back to following the plane after you let
-// go. Major landmarks read as 4D — sprite-baked emoji that lift off the surface
-// with a pinned contact shadow (parallax = height), a springy pop-in, a gentle
-// bob, and a hop when the plane flies over or you tap them. Real coastlines
-// (Natural Earth 50m) via a d3-geo orthographic projection on a 2D canvas, with
-// a drifting cloud layer and a blue-marble inner atmosphere (no outer halo).
+// Globe.tsx — the Earth seen from a little plane that flies a smooth, continuous
+// great-circle world tour; the camera follows it so countries scroll beneath.
+// Major landmarks are 4D — sprite-baked emoji that lift off the surface with a
+// pinned contact shadow (parallax = height), a springy pop-in, a gentle bob, and
+// a hop as the plane flies over — and they COME as the plane nears each place and
+// FADE as it flies on. Real coastlines (Natural Earth 50m) via a d3-geo
+// orthographic projection on a 2D canvas, a drifting cloud layer, and a
+// blue-marble inner atmosphere (no outer halo). Not interactive by design.
 import { useEffect, useRef } from 'react';
 import { geoOrthographic, geoPath, geoDistance, geoInterpolate, type GeoPermissibleObjects } from 'd3-geo';
 import { feature } from 'topojson-client';
@@ -34,7 +34,7 @@ const TOUR: [number, number][] = [
   [3.4, 6.5], // Lagos
 ];
 
-const ANG_SPEED = 0.17; // rad/s the plane travels along the surface
+const ANG_SPEED = 0.16; // rad/s the plane travels along the surface (leisurely)
 
 // Cartoon landmark icons pinned to real coordinates — a playful, Ringo earth.
 const LANDMARKS: { lng: number; lat: number; icon: string }[] = [
@@ -77,7 +77,6 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     const cx = size / 2;
     const cy = size / 2;
     const R = size * 0.49; // zoomed-in — the planet nearly fills the frame
-    const DEG_PER_PX = 180 / (Math.PI * R); // exact 1:1 surface-under-finger at centre
 
     const projection = geoOrthographic().scale(R).translate([cx, cy]).clipAngle(90);
     const path = geoPath(projection, ctx);
@@ -85,10 +84,10 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
 
     const reduce = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     let raf = 0;
-    const flying = size >= 150; // plane tour + interaction only on the large globe
+    const flying = size >= 150; // plane tour only on the large landing globe
 
     // Bake each unique emoji to an offscreen sprite once — drawImage per frame is
-    // far cheaper than fillText×10 every frame (the real iOS cost).
+    // far cheaper than fillText×10 every frame.
     const sprites = new Map<string, HTMLCanvasElement>();
     for (const lm of LANDMARKS) {
       if (sprites.has(lm.icon)) continue;
@@ -105,11 +104,11 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       sprites.set(lm.icon, sc);
     }
 
-    // Per-landmark runtime state (LANDMARKS is a module const → parallel array).
+    // Per-landmark runtime state.
     const lmS = LANDMARKS.map(() => ({
       pop: 0, popV: 0, jump: 0, jumpV: 0, gd: 9,
       bobPh: Math.random() * Math.PI * 2, bobSp: 0.9 + Math.random() * 0.4,
-      wasNear: false, sx: 0, sy: 0, hit: 0, vis: false,
+      wasNear: false, vis: false,
     }));
     const order = LANDMARKS.map((_, i) => i);
 
@@ -122,73 +121,12 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     let aheadLat = TOUR[1][1];
     let lambda = -TOUR[0][0];
     let phi = -TOUR[0][1];
+    let heading = NaN; // smoothed plane bearing (screen radians) — banks gently
     let cloudOffset = 0;
     let tacc = 0;
     const trail: [number, number][] = [];
     let lastTs = performance.now();
     let lastDraw = 0;
-
-    // ── interaction state ─────────────────────────────────────────────────────
-    let mode: 'tour' | 'drag' | 'coast' | 'idle' = 'tour';
-    let velL = 0, velP = 0, autoGain = 1, idleSince = 0;
-    let downX = 0, downY = 0, downT = 0, moved = false, lastX = 0, lastY = 0, lastMoveT = 0;
-    let sL = 0, sP = 0, sX = 0, sY = 0;
-
-    const xy = (e: PointerEvent): [number, number] => {
-      const r = cv.getBoundingClientRect();
-      return [e.clientX - r.left, e.clientY - r.top];
-    };
-    const onDown = (e: PointerEvent) => {
-      cv.setPointerCapture(e.pointerId);
-      const [x, y] = xy(e);
-      mode = 'drag'; velL = 0; velP = 0;
-      sL = lambda; sP = phi; sX = x; sY = y;
-      downX = x; downY = y; downT = e.timeStamp; lastX = x; lastY = y; lastMoveT = e.timeStamp; moved = false;
-      cv.style.cursor = 'grabbing';
-      if (reduce) draw();
-    };
-    const onMove = (e: PointerEvent) => {
-      if (mode !== 'drag') return;
-      const [x, y] = xy(e);
-      // absolute anchor from the grab point — drift-free, exact 1:1 at centre
-      lambda = sL + (x - sX) * DEG_PER_PX;
-      phi = clamp(sP - (y - sY) * DEG_PER_PX, -85, 85);
-      const dtm = Math.max(0.008, (e.timeStamp - lastMoveT) / 1000);
-      velL = 0.8 * velL + 0.2 * ((x - lastX) * DEG_PER_PX / dtm);
-      velP = 0.8 * velP + 0.2 * (-(y - lastY) * DEG_PER_PX / dtm);
-      if (Math.hypot(x - downX, y - downY) > 6) moved = true;
-      lastX = x; lastY = y; lastMoveT = e.timeStamp; idleSince = e.timeStamp;
-      if (reduce) draw();
-    };
-    const onUp = (e: PointerEvent) => {
-      const [x, y] = xy(e);
-      cv.style.cursor = 'grab';
-      if (!moved && e.timeStamp - downT < 250) {
-        // TAP → hop the nearest visible landmark
-        let best = -1, bd = 1e9;
-        for (let i = 0; i < lmS.length; i++) {
-          const s = lmS[i];
-          if (!s.vis) continue;
-          const d = Math.hypot(x - s.sx, y - s.sy);
-          if (d < s.hit && d < bd) { bd = d; best = i; }
-        }
-        if (best >= 0) { lmS[best].jumpV += 6; if (navigator.vibrate) navigator.vibrate(10); }
-        mode = 'idle';
-      } else {
-        velL = clamp(velL, -360, 360); velP = clamp(velP, -360, 360);
-        mode = Math.hypot(velL, velP) > 6 ? 'coast' : 'idle';
-      }
-      idleSince = e.timeStamp;
-    };
-    if (flying) {
-      cv.style.touchAction = 'none';
-      cv.style.userSelect = 'none';
-      cv.style.cursor = 'grab';
-      cv.addEventListener('pointerdown', onDown);
-      cv.addEventListener('pointermove', onMove);
-      cv.addEventListener('pointerup', onUp);
-      cv.addEventListener('pointercancel', onUp);
-    }
 
     // ── static gradients ──────────────────────────────────────────────────────
     const ocean = ctx.createRadialGradient(cx - R * 0.38, cy - R * 0.42, R * 0.12, cx, cy, R);
@@ -216,19 +154,19 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     const drawMarker = (i: number, baseSz: number) => {
       const lm = LANDMARKS[i];
       const s = lmS[i];
-      const pop = reduce ? (Math.cos(s.gd) > 0.15 ? 1 : 0) : Math.max(0, s.pop);
+      const pop = reduce ? (geoDistance([lm.lng, lm.lat], [planeLng, planeLat]) < 0.6 && Math.cos(s.gd) > 0.15 ? 1 : 0) : Math.max(0, s.pop);
       if (pop < 0.02 || s.gd >= dLimit) { s.vis = false; return; }
       const pt = projection([lm.lng, lm.lat]);
       if (!pt) { s.vis = false; return; }
       const facing = Math.cos(s.gd);
-      const persp = 0.85 + 0.15 * facing; // grows as it turns toward you
+      const persp = 0.85 + 0.15 * facing;
       const sz = baseSz * pop * persp;
       const bob = reduce ? 0 : Math.sin(tacc * s.bobSp + s.bobPh);
-      const liftPx = sz * (0.28 + 0.10 * bob) + s.jump * baseSz * 0.6; // rise + hover + hop
-      const hN = Math.min(1, liftPx / (baseSz * 0.5)); // normalized height
-      const vstr = clamp(1 + (s.popV + s.jumpV) * 0.012, 0.82, 1.28); // squash/stretch
+      const liftPx = sz * (0.28 + 0.10 * bob) + s.jump * baseSz * 0.6;
+      const hN = Math.min(1, liftPx / (baseSz * 0.5));
+      const vstr = clamp(1 + (s.popV + s.jumpV) * 0.012, 0.82, 1.28);
 
-      // LAYER 1 — pinned contact shadow (opposition to the lifted icon = height)
+      // pinned contact shadow (opposition to the lifted icon reads as height)
       ctx.save();
       ctx.globalAlpha = 0.26 * pop * (1 - 0.5 * hN);
       ctx.beginPath();
@@ -237,7 +175,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.fill();
       ctx.restore();
 
-      // LAYER 2 — the lifted icon, with squash/stretch from spring velocity
+      // the lifted icon, with squash/stretch from spring velocity
       const sprite = sprites.get(lm.icon);
       if (sprite) {
         ctx.save();
@@ -247,7 +185,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         ctx.drawImage(sprite, -sz / 2, -sz / 2, sz, sz);
         ctx.restore();
       }
-      s.sx = pt[0]; s.sy = pt[1] - liftPx; s.hit = sz * 0.7; s.vis = true;
+      s.vis = true;
     };
     const drawLandmarks = () => {
       const baseSz = Math.max(14, R * 0.14);
@@ -306,12 +244,20 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
 
       const p = projection([planeLng, planeLat]);
       if (!p) return;
+      // Smooth the heading so the plane banks gently through waypoint turns
+      // instead of snapping (shortest-angle ease toward the travel direction).
       const pa = projection([aheadLng, aheadLat]);
-      const ang = pa ? Math.atan2(pa[1] - p[1], pa[0] - p[0]) : 0;
+      const target = pa ? Math.atan2(pa[1] - p[1], pa[0] - p[0]) : (isNaN(heading) ? 0 : heading);
+      if (isNaN(heading)) heading = target;
+      else {
+        let da = target - heading;
+        da = ((da + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
+        heading += da * 0.1;
+      }
       const fs = Math.max(16, R * 0.15);
       ctx.save();
       ctx.translate(p[0], p[1]);
-      ctx.rotate(ang + Math.PI / 4);
+      ctx.rotate(heading + Math.PI / 4);
       ctx.font = `${fs}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -322,17 +268,18 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.restore();
     };
 
-    // ── landmark simulation (springs) ──────────────────────────────────────────
+    // ── landmark simulation (springs) — presence tied to the PLANE ─────────────
     const stepLandmarks = (dt: number) => {
       const sdt = Math.min(dt, 1 / 60);
       for (let i = 0; i < LANDMARKS.length; i++) {
         const lm = LANDMARKS[i];
         const s = lmS[i];
         s.gd = geoDistance([lm.lng, lm.lat], [-lambda, -phi]);
-        const present = Math.cos(s.gd) > 0.15 ? 1 : 0;
+        const dPlane = geoDistance([lm.lng, lm.lat], [planeLng, planeLat]);
+        const present = dPlane < 0.6 ? 1 : 0; // comes as the plane nears, fades as it leaves
         s.popV += (170 * (present - s.pop) - 14 * s.popV) * sdt; // presence spring
         s.pop += s.popV * sdt;
-        const near = geoDistance([lm.lng, lm.lat], [planeLng, planeLat]) < 0.30;
+        const near = dPlane < 0.3;
         if (near && !s.wasNear) s.jumpV += 6; // plane fly-over → hop
         s.wasNear = near;
         s.jumpV += (-120 * s.jump - 9 * s.jumpV) * sdt; // hop spring
@@ -384,7 +331,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.stroke();
 
       if (flying) {
-        drawLandmarks(); // unclipped — lifted icons may crest the limb (depth cue)
+        drawLandmarks();
         drawPlane();
       }
 
@@ -398,7 +345,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       cloudOffset += 0.9 * dt;
 
       if (flying) {
-        // plane advances UNCONDITIONALLY so the tour clock never teleports
+        // advance the plane smoothly along the great-circle tour
         let A = TOUR[seg];
         let B = TOUR[(seg + 1) % TOUR.length];
         let segLen = geoDistance(A, B) || 0.001;
@@ -421,20 +368,8 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         trail.push([planeLng, planeLat]);
         if (trail.length > 140) trail.shift();
 
-        // interaction / camera machine
-        if (mode === 'coast') {
-          lambda += velL * dt;
-          phi = clamp(phi + velP * dt, -85, 85);
-          const f = Math.pow(0.95, dt * 60); // frame-rate-independent decay
-          velL *= f; velP *= f;
-          if (Math.hypot(velL, velP) < 6) { velL = velP = 0; mode = 'idle'; idleSince = now; }
-        } else if (mode === 'idle') {
-          if (now - idleSince > 2500) mode = 'tour'; // resume following the plane
-        }
-        // one blend scalar: 1 in tour, ~0 while you interact (smooth handoff/return)
-        const wantTour = mode === 'tour';
-        autoGain += ((wantTour ? 1 : 0) - autoGain) * Math.min(1, dt * (wantTour ? 1.5 : 8));
-        const k = Math.min(1, dt * 2.6) * autoGain;
+        // camera follows the plane — a smooth, steady chase (shortest way round)
+        const k = Math.min(1, dt * 2.4);
         const dL = (((-planeLng - lambda) % 360) + 540) % 360 - 180;
         lambda += dL * k;
         phi += (-planeLat - phi) * k;
@@ -454,18 +389,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     };
 
     draw();
-    return () => {
-      cancelAnimationFrame(raf);
-      if (flying) {
-        cv.removeEventListener('pointerdown', onDown);
-        cv.removeEventListener('pointermove', onMove);
-        cv.removeEventListener('pointerup', onUp);
-        cv.removeEventListener('pointercancel', onUp);
-        cv.style.touchAction = '';
-        cv.style.userSelect = '';
-        cv.style.cursor = '';
-      }
-    };
+    return () => cancelAnimationFrame(raf);
   }, [size]);
 
   return <canvas ref={ref} style={{ width: size, height: size, opacity, display: 'block', borderRadius: '50%' }} />;
