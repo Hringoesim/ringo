@@ -337,6 +337,16 @@ export const sbData = {
     const { data } = await sb.from('profiles').select('*').eq('id', u.user.id).single();
     return data;
   },
+  /** Redeem a founding code server-side → grants + persists Pioneer membership
+   *  (validated against public.pioneer_codes; users can't self-grant). Returns
+   *  whether the code was accepted. Hydrate reads profiles.pioneer back. */
+  async redeemPioneerCode(code: string): Promise<boolean> {
+    const sb = await getSupabase();
+    if (!sb) return false;
+    const { data, error } = await sb.rpc('redeem_pioneer_code', { p_code: code });
+    if (error) return false;
+    return data === true;
+  },
   // ── country waitlist ──────────────────────────────────────────────────────
   /** Register (on) or remove (off) the signed-in user's interest in a country. */
   async setWaitlist(countryCode: string, on: boolean): Promise<void> {

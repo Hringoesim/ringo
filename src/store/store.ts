@@ -489,9 +489,18 @@ export const actions = {
     return on;
   },
 
-  /** Redeem a valid Pioneer code → founding membership (ranks still climb). */
-  grantPioneer() {
-    if (!get().pioneer) set({ pioneer: true });
+  /** Redeem a Pioneer code → founding membership (ranks still climb). The server
+   *  validates the code (public.pioneer_codes) and persists the flag, so access
+   *  survives reload / reinstall and can't be self-granted. Offline demo: local. */
+  grantPioneer(code?: string) {
+    const c = code ?? 'PIONEER';
+    if (sb) {
+      sbData.redeemPioneerCode(c)
+        .then((ok) => { if (ok && !get().pioneer) set({ pioneer: true }); })
+        .catch((e) => log.warn('grantPioneer', e, { code: c }));
+    } else if (!get().pioneer) {
+      set({ pioneer: true });
+    }
   },
 
   /** Pre-select a plan (e.g. the onboarding recommendation) without charging. */
@@ -541,6 +550,9 @@ export const actions = {
           if (profile.kyc_status) patch.kycStatus = profile.kyc_status as KycStatus;
           if (profile.current_country) patch.currentCountry = String(profile.current_country);
           if (typeof profile.score === 'number') patch.score = profile.score as number;
+          // Pioneer founding membership — server-persisted, so it survives
+          // reinstall / new device (a redeemed founding code sticks).
+          if (typeof profile.pioneer === 'boolean') patch.pioneer = profile.pioneer;
           // Server is the source of truth for paid access (survives reinstall /
           // new device), not client localStorage.
           if (profile.subscription_status) {
