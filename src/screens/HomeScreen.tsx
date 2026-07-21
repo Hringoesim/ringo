@@ -84,7 +84,16 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+    <div
+      style={{
+        flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative',
+        // A soft warm sunset wash at the top ties the dashboard to the landing —
+        // warmth without muddying the clean white cards below.
+        background:
+          'radial-gradient(150% 46% at 50% -10%, rgba(255,141,46,0.13) 0%, rgba(255,141,46,0) 62%), ' +
+          'radial-gradient(120% 40% at 92% 2%, rgba(255,84,132,0.09) 0%, rgba(255,84,132,0) 58%), #FFFFFF',
+      }}
+    >
       {leveledTo && <Confetti />}
       <div
         ref={scrollRef}
