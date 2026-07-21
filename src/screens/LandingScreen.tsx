@@ -2,10 +2,9 @@
 // live flight globe, and the two pill CTAs: "Create account" (opens sign-up with
 // Apple / Google / email) and "Log in". Fully adaptive.
 import { useEffect, useState } from 'react';
-import { RC } from '../theme';
 import { SaturnWorld } from '../components/SaturnWorld';
 import { RingoButton } from '../components/Button';
-import { LOGO_SRC } from '../assets';
+import { RingoWordmark } from '../components/Wordmark';
 
 export function LandingScreen({ onExplore, onLogin }: { onExplore: () => void; onLogin?: () => void }) {
   const [globe, setGlobe] = useState(320);
@@ -24,12 +23,13 @@ export function LandingScreen({ onExplore, onLogin }: { onExplore: () => void; o
     <div
       style={{
         flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative',
-        // Vivid warm gradient sky (light).
+        // Vivid, glowing warm sunset (bright, not dark) — richer + more saturated
+        // so the brand pops instead of washing out.
         background: [
-          'radial-gradient(115% 75% at 50% 6%, rgba(255,169,77,0.72) 0%, rgba(255,169,77,0) 48%)',
-          'radial-gradient(120% 85% at 82% 26%, rgba(255,84,132,0.48) 0%, rgba(255,84,132,0) 55%)',
-          'radial-gradient(110% 90% at 12% 72%, rgba(158,102,255,0.42) 0%, rgba(158,102,255,0) 60%)',
-          'linear-gradient(180deg, #FFF1DE 0%, #FFD9BF 36%, #FFBFD2 68%, #E2C4FA 100%)',
+          'radial-gradient(125% 82% at 50% 0%, rgba(255,141,46,0.95) 0%, rgba(255,141,46,0) 50%)',
+          'radial-gradient(130% 92% at 86% 22%, rgba(255,64,116,0.6) 0%, rgba(255,64,116,0) 55%)',
+          'radial-gradient(122% 96% at 8% 82%, rgba(150,88,255,0.5) 0%, rgba(150,88,255,0) 62%)',
+          'linear-gradient(180deg, #FF9E4D 0%, #FF8A6E 30%, #FF86A9 62%, #C79BEE 100%)',
         ].join(', '),
       }}
     >
@@ -39,25 +39,29 @@ export function LandingScreen({ onExplore, onLogin }: { onExplore: () => void; o
           justifyContent: 'center', padding: '48px 24px 0', textAlign: 'center',
         }}
       >
-        <img src={LOGO_SRC} alt="Ringo" style={{ height: 82, width: 'auto', marginTop: 34, filter: 'drop-shadow(0 6px 16px rgba(120,40,20,0.22))' }} />
+        {/* White wordmark on the sunset — high-contrast, premium (matches ringoesim.com). */}
+        <div style={{ marginTop: 40, filter: 'drop-shadow(0 8px 24px rgba(120,30,10,0.28))' }}>
+          <RingoWordmark light size={62} />
+        </div>
 
-        <div style={{ marginTop: 6 }}>
+        <div style={{ marginTop: 4 }}>
           <SaturnWorld size={globe} />
         </div>
 
         <div
           style={{
-            marginTop: 6, fontFamily: 'var(--font-display)', fontSize: 38, fontWeight: 800,
-            letterSpacing: -1.2, lineHeight: 1.04, textWrap: 'balance',
-            background: RC.grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            marginTop: 6, fontFamily: 'var(--font-display)', fontSize: 40, fontWeight: 800,
+            letterSpacing: -1.4, lineHeight: 1.02, textWrap: 'balance',
+            color: '#FFFFFF', textShadow: '0 3px 20px rgba(120,30,10,0.30)',
           }}
         >
           One plan,<br />every country.
         </div>
         <div
           style={{
-            marginTop: 12, fontFamily: 'var(--font)', fontSize: 15, fontWeight: 500,
-            color: '#9A5B6E', lineHeight: 1.55, maxWidth: 300,
+            marginTop: 12, fontFamily: 'var(--font)', fontSize: 15.5, fontWeight: 600,
+            color: 'rgba(255,255,255,0.94)', textShadow: '0 1px 8px rgba(120,30,10,0.22)',
+            lineHeight: 1.55, maxWidth: 310,
           }}
         >
           180+ countries on one eSIM. Keep your number, stay connected everywhere.
@@ -74,10 +78,11 @@ export function LandingScreen({ onExplore, onLogin }: { onExplore: () => void; o
             className="press"
             style={{
               border: 'none', background: 'transparent', cursor: 'pointer', padding: '4px 0',
-              fontFamily: 'var(--font)', fontSize: 14.5, fontWeight: 600, color: '#9A5B6E',
+              fontFamily: 'var(--font)', fontSize: 14.5, fontWeight: 600,
+              color: 'rgba(255,255,255,0.88)', textShadow: '0 1px 6px rgba(120,30,10,0.22)',
             }}
           >
-            Already have an account? <span style={{ color: RC.inkStrong, fontWeight: 700 }}>Log in</span>
+            Already have an account? <span style={{ color: '#FFFFFF', fontWeight: 800 }}>Log in</span>
           </button>
         )}
       </div>
