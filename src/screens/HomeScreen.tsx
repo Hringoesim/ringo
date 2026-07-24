@@ -87,11 +87,11 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
     <div
       style={{
         flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative',
-        // A soft warm sunset wash at the top ties the dashboard to the landing —
-        // warmth without muddying the clean white cards below.
+        // A soft sunset wash at the top ties the dashboard to the landing —
+        // pink-forward (orange washes read tan/brown on white).
         background:
-          'radial-gradient(150% 46% at 50% -10%, rgba(255,141,46,0.13) 0%, rgba(255,141,46,0) 62%), ' +
-          'radial-gradient(120% 40% at 92% 2%, rgba(255,84,132,0.09) 0%, rgba(255,84,132,0) 58%), #FFFFFF',
+          'radial-gradient(150% 46% at 50% -10%, rgba(255,66,161,0.10) 0%, rgba(255,66,161,0) 62%), ' +
+          'radial-gradient(120% 40% at 92% 2%, rgba(134,82,224,0.08) 0%, rgba(134,82,224,0) 58%), #FFFFFF',
       }}
     >
       {leveledTo && <Confetti />}
@@ -182,7 +182,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
                 boxShadow: `0 12px 24px -14px ${leveledTo.glow}`,
               }}
             >
-              <img src={ICON_3D_EXTRA.trophy} alt="" width={30} height={30} style={{ width: 30, height: 30, objectFit: 'contain', filter: 'drop-shadow(0 3px 5px rgba(30,20,10,0.28))' }} />
+              <img src={ICON_3D_EXTRA.trophy} alt="" width={30} height={30} style={{ width: 30, height: 30, objectFit: 'contain', filter: 'drop-shadow(0 3px 5px rgba(52,28,84,0.28))' }} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontFamily: 'var(--font)', fontSize: 14.5, fontWeight: 700 }}>You reached {leveledTo.name}!</div>
                 <div style={{ fontFamily: 'var(--font)', fontSize: 12, opacity: 0.9 }}>New perks unlocked — tap to see them</div>
@@ -668,7 +668,7 @@ function ActionChip({ label, icon, onClick }: { label: string; icon: ActionIcon;
           alt=""
           width={50}
           height={50}
-          style={{ width: 50, height: 50, objectFit: 'contain', filter: 'drop-shadow(0 6px 8px rgba(30,20,10,0.22))' }}
+          style={{ width: 50, height: 50, objectFit: 'contain', filter: 'drop-shadow(0 6px 8px rgba(52,28,84,0.22))' }}
         />
       </div>
       <div style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 600, color: RC.ink, letterSpacing: -0.1, textAlign: 'center', lineHeight: 1.2 }}>{label}</div>

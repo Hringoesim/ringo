@@ -12,7 +12,7 @@ export function BackBtn({ onClick }: { onClick?: () => void }) {
         width: 40, height: 40, borderRadius: '50%',
         background: RC.cream, border: `1.5px solid ${RC.lineStrong}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        cursor: 'pointer', boxShadow: '0 4px 12px -6px rgba(34,26,20,0.16)',
+        cursor: 'pointer', boxShadow: '0 4px 12px -6px rgba(52,28,84,0.16)',
       }}
     >
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none">

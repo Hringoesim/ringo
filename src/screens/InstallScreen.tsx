@@ -106,7 +106,7 @@ export function InstallScreen({ onBack, onActivate }: { onBack: () => void; onAc
               borderRadius: 14, background: 'rgba(31,138,91,0.10)', border: '1px solid rgba(31,138,91,0.24)',
             }}
           >
-            <img src={ICON_3D_EXTRA.tick} alt="" width={24} height={24} style={{ width: 24, height: 24, objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(30,20,10,0.2))' }} />
+            <img src={ICON_3D_EXTRA.tick} alt="" width={24} height={24} style={{ width: 24, height: 24, objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(52,28,84,0.2))' }} />
             <div style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, color: '#1F7A4E', letterSpacing: -0.1 }}>
               You’re connected — data in 180+ countries is ready.
             </div>

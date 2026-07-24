@@ -39,7 +39,7 @@ export function NotifyPrimer({ onDone }: { onDone: () => void }) {
           style={{
             marginTop: 28, width: '100%', maxWidth: 340, display: 'flex', alignItems: 'center', gap: 12,
             padding: '12px 14px', borderRadius: 18, background: RC.paper, border: `1px solid ${RC.line}`,
-            boxShadow: '0 16px 34px -18px rgba(34,26,20,0.3)', textAlign: 'left',
+            boxShadow: '0 16px 34px -18px rgba(52,28,84,0.3)', textAlign: 'left',
             animation: 'ringoNotifIn 0.6s cubic-bezier(0.34,1.4,0.64,1) both',
           }}
         >

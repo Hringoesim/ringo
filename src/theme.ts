@@ -16,15 +16,15 @@ export type Scheme = 'dark' | 'light';
 // Spread onto floating controls (tab bar, toolbars, pills) so content refracts
 // through them the way iOS 26 surfaces do.
 export const GLASS: CSSProperties = {
-  background: 'rgba(255,251,248,0.62)',
+  background: 'rgba(255,250,253,0.62)',
   backdropFilter: 'blur(24px) saturate(185%)',
   WebkitBackdropFilter: 'blur(24px) saturate(185%)',
   border: '1px solid rgba(255,255,255,0.55)',
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.75), 0 12px 34px -12px rgba(34,26,20,0.28)',
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.75), 0 12px 34px -12px rgba(52,28,84,0.24)',
 };
 // A lighter glass for inline chips / smaller controls.
 export const GLASS_THIN: CSSProperties = {
-  background: 'rgba(255,251,248,0.55)',
+  background: 'rgba(255,250,253,0.55)',
   backdropFilter: 'blur(16px) saturate(170%)',
   WebkitBackdropFilter: 'blur(16px) saturate(170%)',
   border: '1px solid rgba(255,255,255,0.5)',
@@ -54,13 +54,14 @@ export interface Palette {
   pageBg: string;
 }
 
-// Elevation — depth comes from soft warm shadows, not color. Cards float on the
-// warm canvas; the hero gets a deeper, dusk-tinted lift. Buttons get a tighter,
-// slightly stronger lift; a "raised" token is used for selected/active surfaces.
-export const SHADOW_CARD = '0 1px 2px rgba(34,26,20,0.05), 0 12px 28px -20px rgba(34,26,20,0.18)';
-export const SHADOW_BUTTON = '0 1px 2px rgba(34,26,20,0.06), 0 8px 18px -8px rgba(34,26,20,0.26)';
-export const SHADOW_RAISED = '0 2px 6px rgba(34,26,20,0.08), 0 16px 34px -18px rgba(34,26,20,0.24)';
-export const SHADOW_HERO = '0 18px 40px -20px rgba(126,58,115,0.55)';
+// Elevation — depth comes from soft plum-tinted shadows, not color (a cool
+// tint keeps whites crisp; brown-tinted shadows made the whole app look tan).
+// Buttons get a tighter, slightly stronger lift; "raised" is for selected
+// surfaces; the hero gets a deeper violet lift.
+export const SHADOW_CARD = '0 1px 2px rgba(52,28,84,0.04), 0 12px 28px -20px rgba(52,28,84,0.16)';
+export const SHADOW_BUTTON = '0 1px 2px rgba(52,28,84,0.05), 0 8px 18px -8px rgba(52,28,84,0.24)';
+export const SHADOW_RAISED = '0 2px 6px rgba(52,28,84,0.07), 0 16px 34px -18px rgba(52,28,84,0.22)';
+export const SHADOW_HERO = '0 18px 40px -20px rgba(134,82,224,0.5)';
 
 // One corner-radius scale — every surface picks from these, not ad-hoc values.
 export const RADIUS = { sm: 12, md: 16, lg: 20, xl: 24, pill: 999 } as const;
@@ -98,26 +99,26 @@ const LIGHT: Palette = {
   scheme: 'light',
   bg: '#FFFFFF', // white
   paper: '#FFFFFF', // cards (separated from bg by hairline + shadow)
-  ink: '#221A14', // deep warm espresso (kills the muddy brown)
-  inkStrong: '#CE4A1E', // burnt-sunset ember for links / small accents
-  inkMute: '#82715F', // warm taupe-gray secondary text
-  line: 'rgba(34,26,20,0.08)', // NEUTRAL warm hairline (no pink tint)
-  lineStrong: 'rgba(34,26,20,0.14)',
-  cream: '#F4ECE2', // muted warm sand for soft chips/tiles
-  cream2: '#EADFD1',
-  // The refined sunset — orange → coral → plum, dropping the neon magenta.
-  grad: 'linear-gradient(135deg, #FF8A3D 0%, #F0566B 48%, #C74B8E 100%)',
-  gradSoft: 'linear-gradient(135deg, rgba(255,138,61,0.12) 0%, rgba(199,75,142,0.10) 100%)',
+  ink: '#211A2E', // near-black with a plum cast — crisp, no espresso brown
+  inkStrong: '#F26122', // vivid brand orange for links / small accents
+  inkMute: '#8D8499', // mauve-gray secondary text (no taupe)
+  line: 'rgba(33,26,46,0.08)', // cool neutral hairline
+  lineStrong: 'rgba(33,26,46,0.14)',
+  cream: '#FBF1F7', // blush pink for soft chips/tiles (was sand)
+  cream2: '#F3E7F6', // lavender blush
+  // The full vivid sunset — brand orange → hot pink → purple.
+  grad: 'linear-gradient(135deg, #F26122 0%, #FF42A1 52%, #8652E0 100%)',
+  gradSoft: 'linear-gradient(135deg, rgba(242,97,34,0.12) 0%, rgba(134,82,224,0.10) 100%)',
   gradDeep:
     'radial-gradient(130% 150% at 12% 8%, #FFB262 0%, rgba(255,178,98,0) 46%),' +
-    'linear-gradient(135deg, #E45E37 0%, #C4497F 52%, #7E3A73 100%)',
-  pink: '#C74B8E', // deep orchid (was neon magenta)
-  glass: 'rgb(247,242,236)',
-  glassBar: 'rgb(244,239,233)',
-  // One soft warm glow up top, a plum whisper in the corner, neutral warm base.
+    'linear-gradient(135deg, #F26122 0%, #E23A8E 52%, #8652E0 100%)',
+  pink: '#FF42A1', // brand hot pink
+  glass: 'rgb(253,248,252)',
+  glassBar: 'rgb(252,247,251)',
+  // Pink glow up top, a violet whisper in the corner, clean white base.
   pageBg:
-    'radial-gradient(1100px 720px at 50% -12%, rgba(255,138,61,0.04), transparent 55%),' +
-    'radial-gradient(760px 560px at 88% 108%, rgba(199,75,142,0.03), transparent 60%), #FFFFFF',
+    'radial-gradient(1100px 720px at 50% -12%, rgba(255,66,161,0.05), transparent 55%),' +
+    'radial-gradient(760px 560px at 88% 108%, rgba(134,82,224,0.04), transparent 60%), #FFFFFF',
 };
 
 export const THEMES: Record<Scheme, Palette> = { dark: DARK, light: LIGHT };
