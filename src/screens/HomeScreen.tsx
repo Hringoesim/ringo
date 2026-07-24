@@ -11,7 +11,7 @@ import { LOGO_SRC } from '../assets';
 import { Confetti } from '../components/Confetti';
 import { RingoAvatar } from '../components/Avatar';
 import { hapticNotify } from '../lib/haptics';
-import { ICON_3D } from '../assets/icons3d';
+import { ICON_3D, ICON_3D_EXTRA } from '../assets/icons3d';
 
 // Onboarding destination picks → representative country codes for the dashboard.
 const DEST_MAP: Record<string, string[]> = {
@@ -182,7 +182,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
                 boxShadow: `0 12px 24px -14px ${leveledTo.glow}`,
               }}
             >
-              <span style={{ fontSize: 24 }}>🎉</span>
+              <img src={ICON_3D_EXTRA.trophy} alt="" width={30} height={30} style={{ width: 30, height: 30, objectFit: 'contain', filter: 'drop-shadow(0 3px 5px rgba(30,20,10,0.28))' }} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontFamily: 'var(--font)', fontSize: 14.5, fontWeight: 700 }}>You reached {leveledTo.name}!</div>
                 <div style={{ fontFamily: 'var(--font)', fontSize: 12, opacity: 0.9 }}>New perks unlocked — tap to see them</div>
@@ -641,9 +641,9 @@ function NumberBuckets({ numbers, onMore, onAdd }: { numbers: PhoneNumber[]; onM
   );
 }
 
-// Action tiles — each a rendered 3D object (Microsoft Fluent 3D set, MIT-
-// licensed) on a clean white tile, so the four primary actions read as a
-// bright, tactile, coherent family.
+// Action tiles — each a rendered 3D object (3dicons by realvjy, CC0) on a
+// clean white tile, so the four primary actions read as a bright, tactile,
+// coherent family in the warm-sunset gradient.
 type ActionIcon = 'globe' | 'port' | 'plan' | 'qr';
 function ActionChip({ label, icon, onClick }: { label: string; icon: ActionIcon; onClick: () => void }) {
   return (

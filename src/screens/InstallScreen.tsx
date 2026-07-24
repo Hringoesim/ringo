@@ -9,6 +9,7 @@ import { RingoCard } from '../components/Card';
 import { BackBtn, SectionTitle, Step } from '../components/ui';
 import { useRingoState } from '../store/store';
 import { qrDataUri, appleInstallUrl, formatIccid } from '../lib/esim';
+import { ICON_3D_EXTRA } from '../assets/icons3d';
 import { haptic, hapticSelection, hapticNotify } from '../lib/haptics';
 
 function DetailRow({ label, value, last }: { label: string; value: string; last?: boolean }) {
@@ -105,7 +106,7 @@ export function InstallScreen({ onBack, onActivate }: { onBack: () => void; onAc
               borderRadius: 14, background: 'rgba(31,138,91,0.10)', border: '1px solid rgba(31,138,91,0.24)',
             }}
           >
-            <span style={{ fontSize: 18 }}>🎉</span>
+            <img src={ICON_3D_EXTRA.tick} alt="" width={24} height={24} style={{ width: 24, height: 24, objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(30,20,10,0.2))' }} />
             <div style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, color: '#1F7A4E', letterSpacing: -0.1 }}>
               You’re connected — data in 180+ countries is ready.
             </div>
