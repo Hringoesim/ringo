@@ -10,6 +10,7 @@ import { feature } from 'topojson-client';
 import landTopo from 'world-atlas/land-110m.json';
 import { LANDMARK_SRC } from '../assets/landmarks3d';
 import planeSrc from '../assets/landmarks3d/plane.png';
+import cloudSrc from '../assets/landmarks3d/cloudpuff.png';
 
 const LAND = feature(landTopo as any, (landTopo as any).objects.land) as unknown as GeoPermissibleObjects;
 
@@ -69,13 +70,20 @@ const MONUMENTS: { key: keyof typeof LANDMARK_SRC; lng: number; lat: number }[] 
   { key: 'octopus', lng: 155.0, lat: 8.0 }, // north-west Pacific
   { key: 'shark', lng: -172.0, lat: 8.0 }, // central Pacific
   { key: 'tropicalfish', lng: 161.0, lat: -15.0 }, // Coral Sea
+  { key: 'castle', lng: 10.9, lat: 49.5 }, // Bavaria (Neuschwanstein)
+  { key: 'rocket', lng: -80.6, lat: 28.4 }, // Cape Canaveral
+  { key: 'slotmachine', lng: -115.1, lat: 36.1 }, // Las Vegas
+  { key: 'stadium', lng: 2.15, lat: 41.38 }, // Barcelona (Camp Nou)
+  { key: 'desertisland', lng: -135.0, lat: -12.0 }, // South Pacific
 ];
 
 // Zoom INTO the planet while the circle stays the same size — you see less of
 // the sphere, but everything on it is bigger. VIS = angular radius of the part
 // of the hemisphere that still fits inside the circle.
-const ZOOM = 1.35;
+const ZOOM = 1.6;
 const VIS = Math.asin(1 / ZOOM);
+// terrain was art-directed at zoom 1.35 — keep its coverage proportional
+const TS = ZOOM / 1.35;
 
 // Hand-drawn cartoon terrain — big rivers, forest patches, mountain ranges.
 // Points are chosen well inside coastlines so nothing spills into the sea.
@@ -161,6 +169,8 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     // north-east in the artwork.
     const planeImg = new Image();
     planeImg.src = planeSrc;
+    const cloudImg = new Image();
+    cloudImg.src = cloudSrc;
 
     let seg = 0;
     let segT = 0;
@@ -218,12 +228,13 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         const pt = projection([f.lng, f.lat]);
         if (!pt) continue;
         const edge = 1 - d / limit;
-        const rad = f.r * R * (0.5 + 0.5 * edge);
+        const rad = f.r * R * TS * (0.5 + 0.5 * edge);
         const a = Math.min(1, edge * 1.6);
+        // beige, not yellow — reads as sand next to the green grasslands
         const gr = ctx.createRadialGradient(pt[0], pt[1], 0, pt[0], pt[1], rad);
-        gr.addColorStop(0, `rgba(233,205,112,${0.85 * a})`);
-        gr.addColorStop(0.65, `rgba(230,199,108,${0.5 * a})`);
-        gr.addColorStop(1, 'rgba(230,199,108,0)');
+        gr.addColorStop(0, `rgba(226,206,166,${0.9 * a})`);
+        gr.addColorStop(0.65, `rgba(222,201,158,${0.55 * a})`);
+        gr.addColorStop(1, 'rgba(222,201,158,0)');
         ctx.fillStyle = gr;
         ctx.beginPath();
         ctx.arc(pt[0], pt[1], rad, 0, Math.PI * 2);
@@ -236,7 +247,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         const pt = projection([f.lng, f.lat]);
         if (!pt) continue;
         const edge = 1 - d / limit;
-        const rad = f.r * R * (0.5 + 0.5 * edge);
+        const rad = f.r * R * TS * (0.5 + 0.5 * edge);
         const gr = ctx.createRadialGradient(pt[0], pt[1], 0, pt[0], pt[1], rad);
         gr.addColorStop(0, `rgba(31,110,52,${0.5 * Math.min(1, edge * 1.6)})`);
         gr.addColorStop(0.7, `rgba(31,110,52,${0.28 * Math.min(1, edge * 1.6)})`);
@@ -255,7 +266,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         if (d >= limit) continue;
         const edge = 1 - d / limit;
         ctx.strokeStyle = `rgba(46,140,206,${0.9 * Math.min(1, edge * 1.8)})`;
-        ctx.lineWidth = Math.max(0.8, R * 0.009 * (0.6 + 0.4 * edge));
+        ctx.lineWidth = Math.max(0.8, R * 0.009 * TS * (0.6 + 0.4 * edge));
         ctx.beginPath();
         let started = false;
         for (const p of river) {
@@ -273,7 +284,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         const pt = projection([m.lng, m.lat]);
         if (!pt) continue;
         const edge = 1 - d / limit;
-        const h = R * 0.045 * m.s * (0.55 + 0.45 * edge);
+        const h = R * 0.045 * TS * m.s * (0.55 + 0.45 * edge);
         const w = h * 1.25;
         const a = Math.min(1, edge * 1.8);
         ctx.globalAlpha = a;
@@ -402,32 +413,21 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         heading += da * 0.07; // gentle banking — no sudden nose snaps
       }
 
-      // The chunky cartoon cloud sits squarely BEHIND the plane (opposite its
-      // nose), far enough back that it never overlaps the emoji.
+      // The 3D cloud sprite tags along squarely BEHIND the plane (opposite its
+      // nose), upright like a real cloud, far enough back not to touch it.
       const back = heading + Math.PI;
-      const bx = p[0] + Math.cos(back) * R * 0.15;
-      const by = p[1] + Math.sin(back) * R * 0.15;
-      const puffs: [number, number, number][] = [
-        [0, 0, R * 0.048],
-        [-R * 0.045, R * 0.012, R * 0.036],
-        [R * 0.042, R * 0.014, R * 0.034],
-        [0, -R * 0.03, R * 0.032],
-      ];
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(cx, cy, R, 0, Math.PI * 2);
-      ctx.clip();
-      for (const [ox, oy, rad] of puffs) {
-        const gr = ctx.createRadialGradient(bx + ox, by + oy, rad * 0.2, bx + ox, by + oy, rad);
-        gr.addColorStop(0, 'rgba(255,255,255,0.92)');
-        gr.addColorStop(0.7, 'rgba(255,255,255,0.75)');
-        gr.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.fillStyle = gr;
+      const bx = p[0] + Math.cos(back) * R * 0.16;
+      const by = p[1] + Math.sin(back) * R * 0.16;
+      if (cloudImg.complete && cloudImg.naturalWidth > 0) {
+        const cw = Math.max(16, R * 0.13);
+        ctx.save();
         ctx.beginPath();
-        ctx.arc(bx + ox, by + oy, rad, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.arc(cx, cy, R, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.globalAlpha = 0.95;
+        ctx.drawImage(cloudImg, bx - cw / 2, by - cw / 2, cw, cw);
+        ctx.restore();
       }
-      ctx.restore();
 
       // The sprite's nose points north-east (−45°), so rotate by heading + 45°
       // to fly nose-first — identical on every platform, unlike a text glyph.
@@ -465,6 +465,29 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.strokeStyle = 'rgba(30,88,44,0.4)';
       ctx.lineWidth = 0.5;
       ctx.stroke();
+      // Polar snow — white caps over any land above ~62° (Greenland, Siberia's
+      // edge, Antarctica), clipped to the coastlines so the sea stays blue.
+      ctx.save();
+      ctx.beginPath();
+      path(LAND);
+      ctx.clip();
+      for (const poleLat of [90, -90]) {
+        const pd = geoDistance([0, poleLat], [-lambda, -phi]);
+        const capAng = (Math.PI / 180) * 28; // cap reaches ~62° latitude
+        if (pd >= Math.PI / 2 + capAng) continue;
+        const pp = projection([0, poleLat]);
+        if (!pp) continue;
+        const rad = R * ZOOM * Math.sin(capAng);
+        const gr = ctx.createRadialGradient(pp[0], pp[1], 0, pp[0], pp[1], rad);
+        gr.addColorStop(0, 'rgba(255,255,255,0.96)');
+        gr.addColorStop(0.7, 'rgba(255,255,255,0.9)');
+        gr.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = gr;
+        ctx.beginPath();
+        ctx.arc(pp[0], pp[1], rad, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
       ctx.restore();
 
       drawTerrain();

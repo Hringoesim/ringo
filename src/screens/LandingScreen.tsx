@@ -25,12 +25,12 @@ export function LandingScreen({ onExplore, onLogin }: { onExplore: () => void; o
     <div
       style={{
         flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative',
-        // Cream sky at the top (so the orange→pink logo reads clearly, like the
-        // site header) melting into the vivid sunset below the globe.
+        // The approved poster look: luminous pale-peach sky (logo sits right on
+        // it), a sun glow behind the globe, melting coral → pink → deep purple.
         background: [
-          'radial-gradient(130% 92% at 86% 34%, rgba(255,64,116,0.5) 0%, rgba(255,64,116,0) 55%)',
-          'radial-gradient(122% 96% at 8% 84%, rgba(150,88,255,0.5) 0%, rgba(150,88,255,0) 62%)',
-          'linear-gradient(180deg, #FFFAF4 0%, #FFEECD 13%, #FFBE72 30%, #FF8A6E 50%, #FF86A9 70%, #C79BEE 100%)',
+          'radial-gradient(120% 70% at 72% 24%, rgba(255,196,110,0.6) 0%, rgba(255,196,110,0) 55%)',
+          'radial-gradient(130% 90% at 12% 88%, rgba(134,82,224,0.5) 0%, rgba(134,82,224,0) 60%)',
+          'linear-gradient(180deg, #FFE4BA 0%, #FFC28C 24%, #FF9678 46%, #FF7E9E 66%, #9C5BD8 100%)',
         ].join(', '),
       }}
     >
