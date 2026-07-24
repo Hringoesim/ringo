@@ -9,6 +9,7 @@ import { geoOrthographic, geoPath, geoDistance, geoInterpolate, type GeoPermissi
 import { feature } from 'topojson-client';
 import landTopo from 'world-atlas/land-110m.json';
 import { LANDMARK_SRC } from '../assets/landmarks3d';
+import planeSrc from '../assets/landmarks3d/plane.png';
 
 const LAND = feature(landTopo as any, (landTopo as any).objects.land) as unknown as GeoPermissibleObjects;
 
@@ -33,7 +34,8 @@ const TOUR: [number, number][] = [
 
 const ANG_SPEED = 0.16; // rad/s the plane travels along the surface
 
-// 3D monument icons standing on their real cities (one unique landmark each).
+// 3D monument + nature icons standing on their real places (one unique icon
+// each; Fuji is nudged a touch south-west so Tokyo Tower stays readable).
 const MONUMENTS: { key: keyof typeof LANDMARK_SRC; lng: number; lat: number }[] = [
   { key: 'ferriswheel', lng: -0.12, lat: 51.5 }, // London Eye
   { key: 'classical', lng: 12.5, lat: 41.9 }, // Rome
@@ -41,10 +43,66 @@ const MONUMENTS: { key: keyof typeof LANDMARK_SRC; lng: number; lat: number }[] 
   { key: 'cityscape', lng: 55.3, lat: 25.2 }, // Dubai
   { key: 'temple', lng: 72.9, lat: 19.1 }, // Mumbai
   { key: 'tokyotower', lng: 139.7, lat: 35.7 }, // Tokyo
-  { key: 'torii', lng: 135.8, lat: 35.0 }, // Kyoto
-  { key: 'bridge', lng: 151.2, lat: -33.9 }, // Sydney
-  { key: 'mountain', lng: -43.2, lat: -22.9 }, // Rio
-  { key: 'liberty', lng: -74.0, lat: 40.7 }, // New York
+  { key: 'fuji', lng: 137.0, lat: 33.6 }, // Mount Fuji
+  { key: 'bridge', lng: -122.48, lat: 37.82 }, // Golden Gate, San Francisco
+  { key: 'mountain', lng: -43.16, lat: -22.95 }, // Sugarloaf, Rio
+  { key: 'liberty', lng: -74.04, lat: 40.69 }, // New York
+  { key: 'snowmountain', lng: 86.9, lat: 28.0 }, // Everest / Himalayas
+  { key: 'volcano', lng: 110.44, lat: -7.54 }, // Merapi, Indonesia
+  { key: 'cactus', lng: -102.5, lat: 23.6 }, // Mexico
+  { key: 'palmtree', lng: -66.6, lat: 18.2 }, // Caribbean
+  { key: 'camel', lng: 25.0, lat: 26.0 }, // Sahara
+  { key: 'kangaroo', lng: 134.0, lat: -24.0 }, // Australian outback
+  { key: 'sailboat', lng: 151.2, lat: -33.87 }, // Sydney Harbour
+  { key: 'moai', lng: -109.35, lat: -27.11 }, // Easter Island
+  { key: 'elephant', lng: 37.0, lat: -1.3 }, // Kenya
+  { key: 'panda', lng: 104.0, lat: 31.5 }, // Sichuan, China
+  { key: 'tiger', lng: 80.0, lat: 21.5 }, // India
+  { key: 'lion', lng: 25.0, lat: -21.5 }, // southern-Africa savanna
+  { key: 'penguin', lng: 110.0, lat: -68.0 }, // Antarctica
+  { key: 'polarbear', lng: -41.0, lat: 73.0 }, // Greenland
+  { key: 'whale', lng: -150.0, lat: -25.0 }, // South Pacific
+  { key: 'dolphin', lng: -38.0, lat: 28.0 }, // Atlantic
+  { key: 'monkey', lng: -68.0, lat: -7.0 }, // Amazon
+  { key: 'beach', lng: 73.3, lat: 3.2 }, // Maldives palm beach
+];
+
+// Hand-drawn cartoon terrain — big rivers, forest patches, mountain ranges.
+// Points are chosen well inside coastlines so nothing spills into the sea.
+const RIVERS: [number, number][][] = [
+  [[-73, -4], [-67, -3.5], [-60, -3], [-55, -2.5], [-50.5, -0.8]], // Amazon
+  [[32.9, 30.5], [31.2, 27], [32.5, 22], [33, 18], [32.5, 15.5]], // Nile
+  [[-95.2, 46.5], [-91, 42], [-90.5, 36], [-91, 31], [-89.6, 29.5]], // Mississippi
+  [[93, 32], [97, 30], [104, 29], [112, 30], [117.5, 31.5]], // Yangtze
+  [[27.5, 0.5], [23, 2], [18, 1], [15.5, -4]], // Congo
+  [[84, 52], [81, 58], [74, 62], [67, 66]], // Ob
+  [[78, 29.5], [82, 26], [87.5, 24.5]], // Ganges
+];
+const DESERTS: { lng: number; lat: number; r: number }[] = [
+  { lng: -5, lat: 23, r: 0.08 }, { lng: 12, lat: 22, r: 0.09 }, { lng: 25, lat: 25, r: 0.06 }, // Sahara
+  { lng: 46, lat: 22, r: 0.05 }, // Arabian
+  { lng: 105, lat: 43, r: 0.05 }, // Gobi
+  { lng: 133, lat: -25, r: 0.075 }, // Australian outback
+  { lng: 21, lat: -23.5, r: 0.04 }, // Kalahari
+  { lng: -111, lat: 36, r: 0.035 }, // US southwest
+];
+const FORESTS: { lng: number; lat: number; r: number }[] = [
+  { lng: -63, lat: -5, r: 0.085 }, // Amazon
+  { lng: 22, lat: -1, r: 0.06 }, // Congo basin
+  { lng: -112, lat: 58, r: 0.06 }, // Canadian boreal
+  { lng: -76, lat: 48, r: 0.045 }, // Quebec
+  { lng: 27, lat: 63, r: 0.045 }, // Scandinavia
+  { lng: 95, lat: 60, r: 0.07 }, // Siberian taiga
+  { lng: 128, lat: 60, r: 0.055 }, // East Siberia
+  { lng: 105, lat: 16, r: 0.04 }, // SE Asia
+];
+const RANGES: { lng: number; lat: number; s: number }[] = [
+  { lng: -116, lat: 51, s: 1 }, { lng: -110, lat: 44, s: 0.85 }, { lng: -106, lat: 39, s: 0.9 }, // Rockies
+  { lng: -70, lat: -14, s: 0.9 }, { lng: -70, lat: -24, s: 1 }, { lng: -71, lat: -34, s: 0.85 }, // Andes
+  { lng: 8, lat: 46.4, s: 0.8 }, { lng: 11.5, lat: 46.8, s: 0.7 }, // Alps
+  { lng: 77, lat: 34, s: 0.9 }, { lng: 81, lat: 31, s: 1 }, // Himalayas
+  { lng: 59, lat: 58, s: 0.7 }, { lng: 60.5, lat: 64, s: 0.7 }, // Urals
+  { lng: 38.5, lat: 10, s: 0.75 }, // Ethiopian highlands
 ];
 
 const CLOUDS: { lng: number; lat: number; r: number }[] = [
@@ -88,6 +146,11 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       img.src = LANDMARK_SRC[m.key];
       return { ...m, img };
     });
+    // The plane is the Fluent 3D emoji airplane as a sprite — a text ✈️ points
+    // different ways on different platforms, a PNG never does. Its nose points
+    // north-east in the artwork.
+    const planeImg = new Image();
+    planeImg.src = planeSrc;
 
     let seg = 0;
     let segT = 0;
@@ -128,6 +191,102 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     atmo.addColorStop(0.82, 'rgba(150,220,255,0)');
     atmo.addColorStop(0.94, 'rgba(178,230,255,0.38)');
     atmo.addColorStop(1, 'rgba(120,195,240,0.16)');
+
+    // Cartoon terrain — forest patches, big rivers, snow-capped ranges — all in
+    // the rotating projection so they ride the globe like the coastlines do.
+    const drawTerrain = () => {
+      const centre: [number, number] = [-lambda, -phi];
+      const limit = Math.PI / 2 - 0.06;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.clip();
+      // deserts first — sandy-yellow land patches (the Nile cuts through later)
+      for (const f of DESERTS) {
+        const d = geoDistance([f.lng, f.lat], centre);
+        if (d >= limit) continue;
+        const pt = projection([f.lng, f.lat]);
+        if (!pt) continue;
+        const edge = 1 - d / limit;
+        const rad = f.r * R * (0.5 + 0.5 * edge);
+        const a = Math.min(1, edge * 1.6);
+        const gr = ctx.createRadialGradient(pt[0], pt[1], 0, pt[0], pt[1], rad);
+        gr.addColorStop(0, `rgba(233,205,112,${0.85 * a})`);
+        gr.addColorStop(0.65, `rgba(230,199,108,${0.5 * a})`);
+        gr.addColorStop(1, 'rgba(230,199,108,0)');
+        ctx.fillStyle = gr;
+        ctx.beginPath();
+        ctx.arc(pt[0], pt[1], rad, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // forests next (rivers cut through them)
+      for (const f of FORESTS) {
+        const d = geoDistance([f.lng, f.lat], centre);
+        if (d >= limit) continue;
+        const pt = projection([f.lng, f.lat]);
+        if (!pt) continue;
+        const edge = 1 - d / limit;
+        const rad = f.r * R * (0.5 + 0.5 * edge);
+        const gr = ctx.createRadialGradient(pt[0], pt[1], 0, pt[0], pt[1], rad);
+        gr.addColorStop(0, `rgba(31,110,52,${0.5 * Math.min(1, edge * 1.6)})`);
+        gr.addColorStop(0.7, `rgba(31,110,52,${0.28 * Math.min(1, edge * 1.6)})`);
+        gr.addColorStop(1, 'rgba(31,110,52,0)');
+        ctx.fillStyle = gr;
+        ctx.beginPath();
+        ctx.arc(pt[0], pt[1], rad, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // rivers — ocean-blue threads over the land
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      for (const river of RIVERS) {
+        const mid = river[Math.floor(river.length / 2)];
+        const d = geoDistance(mid, centre);
+        if (d >= limit) continue;
+        const edge = 1 - d / limit;
+        ctx.strokeStyle = `rgba(46,140,206,${0.9 * Math.min(1, edge * 1.8)})`;
+        ctx.lineWidth = Math.max(0.8, R * 0.009 * (0.6 + 0.4 * edge));
+        ctx.beginPath();
+        let started = false;
+        for (const p of river) {
+          const pt = projection(p);
+          if (!pt) { started = false; continue; }
+          if (!started) { ctx.moveTo(pt[0], pt[1]); started = true; }
+          else ctx.lineTo(pt[0], pt[1]);
+        }
+        ctx.stroke();
+      }
+      // mountain ranges — little cartoon peaks with snow caps
+      for (const m of RANGES) {
+        const d = geoDistance([m.lng, m.lat], centre);
+        if (d >= limit) continue;
+        const pt = projection([m.lng, m.lat]);
+        if (!pt) continue;
+        const edge = 1 - d / limit;
+        const h = R * 0.045 * m.s * (0.55 + 0.45 * edge);
+        const w = h * 1.25;
+        const a = Math.min(1, edge * 1.8);
+        ctx.globalAlpha = a;
+        ctx.beginPath();
+        ctx.moveTo(pt[0] - w, pt[1]);
+        ctx.lineTo(pt[0], pt[1] - h);
+        ctx.lineTo(pt[0] + w, pt[1]);
+        ctx.closePath();
+        ctx.fillStyle = '#5E7D63';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(pt[0] - w * 0.34, pt[1] - h * 0.58);
+        ctx.lineTo(pt[0], pt[1] - h);
+        ctx.lineTo(pt[0] + w * 0.34, pt[1] - h * 0.58);
+        ctx.lineTo(pt[0] + w * 0.18, pt[1] - h * 0.46);
+        ctx.lineTo(pt[0] - w * 0.18, pt[1] - h * 0.46);
+        ctx.closePath();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      ctx.restore();
+    };
 
     const drawClouds = () => {
       ctx.save();
@@ -223,10 +382,11 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         heading += da * 0.1;
       }
 
-      // The chunky cartoon cloud right behind the plane (its loyal follower).
+      // The chunky cartoon cloud sits squarely BEHIND the plane (opposite its
+      // nose), far enough back that it never overlaps the emoji.
       const back = heading + Math.PI;
-      const bx = p[0] + Math.cos(back) * R * 0.115;
-      const by = p[1] + Math.sin(back) * R * 0.115;
+      const bx = p[0] + Math.cos(back) * R * 0.15;
+      const by = p[1] + Math.sin(back) * R * 0.15;
       const puffs: [number, number, number][] = [
         [0, 0, R * 0.048],
         [-R * 0.045, R * 0.012, R * 0.036],
@@ -249,20 +409,19 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       }
       ctx.restore();
 
-      // Apple's ✈️ glyph natively points south-west (nose bottom-left), so
-      // rotate by heading − 135° to fly nose-first.
-      const fs = Math.max(18, R * 0.17);
-      ctx.save();
-      ctx.translate(p[0], p[1]);
-      ctx.rotate(heading - (3 * Math.PI) / 4);
-      ctx.font = `${fs}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.shadowColor = 'rgba(0,0,0,0.3)';
-      ctx.shadowBlur = 6;
-      ctx.shadowOffsetY = 2;
-      ctx.fillText('✈️', 0, 0);
-      ctx.restore();
+      // The sprite's nose points north-east (−45°), so rotate by heading + 45°
+      // to fly nose-first — identical on every platform, unlike a text glyph.
+      if (planeImg.complete && planeImg.naturalWidth > 0) {
+        const w = Math.max(22, R * 0.2);
+        ctx.save();
+        ctx.translate(p[0], p[1]);
+        ctx.rotate(heading + Math.PI / 4);
+        ctx.shadowColor = 'rgba(0,0,0,0.3)';
+        ctx.shadowBlur = 7;
+        ctx.shadowOffsetY = 2;
+        ctx.drawImage(planeImg, -w / 2, -w / 2, w, w);
+        ctx.restore();
+      }
     };
 
     const draw = () => {
@@ -288,6 +447,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.stroke();
       ctx.restore();
 
+      drawTerrain();
       if (flying) drawClouds();
       if (flying) drawMonuments();
 

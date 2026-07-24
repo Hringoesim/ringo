@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { SaturnWorld } from '../components/SaturnWorld';
 import { RingoButton } from '../components/Button';
-import { RingoWordmark } from '../components/Wordmark';
+import { LOGO_SRC } from '../assets';
 
 export function LandingScreen({ onExplore, onLogin }: { onExplore: () => void; onLogin?: () => void }) {
   const [globe, setGlobe] = useState(320);
@@ -23,13 +23,12 @@ export function LandingScreen({ onExplore, onLogin }: { onExplore: () => void; o
     <div
       style={{
         flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative',
-        // Vivid, glowing warm sunset (bright, not dark) — richer + more saturated
-        // so the brand pops instead of washing out.
+        // Cream sky at the top (so the orange→pink logo reads clearly, like the
+        // site header) melting into the vivid sunset below the globe.
         background: [
-          'radial-gradient(125% 82% at 50% 0%, rgba(255,141,46,0.95) 0%, rgba(255,141,46,0) 50%)',
-          'radial-gradient(130% 92% at 86% 22%, rgba(255,64,116,0.6) 0%, rgba(255,64,116,0) 55%)',
-          'radial-gradient(122% 96% at 8% 82%, rgba(150,88,255,0.5) 0%, rgba(150,88,255,0) 62%)',
-          'linear-gradient(180deg, #FF9E4D 0%, #FF8A6E 30%, #FF86A9 62%, #C79BEE 100%)',
+          'radial-gradient(130% 92% at 86% 34%, rgba(255,64,116,0.5) 0%, rgba(255,64,116,0) 55%)',
+          'radial-gradient(122% 96% at 8% 84%, rgba(150,88,255,0.5) 0%, rgba(150,88,255,0) 62%)',
+          'linear-gradient(180deg, #FFFAF4 0%, #FFEECD 13%, #FFBE72 30%, #FF8A6E 50%, #FF86A9 70%, #C79BEE 100%)',
         ].join(', '),
       }}
     >
@@ -39,12 +38,13 @@ export function LandingScreen({ onExplore, onLogin }: { onExplore: () => void; o
           justifyContent: 'center', padding: '48px 24px 0', textAlign: 'center',
         }}
       >
-        {/* White wordmark on the sunset — high-contrast, premium (matches ringoesim.com). */}
-        <div style={{ marginTop: 40, filter: 'drop-shadow(0 8px 24px rgba(120,30,10,0.28))' }}>
-          <RingoWordmark light size={62} />
+        {/* The REAL Ringo logo (orange→pink gradient asset, same as the site
+            header) on the cream sky — exactly the website look. */}
+        <div style={{ marginTop: 8, filter: 'drop-shadow(0 4px 14px rgba(120,30,10,0.16))' }}>
+          <img src={LOGO_SRC} alt="Ringo" style={{ height: 58, width: 'auto', display: 'block' }} />
         </div>
 
-        <div style={{ marginTop: 4 }}>
+        <div style={{ marginTop: 14 }}>
           <SaturnWorld size={globe} />
         </div>
 
