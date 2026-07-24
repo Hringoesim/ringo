@@ -66,7 +66,16 @@ const MONUMENTS: { key: keyof typeof LANDMARK_SRC; lng: number; lat: number }[] 
   { key: 'monkey', lng: -68.0, lat: -7.0 }, // Amazon
   { key: 'beach', lng: 73.3, lat: 3.2 }, // Maldives palm beach
   { key: 'ship', lng: -33.0, lat: 47.0 }, // North Atlantic liner
+  { key: 'octopus', lng: 155.0, lat: 8.0 }, // north-west Pacific
+  { key: 'shark', lng: -172.0, lat: 8.0 }, // central Pacific
+  { key: 'tropicalfish', lng: 161.0, lat: -15.0 }, // Coral Sea
 ];
+
+// Zoom INTO the planet while the circle stays the same size — you see less of
+// the sphere, but everything on it is bigger. VIS = angular radius of the part
+// of the hemisphere that still fits inside the circle.
+const ZOOM = 1.35;
+const VIS = Math.asin(1 / ZOOM);
 
 // Hand-drawn cartoon terrain — big rivers, forest patches, mountain ranges.
 // Points are chosen well inside coastlines so nothing spills into the sea.
@@ -133,9 +142,9 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     const cy = size / 2;
     const R = size * 0.49;
 
-    const projection = geoOrthographic().scale(R).translate([cx, cy]).clipAngle(90);
+    const projection = geoOrthographic().scale(R * ZOOM).translate([cx, cy]).clipAngle(90);
     const path = geoPath(projection, ctx);
-    const cloudProjection = geoOrthographic().scale(R).translate([cx, cy]).clipAngle(90);
+    const cloudProjection = geoOrthographic().scale(R * ZOOM).translate([cx, cy]).clipAngle(90);
 
     const reduce = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     let raf = 0;
@@ -197,7 +206,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     // the rotating projection so they ride the globe like the coastlines do.
     const drawTerrain = () => {
       const centre: [number, number] = [-lambda, -phi];
-      const limit = Math.PI / 2 - 0.06;
+      const limit = VIS - 0.04;
       ctx.save();
       ctx.beginPath();
       ctx.arc(cx, cy, R, 0, Math.PI * 2);
@@ -295,7 +304,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.arc(cx, cy, R, 0, Math.PI * 2);
       ctx.clip();
       const centre: [number, number] = [-(lambda + cloudOffset), -phi];
-      const limit = Math.PI / 2 - 0.02;
+      const limit = VIS - 0.02;
       for (const c of CLOUDS) {
         const d = geoDistance([c.lng, c.lat], centre);
         if (d >= limit) continue;
@@ -321,7 +330,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     // the centre wins, the loser is skipped this frame.
     const drawMonuments = () => {
       const centre: [number, number] = [-lambda, -phi];
-      const limit = Math.PI / 2 - 0.18; // fade out before the very edge
+      const limit = VIS - 0.09; // fade out before the visible rim
       const visible = sprites
         .map((s) => ({ s, d: geoDistance([s.lng, s.lat], centre) }))
         .filter(({ s, d }) => d < limit && s.img.complete && s.img.naturalWidth > 0)
@@ -438,8 +447,8 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     const draw = () => {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, size, size);
-      projection.scale(R).rotate([lambda, phi, 0]);
-      cloudProjection.scale(R).rotate([lambda + cloudOffset, phi, 0]);
+      projection.scale(R * ZOOM).rotate([lambda, phi, 0]);
+      cloudProjection.scale(R * ZOOM).rotate([lambda + cloudOffset, phi, 0]);
 
       ctx.save();
       ctx.beginPath();
