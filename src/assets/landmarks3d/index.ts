@@ -30,10 +30,11 @@ import whale from './whale.png'; // 🐳 South Pacific
 import dolphin from './dolphin.png'; // 🐬 Atlantic
 import monkey from './monkey.png'; // 🐒 Amazon
 import beach from './beach.png'; // 🏖️ Maldives palm beach
+import ship from './ship.png'; // 🚢 North Atlantic
 
 export const LANDMARK_SRC: Record<string, string> = {
   ferriswheel, classical, mosque, cityscape, temple, tokyotower, torii, bridge,
   mountain, liberty, snowmountain, fuji, volcano, cactus, palmtree, camel,
   kangaroo, sailboat, moai, elephant, panda, tiger, lion, penguin, polarbear,
-  whale, dolphin, monkey, beach,
+  whale, dolphin, monkey, beach, ship,
 };

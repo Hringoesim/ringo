@@ -7,12 +7,14 @@ import { RingoButton } from '../components/Button';
 import { LOGO_SRC } from '../assets';
 
 export function LandingScreen({ onExplore, onLogin }: { onExplore: () => void; onLogin?: () => void }) {
-  const [globe, setGlobe] = useState(320);
+  const [globe, setGlobe] = useState(300);
   useEffect(() => {
     const compute = () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
-      setGlobe(Math.max(320, Math.min(w * 1.08, h * 0.56, 520)));
+      // The FULL circle always fits: never wider than the screen (with margin),
+      // never taller than half the height — adapts from SE to Pro Max to iPad.
+      setGlobe(Math.max(240, Math.min(w * 0.92, h * 0.5, 520)));
     };
     compute();
     window.addEventListener('resize', compute);

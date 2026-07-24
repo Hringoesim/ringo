@@ -34,8 +34,9 @@ const TOUR: [number, number][] = [
 
 const ANG_SPEED = 0.16; // rad/s the plane travels along the surface
 
-// 3D monument + nature icons standing on their real places (one unique icon
-// each; Fuji is nudged a touch south-west so Tokyo Tower stays readable).
+// 3D monument + nature icons standing on their real places. Placements keep
+// every pair ≥ ~12° apart so no two sprites can overlap on screen (a runtime
+// collision guard in drawMonuments backstops this).
 const MONUMENTS: { key: keyof typeof LANDMARK_SRC; lng: number; lat: number }[] = [
   { key: 'ferriswheel', lng: -0.12, lat: 51.5 }, // London Eye
   { key: 'classical', lng: 12.5, lat: 41.9 }, // Rome
@@ -43,7 +44,6 @@ const MONUMENTS: { key: keyof typeof LANDMARK_SRC; lng: number; lat: number }[] 
   { key: 'cityscape', lng: 55.3, lat: 25.2 }, // Dubai
   { key: 'temple', lng: 72.9, lat: 19.1 }, // Mumbai
   { key: 'tokyotower', lng: 139.7, lat: 35.7 }, // Tokyo
-  { key: 'fuji', lng: 137.0, lat: 33.6 }, // Mount Fuji
   { key: 'bridge', lng: -122.48, lat: 37.82 }, // Golden Gate, San Francisco
   { key: 'mountain', lng: -43.16, lat: -22.95 }, // Sugarloaf, Rio
   { key: 'liberty', lng: -74.04, lat: 40.69 }, // New York
@@ -57,7 +57,7 @@ const MONUMENTS: { key: keyof typeof LANDMARK_SRC; lng: number; lat: number }[] 
   { key: 'moai', lng: -109.35, lat: -27.11 }, // Easter Island
   { key: 'elephant', lng: 37.0, lat: -1.3 }, // Kenya
   { key: 'panda', lng: 104.0, lat: 31.5 }, // Sichuan, China
-  { key: 'tiger', lng: 80.0, lat: 21.5 }, // India
+  { key: 'tiger', lng: 101.5, lat: -0.5 }, // Sumatran tiger
   { key: 'lion', lng: 25.0, lat: -21.5 }, // southern-Africa savanna
   { key: 'penguin', lng: 110.0, lat: -68.0 }, // Antarctica
   { key: 'polarbear', lng: -41.0, lat: 73.0 }, // Greenland
@@ -65,6 +65,7 @@ const MONUMENTS: { key: keyof typeof LANDMARK_SRC; lng: number; lat: number }[] 
   { key: 'dolphin', lng: -38.0, lat: 28.0 }, // Atlantic
   { key: 'monkey', lng: -68.0, lat: -7.0 }, // Amazon
   { key: 'beach', lng: 73.3, lat: 3.2 }, // Maldives palm beach
+  { key: 'ship', lng: -33.0, lat: 47.0 }, // North Atlantic liner
 ];
 
 // Hand-drawn cartoon terrain — big rivers, forest patches, mountain ranges.
@@ -316,30 +317,40 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     };
 
     // Monuments stand upright on their cities, growing as they face the camera.
+    // A collision pass guarantees no two sprites ever overlap: the one nearer
+    // the centre wins, the loser is skipped this frame.
     const drawMonuments = () => {
       const centre: [number, number] = [-lambda, -phi];
       const limit = Math.PI / 2 - 0.18; // fade out before the very edge
       const visible = sprites
         .map((s) => ({ s, d: geoDistance([s.lng, s.lat], centre) }))
         .filter(({ s, d }) => d < limit && s.img.complete && s.img.naturalWidth > 0)
-        .sort((a, b) => b.d - a.d); // far ones first, near-centre on top
+        .sort((a, b) => a.d - b.d); // near-centre first = wins collisions
       if (!visible.length) return;
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(cx, cy, R, 0, Math.PI * 2);
-      ctx.clip();
+      const placed: { x: number; y: number; w: number; edge: number; img: HTMLImageElement }[] = [];
       for (const { s, d } of visible) {
         const pt = projection([s.lng, s.lat]);
         if (!pt) continue;
         const edge = 1 - d / limit; // 1 at centre → 0 at the fade ring
-        const w = R * (0.11 + 0.13 * edge);
+        const w = R * (0.085 + 0.085 * edge);
+        const x = pt[0];
+        const y = pt[1] - w * 0.32;
+        if (placed.some((p) => Math.hypot(p.x - x, p.y - y) < (p.w + w) * 0.52)) continue;
+        placed.push({ x, y, w, edge, img: s.img });
+      }
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.clip();
+      // draw far-to-near so nearer sprites layer naturally over the horizon
+      for (let i = placed.length - 1; i >= 0; i--) {
+        const p = placed[i];
         ctx.save();
-        ctx.globalAlpha = Math.min(1, 0.25 + edge * 1.1);
+        ctx.globalAlpha = Math.min(1, 0.25 + p.edge * 1.1);
         ctx.shadowColor = 'rgba(8,24,48,0.35)';
-        ctx.shadowBlur = w * 0.18;
-        ctx.shadowOffsetY = w * 0.06;
-        // anchor the base of the monument on the city
-        ctx.drawImage(s.img, pt[0] - w / 2, pt[1] - w * 0.82, w, w);
+        ctx.shadowBlur = p.w * 0.18;
+        ctx.shadowOffsetY = p.w * 0.06;
+        ctx.drawImage(p.img, p.x - p.w / 2, p.y - p.w / 2, p.w, p.w);
         ctx.restore();
       }
       ctx.restore();
@@ -379,7 +390,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       else {
         let da = target - heading;
         da = ((da + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
-        heading += da * 0.1;
+        heading += da * 0.07; // gentle banking — no sudden nose snaps
       }
 
       // The chunky cartoon cloud sits squarely BEHIND the plane (opposite its
@@ -502,7 +513,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         trail.push([planeLng, planeLat]);
         if (trail.length > 140) trail.shift();
 
-        const k = Math.min(1, dt * 2.4);
+        const k = Math.min(1, dt * 2.0); // slightly lazier chase = gliding camera
         const dL = (((-planeLng - lambda) % 360) + 540) % 360 - 180;
         lambda += dL * k;
         phi += (-planeLat - phi) * k;
