@@ -33,7 +33,10 @@ const TOUR: [number, number][] = [
   [3.4, 6.5], // Lagos
 ];
 
-const ANG_SPEED = 0.16; // rad/s the plane travels along the surface
+// rad/s the plane travels along the surface. The camera chases the plane, so
+// this IS the earth's visible spin rate — high enough that the world clearly
+// glides beneath the plane at all times.
+const ANG_SPEED = 0.26;
 
 // 3D monument + nature icons standing on their real places. Placements keep
 // every pair ≥ ~12° apart so no two sprites can overlap on screen (a runtime
