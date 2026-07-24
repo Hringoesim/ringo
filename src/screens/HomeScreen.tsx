@@ -666,9 +666,9 @@ function ActionChip({ label, icon, onClick }: { label: string; icon: ActionIcon;
         <img
           src={ICON_3D[icon]}
           alt=""
-          width={44}
-          height={44}
-          style={{ width: 44, height: 44, objectFit: 'contain', filter: 'drop-shadow(0 4px 6px rgba(30,20,10,0.18))' }}
+          width={50}
+          height={50}
+          style={{ width: 50, height: 50, objectFit: 'contain', filter: 'drop-shadow(0 6px 8px rgba(30,20,10,0.22))' }}
         />
       </div>
       <div style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 600, color: RC.ink, letterSpacing: -0.1, textAlign: 'center', lineHeight: 1.2 }}>{label}</div>
