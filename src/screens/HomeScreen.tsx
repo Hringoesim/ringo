@@ -11,7 +11,7 @@ import { LOGO_SRC } from '../assets';
 import { Confetti } from '../components/Confetti';
 import { RingoAvatar } from '../components/Avatar';
 import { hapticNotify } from '../lib/haptics';
-import { ICON_3D, ICON_3D_EXTRA } from '../assets/icons3d';
+import { ICON_3D_EXTRA } from '../assets/icons3d';
 
 // Onboarding destination picks → representative country codes for the dashboard.
 const DEST_MAP: Record<string, string[]> = {
@@ -207,14 +207,6 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
           <MetricTile value={`${Math.round(state.dataPct * 100)}%`} label="Data used" onClick={() => onNav('plan')} />
           <MetricTile value={state.countries} label="Countries" onClick={() => onNav('browse')} />
           <MetricTile value={state.numbers.length} label="Numbers" onClick={() => onNav('numbers')} />
-        </div>
-
-        {/* ── Action rail ─────────────────────────────────────── */}
-        <div style={{ margin: '22px 20px 0', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8 }}>
-          <ActionChip label="Add country" icon="globe" onClick={() => onNav('browse')} />
-          <ActionChip label="Port number" icon="port" onClick={() => onNav('port')} />
-          <ActionChip label="Top up" icon="plan" onClick={() => onNav('plan')} />
-          <ActionChip label="Install" icon="qr" onClick={() => onNav('install')} />
         </div>
 
         {/* ── Active number (compact) ─────────────────────────── */}
@@ -641,37 +633,3 @@ function NumberBuckets({ numbers, onMore, onAdd }: { numbers: PhoneNumber[]; onM
   );
 }
 
-// Action tiles — each a rendered 3D object (3dicons by realvjy, CC0) on a
-// clean white tile, so the four primary actions read as a bright, tactile,
-// coherent family in the warm-sunset gradient.
-type ActionIcon = 'globe' | 'port' | 'plan' | 'qr';
-function ActionChip({ label, icon, onClick }: { label: string; icon: ActionIcon; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="press"
-      style={{
-        border: 'none', background: 'transparent', cursor: 'pointer', padding: 0,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-      }}
-    >
-      <div
-        style={{
-          width: '100%', aspectRatio: '1', borderRadius: 18,
-          background: RC.paper, border: `1px solid ${RC.line}`,
-          boxShadow: SHADOW_CARD,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}
-      >
-        <img
-          src={ICON_3D[icon]}
-          alt=""
-          width={50}
-          height={50}
-          style={{ width: 50, height: 50, objectFit: 'contain', filter: 'drop-shadow(0 6px 8px rgba(52,28,84,0.22))' }}
-        />
-      </div>
-      <div style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 600, color: RC.ink, letterSpacing: -0.1, textAlign: 'center', lineHeight: 1.2 }}>{label}</div>
-    </button>
-  );
-}
