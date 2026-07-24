@@ -1,17 +1,15 @@
 // Globe.tsx — the Earth seen from a little plane that flies a smooth, continuous
 // great-circle world tour; the camera follows it so countries scroll beneath.
-// The ball itself is REALISTIC: NASA's Blue Marble (public domain) rendered
-// through a tiny WebGL inverse-orthographic shader, zoomed in (ZOOM) with the
-// circle size unchanged. A 2D canvas rides on top for the drifting clouds, the
-// 3D monument/animal sprites, lighting overlays and the plane. While the
-// texture loads (or if WebGL is unavailable) the old vector earth fills in.
+// Real coastlines (Natural Earth 110m — light enough to stay smooth on-device)
+// via a d3-geo orthographic projection on a 2D canvas, sun-lit land + ocean,
+// drifting ambient clouds, 3D monument icons standing on their real cities,
+// and the 3D plane sprite flying the tour clean (no cloud, no trail).
 import { useEffect, useRef } from 'react';
 import { geoOrthographic, geoPath, geoDistance, geoInterpolate, type GeoPermissibleObjects } from 'd3-geo';
 import { feature } from 'topojson-client';
 import landTopo from 'world-atlas/land-110m.json';
 import { LANDMARK_SRC } from '../assets/landmarks3d';
 import planeSrc from '../assets/landmarks3d/plane.png';
-import earthTexSrc from '../assets/earth-blue-marble.jpg';
 
 const LAND = feature(landTopo as any, (landTopo as any).objects.land) as unknown as GeoPermissibleObjects;
 
@@ -35,8 +33,8 @@ const TOUR: [number, number][] = [
 ];
 
 // rad/s the plane travels along the surface. The camera chases the plane, so
-// this IS the earth's visible spin rate. 0.26 was "too fast" (user) — back to
-// the original calm glide.
+// this IS the earth's visible spin rate. 0.26 was "too fast" (user) — the
+// original calm glide.
 const ANG_SPEED = 0.16;
 
 // 3D monument + nature icons standing on their real places. Placements keep
@@ -86,6 +84,46 @@ const MONUMENTS: { key: keyof typeof LANDMARK_SRC; lng: number; lat: number }[] 
 // of the hemisphere that still fits inside the circle.
 const ZOOM = 1.6;
 const VIS = Math.asin(1 / ZOOM);
+// terrain was art-directed at zoom 1.35 — keep its coverage proportional
+const TS = ZOOM / 1.35;
+
+// Hand-drawn cartoon terrain — big rivers, forest patches, mountain ranges.
+// Points are chosen well inside coastlines so nothing spills into the sea.
+const RIVERS: [number, number][][] = [
+  [[-73, -4], [-67, -3.5], [-60, -3], [-55, -2.5], [-50.5, -0.8]], // Amazon
+  [[32.9, 30.5], [31.2, 27], [32.5, 22], [33, 18], [32.5, 15.5]], // Nile
+  [[-95.2, 46.5], [-91, 42], [-90.5, 36], [-91, 31], [-89.6, 29.5]], // Mississippi
+  [[93, 32], [97, 30], [104, 29], [112, 30], [117.5, 31.5]], // Yangtze
+  [[27.5, 0.5], [23, 2], [18, 1], [15.5, -4]], // Congo
+  [[84, 52], [81, 58], [74, 62], [67, 66]], // Ob
+  [[78, 29.5], [82, 26], [87.5, 24.5]], // Ganges
+];
+const DESERTS: { lng: number; lat: number; r: number }[] = [
+  { lng: -5, lat: 23, r: 0.08 }, { lng: 12, lat: 22, r: 0.09 }, { lng: 25, lat: 25, r: 0.06 }, // Sahara
+  { lng: 46, lat: 22, r: 0.05 }, // Arabian
+  { lng: 105, lat: 43, r: 0.05 }, // Gobi
+  { lng: 133, lat: -25, r: 0.075 }, // Australian outback
+  { lng: 21, lat: -23.5, r: 0.04 }, // Kalahari
+  { lng: -111, lat: 36, r: 0.035 }, // US southwest
+];
+const FORESTS: { lng: number; lat: number; r: number }[] = [
+  { lng: -63, lat: -5, r: 0.085 }, // Amazon
+  { lng: 22, lat: -1, r: 0.06 }, // Congo basin
+  { lng: -112, lat: 58, r: 0.06 }, // Canadian boreal
+  { lng: -76, lat: 48, r: 0.045 }, // Quebec
+  { lng: 27, lat: 63, r: 0.045 }, // Scandinavia
+  { lng: 95, lat: 60, r: 0.07 }, // Siberian taiga
+  { lng: 128, lat: 60, r: 0.055 }, // East Siberia
+  { lng: 105, lat: 16, r: 0.04 }, // SE Asia
+];
+const RANGES: { lng: number; lat: number; s: number }[] = [
+  { lng: -116, lat: 51, s: 1 }, { lng: -110, lat: 44, s: 0.85 }, { lng: -106, lat: 39, s: 0.9 }, // Rockies
+  { lng: -70, lat: -14, s: 0.9 }, { lng: -70, lat: -24, s: 1 }, { lng: -71, lat: -34, s: 0.85 }, // Andes
+  { lng: 8, lat: 46.4, s: 0.8 }, { lng: 11.5, lat: 46.8, s: 0.7 }, // Alps
+  { lng: 77, lat: 34, s: 0.9 }, { lng: 81, lat: 31, s: 1 }, // Himalayas
+  { lng: 59, lat: 58, s: 0.7 }, { lng: 60.5, lat: 64, s: 0.7 }, // Urals
+  { lng: 38.5, lat: 10, s: 0.75 }, // Ethiopian highlands
+];
 
 const CLOUDS: { lng: number; lat: number; r: number }[] = [
   { lng: -30, lat: 22, r: 0.30 }, { lng: -62, lat: -12, r: 0.34 },
@@ -98,134 +136,21 @@ const CLOUDS: { lng: number; lat: number; r: number }[] = [
   { lng: 82, lat: 22, r: 0.24 }, { lng: 158, lat: 28, r: 0.28 },
 ];
 
-// ── WebGL blue-marble renderer ───────────────────────────────────────────────
-// Screen-space unit sphere point v = (x·east + y·north + z·centre) is the exact
-// orthographic inverse; the JS side hands the shader the centre/east/north
-// basis vectors so there is no sign guessing in GLSL.
-const VERT = `
-attribute vec2 aPos;
-varying vec2 vQ;
-void main() { vQ = aPos; gl_Position = vec4(aPos, 0.0, 1.0); }
-`;
-const FRAG = `
-precision highp float;
-varying vec2 vQ;
-uniform vec3 uC;   // geographic unit vector at screen centre
-uniform vec3 uE;   // east basis at centre
-uniform vec3 uN;   // north basis at centre
-uniform float uZoom;
-uniform float uDiscR; // globe radius in clip units (0..1)
-uniform sampler2D uTex;
-const float PI = 3.141592653589793;
-void main() {
-  float q = length(vQ);
-  if (q > uDiscR) discard;
-  vec2 p = vQ / (uDiscR * uZoom);
-  float r2 = dot(p, p);
-  float z = sqrt(max(0.0, 1.0 - r2));
-  vec3 g = p.x * uE + p.y * uN + z * uC;
-  float lon = atan(g.x, g.z);
-  float lat = asin(clamp(g.y, -1.0, 1.0));
-  vec2 uv = vec2(lon / (2.0 * PI) + 0.5, 0.5 - lat / PI);
-  float edge = 1.0 - smoothstep(uDiscR - 0.006, uDiscR, q);
-  vec4 c = texture2D(uTex, uv);
-  // daylight lift — Blue Marble is dusk-dark raw; brighten + gentle gamma
-  vec3 day = clamp(pow(c.rgb, vec3(0.8)) * 1.22, 0.0, 1.0);
-  gl_FragColor = vec4(day, edge);
-}
-`;
-
-interface GlEarth {
-  draw(lambda: number, phi: number): void;
-  ready(): boolean;
-}
-
-function initGlEarth(canvas: HTMLCanvasElement, discR: number): GlEarth | null {
-  const gl = canvas.getContext('webgl', { alpha: true, antialias: true, premultipliedAlpha: false });
-  if (!gl) return null;
-  const sh = (type: number, src: string) => {
-    const s = gl.createShader(type)!;
-    gl.shaderSource(s, src);
-    gl.compileShader(s);
-    return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? s : null;
-  };
-  const vs = sh(gl.VERTEX_SHADER, VERT);
-  const fs = sh(gl.FRAGMENT_SHADER, FRAG);
-  if (!vs || !fs) return null;
-  const prog = gl.createProgram()!;
-  gl.attachShader(prog, vs);
-  gl.attachShader(prog, fs);
-  gl.linkProgram(prog);
-  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return null;
-  gl.useProgram(prog);
-  const buf = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-  const aPos = gl.getAttribLocation(prog, 'aPos');
-  gl.enableVertexAttribArray(aPos);
-  gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
-  const uC = gl.getUniformLocation(prog, 'uC');
-  const uE = gl.getUniformLocation(prog, 'uE');
-  const uN = gl.getUniformLocation(prog, 'uN');
-  gl.uniform1f(gl.getUniformLocation(prog, 'uZoom'), ZOOM);
-  gl.uniform1f(gl.getUniformLocation(prog, 'uDiscR'), discR);
-  gl.enable(gl.BLEND);
-  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-  gl.clearColor(0, 0, 0, 0);
-
-  let texReady = false;
-  const tex = gl.createTexture();
-  const img = new Image();
-  img.onload = () => {
-    gl.bindTexture(gl.TEXTURE_2D, tex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    // equirect wraps horizontally; clamp vertically
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    texReady = true;
-  };
-  img.src = earthTexSrc;
-
-  const D = Math.PI / 180;
-  return {
-    ready: () => texReady,
-    draw(lambda: number, phi: number) {
-      if (!texReady) return;
-      gl.viewport(0, 0, canvas.width, canvas.height);
-      gl.clear(gl.COLOR_BUFFER_BIT);
-      const L = -lambda * D; // geographic centre of the view
-      const B = -phi * D;
-      const cB = Math.cos(B), sB = Math.sin(B), cL = Math.cos(L), sL = Math.sin(L);
-      gl.uniform3f(uC, cB * sL, sB, cB * cL);
-      gl.uniform3f(uE, cL, 0, -sL);
-      gl.uniform3f(uN, -sB * sL, cB, -sB * cL);
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    },
-  };
-}
-
 export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity?: number }) {
-  const glRef = useRef<HTMLCanvasElement>(null);
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const cv = ref.current;
-    const glCv = glRef.current;
-    if (!cv || !glCv) return;
+    if (!cv) return;
     const dpr = Math.min(2, typeof devicePixelRatio !== 'undefined' ? devicePixelRatio : 1);
     cv.width = size * dpr;
     cv.height = size * dpr;
-    glCv.width = size * dpr;
-    glCv.height = size * dpr;
     const ctx = cv.getContext('2d');
     if (!ctx) return;
 
     const cx = size / 2;
     const cy = size / 2;
     const R = size * 0.49;
-    const earth = initGlEarth(glCv, R / (size / 2));
 
     const projection = geoOrthographic().scale(R * ZOOM).translate([cx, cy]).clipAngle(90);
     const path = geoPath(projection, ctx);
@@ -260,31 +185,128 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     let lastTs = performance.now();
     let lastDraw = 0;
 
-    // Vector fallback paint (used until the texture is ready / if WebGL fails).
+    // Sun-lit ocean — brighter at the light spot, deep sea toward the limb.
     const ocean = ctx.createRadialGradient(cx - R * 0.38, cy - R * 0.42, R * 0.12, cx, cy, R);
     ocean.addColorStop(0, '#5FC4F5');
     ocean.addColorStop(0.5, '#2E93D6');
     ocean.addColorStop(1, '#124F92');
+    // Land picks up the same light — spring green in the sun, forest in shadow.
     const landFill = ctx.createRadialGradient(cx - R * 0.38, cy - R * 0.42, R * 0.1, cx, cy, R * 1.05);
     landFill.addColorStop(0, '#8ADB7E');
     landFill.addColorStop(0.55, '#57B364');
     landFill.addColorStop(1, '#2E7C46');
-    // Lighting overlays — these sit on TOP of the photo texture and give the
-    // ball its sun-lit depth.
+    // Day/night terminator — a stronger, rounder shadow gives the ball weight.
     const shade = ctx.createRadialGradient(cx - R * 0.34, cy - R * 0.4, R * 0.28, cx + R * 0.14, cy + R * 0.16, R * 1.08);
     shade.addColorStop(0, 'rgba(0,0,0,0)');
-    shade.addColorStop(0.55, 'rgba(10,26,54,0.05)');
-    shade.addColorStop(0.8, 'rgba(7,20,46,0.2)');
-    shade.addColorStop(1, 'rgba(3,12,30,0.48)');
+    shade.addColorStop(0.55, 'rgba(10,26,54,0.08)');
+    shade.addColorStop(0.8, 'rgba(7,20,46,0.32)');
+    shade.addColorStop(1, 'rgba(3,12,30,0.72)');
     const hi = ctx.createRadialGradient(cx - R * 0.4, cy - R * 0.44, 0, cx - R * 0.4, cy - R * 0.44, R * 0.55);
-    hi.addColorStop(0, 'rgba(255,255,255,0.5)');
-    hi.addColorStop(0.5, 'rgba(255,255,255,0.13)');
+    hi.addColorStop(0, 'rgba(255,255,255,0.62)');
+    hi.addColorStop(0.5, 'rgba(255,255,255,0.16)');
     hi.addColorStop(1, 'rgba(255,255,255,0)');
     const atmo = ctx.createRadialGradient(cx, cy, R * 0.7, cx, cy, R);
     atmo.addColorStop(0, 'rgba(150,220,255,0)');
     atmo.addColorStop(0.82, 'rgba(150,220,255,0)');
-    atmo.addColorStop(0.94, 'rgba(178,230,255,0.34)');
+    atmo.addColorStop(0.94, 'rgba(178,230,255,0.38)');
     atmo.addColorStop(1, 'rgba(120,195,240,0.16)');
+
+    // Cartoon terrain — forest patches, big rivers, snow-capped ranges — all in
+    // the rotating projection so they ride the globe like the coastlines do.
+    const drawTerrain = () => {
+      const centre: [number, number] = [-lambda, -phi];
+      const limit = VIS - 0.04;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.clip();
+      // deserts first — sandy-yellow land patches (the Nile cuts through later)
+      for (const f of DESERTS) {
+        const d = geoDistance([f.lng, f.lat], centre);
+        if (d >= limit) continue;
+        const pt = projection([f.lng, f.lat]);
+        if (!pt) continue;
+        const edge = 1 - d / limit;
+        const rad = f.r * R * TS * (0.5 + 0.5 * edge);
+        const a = Math.min(1, edge * 1.6);
+        // beige, not yellow — reads as sand next to the green grasslands
+        const gr = ctx.createRadialGradient(pt[0], pt[1], 0, pt[0], pt[1], rad);
+        gr.addColorStop(0, `rgba(226,206,166,${0.9 * a})`);
+        gr.addColorStop(0.65, `rgba(222,201,158,${0.55 * a})`);
+        gr.addColorStop(1, 'rgba(222,201,158,0)');
+        ctx.fillStyle = gr;
+        ctx.beginPath();
+        ctx.arc(pt[0], pt[1], rad, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // forests next (rivers cut through them)
+      for (const f of FORESTS) {
+        const d = geoDistance([f.lng, f.lat], centre);
+        if (d >= limit) continue;
+        const pt = projection([f.lng, f.lat]);
+        if (!pt) continue;
+        const edge = 1 - d / limit;
+        const rad = f.r * R * TS * (0.5 + 0.5 * edge);
+        const gr = ctx.createRadialGradient(pt[0], pt[1], 0, pt[0], pt[1], rad);
+        gr.addColorStop(0, `rgba(31,110,52,${0.5 * Math.min(1, edge * 1.6)})`);
+        gr.addColorStop(0.7, `rgba(31,110,52,${0.28 * Math.min(1, edge * 1.6)})`);
+        gr.addColorStop(1, 'rgba(31,110,52,0)');
+        ctx.fillStyle = gr;
+        ctx.beginPath();
+        ctx.arc(pt[0], pt[1], rad, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // rivers — ocean-blue threads over the land
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      for (const river of RIVERS) {
+        const mid = river[Math.floor(river.length / 2)];
+        const d = geoDistance(mid, centre);
+        if (d >= limit) continue;
+        const edge = 1 - d / limit;
+        ctx.strokeStyle = `rgba(46,140,206,${0.9 * Math.min(1, edge * 1.8)})`;
+        ctx.lineWidth = Math.max(0.8, R * 0.009 * TS * (0.6 + 0.4 * edge));
+        ctx.beginPath();
+        let started = false;
+        for (const p of river) {
+          const pt = projection(p);
+          if (!pt) { started = false; continue; }
+          if (!started) { ctx.moveTo(pt[0], pt[1]); started = true; }
+          else ctx.lineTo(pt[0], pt[1]);
+        }
+        ctx.stroke();
+      }
+      // mountain ranges — little cartoon peaks with snow caps
+      for (const m of RANGES) {
+        const d = geoDistance([m.lng, m.lat], centre);
+        if (d >= limit) continue;
+        const pt = projection([m.lng, m.lat]);
+        if (!pt) continue;
+        const edge = 1 - d / limit;
+        const h = R * 0.045 * TS * m.s * (0.55 + 0.45 * edge);
+        const w = h * 1.25;
+        const a = Math.min(1, edge * 1.8);
+        ctx.globalAlpha = a;
+        ctx.beginPath();
+        ctx.moveTo(pt[0] - w, pt[1]);
+        ctx.lineTo(pt[0], pt[1] - h);
+        ctx.lineTo(pt[0] + w, pt[1]);
+        ctx.closePath();
+        ctx.fillStyle = '#5E7D63';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(pt[0] - w * 0.34, pt[1] - h * 0.58);
+        ctx.lineTo(pt[0], pt[1] - h);
+        ctx.lineTo(pt[0] + w * 0.34, pt[1] - h * 0.58);
+        ctx.lineTo(pt[0] + w * 0.18, pt[1] - h * 0.46);
+        ctx.lineTo(pt[0] - w * 0.18, pt[1] - h * 0.46);
+        ctx.closePath();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      ctx.restore();
+    };
 
     const drawClouds = () => {
       ctx.save();
@@ -324,7 +346,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         .filter(({ s, d }) => d < limit && s.img.complete && s.img.naturalWidth > 0)
         .sort((a, b) => a.d - b.d); // near-centre first = wins collisions
       if (!visible.length) return;
-      const placed: { img: HTMLImageElement; x: number; y: number; w: number; edge: number }[] = [];
+      const placed: { x: number; y: number; w: number; edge: number; img: HTMLImageElement }[] = [];
       for (const { s, d } of visible) {
         const pt = projection([s.lng, s.lat]);
         if (!pt) continue;
@@ -333,7 +355,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         const x = pt[0];
         const y = pt[1] - w * 0.32;
         if (placed.some((p) => Math.hypot(p.x - x, p.y - y) < (p.w + w) * 0.52)) continue;
-        placed.push({ img: s.img, x, y, w, edge });
+        placed.push({ x, y, w, edge, img: s.img });
       }
       ctx.save();
       ctx.beginPath();
@@ -354,7 +376,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     };
 
     // The plane sprite, nose-first along the route. No cloud, no trail — it
-    // flies clean over the realistic earth (matches the approved poster).
+    // flies clean (user call).
     const drawPlane = () => {
       const p = projection([planeLng, planeLat]);
       if (!p) return;
@@ -366,17 +388,20 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         da = ((da + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
         heading += da * 0.07; // gentle banking — no sudden nose snaps
       }
-      if (!(planeImg.complete && planeImg.naturalWidth > 0)) return;
-      const w = Math.max(24, R * 0.2);
-      ctx.save();
-      ctx.translate(p[0], p[1]);
-      // The artwork's nose points north-east → offset the heading by 45°.
-      ctx.rotate(heading + Math.PI / 4);
-      ctx.shadowColor = 'rgba(0,0,0,0.32)';
-      ctx.shadowBlur = 8;
-      ctx.shadowOffsetY = 3;
-      ctx.drawImage(planeImg, -w / 2, -w / 2, w, w);
-      ctx.restore();
+
+      // The sprite's nose points north-east (−45°), so rotate by heading + 45°
+      // to fly nose-first — identical on every platform, unlike a text glyph.
+      if (planeImg.complete && planeImg.naturalWidth > 0) {
+        const w = Math.max(22, R * 0.2);
+        ctx.save();
+        ctx.translate(p[0], p[1]);
+        ctx.rotate(heading + Math.PI / 4);
+        ctx.shadowColor = 'rgba(0,0,0,0.3)';
+        ctx.shadowBlur = 7;
+        ctx.shadowOffsetY = 2;
+        ctx.drawImage(planeImg, -w / 2, -w / 2, w, w);
+        ctx.restore();
+      }
     };
 
     const draw = () => {
@@ -385,26 +410,47 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       projection.scale(R * ZOOM).rotate([lambda, phi, 0]);
       cloudProjection.scale(R * ZOOM).rotate([lambda + cloudOffset, phi, 0]);
 
-      const glOn = !!earth && earth.ready();
-      if (glOn) {
-        earth!.draw(lambda, phi);
-      } else {
-        // vector fallback while the texture loads / without WebGL
-        ctx.save();
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.beginPath();
+      path({ type: 'Sphere' });
+      ctx.fillStyle = ocean;
+      ctx.fill();
+      ctx.beginPath();
+      path(LAND);
+      ctx.fillStyle = landFill;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(30,88,44,0.4)';
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+      // Polar snow — white caps over any land above ~62° (Greenland, Siberia's
+      // edge, Antarctica), clipped to the coastlines so the sea stays blue.
+      ctx.save();
+      ctx.beginPath();
+      path(LAND);
+      ctx.clip();
+      for (const poleLat of [90, -90]) {
+        const pd = geoDistance([0, poleLat], [-lambda, -phi]);
+        const capAng = (Math.PI / 180) * 28; // cap reaches ~62° latitude
+        if (pd >= Math.PI / 2 + capAng) continue;
+        const pp = projection([0, poleLat]);
+        if (!pp) continue;
+        const rad = R * ZOOM * Math.sin(capAng);
+        const gr = ctx.createRadialGradient(pp[0], pp[1], 0, pp[0], pp[1], rad);
+        gr.addColorStop(0, 'rgba(255,255,255,0.96)');
+        gr.addColorStop(0.7, 'rgba(255,255,255,0.9)');
+        gr.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = gr;
         ctx.beginPath();
-        ctx.arc(cx, cy, R, 0, Math.PI * 2);
-        ctx.clip();
-        ctx.beginPath();
-        path({ type: 'Sphere' });
-        ctx.fillStyle = ocean;
+        ctx.arc(pp[0], pp[1], rad, 0, Math.PI * 2);
         ctx.fill();
-        ctx.beginPath();
-        path(LAND);
-        ctx.fillStyle = landFill;
-        ctx.fill();
-        ctx.restore();
       }
+      ctx.restore();
+      ctx.restore();
 
+      drawTerrain();
       if (flying) drawClouds();
       if (flying) drawMonuments();
 
@@ -456,7 +502,6 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         const ahead = interp(Math.min(1, segT + 0.03));
         aheadLng = ahead[0];
         aheadLat = ahead[1];
-
         const k = Math.min(1, dt * 2.0); // slightly lazier chase = gliding camera
         const dL = (((-planeLng - lambda) % 360) + 540) % 360 - 180;
         lambda += dL * k;
@@ -478,10 +523,5 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     return () => cancelAnimationFrame(raf);
   }, [size]);
 
-  return (
-    <div style={{ width: size, height: size, position: 'relative', opacity }}>
-      <canvas ref={glRef} style={{ position: 'absolute', inset: 0, width: size, height: size, borderRadius: '50%' }} />
-      <canvas ref={ref} style={{ position: 'absolute', inset: 0, width: size, height: size, borderRadius: '50%' }} />
-    </div>
-  );
+  return <canvas ref={ref} style={{ width: size, height: size, opacity, display: 'block', borderRadius: '50%' }} />;
 }
