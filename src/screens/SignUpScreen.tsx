@@ -5,6 +5,7 @@ import { RC } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { BackBtn, FieldLabel, Input } from '../components/ui';
+import { FlowSteps } from './OtpScreen';
 import { LOGO_SRC } from '../assets';
 
 interface SignUpScreenProps {
@@ -41,9 +42,10 @@ export function SignUpScreen({ onBack, onSendCode, onAppleSignIn, onGoogleSignIn
       await fn();
     } catch (e) {
       // Surface the real provider error (helps diagnose Apple/Google on device)
-      // rather than always hiding it behind the generic fallback copy.
+      // rather than always hiding it behind the generic fallback copy — but keep
+      // internal error codes human.
       const m = e instanceof Error && e.message ? e.message : '';
-      setErr(m || fail[kind]);
+      setErr(m === 'google-not-enabled' || m === 'apple-not-enabled' ? fail[kind] : m || fail[kind]);
     } finally {
       setBusy(null);
     }
@@ -65,13 +67,14 @@ export function SignUpScreen({ onBack, onSendCode, onAppleSignIn, onGoogleSignIn
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}>
           <img src={LOGO_SRC} alt="Ringo" style={{ height: 30, width: 'auto' }} />
         </div>
+        <FlowSteps active={1} />
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: RC.ink, letterSpacing: -0.8, lineHeight: 1.1, textWrap: 'pretty' }}>
           {login ? 'Log in to Ringo.' : 'Create your Ringo account.'}
         </div>
         <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
           {login
-            ? 'Welcome back. Use the email and password you signed up with.'
-            : 'Set up in seconds — no SMS code needed. You can add or port a number once you’re in.'}
+            ? 'Welcome back. We’ll email you a 6-digit code — no password.'
+            : 'Set up in seconds — just your name and email, no password. You can add or port a number once you’re in.'}
         </div>
 
         {err && (

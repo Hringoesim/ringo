@@ -227,8 +227,10 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       const dy = e.clientY - lastPY;
       lastPX = e.clientX;
       lastPY = e.clientY;
-      lambda -= dx * degPerPx;
-      phi += dy * degPerPx;
+      // The surface FOLLOWS the finger: drag down → the earth rolls down,
+      // drag right → it rolls right (centre moves the opposite way).
+      lambda += dx * degPerPx;
+      phi -= dy * degPerPx;
       phi = Math.max(-85, Math.min(85, phi));
     };
     const onUp = () => {
@@ -241,9 +243,10 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     const onWheel = (e: WheelEvent) => {
       if (!flying) return;
       e.preventDefault();
-      phi += e.deltaY * degPerPx * 0.9;
+      // Same rule as the finger: scroll down → the earth rolls down.
+      phi -= e.deltaY * degPerPx * 0.9;
       phi = Math.max(-85, Math.min(85, phi));
-      lambda -= e.deltaX * degPerPx * 0.9;
+      lambda += e.deltaX * degPerPx * 0.9;
       resumeAt = performance.now() + 1400;
     };
     cv.addEventListener('pointerdown', onDown);
