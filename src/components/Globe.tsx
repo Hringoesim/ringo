@@ -236,10 +236,21 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       dragging = false;
       resumeAt = performance.now() + 1400;
     };
+    // Trackpad/wheel over the planet spins it the way you scroll — scroll down
+    // and the surface rolls down with you (and the page never scrolls).
+    const onWheel = (e: WheelEvent) => {
+      if (!flying) return;
+      e.preventDefault();
+      phi += e.deltaY * degPerPx * 0.9;
+      phi = Math.max(-85, Math.min(85, phi));
+      lambda -= e.deltaX * degPerPx * 0.9;
+      resumeAt = performance.now() + 1400;
+    };
     cv.addEventListener('pointerdown', onDown);
     cv.addEventListener('pointermove', onMove);
     cv.addEventListener('pointerup', onUp);
     cv.addEventListener('pointercancel', onUp);
+    cv.addEventListener('wheel', onWheel, { passive: false });
 
     // Sun-lit ocean — brighter at the light spot, deep sea toward the limb.
     const ocean = ctx.createRadialGradient(cx - R * 0.38, cy - R * 0.42, R * 0.12, cx, cy, R);

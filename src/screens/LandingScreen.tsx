@@ -9,6 +9,14 @@ import { LOGO_SRC } from '../assets';
 export function LandingScreen({ onExplore, onLogin }: { onExplore: () => void; onLogin?: () => void }) {
   const [globe, setGlobe] = useState(300);
   const [compact, setCompact] = useState(false);
+  // Explore plays a visible launch pop, THEN navigates — a fast tap still
+  // gets its moment of feedback.
+  const [launching, setLaunching] = useState(false);
+  const explore = () => {
+    if (launching) return;
+    setLaunching(true);
+    setTimeout(onExplore, 210);
+  };
   useEffect(() => {
     const compute = () => {
       const w = window.innerWidth;
@@ -40,7 +48,10 @@ export function LandingScreen({ onExplore, onLogin }: { onExplore: () => void; o
     >
       <div
         style={{
-          flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+          // minHeight 0 + hidden overflow: if space ever runs short the column
+          // clips gracefully — the front page itself NEVER scrolls.
+          flex: 1, minHeight: 0, overflow: 'hidden',
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
           justifyContent: 'center', padding: compact ? '16px 24px 0' : '24px 24px 0', textAlign: 'center',
         }}
       >
@@ -90,8 +101,11 @@ export function LandingScreen({ onExplore, onLogin }: { onExplore: () => void; o
       </div>
 
       <div style={{ padding: compact ? '12px 24px 20px' : '18px 24px 30px', display: 'flex', flexDirection: 'column', gap: compact ? 8 : 11 }}>
-        {/* Explore first — straight into the dashboard; sign in later at a commit point. */}
-        <RingoButton onClick={onExplore}>Explore Ringo</RingoButton>
+        {/* Explore first — straight into the dashboard; sign in later at a commit
+            point. The wrapper pops on click so the tap always reads. */}
+        <div style={{ animation: launching ? 'ringoLaunchPop 0.24s cubic-bezier(0.34, 1.56, 0.64, 1) both' : 'none' }}>
+          <RingoButton onClick={explore}>Explore Ringo</RingoButton>
+        </div>
         {/* Returning users need a way back in after sign-out / reinstall. */}
         {onLogin && (
           <button

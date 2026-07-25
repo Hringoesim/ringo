@@ -70,6 +70,22 @@ export function Host() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // WKWebView scrolls the document when the keyboard opens for a low input
+  // (sign-up / log-in) and can leave it shifted afterwards, so the app no
+  // longer fills the screen. Snap the document back whenever focus leaves an
+  // input or the visual viewport settles.
+  useEffect(() => {
+    if (!fullScreen) return;
+    const snap = () => requestAnimationFrame(() => window.scrollTo(0, 0));
+    window.addEventListener('focusout', snap);
+    const vv = window.visualViewport;
+    vv?.addEventListener('resize', snap);
+    return () => {
+      window.removeEventListener('focusout', snap);
+      vv?.removeEventListener('resize', snap);
+    };
+  }, [fullScreen]);
+
   // ── Full-screen (device) ────────────────────────────────────────────────────
   if (fullScreen) {
     return (

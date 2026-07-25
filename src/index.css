@@ -62,6 +62,9 @@ html,
 body {
   overscroll-behavior: none;
   height: 100%;
+  /* the app is an app — the document itself never scrolls (also prevents the
+     iOS keyboard from leaving the page shifted after login) */
+  overflow: hidden;
 }
 body {
   -webkit-user-select: none;
@@ -247,4 +250,12 @@ textarea,
 @keyframes ringoGlobeFloat {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-7px); }
+}
+
+/* Explore-Ringo launch pop — plays on click, right before navigation. */
+@keyframes ringoLaunchPop {
+  0% { transform: scale(1); }
+  35% { transform: scale(0.93); }
+  70% { transform: scale(1.04); }
+  100% { transform: scale(1); }
 }
