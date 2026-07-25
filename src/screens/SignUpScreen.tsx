@@ -153,11 +153,14 @@ export function SignUpScreen({ onBack, onSendCode, onAppleSignIn, onGoogleSignIn
           <div style={{ flex: 1, height: 1, background: RC.line }} />
         </div>
 
-        {/* The step process belongs to the manual-email path only — Apple and
+        {/* The step process belongs to the manual-email path only — and only
+            once the person actually starts entering their details. Apple and
             Google sign you straight in with no steps to follow. */}
-        <div style={{ marginTop: 16 }}>
-          <FlowSteps active={1} />
-        </div>
+        {(name.length > 0 || email.length > 0) && (
+          <div style={{ marginTop: 16 }}>
+            <FlowSteps active={1} />
+          </div>
+        )}
 
         {!login && (
           <div style={{ marginTop: 2 }}>

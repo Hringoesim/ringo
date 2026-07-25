@@ -77,6 +77,11 @@ const MONUMENTS: { key: keyof typeof LANDMARK_SRC; lng: number; lat: number }[] 
   { key: 'slotmachine', lng: -115.1, lat: 36.1 }, // Las Vegas
   { key: 'stadium', lng: 2.15, lat: 41.38 }, // Barcelona (Camp Nou)
   { key: 'desertisland', lng: -135.0, lat: -12.0 }, // South Pacific
+  { key: 'snowman', lng: 100.0, lat: 66.0 }, // Siberian winter
+  { key: 'evergreen', lng: -115.0, lat: 57.0 }, // Canadian boreal forest
+  { key: 'tent', lng: -71.0, lat: -44.0 }, // Patagonia camping
+  { key: 'crab', lng: -175.0, lat: 58.0 }, // Bering Sea
+  { key: 'butterfly', lng: -56.0, lat: -15.0 }, // Brazilian highlands
 ];
 
 // Zoom INTO the planet while the circle stays the same size — you see less of
@@ -108,6 +113,13 @@ const DESERTS: { lng: number; lat: number; r: number }[] = [
   { lng: 71.5, lat: 26.5, r: 0.03 }, // Thar
   { lng: 15.5, lat: -22.5, r: 0.028 }, // Namib
   { lng: -69.5, lat: -23.5, r: 0.025 }, // Atacama
+  { lng: 60.0, lat: 40.0, r: 0.04 }, // Karakum
+  { lng: 82.0, lat: 39.0, r: 0.045 }, // Taklamakan
+  { lng: -105.0, lat: 31.0, r: 0.035 }, // Chihuahuan
+  { lng: -69.0, lat: -45.5, r: 0.035 }, // Patagonian steppe
+  { lng: 46.0, lat: 8.0, r: 0.03 }, // Horn of Africa
+  { lng: 122.0, lat: -26.5, r: 0.05 }, // western outback
+  { lng: 52.0, lat: 19.5, r: 0.04 }, // Rub' al Khali
 ];
 const FORESTS: { lng: number; lat: number; r: number }[] = [
   { lng: -63, lat: -5, r: 0.085 }, // Amazon
@@ -143,6 +155,10 @@ const BEACHES: { lng: number; lat: number; r: number }[] = [
   { lng: 98.3, lat: 7.9, r: 0.02 }, // Phuket
   { lng: 1.4, lat: 38.9, r: 0.018 }, // Ibiza
   { lng: 115.2, lat: -8.7, r: 0.02 }, // Bali
+  { lng: -80.15, lat: 25.9, r: 0.02 }, // Miami
+  { lng: 39.3, lat: -6.2, r: 0.018 }, // Zanzibar
+  { lng: 73.9, lat: 15.4, r: 0.018 }, // Goa
+  { lng: -8.7, lat: 37.1, r: 0.018 }, // Algarve
 ];
 
 const CLOUDS: { lng: number; lat: number; r: number }[] = [
@@ -474,7 +490,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       else {
         let da = target - heading;
         da = ((da + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
-        heading += da * 0.07; // gentle banking — no sudden nose snaps
+        heading += da * 0.045; // extra-gentle banking — long smooth arcs, never brusque
       }
 
       // Chemtrail — a thin white vapor line tracing the flown path, widest and
@@ -542,7 +558,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.clip();
       for (const poleLat of [90, -90]) {
         const pd = geoDistance([0, poleLat], [-lambda, -phi]);
-        const capAng = (Math.PI / 180) * 28; // cap reaches ~62° latitude
+        const capAng = (Math.PI / 180) * 33; // bigger ice — caps reach ~57° latitude
         if (pd >= Math.PI / 2 + capAng) continue;
         const pp = projection([0, poleLat]);
         if (!pp) continue;
@@ -611,7 +627,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         const pos = interp(segT);
         planeLng = pos[0];
         planeLat = pos[1];
-        const ahead = interp(Math.min(1, segT + 0.03));
+        const ahead = interp(Math.min(1, segT + 0.055)); // look further ahead = earlier, softer turns
         aheadLng = ahead[0];
         aheadLat = ahead[1];
         trail.push([planeLng, planeLat]);

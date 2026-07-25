@@ -39,11 +39,17 @@ import rocket from './rocket.png'; // 🚀 Cape Canaveral
 import slotmachine from './slotmachine.png'; // 🎰 Las Vegas
 import stadium from './stadium.png'; // 🏟️ Barcelona (Camp Nou)
 import desertisland from './desertisland.png'; // 🏝️ South Pacific
+import snowman from './snowman.png'; // ⛄ Siberian winter
+import evergreen from './evergreen.png'; // 🌲 Canadian boreal forest
+import tent from './tent.png'; // ⛺ Patagonia camping
+import crab from './crab.png'; // 🦀 Bering Sea
+import butterfly from './butterfly.png'; // 🦋 Brazilian highlands
 
 export const LANDMARK_SRC: Record<string, string> = {
   ferriswheel, classical, mosque, cityscape, temple, tokyotower, torii, bridge,
   mountain, liberty, snowmountain, fuji, volcano, cactus, palmtree, camel,
   kangaroo, sailboat, moai, elephant, panda, tiger, lion, penguin, polarbear,
   whale, dolphin, monkey, beach, ship, octopus, shark, tropicalfish, castle,
-  rocket, slotmachine, stadium, desertisland,
+  rocket, slotmachine, stadium, desertisland, snowman, evergreen, tent, crab,
+  butterfly,
 };
