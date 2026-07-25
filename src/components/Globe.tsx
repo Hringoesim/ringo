@@ -185,6 +185,41 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     let lastTs = performance.now();
     let lastDraw = 0;
 
+    // ── Drag-to-spin: touch the planet and turn it yourself; after a short
+    // pause the camera glides back to the plane (the chase lerp does the
+    // catching up, so the hand-off is seamless).
+    let dragging = false;
+    let resumeAt = 0;
+    let lastPX = 0;
+    let lastPY = 0;
+    const degPerPx = (2 * VIS * 180) / Math.PI / size; // visible span / canvas px
+    const onDown = (e: PointerEvent) => {
+      if (!flying) return;
+      dragging = true;
+      lastPX = e.clientX;
+      lastPY = e.clientY;
+      cv.setPointerCapture?.(e.pointerId);
+    };
+    const onMove = (e: PointerEvent) => {
+      if (!dragging) return;
+      const dx = e.clientX - lastPX;
+      const dy = e.clientY - lastPY;
+      lastPX = e.clientX;
+      lastPY = e.clientY;
+      lambda -= dx * degPerPx;
+      phi += dy * degPerPx;
+      phi = Math.max(-85, Math.min(85, phi));
+    };
+    const onUp = () => {
+      if (!dragging) return;
+      dragging = false;
+      resumeAt = performance.now() + 1400;
+    };
+    cv.addEventListener('pointerdown', onDown);
+    cv.addEventListener('pointermove', onMove);
+    cv.addEventListener('pointerup', onUp);
+    cv.addEventListener('pointercancel', onUp);
+
     // Sun-lit ocean — brighter at the light spot, deep sea toward the limb.
     const ocean = ctx.createRadialGradient(cx - R * 0.38, cy - R * 0.42, R * 0.12, cx, cy, R);
     ocean.addColorStop(0, '#5FC4F5');
@@ -502,10 +537,14 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         const ahead = interp(Math.min(1, segT + 0.03));
         aheadLng = ahead[0];
         aheadLat = ahead[1];
-        const k = Math.min(1, dt * 2.0); // slightly lazier chase = gliding camera
-        const dL = (((-planeLng - lambda) % 360) + 540) % 360 - 180;
-        lambda += dL * k;
-        phi += (-planeLat - phi) * k;
+        // The chase pauses while the user is spinning the globe (and briefly
+        // after), then the same lerp glides the camera back to the plane.
+        if (!dragging && now >= resumeAt) {
+          const k = Math.min(1, dt * 2.0);
+          const dL = (((-planeLng - lambda) % 360) + 540) % 360 - 180;
+          lambda += dL * k;
+          phi += (-planeLat - phi) * k;
+        }
       } else {
         lambda += 6 * dt;
         phi += (-8 - phi) * Math.min(1, dt);
@@ -520,8 +559,14 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     };
 
     draw();
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      cv.removeEventListener('pointerdown', onDown);
+      cv.removeEventListener('pointermove', onMove);
+      cv.removeEventListener('pointerup', onUp);
+      cv.removeEventListener('pointercancel', onUp);
+    };
   }, [size]);
 
-  return <canvas ref={ref} style={{ width: size, height: size, opacity, display: 'block', borderRadius: '50%' }} />;
+  return <canvas ref={ref} style={{ width: size, height: size, opacity, display: 'block', borderRadius: '50%', touchAction: 'none', cursor: 'grab' }} />;
 }
