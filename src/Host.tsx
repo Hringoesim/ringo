@@ -70,6 +70,22 @@ export function Host() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // OAuth deep-link return (Google/Apple web flow on the phone): Safari bounces
+  // back via com.ringoesim.app://auth-callback?code=… — finish the sign-in.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let remove: (() => void) | undefined;
+    void import('@capacitor/app').then(({ App: CapApp }) => {
+      const sub = CapApp.addListener('appUrlOpen', ({ url }) => {
+        void import('./lib/ringoSupabase').then(({ sbAuth }) =>
+          sbAuth.completeOAuth(url).then((ok) => { if (ok) window.dispatchEvent(new Event('ringo-signed-in')); }),
+        );
+      });
+      remove = () => { void sub.then((s) => s.remove()); };
+    }).catch(() => {});
+    return () => remove?.();
+  }, []);
+
   // WKWebView scrolls the document when the keyboard opens for a low input
   // (sign-up / log-in) and can leave it shifted afterwards, so the app no
   // longer fills the screen. Snap the document back whenever focus leaves an

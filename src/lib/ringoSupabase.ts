@@ -91,6 +91,9 @@ export async function initAuthBridge(onChange?: () => void): Promise<void> {
 // works on the GitHub Pages base path (/ringo/) and locally. This exact URL must
 // be added to Supabase → Authentication → URL Configuration → Redirect URLs.
 function oauthRedirect(): string {
+  // Native: Safari bounces back into the app via the custom URL scheme; the
+  // appUrlOpen listener (completeOAuth) exchanges the code for a session.
+  if (Capacitor.isNativePlatform()) return 'com.ringoesim.app://auth-callback';
   return window.location.origin + import.meta.env.BASE_URL;
 }
 
@@ -160,6 +163,19 @@ export const sbAuth = {
     if (!sb) return;
     const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: oauthRedirect() } });
     if (error) throw error;
+  },
+  /** Native deep-link return: Safari redirected to com.ringoesim.app://auth-callback?code=…
+   *  — exchange the PKCE code for a real session. Returns true when signed in. */
+  async completeOAuth(url: string): Promise<boolean> {
+    if (!url.includes('auth-callback')) return false;
+    const sb = await getSupabase();
+    if (!sb) return false;
+    const code = new URL(url.replace('com.ringoesim.app://', 'https://app/')).searchParams.get('code');
+    if (!code) return false;
+    const { data, error } = await sb.auth.exchangeCodeForSession(code);
+    if (error) { log.warn('completeOAuth', error); return false; }
+    writeSession(data.session as SbSession | null);
+    return !!data.session;
   },
   async apple(): Promise<void> {
     const sb = await getSupabase();

@@ -40,7 +40,10 @@ export async function getSupabase(): Promise<SupabaseClient | null> {
   client = createClient(
     import.meta.env.VITE_SUPABASE_URL as string,
     import.meta.env.VITE_SUPABASE_ANON_KEY as string,
-    { auth: { persistSession: true, autoRefreshToken: true } },
+    // PKCE: OAuth redirects return a one-time ?code= that we exchange for a
+    // session — required for the native deep-link return (Google/Apple web
+    // OAuth on the phone) and auto-handled on the web by detectSessionInUrl.
+    { auth: { persistSession: true, autoRefreshToken: true, flowType: 'pkce' } },
   );
   return client;
 }

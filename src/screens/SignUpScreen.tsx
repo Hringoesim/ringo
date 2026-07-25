@@ -67,7 +67,6 @@ export function SignUpScreen({ onBack, onSendCode, onAppleSignIn, onGoogleSignIn
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}>
           <img src={LOGO_SRC} alt="Ringo" style={{ height: 30, width: 'auto' }} />
         </div>
-        <FlowSteps active={1} />
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: RC.ink, letterSpacing: -0.8, lineHeight: 1.1, textWrap: 'pretty' }}>
           {login ? 'Log in to Ringo.' : 'Create your Ringo account.'}
         </div>
@@ -154,8 +153,14 @@ export function SignUpScreen({ onBack, onSendCode, onAppleSignIn, onGoogleSignIn
           <div style={{ flex: 1, height: 1, background: RC.line }} />
         </div>
 
+        {/* The step process belongs to the manual-email path only — Apple and
+            Google sign you straight in with no steps to follow. */}
+        <div style={{ marginTop: 16 }}>
+          <FlowSteps active={1} />
+        </div>
+
         {!login && (
-          <div style={{ marginTop: 14 }}>
+          <div style={{ marginTop: 2 }}>
             <FieldLabel>Name</FieldLabel>
             <Input value={name} onChange={setName} placeholder="Hippolyte Van Marcke" type="text" />
           </div>

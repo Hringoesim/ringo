@@ -130,6 +130,15 @@ export function App() {
     arriveHome(); // sign-in / activation complete → offer alerts (once)
   };
 
+  // Native OAuth deep-link completed (Host exchanged the code) → land the
+  // signed-in user on the dashboard with fresh account data.
+  useEffect(() => {
+    const done = () => finishToHome();
+    window.addEventListener('ringo-signed-in', done);
+    return () => window.removeEventListener('ringo-signed-in', done);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const signOut = () => {
     if (sb) void sbAuth.signOut();
     auth.signOut();
