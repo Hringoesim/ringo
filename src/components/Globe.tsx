@@ -120,33 +120,42 @@ const RIVERS: [number, number][][] = [
   [[24, -14], [28, -16], [33, -18.5]], // Zambezi
   [[92, 53], [89, 58], [86, 63], [84, 67]], // Yenisei
 ];
-const DESERTS: { lng: number; lat: number; r: number }[] = [
-  // The Sahara as the vast band it really is — tiled edge to edge
-  { lng: -12, lat: 22.5, r: 0.075 }, { lng: -4, lat: 24, r: 0.09 }, { lng: 5, lat: 22, r: 0.095 },
-  { lng: 14, lat: 23, r: 0.095 }, { lng: 23, lat: 25.5, r: 0.08 }, { lng: 30, lat: 27, r: 0.06 },
-  { lng: 46, lat: 22, r: 0.065 }, // Arabian
-  { lng: 52, lat: 19.5, r: 0.055 }, // Rub' al Khali
-  { lng: 54, lat: 32, r: 0.05 }, // Iranian plateau
-  { lng: 105, lat: 43, r: 0.065 }, // Gobi
-  { lng: 82, lat: 39, r: 0.055 }, // Taklamakan
-  { lng: 60, lat: 40, r: 0.05 }, // Karakum
-  { lng: 128, lat: -25.5, r: 0.075 }, { lng: 133, lat: -24.5, r: 0.075 }, { lng: 122, lat: -27, r: 0.06 }, // outback band
-  { lng: 21, lat: -23.5, r: 0.055 }, // Kalahari
-  { lng: 15.5, lat: -22.5, r: 0.035 }, // Namib
-  { lng: 46, lat: 8, r: 0.04 }, // Horn of Africa
-  { lng: 71.5, lat: 26.5, r: 0.04 }, // Thar
-  { lng: -111, lat: 36, r: 0.045 }, // US southwest
-  { lng: -105, lat: 31, r: 0.05 }, // Chihuahuan
-  { lng: -103, lat: 25, r: 0.055 }, // central Mexican plateau
-  { lng: -111, lat: 29.5, r: 0.04 }, // Sonoran
-  { lng: -69.5, lat: -23.5, r: 0.03 }, // Atacama
-  { lng: -69, lat: -45.5, r: 0.045 }, // Patagonian steppe
+// REAL desert regions as geographic polygons (clockwise rings), filled and
+// clipped to the coastlines — continuous sand areas, never circles, never sea.
+const DESERT_REGIONS: [number, number][][] = [
+  // Sahara — one vast band from the Atlantic to the Red Sea
+  [[-17, 28], [-10, 31], [0, 31.5], [12, 31], [22, 31.5], [31, 29.5], [34, 26], [34, 21], [28, 16.5], [15, 15.5], [3, 16], [-9, 17], [-16, 20], [-17, 28]],
+  // Arabian peninsula (Rub' al Khali + Nefud)
+  [[36, 31], [43, 33], [49, 30.5], [56, 25.5], [59, 21.5], [56, 16.5], [49, 15], [43, 17], [38, 22], [35.5, 27], [36, 31]],
+  // Iranian plateau + Karakum
+  [[48, 33], [54, 38], [61, 41.5], [66, 39.5], [64, 33], [58, 28], [52, 28.5], [48, 33]],
+  // Taklamakan + Gobi band
+  [[74, 39], [82, 41.5], [92, 43.5], [103, 45], [111, 44], [110, 40.5], [100, 38.5], [88, 36.5], [76, 36.5], [74, 39]],
+  // Australian outback interior
+  [[114, -23], [120, -20], [129, -18.5], [137, -19.5], [141, -23], [139, -29], [132, -30.5], [124, -30], [116, -27], [114, -23]],
+  // Kalahari + Namib
+  [[13.5, -18], [21, -19], [25, -22], [24.5, -28.5], [19, -30.5], [15, -26.5], [12.8, -21], [13.5, -18]],
+  // North Mexico + US southwest
+  [[-117, 34.5], [-111, 38.5], [-104, 36.5], [-99.5, 31], [-99.5, 24.5], [-103, 20.5], [-108.5, 23], [-114, 29], [-117, 34.5]],
+  // Patagonian steppe
+  [[-72, -39.5], [-66.5, -40.5], [-64.5, -46], [-67.5, -51.5], [-72, -50], [-72.5, -44.5], [-72, -39.5]],
+  // Thar
+  [[68, 28.5], [73, 30.5], [75.5, 27], [72, 23.5], [68.5, 24.8], [68, 28.5]],
+  // Horn of Africa
+  [[41, 11.5], [47, 10], [51, 7.5], [47.5, 3.5], [43, 5.5], [40.5, 9], [41, 11.5]],
+  // Atacama strip
+  [[-71.5, -18.5], [-68, -20.5], [-67.5, -26.5], [-70.5, -27.5], [-71.5, -23], [-71.5, -18.5]],
 ];
+// The great JUNGLES as regions too — Amazon and Congo read as rainforest.
+const JUNGLE_REGIONS: [number, number][][] = [
+  // Amazon basin
+  [[-76, 0], [-70, 3], [-62, 3.5], [-54, 2.5], [-48, 0], [-47, -3], [-52, -7], [-60, -9.5], [-68, -9], [-74, -6], [-76, -3], [-76, 0]],
+  // Congo basin
+  [[10, 4.5], [18, 5.5], [26, 4.5], [30.5, 1], [28.5, -3.5], [22, -5.5], [15, -4.5], [10.5, -0.5], [10, 4.5]],
+];
+// Woods beyond the two great jungle regions — taiga, boreal and island
+// rainforest patches. (Amazon + Congo are JUNGLE_REGIONS polygons now.)
 const FORESTS: { lng: number; lat: number; r: number }[] = [
-  // The Amazon JUNGLE — deep green across the whole basin
-  { lng: -66, lat: -4.5, r: 0.09 }, { lng: -58, lat: -4, r: 0.085 }, { lng: -52, lat: -2.5, r: 0.06 },
-  // The Congo JUNGLE — central Africa's great rainforest
-  { lng: 20, lat: 0.5, r: 0.085 }, { lng: 26, lat: 1.5, r: 0.06 }, { lng: 14, lat: 0, r: 0.05 },
   { lng: -112, lat: 58, r: 0.06 }, // Canadian boreal
   { lng: -76, lat: 48, r: 0.045 }, // Quebec
   { lng: 27, lat: 63, r: 0.045 }, // Scandinavia
@@ -338,25 +347,34 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.beginPath();
       ctx.arc(cx, cy, R, 0, Math.PI * 2);
       ctx.clip();
-      // deserts first — sandy-yellow land patches (the Nile cuts through later)
-      for (const f of DESERTS) {
-        const d = geoDistance([f.lng, f.lat], centre);
-        if (d >= limit) continue;
-        const pt = projection([f.lng, f.lat]);
-        if (!pt) continue;
-        const edge = 1 - d / limit;
-        const rad = f.r * R * TS * (0.5 + 0.5 * edge);
-        const a = Math.min(1, edge * 1.6);
-        // beige, not yellow — reads as sand next to the green grasslands
-        const gr = ctx.createRadialGradient(pt[0], pt[1], 0, pt[0], pt[1], rad);
-        gr.addColorStop(0, `rgba(226,206,166,${0.9 * a})`);
-        gr.addColorStop(0.65, `rgba(222,201,158,${0.55 * a})`);
-        gr.addColorStop(1, 'rgba(222,201,158,0)');
-        ctx.fillStyle = gr;
+      // deserts + jungles first, as REAL filled regions clipped to the
+      // coastlines — the Sahara reads as one sandy band shore to shore, the
+      // Amazon and Congo as unmistakable deep rainforest. (Nile/Amazon rivers
+      // cut through later.)
+      ctx.save();
+      ctx.beginPath();
+      path(LAND);
+      ctx.clip();
+      for (const ring of DESERT_REGIONS) {
         ctx.beginPath();
-        ctx.arc(pt[0], pt[1], rad, 0, Math.PI * 2);
+        path({ type: 'Polygon', coordinates: [ring] });
+        ctx.fillStyle = 'rgba(236,213,160,0.95)';
         ctx.fill();
+        // a darker sand rim so the desert edge reads even at a glance
+        ctx.strokeStyle = 'rgba(198,166,110,0.55)';
+        ctx.lineWidth = Math.max(0.8, R * 0.006);
+        ctx.stroke();
       }
+      for (const ring of JUNGLE_REGIONS) {
+        ctx.beginPath();
+        path({ type: 'Polygon', coordinates: [ring] });
+        ctx.fillStyle = 'rgba(16,99,44,0.9)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(9,72,31,0.6)';
+        ctx.lineWidth = Math.max(0.8, R * 0.005);
+        ctx.stroke();
+      }
+      ctx.restore();
       // beaches — bright sand crescents hugging famous coastlines
       for (const b of BEACHES) {
         const d = geoDistance([b.lng, b.lat], centre);
@@ -384,9 +402,9 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         const edge = 1 - d / limit;
         const rad = f.r * R * TS * (0.5 + 0.5 * edge);
         const gr = ctx.createRadialGradient(pt[0], pt[1], 0, pt[0], pt[1], rad);
-        gr.addColorStop(0, `rgba(24,104,46,${0.62 * Math.min(1, edge * 1.6)})`);
-        gr.addColorStop(0.7, `rgba(24,104,46,${0.38 * Math.min(1, edge * 1.6)})`);
-        gr.addColorStop(1, 'rgba(24,104,46,0)');
+        gr.addColorStop(0, `rgba(20,96,42,${0.82 * Math.min(1, edge * 1.6)})`);
+        gr.addColorStop(0.7, `rgba(20,96,42,${0.52 * Math.min(1, edge * 1.6)})`);
+        gr.addColorStop(1, 'rgba(20,96,42,0)');
         ctx.fillStyle = gr;
         ctx.beginPath();
         ctx.arc(pt[0], pt[1], rad, 0, Math.PI * 2);
