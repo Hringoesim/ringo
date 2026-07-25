@@ -115,7 +115,9 @@ const DESERTS: { lng: number; lat: number; r: number }[] = [
   { lng: -69.5, lat: -23.5, r: 0.025 }, // Atacama
   { lng: 60.0, lat: 40.0, r: 0.04 }, // Karakum
   { lng: 82.0, lat: 39.0, r: 0.045 }, // Taklamakan
-  { lng: -105.0, lat: 31.0, r: 0.035 }, // Chihuahuan
+  { lng: -105.0, lat: 31.0, r: 0.05 }, // Chihuahuan
+  { lng: -103.0, lat: 25.0, r: 0.055 }, // central Mexican plateau
+  { lng: -111.0, lat: 29.5, r: 0.04 }, // Sonoran
   { lng: -69.0, lat: -45.5, r: 0.035 }, // Patagonian steppe
   { lng: 46.0, lat: 8.0, r: 0.03 }, // Horn of Africa
   { lng: 122.0, lat: -26.5, r: 0.05 }, // western outback
