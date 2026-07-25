@@ -570,6 +570,14 @@ export const actions = {
           log.warn('waitlist.sync', e);
         }
         if (Object.keys(patch).length) set(patch);
+        // Website match: if this email signed up (or paid the Pioneer deposit)
+        // on ringoesim.com, the server upgrades the account to Pioneer — all
+        // the promised perks unlock automatically on any sign-in method.
+        if (!get().pioneer && !patch.pioneer) {
+          sbData.claimWebsitePioneer()
+            .then((kind) => { if (kind && !get().pioneer) set({ pioneer: true }); })
+            .catch(() => {});
+        }
         return;
       }
       if (RingoAPI.mode !== 'live') return;

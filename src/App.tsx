@@ -20,6 +20,7 @@ import { LandingScreen } from './screens/LandingScreen';
 import { OnboardingScreen } from './screens/OnboardingScreen';
 import { NotifyPrimer } from './screens/NotifyPrimer';
 import { SignUpScreen } from './screens/SignUpScreen';
+import { OtpScreen } from './screens/OtpScreen';
 import { KycScreen } from './screens/KycScreen';
 import { NumberSetupScreen } from './screens/NumberSetupScreen';
 import { HomeScreen } from './screens/HomeScreen';
@@ -46,6 +47,7 @@ interface Frame {
   params: {
     code?: string; preselect?: string; onboarding?: boolean; mode?: 'create' | 'login'; kycDone?: boolean;
     planId?: string; gateReturn?: 'addNumber' | 'port' | 'install'; gateArg?: string; mandatory?: boolean;
+    email?: string;
   };
 }
 type TabName = 'home' | 'browse' | 'numbers' | 'plan';
@@ -179,6 +181,8 @@ export function App() {
     if (target === 'terms') return push('terms');
     if (target === 'privacy') return push('privacy');
     if (target === 'twofactor') return push('twofactor');
+    // Guest taps the avatar → create an account (explore-first flow).
+    if (target === 'signup') return push('signup', { mode: 'create' });
   };
 
   const onboarding = !!current.params.onboarding;
@@ -217,10 +221,6 @@ export function App() {
         <SignUpScreen
           mode={current.params.mode}
           onBack={pop}
-          onForgotPassword={async (email) => {
-            if (sb) return sbAuth.resetPassword(email);
-            return { ok: false, error: 'Password reset needs the live backend.' };
-          }}
           onAppleSignIn={async () => {
             if (sb) {
               await sbAuth.apple(); // native: resolves signed-in; web: redirects away
@@ -235,16 +235,12 @@ export function App() {
             try { await auth.signInWithGoogle(); } catch { /* cancelled */ }
             finishToHome();
           }}
-          onEmailAuth={async ({ name, email, password }) => {
+          onSendCode={async ({ name, email }) => {
             const isLogin = current.params.mode === 'login';
             if (sb) {
-              const r = isLogin
-                ? await sbAuth.signInPassword(email, password)
-                : await sbAuth.signUpPassword(name, email, password);
-              if (!r.ok) throw new Error(r.error || 'Authentication failed.');
-              storeActions.syncIdentity();
-              if (isLogin) finishToHome();
-              else push('kyc');
+              // Passwordless: name + email → 6-digit code lands in the inbox.
+              await sbAuth.startEmailOtp(email, isLogin ? undefined : name);
+              push('emailOtp', { email, mode: current.params.mode });
               return;
             }
             // Local fallback when Supabase isn't configured.
@@ -255,6 +251,30 @@ export function App() {
         />
       );
       break;
+    case 'emailOtp': {
+      const otpEmail = String(current.params.email || '');
+      const otpLogin = current.params.mode === 'login';
+      body = (
+        <OtpScreen
+          phone={otpEmail}
+          onBack={pop}
+          onVerify={async (code) => {
+            const r = await sbAuth.verifyEmailOtp(otpEmail, code);
+            if (!r.ok) return { ok: false, error: r.error || 'That code didn’t match.' };
+            storeActions.syncIdentity();
+            void storeActions.hydrate(); // pulls profile + website Pioneer match
+            if (otpLogin) finishToHome();
+            else push('kyc');
+            return { ok: true };
+          }}
+          onResend={async () => {
+            await sbAuth.startEmailOtp(otpEmail);
+            return null;
+          }}
+        />
+      );
+      break;
+    }
     case 'kyc': {
       const gateReturn = current.params.gateReturn;
       const gateArg = current.params.gateArg;

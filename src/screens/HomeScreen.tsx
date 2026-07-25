@@ -138,9 +138,10 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
             </svg>
             <span style={{ fontFamily: 'var(--font)', fontSize: 13, color: RC.inkMute, fontWeight: 500 }}>Search countries</span>
           </div>
-          {/* avatar with tier ring */}
+          {/* avatar with tier ring — guests are invited to create an account,
+              signed-in users go to settings */}
           <div
-            onClick={() => onNav('settings')}
+            onClick={() => onNav(state.email ? 'settings' : 'signup')}
             className="press"
             style={{
               width: 38, height: 38, borderRadius: '50%', cursor: 'pointer',

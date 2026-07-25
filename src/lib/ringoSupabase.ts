@@ -138,10 +138,13 @@ export const sbAuth = {
     }
     return { ok: true, session: writeSession(data.session as SbSession | null) };
   },
-  async startEmailOtp(email: string): Promise<void> {
+  async startEmailOtp(email: string, name?: string): Promise<void> {
     const sb = await getSupabase();
     if (!sb) throw new Error('Supabase not configured');
-    const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+    const { error } = await sb.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: true, data: name ? { full_name: name } : undefined },
+    });
     if (error) throw error;
   },
   async verifyEmailOtp(email: string, token: string): Promise<{ ok: boolean; error?: string; session?: RingoSession | null }> {
@@ -340,6 +343,18 @@ export const sbData = {
   /** Redeem a founding code server-side → grants + persists Pioneer membership
    *  (validated against public.pioneer_codes; users can't self-grant). Returns
    *  whether the code was accepted. Hydrate reads profiles.pioneer back. */
+  /** Match the signed-in email against the website's members (hashed copy).
+   *  Server grants Pioneer when the email was a website signup or Pioneer;
+   *  returns 'pioneer' | 'signup' | null. */
+  async claimWebsitePioneer(): Promise<string | null> {
+    const sb = await getSupabase();
+    if (!sb) return null;
+    const { data: u } = await sb.auth.getUser();
+    if (!u?.user) return null;
+    const { data, error } = await sb.rpc('claim_website_pioneer');
+    if (error) { log.warn('claimWebsitePioneer', error); return null; }
+    return typeof data === 'string' && data ? data : null;
+  },
   async redeemPioneerCode(code: string): Promise<boolean> {
     const sb = await getSupabase();
     if (!sb) return false;

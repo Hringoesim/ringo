@@ -9,25 +9,20 @@ import { LOGO_SRC } from '../assets';
 
 interface SignUpScreenProps {
   onBack: () => void;
-  onEmailAuth: (v: { name: string; email: string; password: string }) => void | Promise<void>;
+  /** Passwordless: name + email → a 6-digit code lands in the inbox. */
+  onSendCode: (v: { name: string; email: string }) => void | Promise<void>;
   onAppleSignIn: () => void | Promise<void>;
   onGoogleSignIn: () => void | Promise<void>;
-  onForgotPassword?: (email: string) => Promise<{ ok: boolean; error?: string }>;
   mode?: 'create' | 'login';
 }
 
-export function SignUpScreen({ onBack, onEmailAuth, onAppleSignIn, onGoogleSignIn, onForgotPassword, mode = 'create' }: SignUpScreenProps) {
+export function SignUpScreen({ onBack, onSendCode, onAppleSignIn, onGoogleSignIn, mode = 'create' }: SignUpScreenProps) {
   const login = mode === 'login';
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPw, setShowPw] = useState(false);
   const [agree, setAgree] = useState(true);
   const emailOk = /\S+@\S+\.\S+/.test(email);
-  // Match Supabase / the signup edge function exactly: at least 8 characters.
-  const hasLen = password.length >= 8;
-  const passOk = login ? password.length >= 4 : hasLen;
-  const canSubmit = emailOk && passOk && (login || agree);
+  const canSubmit = emailOk && (login || (agree && name.trim().length > 0));
 
   const [busy, setBusy] = useState<'apple' | 'google' | 'email' | null>(null);
   const [err, setErr] = useState('');
@@ -57,7 +52,16 @@ export function SignUpScreen({ onBack, onEmailAuth, onAppleSignIn, onGoogleSignI
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <RingoHeader title="" leading={<BackBtn onClick={onBack} />} />
-      <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '0 24px 16px' }}>
+      <div
+        className="no-bar"
+        style={{ flex: 1, overflowY: 'auto', padding: '0 24px 220px' }}
+        // Keep the focused field visible above the iOS keyboard: once the
+        // keyboard has animated in, centre the input in what's left.
+        onFocus={(e) => {
+          const t = e.target as HTMLElement;
+          if (t.tagName === 'INPUT') setTimeout(() => t.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300);
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}>
           <img src={LOGO_SRC} alt="Ringo" style={{ height: 30, width: 'auto' }} />
         </div>
@@ -159,64 +163,11 @@ export function SignUpScreen({ onBack, onEmailAuth, onAppleSignIn, onGoogleSignI
           <Input value={email} onChange={(v) => { setEmail(v); if (err) setErr(''); }} placeholder="you@you.com" type="email" inputMode="email" />
         </div>
 
-        <div style={{ marginTop: 16 }}>
-          <FieldLabel>Password</FieldLabel>
-          <div style={{ position: 'relative' }}>
-            <Input value={password} onChange={(v) => { setPassword(v); if (err) setErr(''); }} placeholder={login ? 'Your password' : 'At least 8 characters'} type={showPw ? 'text' : 'password'} />
-            <button
-              type="button"
-              onClick={() => setShowPw((s) => !s)}
-              style={{
-                position: 'absolute', right: 12, top: 0, height: 54, border: 'none', background: 'transparent',
-                fontFamily: 'var(--font)', fontSize: 12.5, fontWeight: 600, color: RC.inkMute, cursor: 'pointer',
-              }}
-            >
-              {showPw ? 'Hide' : 'Show'}
-            </button>
-          </div>
-          {!login && password.length > 0 && (
-            <div style={{ marginTop: 10, display: 'flex', gap: 16 }}>
-              {([['At least 8 characters', hasLen]] as const).map(([label, met]) => (
-                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span
-                    style={{
-                      width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
-                      background: met ? RC.grad : 'transparent', border: met ? 'none' : `1.5px solid ${RC.lineStrong}`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}
-                  >
-                    {met && <svg width="9" height="9" viewBox="0 0 12 12"><path d="M2 6l3 3 5-6" stroke="#FFFFFF" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-                  </span>
-                  <span style={{ fontFamily: 'var(--font)', fontSize: 11.5, fontWeight: 500, color: met ? RC.ink : RC.inkMute }}>{label}</span>
-                </div>
-              ))}
-            </div>
-          )}
+        <div style={{ marginTop: 12, fontFamily: 'var(--font)', fontSize: 12.5, color: RC.inkMute, lineHeight: 1.5 }}>
+          No password needed — we’ll email you a 6-digit code to {login ? 'log in' : 'confirm your account'}.
         </div>
 
-        {login ? (
-          <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end' }}>
-            <button
-              type="button"
-              onClick={async () => {
-                if (busy) return;
-                setErr('');
-                setNote('');
-                if (!emailOk) { setErr('Enter your email above first, then tap “Forgot password?” again.'); return; }
-                if (!onForgotPassword) { setErr('Password reset isn’t available right now.'); return; }
-                const r = await onForgotPassword(email);
-                if (r.ok) setNote(`We’ve emailed a sign-in link to ${email}. Open it on this device to get back in.`);
-                else setErr(r.error || 'Couldn’t send the reset email. Try again.');
-              }}
-              style={{
-                border: 'none', background: 'transparent', cursor: 'pointer', padding: 0,
-                fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.inkStrong,
-              }}
-            >
-              Forgot password?
-            </button>
-          </div>
-        ) : (
+        {!login && (
         <label style={{ marginTop: 18, display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
           <span
             style={{
@@ -251,9 +202,9 @@ export function SignUpScreen({ onBack, onEmailAuth, onAppleSignIn, onGoogleSignI
         <RingoButton
           loading={busy === 'email'}
           disabled={!canSubmit || (!!busy && busy !== 'email')}
-          onClick={() => run('email', () => onEmailAuth({ name, email, password }))}
+          onClick={() => run('email', () => onSendCode({ name: name.trim(), email: email.trim() }))}
         >
-          {busy === 'email' ? (login ? 'Logging in…' : 'Creating account…') : login ? 'Log in' : 'Create account'}
+          {busy === 'email' ? 'Sending code…' : 'Send code'}
         </RingoButton>
       </div>
     </div>

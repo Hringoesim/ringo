@@ -14,7 +14,8 @@ export type NavTarget =
   | 'settings'
   | 'terms'
   | 'privacy'
-  | 'twofactor';
+  | 'twofactor'
+  | 'signup';
 
 // Generic navigation handler. Extra args carry route params
 // (e.g. onNav('country', 'JP') or onNav('addNumber', 'PT')).
