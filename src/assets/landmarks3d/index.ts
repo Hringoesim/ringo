@@ -44,6 +44,14 @@ import evergreen from './evergreen.png'; // 🌲 Canadian boreal forest
 import tent from './tent.png'; // ⛺ Patagonia camping
 import crab from './crab.png'; // 🦀 Bering Sea
 import butterfly from './butterfly.png'; // 🦋 Brazilian highlands
+import horse from './horse.png'; // 🐎 Mongolian steppe
+import wolf from './wolf.png'; // 🐺 Russian forest
+import bear from './bear.png'; // 🐻 Hudson Bay woods
+import eagle from './eagle.png'; // 🦅 Great Plains, USA
+import flamingo from './flamingo.png'; // 🦩 Argentine pampas
+import gorilla from './gorilla.png'; // 🦍 Congo jungle
+import parrot from './parrot.png'; // 🦜 Amazon jungle
+import dragon from './dragon.png'; // 🐉 eastern China
 
 export const LANDMARK_SRC: Record<string, string> = {
   ferriswheel, classical, mosque, cityscape, temple, tokyotower, torii, bridge,
@@ -51,5 +59,5 @@ export const LANDMARK_SRC: Record<string, string> = {
   kangaroo, sailboat, moai, elephant, panda, tiger, lion, penguin, polarbear,
   whale, dolphin, monkey, beach, ship, octopus, shark, tropicalfish, castle,
   rocket, slotmachine, stadium, desertisland, snowman, evergreen, tent, crab,
-  butterfly,
+  butterfly, horse, wolf, bear, eagle, flamingo, gorilla, parrot, dragon,
 };

@@ -82,6 +82,14 @@ const MONUMENTS: { key: keyof typeof LANDMARK_SRC; lng: number; lat: number }[] 
   { key: 'tent', lng: -71.0, lat: -44.0 }, // Patagonia camping
   { key: 'crab', lng: -175.0, lat: 58.0 }, // Bering Sea
   { key: 'butterfly', lng: -56.0, lat: -15.0 }, // Brazilian highlands
+  { key: 'horse', lng: 105.0, lat: 47.0 }, // Mongolian steppe
+  { key: 'wolf', lng: 48.0, lat: 56.0 }, // Russian forest
+  { key: 'bear', lng: -90.0, lat: 54.0 }, // Hudson Bay woods
+  { key: 'eagle', lng: -98.0, lat: 40.0 }, // Great Plains, USA
+  { key: 'flamingo', lng: -62.0, lat: -33.0 }, // Argentine pampas
+  { key: 'gorilla', lng: 20.0, lat: 2.0 }, // Congo jungle
+  { key: 'parrot', lng: -60.0, lat: 3.0 }, // Amazon jungle
+  { key: 'dragon', lng: 119.0, lat: 30.0 }, // eastern China
 ];
 
 // Zoom INTO the planet while the circle stays the same size — you see less of
@@ -102,39 +110,53 @@ const RIVERS: [number, number][][] = [
   [[27.5, 0.5], [23, 2], [18, 1], [15.5, -4]], // Congo
   [[84, 52], [81, 58], [74, 62], [67, 66]], // Ob
   [[78, 29.5], [82, 26], [87.5, 24.5]], // Ganges
+  [[8.5, 48.5], [13, 48], [19, 46.5], [25, 45.5], [29, 45.3]], // Danube
+  [[37, 57], [45, 52], [46, 48], [47.5, 46.5]], // Volga
+  [[100, 20], [104, 16], [105.5, 12.5], [106, 10.8]], // Mekong
+  [[74, 34], [71, 30], [68, 26.5]], // Indus
+  [[-7, 13.5], [0, 16.5], [5, 12], [6.5, 7]], // Niger
+  [[147, -31], [143, -34], [139.8, -35]], // Murray-Darling
+  [[-51, -21], [-55, -25], [-58, -30], [-59.5, -33]], // Paraná
+  [[24, -14], [28, -16], [33, -18.5]], // Zambezi
+  [[92, 53], [89, 58], [86, 63], [84, 67]], // Yenisei
 ];
 const DESERTS: { lng: number; lat: number; r: number }[] = [
-  { lng: -5, lat: 23, r: 0.08 }, { lng: 12, lat: 22, r: 0.09 }, { lng: 25, lat: 25, r: 0.06 }, // Sahara
-  { lng: 46, lat: 22, r: 0.05 }, // Arabian
-  { lng: 105, lat: 43, r: 0.05 }, // Gobi
-  { lng: 133, lat: -25, r: 0.075 }, // Australian outback
-  { lng: 21, lat: -23.5, r: 0.04 }, // Kalahari
-  { lng: -111, lat: 36, r: 0.035 }, // US southwest
-  { lng: 71.5, lat: 26.5, r: 0.03 }, // Thar
-  { lng: 15.5, lat: -22.5, r: 0.028 }, // Namib
-  { lng: -69.5, lat: -23.5, r: 0.025 }, // Atacama
-  { lng: 60.0, lat: 40.0, r: 0.04 }, // Karakum
-  { lng: 82.0, lat: 39.0, r: 0.045 }, // Taklamakan
-  { lng: -105.0, lat: 31.0, r: 0.05 }, // Chihuahuan
-  { lng: -103.0, lat: 25.0, r: 0.055 }, // central Mexican plateau
-  { lng: -111.0, lat: 29.5, r: 0.04 }, // Sonoran
-  { lng: -69.0, lat: -45.5, r: 0.035 }, // Patagonian steppe
-  { lng: 46.0, lat: 8.0, r: 0.03 }, // Horn of Africa
-  { lng: 122.0, lat: -26.5, r: 0.05 }, // western outback
-  { lng: 52.0, lat: 19.5, r: 0.04 }, // Rub' al Khali
+  // The Sahara as the vast band it really is — tiled edge to edge
+  { lng: -12, lat: 22.5, r: 0.075 }, { lng: -4, lat: 24, r: 0.09 }, { lng: 5, lat: 22, r: 0.095 },
+  { lng: 14, lat: 23, r: 0.095 }, { lng: 23, lat: 25.5, r: 0.08 }, { lng: 30, lat: 27, r: 0.06 },
+  { lng: 46, lat: 22, r: 0.065 }, // Arabian
+  { lng: 52, lat: 19.5, r: 0.055 }, // Rub' al Khali
+  { lng: 54, lat: 32, r: 0.05 }, // Iranian plateau
+  { lng: 105, lat: 43, r: 0.065 }, // Gobi
+  { lng: 82, lat: 39, r: 0.055 }, // Taklamakan
+  { lng: 60, lat: 40, r: 0.05 }, // Karakum
+  { lng: 128, lat: -25.5, r: 0.075 }, { lng: 133, lat: -24.5, r: 0.075 }, { lng: 122, lat: -27, r: 0.06 }, // outback band
+  { lng: 21, lat: -23.5, r: 0.055 }, // Kalahari
+  { lng: 15.5, lat: -22.5, r: 0.035 }, // Namib
+  { lng: 46, lat: 8, r: 0.04 }, // Horn of Africa
+  { lng: 71.5, lat: 26.5, r: 0.04 }, // Thar
+  { lng: -111, lat: 36, r: 0.045 }, // US southwest
+  { lng: -105, lat: 31, r: 0.05 }, // Chihuahuan
+  { lng: -103, lat: 25, r: 0.055 }, // central Mexican plateau
+  { lng: -111, lat: 29.5, r: 0.04 }, // Sonoran
+  { lng: -69.5, lat: -23.5, r: 0.03 }, // Atacama
+  { lng: -69, lat: -45.5, r: 0.045 }, // Patagonian steppe
 ];
 const FORESTS: { lng: number; lat: number; r: number }[] = [
-  { lng: -63, lat: -5, r: 0.085 }, // Amazon
-  { lng: 22, lat: -1, r: 0.06 }, // Congo basin
+  // The Amazon JUNGLE — deep green across the whole basin
+  { lng: -66, lat: -4.5, r: 0.09 }, { lng: -58, lat: -4, r: 0.085 }, { lng: -52, lat: -2.5, r: 0.06 },
+  // The Congo JUNGLE — central Africa's great rainforest
+  { lng: 20, lat: 0.5, r: 0.085 }, { lng: 26, lat: 1.5, r: 0.06 }, { lng: 14, lat: 0, r: 0.05 },
   { lng: -112, lat: 58, r: 0.06 }, // Canadian boreal
   { lng: -76, lat: 48, r: 0.045 }, // Quebec
   { lng: 27, lat: 63, r: 0.045 }, // Scandinavia
   { lng: 95, lat: 60, r: 0.07 }, // Siberian taiga
   { lng: 128, lat: 60, r: 0.055 }, // East Siberia
-  { lng: 105, lat: 16, r: 0.04 }, // SE Asia
+  { lng: 105, lat: 16, r: 0.045 }, // SE Asia
+  { lng: 113, lat: 0.5, r: 0.045 }, // Borneo rainforest
   { lng: 15, lat: 51, r: 0.035 }, // central-European woods
   { lng: -84, lat: 36, r: 0.035 }, // Appalachian woods
-  { lng: 132, lat: -5, r: 0.035 }, // New Guinea rainforest
+  { lng: 132, lat: -5, r: 0.05 }, // New Guinea rainforest
 ];
 const RANGES: { lng: number; lat: number; s: number }[] = [
   { lng: -116, lat: 51, s: 1 }, { lng: -110, lat: 44, s: 0.85 }, { lng: -106, lat: 39, s: 0.9 }, // Rockies
@@ -147,20 +169,28 @@ const RANGES: { lng: number; lat: number; s: number }[] = [
   { lng: -6.5, lat: 31.5, s: 0.65 }, // Atlas
   { lng: 170.2, lat: -43.6, s: 0.7 }, // Southern Alps, NZ
   { lng: 99, lat: 38, s: 0.7 }, // Qilian / western China
+  { lng: 8, lat: 61.5, s: 0.6 }, // Scandinavian mountains
+  { lng: -79, lat: 38.5, s: 0.6 }, // Appalachians
+  { lng: 148.5, lat: -30, s: 0.6 }, // Great Dividing Range
+  { lng: 47.5, lat: 33.5, s: 0.65 }, // Zagros
+  { lng: 80, lat: 42.5, s: 0.75 }, // Tian Shan
+  { lng: 29, lat: -29.5, s: 0.6 }, // Drakensberg
 ];
 // Sandy shores where the famous beaches are — small sand crescents that sit
 // half on the coastline, half in the shallows.
 const BEACHES: { lng: number; lat: number; r: number }[] = [
-  { lng: -86.8, lat: 21.1, r: 0.022 }, // Cancún
-  { lng: -43.18, lat: -23.0, r: 0.02 }, // Copacabana, Rio
-  { lng: 153.4, lat: -28.0, r: 0.022 }, // Gold Coast
-  { lng: 98.3, lat: 7.9, r: 0.02 }, // Phuket
-  { lng: 1.4, lat: 38.9, r: 0.018 }, // Ibiza
-  { lng: 115.2, lat: -8.7, r: 0.02 }, // Bali
-  { lng: -80.15, lat: 25.9, r: 0.02 }, // Miami
-  { lng: 39.3, lat: -6.2, r: 0.018 }, // Zanzibar
-  { lng: 73.9, lat: 15.4, r: 0.018 }, // Goa
-  { lng: -8.7, lat: 37.1, r: 0.018 }, // Algarve
+  { lng: -86.8, lat: 21.1, r: 0.032 }, // Cancún
+  { lng: -43.18, lat: -23.0, r: 0.028 }, // Copacabana, Rio
+  { lng: 153.4, lat: -28.0, r: 0.032 }, // Gold Coast
+  { lng: 98.3, lat: 7.9, r: 0.028 }, // Phuket
+  { lng: 1.4, lat: 38.9, r: 0.026 }, // Ibiza
+  { lng: 115.2, lat: -8.7, r: 0.028 }, // Bali
+  { lng: -80.15, lat: 25.9, r: 0.028 }, // Miami
+  { lng: 39.3, lat: -6.2, r: 0.026 }, // Zanzibar
+  { lng: 73.9, lat: 15.4, r: 0.026 }, // Goa
+  { lng: -8.7, lat: 37.1, r: 0.026 }, // Algarve
+  { lng: 25.4, lat: 37.2, r: 0.024 }, // Mykonos
+  { lng: 122.0, lat: 11.9, r: 0.024 }, // Boracay
 ];
 
 const CLOUDS: { lng: number; lat: number; r: number }[] = [
@@ -354,9 +384,9 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         const edge = 1 - d / limit;
         const rad = f.r * R * TS * (0.5 + 0.5 * edge);
         const gr = ctx.createRadialGradient(pt[0], pt[1], 0, pt[0], pt[1], rad);
-        gr.addColorStop(0, `rgba(31,110,52,${0.5 * Math.min(1, edge * 1.6)})`);
-        gr.addColorStop(0.7, `rgba(31,110,52,${0.28 * Math.min(1, edge * 1.6)})`);
-        gr.addColorStop(1, 'rgba(31,110,52,0)');
+        gr.addColorStop(0, `rgba(24,104,46,${0.62 * Math.min(1, edge * 1.6)})`);
+        gr.addColorStop(0.7, `rgba(24,104,46,${0.38 * Math.min(1, edge * 1.6)})`);
+        gr.addColorStop(1, 'rgba(24,104,46,0)');
         ctx.fillStyle = gr;
         ctx.beginPath();
         ctx.arc(pt[0], pt[1], rad, 0, Math.PI * 2);
