@@ -33,9 +33,9 @@ const TOUR: [number, number][] = [
 ];
 
 // rad/s the plane travels along the surface. The camera chases the plane, so
-// this IS the earth's visible spin rate. 0.26 was "too fast" (user) — the
-// original calm glide.
-const ANG_SPEED = 0.16;
+// this IS the earth's visible spin rate. Tuned down twice on user feedback
+// (0.26 -> 0.16 -> 0.10): a slow, dreamy drift.
+const ANG_SPEED = 0.10;
 
 // 3D monument + nature icons standing on their real places. Placements keep
 // every pair ≥ ~12° apart so no two sprites can overlap on screen (a runtime
@@ -82,7 +82,7 @@ const MONUMENTS: { key: keyof typeof LANDMARK_SRC; lng: number; lat: number }[] 
 // Zoom INTO the planet while the circle stays the same size — you see less of
 // the sphere, but everything on it is bigger. VIS = angular radius of the part
 // of the hemisphere that still fits inside the circle.
-const ZOOM = 1.6;
+const ZOOM = 1.85;
 const VIS = Math.asin(1 / ZOOM);
 // terrain was art-directed at zoom 1.35 — keep its coverage proportional
 const TS = ZOOM / 1.35;
@@ -105,6 +105,9 @@ const DESERTS: { lng: number; lat: number; r: number }[] = [
   { lng: 133, lat: -25, r: 0.075 }, // Australian outback
   { lng: 21, lat: -23.5, r: 0.04 }, // Kalahari
   { lng: -111, lat: 36, r: 0.035 }, // US southwest
+  { lng: 71.5, lat: 26.5, r: 0.03 }, // Thar
+  { lng: 15.5, lat: -22.5, r: 0.028 }, // Namib
+  { lng: -69.5, lat: -23.5, r: 0.025 }, // Atacama
 ];
 const FORESTS: { lng: number; lat: number; r: number }[] = [
   { lng: -63, lat: -5, r: 0.085 }, // Amazon
@@ -115,6 +118,9 @@ const FORESTS: { lng: number; lat: number; r: number }[] = [
   { lng: 95, lat: 60, r: 0.07 }, // Siberian taiga
   { lng: 128, lat: 60, r: 0.055 }, // East Siberia
   { lng: 105, lat: 16, r: 0.04 }, // SE Asia
+  { lng: 15, lat: 51, r: 0.035 }, // central-European woods
+  { lng: -84, lat: 36, r: 0.035 }, // Appalachian woods
+  { lng: 132, lat: -5, r: 0.035 }, // New Guinea rainforest
 ];
 const RANGES: { lng: number; lat: number; s: number }[] = [
   { lng: -116, lat: 51, s: 1 }, { lng: -110, lat: 44, s: 0.85 }, { lng: -106, lat: 39, s: 0.9 }, // Rockies
@@ -123,6 +129,20 @@ const RANGES: { lng: number; lat: number; s: number }[] = [
   { lng: 77, lat: 34, s: 0.9 }, { lng: 81, lat: 31, s: 1 }, // Himalayas
   { lng: 59, lat: 58, s: 0.7 }, { lng: 60.5, lat: 64, s: 0.7 }, // Urals
   { lng: 38.5, lat: 10, s: 0.75 }, // Ethiopian highlands
+  { lng: 43.5, lat: 42.8, s: 0.75 }, // Caucasus
+  { lng: -6.5, lat: 31.5, s: 0.65 }, // Atlas
+  { lng: 170.2, lat: -43.6, s: 0.7 }, // Southern Alps, NZ
+  { lng: 99, lat: 38, s: 0.7 }, // Qilian / western China
+];
+// Sandy shores where the famous beaches are — small sand crescents that sit
+// half on the coastline, half in the shallows.
+const BEACHES: { lng: number; lat: number; r: number }[] = [
+  { lng: -86.8, lat: 21.1, r: 0.022 }, // Cancún
+  { lng: -43.18, lat: -23.0, r: 0.02 }, // Copacabana, Rio
+  { lng: 153.4, lat: -28.0, r: 0.022 }, // Gold Coast
+  { lng: 98.3, lat: 7.9, r: 0.02 }, // Phuket
+  { lng: 1.4, lat: 38.9, r: 0.018 }, // Ibiza
+  { lng: 115.2, lat: -8.7, r: 0.02 }, // Bali
 ];
 
 const CLOUDS: { lng: number; lat: number; r: number }[] = [
@@ -182,6 +202,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     let phi = -TOUR[0][1];
     let heading = NaN;
     let cloudOffset = 0;
+    const trail: [number, number][] = []; // chemtrail — recent path points
     let lastTs = performance.now();
     let lastDraw = 0;
 
@@ -269,6 +290,24 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         gr.addColorStop(0, `rgba(226,206,166,${0.9 * a})`);
         gr.addColorStop(0.65, `rgba(222,201,158,${0.55 * a})`);
         gr.addColorStop(1, 'rgba(222,201,158,0)');
+        ctx.fillStyle = gr;
+        ctx.beginPath();
+        ctx.arc(pt[0], pt[1], rad, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // beaches — bright sand crescents hugging famous coastlines
+      for (const b of BEACHES) {
+        const d = geoDistance([b.lng, b.lat], centre);
+        if (d >= limit) continue;
+        const pt = projection([b.lng, b.lat]);
+        if (!pt) continue;
+        const edge = 1 - d / limit;
+        const rad = b.r * R * TS * (0.55 + 0.45 * edge);
+        const a = Math.min(1, edge * 1.7);
+        const gr = ctx.createRadialGradient(pt[0], pt[1], 0, pt[0], pt[1], rad);
+        gr.addColorStop(0, `rgba(244,224,176,${0.95 * a})`);
+        gr.addColorStop(0.6, `rgba(240,218,166,${0.55 * a})`);
+        gr.addColorStop(1, 'rgba(240,218,166,0)');
         ctx.fillStyle = gr;
         ctx.beginPath();
         ctx.arc(pt[0], pt[1], rad, 0, Math.PI * 2);
@@ -424,6 +463,27 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         heading += da * 0.07; // gentle banking — no sudden nose snaps
       }
 
+      // Chemtrail — a thin white vapor line tracing the flown path, widest and
+      // brightest at the plane, dissolving with age.
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.lineCap = 'round';
+      for (let i = 1; i < trail.length; i++) {
+        const a = projection(trail[i - 1]);
+        const b = projection(trail[i]);
+        if (!a || !b) continue;
+        const age = i / trail.length; // 0 = oldest, 1 = newest
+        ctx.strokeStyle = `rgba(255,255,255,${0.85 * age * age})`;
+        ctx.lineWidth = Math.max(0.8, R * 0.011 * age);
+        ctx.beginPath();
+        ctx.moveTo(a[0], a[1]);
+        ctx.lineTo(b[0], b[1]);
+        ctx.stroke();
+      }
+      ctx.restore();
+
       // The sprite's nose points north-east (−45°), so rotate by heading + 45°
       // to fly nose-first — identical on every platform, unlike a text glyph.
       if (planeImg.complete && planeImg.naturalWidth > 0) {
@@ -487,8 +547,9 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
 
       drawTerrain();
       if (flying) drawClouds();
-      if (flying) drawMonuments();
 
+      // Lighting BEFORE the monuments: the night-side shading must never dim
+      // the landmark/animal accents — they ride above it at full brightness.
       ctx.save();
       ctx.beginPath();
       ctx.arc(cx, cy, R, 0, Math.PI * 2);
@@ -500,6 +561,8 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.fillStyle = atmo;
       ctx.fillRect(0, 0, size, size);
       ctx.restore();
+
+      if (flying) drawMonuments();
 
       ctx.beginPath();
       ctx.arc(cx, cy, R, 0, Math.PI * 2);
@@ -537,6 +600,8 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         const ahead = interp(Math.min(1, segT + 0.03));
         aheadLng = ahead[0];
         aheadLat = ahead[1];
+        trail.push([planeLng, planeLat]);
+        if (trail.length > 150) trail.shift();
         // The chase pauses while the user is spinning the globe (and briefly
         // after), then the same lerp glides the camera back to the plane.
         if (!dragging && now >= resumeAt) {

@@ -41,13 +41,13 @@ export function LandingScreen({ onExplore, onLogin }: { onExplore: () => void; o
       <div
         style={{
           flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-          justifyContent: 'center', padding: compact ? '30px 24px 0' : '48px 24px 0', textAlign: 'center',
+          justifyContent: 'center', padding: compact ? '16px 24px 0' : '24px 24px 0', textAlign: 'center',
         }}
       >
         {/* The REAL Ringo logo (orange→pink gradient asset, same as the site
             header) on the cream sky — exactly the website look. */}
-        <div style={{ marginTop: compact ? 2 : 8, filter: 'drop-shadow(0 4px 14px rgba(120,30,10,0.16))' }}>
-          <img src={LOGO_SRC} alt="Ringo" style={{ height: compact ? 46 : 58, width: 'auto', display: 'block' }} />
+        <div style={{ marginTop: 0, marginBottom: compact ? 2 : 6, filter: 'drop-shadow(0 4px 14px rgba(120,30,10,0.16))' }}>
+          <img src={LOGO_SRC} alt="Ringo" style={{ height: compact ? 58 : 76, width: 'auto', display: 'block' }} />
         </div>
 
         {/* First impression: the planet springs in once, then floats forever
