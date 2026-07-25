@@ -1,0 +1,24 @@
+biomes.json — terrain regions on the Ringo globe
+================================================
+
+Derived from RESOLVE Ecoregions 2017, the standard scientific map of the
+world's terrestrial ecoregions and biomes.
+
+  Dinerstein, E., et al. (2017). "An Ecoregion-Based Approach to Protecting
+  Half the Terrestrial Realm." BioScience, 67(6), 534-545.
+  https://ecoregions.appspot.com/
+
+  Licence: Creative Commons Attribution 4.0 International (CC BY 4.0)
+  https://creativecommons.org/licenses/by/4.0/
+
+Processing applied (see the build script kept with the design notes):
+  - the 847 source ecoregions grouped into 9 visual classes by WWF biome
+    number: desert(13) jungle(1,14) boreal(5,6) forest(2,3,4) savanna(7,9)
+    steppe(8) medit(12) montane(10) tundra(11)
+  - dissolved by class, simplified (Visvalingam) for a ~345px canvas
+  - rings smaller than 8,120 km2 dropped: below one screen pixel on the globe
+  - written as quantised TopoJSON
+
+Total land covered: 144M km2 against a real land area of ~149M km2. The gap
+is the dropped sub-pixel rings plus permanent rock and ice (Antarctica and
+the Greenland sheet), which the globe draws separately as polar caps.

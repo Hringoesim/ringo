@@ -5,13 +5,73 @@
 // drifting ambient clouds, 3D monument icons standing on their real cities,
 // and the 3D plane sprite flying the tour clean (no cloud, no trail).
 import { useEffect, useRef } from 'react';
-import { geoOrthographic, geoPath, geoDistance, geoInterpolate, type GeoPermissibleObjects } from 'd3-geo';
+import {
+  geoOrthographic,
+  geoPath,
+  geoDistance,
+  geoInterpolate,
+  geoCentroid,
+  type GeoPermissibleObjects,
+} from 'd3-geo';
 import { feature } from 'topojson-client';
 import landTopo from 'world-atlas/land-110m.json';
 import { LANDMARK_SRC } from '../assets/landmarks3d';
 import planeSrc from '../assets/landmarks3d/plane.png';
+import biomeTopo from '../assets/biomes.json';
 
 const LAND = feature(landTopo as any, (landTopo as any).objects.land) as unknown as GeoPermissibleObjects;
+
+// Real terrain. Every sand and green area on the globe is the actual biome
+// from RESOLVE Ecoregions 2017 (the standard scientific biome map), grouped
+// into nine classes and simplified for this canvas — so the Sahara is the
+// Sahara's true shape, the Amazon the Amazon's. See BIOMES-ATTRIBUTION.txt.
+// Painted in this order: broad background cover first, then the distinctive
+// regions, so deserts and rainforest win any overlap left by simplification.
+const BIOME_COLOURS: { g: string; fill: string }[] = [
+  { g: 'tundra', fill: '#E7F0E5' }, // snow-pale lichen, never grey
+  { g: 'montane', fill: '#8FA98C' }, // high shrubland
+  { g: 'steppe', fill: '#A9C46E' }, // prairie / steppe grass
+  { g: 'savanna', fill: '#CBC06E' }, // dry golden grassland
+  { g: 'medit', fill: '#9AA855' }, // olive scrub
+  { g: 'forest', fill: '#4C9E52' }, // temperate broadleaf
+  { g: 'boreal', fill: '#337A5B' }, // taiga conifer
+  { g: 'jungle', fill: '#126B2F' }, // tropical rainforest
+  { g: 'desert', fill: '#EBD5A0' }, // sand
+  { g: 'ice', fill: '#FFFFFF' }, // Antarctica + the Greenland sheet: white ice
+];
+// Only a 33°-radius cap of the planet is ever on screen — about a twelfth of
+// the sphere. Splitting each layer into single polygons with a bounding cap
+// (centre + angular radius) lets a frame skip everything over the horizon
+// instead of projecting the whole world and throwing most of it away.
+type CapPoly = { geo: GeoPermissibleObjects; c: [number, number]; r: number };
+const toCaps = (geo: any): CapPoly[] => {
+  const polys: number[][][][] =
+    geo.type === 'FeatureCollection'
+      ? geo.features.flatMap((f: any) => toRings(f.geometry))
+      : toRings(geo.type === 'Feature' ? geo.geometry : geo);
+  return polys.map((coordinates) => {
+    const g = { type: 'Polygon' as const, coordinates };
+    const c = geoCentroid(g) as [number, number];
+    let r = 0;
+    for (const p of coordinates[0]) r = Math.max(r, geoDistance(c, p as [number, number]));
+    return { geo: g as GeoPermissibleObjects, c, r };
+  });
+};
+function toRings(geometry: any): number[][][][] {
+  if (!geometry) return [];
+  if (geometry.type === 'Polygon') return [geometry.coordinates];
+  if (geometry.type === 'MultiPolygon') return geometry.coordinates;
+  return [];
+}
+
+const LAND_CAPS = toCaps(LAND);
+const BIOMES = (() => {
+  const fc = feature(biomeTopo as any, (biomeTopo as any).objects.biomes) as any;
+  return BIOME_COLOURS.map(({ g, fill }) => {
+    const f = fc.features.find((x: any) => x.properties.g === g);
+    return { fill, caps: f ? toCaps(f) : [] };
+  }).filter((b) => b.caps.length);
+})();
 
 const TOUR: [number, number][] = [
   [-0.1, 51.5], // London
@@ -54,7 +114,7 @@ const MONUMENTS: { key: keyof typeof LANDMARK_SRC; lng: number; lat: number }[] 
   { key: 'volcano', lng: 110.44, lat: -7.54 }, // Merapi, Indonesia
   { key: 'cactus', lng: -102.5, lat: 23.6 }, // Mexico
   { key: 'palmtree', lng: -66.6, lat: 18.2 }, // Caribbean
-  { key: 'camel', lng: 25.0, lat: 26.0 }, // Sahara
+  { key: 'camel', lng: 31.13, lat: 29.98 }, // Giza, Egypt — the pyramids
   { key: 'kangaroo', lng: 134.0, lat: -24.0 }, // Australian outback
   { key: 'sailboat', lng: 151.2, lat: -33.87 }, // Sydney Harbour
   { key: 'moai', lng: -109.35, lat: -27.11 }, // Easter Island
@@ -90,6 +150,27 @@ const MONUMENTS: { key: keyof typeof LANDMARK_SRC; lng: number; lat: number }[] 
   { key: 'gorilla', lng: 20.0, lat: 2.0 }, // Congo jungle
   { key: 'parrot', lng: -60.0, lat: 3.0 }, // Amazon jungle
   { key: 'dragon', lng: 119.0, lat: 30.0 }, // eastern China
+  { key: 'kaaba', lng: 39.83, lat: 21.42 }, // Mecca
+  { key: 'synagogue', lng: 35.23, lat: 31.78 }, // Jerusalem
+  { key: 'crocodile', lng: 32.5, lat: 19.5 }, // the Upper Nile, Sudan
+  { key: 'drum', lng: 3.4, lat: 6.5 }, // Lagos, Nigeria
+  { key: 'giraffe', lng: 16.3, lat: -19.0 }, // Etosha, Namibia
+  { key: 'peacock', lng: 75.8, lat: 26.9 }, // Jaipur, India
+  { key: 'orangutan', lng: 114.0, lat: 0.5 }, // Borneo
+  { key: 'japanesecastle', lng: 135.5, lat: 34.7 }, // Osaka
+  { key: 'koala', lng: 153.0, lat: -27.5 }, // Queensland
+  { key: 'ewe', lng: 171.0, lat: -43.8 }, // New Zealand high country
+  { key: 'church', lng: 37.62, lat: 55.75 }, // Moscow
+  { key: 'sunflower', lng: 31.2, lat: 49.0 }, // Ukraine
+  { key: 'tulip', lng: 4.9, lat: 52.4 }, // the Netherlands
+  { key: 'shamrock', lng: -8.2, lat: 53.3 }, // Ireland
+  { key: 'deer', lng: -4.2, lat: 57.0 }, // Scottish Highlands
+  { key: 'mapleleaf', lng: -79.4, lat: 43.7 }, // Toronto
+  { key: 'moose', lng: -148.0, lat: 63.0 }, // Denali, Alaska
+  { key: 'bison', lng: -110.5, lat: 44.6 }, // Yellowstone
+  { key: 'nationalpark', lng: -54.44, lat: -25.69 }, // Iguazú Falls
+  { key: 'sloth', lng: -84.1, lat: 9.9 }, // Costa Rica
+  { key: 'llama', lng: -72.5, lat: -13.2 }, // Machu Picchu, Peru
 ];
 
 // Zoom INTO the planet while the circle stays the same size — you see less of
@@ -119,53 +200,6 @@ const RIVERS: [number, number][][] = [
   [[-51, -21], [-55, -25], [-58, -30], [-59.5, -33]], // Paraná
   [[24, -14], [28, -16], [33, -18.5]], // Zambezi
   [[92, 53], [89, 58], [86, 63], [84, 67]], // Yenisei
-];
-// REAL desert regions as geographic polygons (clockwise rings), filled and
-// clipped to the coastlines — continuous sand areas, never circles, never sea.
-const DESERT_REGIONS: [number, number][][] = [
-  // Sahara — one vast band from the Atlantic to the Red Sea
-  [[-17, 28], [-10, 31], [0, 31.5], [12, 31], [22, 31.5], [31, 29.5], [34, 26], [34, 21], [28, 16.5], [15, 15.5], [3, 16], [-9, 17], [-16, 20], [-17, 28]],
-  // Arabian peninsula (Rub' al Khali + Nefud)
-  [[36, 31], [43, 33], [49, 30.5], [56, 25.5], [59, 21.5], [56, 16.5], [49, 15], [43, 17], [38, 22], [35.5, 27], [36, 31]],
-  // Iranian plateau + Karakum
-  [[48, 33], [54, 38], [61, 41.5], [66, 39.5], [64, 33], [58, 28], [52, 28.5], [48, 33]],
-  // Taklamakan + Gobi band
-  [[74, 39], [82, 41.5], [92, 43.5], [103, 45], [111, 44], [110, 40.5], [100, 38.5], [88, 36.5], [76, 36.5], [74, 39]],
-  // Australian outback interior
-  [[114, -23], [120, -20], [129, -18.5], [137, -19.5], [141, -23], [139, -29], [132, -30.5], [124, -30], [116, -27], [114, -23]],
-  // Kalahari + Namib
-  [[13.5, -18], [21, -19], [25, -22], [24.5, -28.5], [19, -30.5], [15, -26.5], [12.8, -21], [13.5, -18]],
-  // North Mexico + US southwest
-  [[-117, 34.5], [-111, 38.5], [-104, 36.5], [-99.5, 31], [-99.5, 24.5], [-103, 20.5], [-108.5, 23], [-114, 29], [-117, 34.5]],
-  // Patagonian steppe
-  [[-72, -39.5], [-66.5, -40.5], [-64.5, -46], [-67.5, -51.5], [-72, -50], [-72.5, -44.5], [-72, -39.5]],
-  // Thar
-  [[68, 28.5], [73, 30.5], [75.5, 27], [72, 23.5], [68.5, 24.8], [68, 28.5]],
-  // Horn of Africa
-  [[41, 11.5], [47, 10], [51, 7.5], [47.5, 3.5], [43, 5.5], [40.5, 9], [41, 11.5]],
-  // Atacama strip
-  [[-71.5, -18.5], [-68, -20.5], [-67.5, -26.5], [-70.5, -27.5], [-71.5, -23], [-71.5, -18.5]],
-];
-// The great JUNGLES as regions too — Amazon and Congo read as rainforest.
-const JUNGLE_REGIONS: [number, number][][] = [
-  // Amazon basin
-  [[-76, 0], [-70, 3], [-62, 3.5], [-54, 2.5], [-48, 0], [-47, -3], [-52, -7], [-60, -9.5], [-68, -9], [-74, -6], [-76, -3], [-76, 0]],
-  // Congo basin
-  [[10, 4.5], [18, 5.5], [26, 4.5], [30.5, 1], [28.5, -3.5], [22, -5.5], [15, -4.5], [10.5, -0.5], [10, 4.5]],
-];
-// Woods beyond the two great jungle regions — taiga, boreal and island
-// rainforest patches. (Amazon + Congo are JUNGLE_REGIONS polygons now.)
-const FORESTS: { lng: number; lat: number; r: number }[] = [
-  { lng: -112, lat: 58, r: 0.06 }, // Canadian boreal
-  { lng: -76, lat: 48, r: 0.045 }, // Quebec
-  { lng: 27, lat: 63, r: 0.045 }, // Scandinavia
-  { lng: 95, lat: 60, r: 0.07 }, // Siberian taiga
-  { lng: 128, lat: 60, r: 0.055 }, // East Siberia
-  { lng: 105, lat: 16, r: 0.045 }, // SE Asia
-  { lng: 113, lat: 0.5, r: 0.045 }, // Borneo rainforest
-  { lng: 15, lat: 51, r: 0.035 }, // central-European woods
-  { lng: -84, lat: 36, r: 0.035 }, // Appalachian woods
-  { lng: 132, lat: -5, r: 0.05 }, // New Guinea rainforest
 ];
 const RANGES: { lng: number; lat: number; s: number }[] = [
   { lng: -116, lat: 51, s: 1 }, { lng: -110, lat: 44, s: 0.85 }, { lng: -106, lat: 39, s: 0.9 }, // Rockies
@@ -338,7 +372,19 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     atmo.addColorStop(0.94, 'rgba(178,230,255,0.38)');
     atmo.addColorStop(1, 'rgba(120,195,240,0.16)');
 
-    // Cartoon terrain — forest patches, big rivers, snow-capped ranges — all in
+    // Build a canvas path from only the polygons whose bounding cap reaches
+    // the visible face. Leaves the path open so the caller fills, strokes or
+    // clips it.
+    const pathCulled = (caps: CapPoly[], centre: [number, number]) => {
+      const horizon = VIS + 0.06; // a little past the rim, so nothing pops in
+      ctx.beginPath();
+      for (const p of caps) {
+        if (geoDistance(p.c, centre) - p.r > horizon) continue;
+        path(p.geo);
+      }
+    };
+
+    // Cartoon terrain — real biomes, big rivers, snow-capped ranges — all in
     // the rotating projection so they ride the globe like the coastlines do.
     const drawTerrain = () => {
       const centre: [number, number] = [-lambda, -phi];
@@ -347,32 +393,15 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.beginPath();
       ctx.arc(cx, cy, R, 0, Math.PI * 2);
       ctx.clip();
-      // deserts + jungles first, as REAL filled regions clipped to the
-      // coastlines — the Sahara reads as one sandy band shore to shore, the
-      // Amazon and Congo as unmistakable deep rainforest. (Nile/Amazon rivers
-      // cut through later.)
+      // Real biomes, clipped to the coastlines so no sand or forest can spill
+      // into the sea. Rivers and beaches draw over them below.
       ctx.save();
-      ctx.beginPath();
-      path(LAND);
+      pathCulled(LAND_CAPS, centre);
       ctx.clip();
-      for (const ring of DESERT_REGIONS) {
-        ctx.beginPath();
-        path({ type: 'Polygon', coordinates: [ring] });
-        ctx.fillStyle = 'rgba(236,213,160,0.95)';
+      for (const b of BIOMES) {
+        pathCulled(b.caps, centre);
+        ctx.fillStyle = b.fill;
         ctx.fill();
-        // a darker sand rim so the desert edge reads even at a glance
-        ctx.strokeStyle = 'rgba(198,166,110,0.55)';
-        ctx.lineWidth = Math.max(0.8, R * 0.006);
-        ctx.stroke();
-      }
-      for (const ring of JUNGLE_REGIONS) {
-        ctx.beginPath();
-        path({ type: 'Polygon', coordinates: [ring] });
-        ctx.fillStyle = 'rgba(16,99,44,0.9)';
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(9,72,31,0.6)';
-        ctx.lineWidth = Math.max(0.8, R * 0.005);
-        ctx.stroke();
       }
       ctx.restore();
       // beaches — bright sand crescents hugging famous coastlines
@@ -388,23 +417,6 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         gr.addColorStop(0, `rgba(244,224,176,${0.95 * a})`);
         gr.addColorStop(0.6, `rgba(240,218,166,${0.55 * a})`);
         gr.addColorStop(1, 'rgba(240,218,166,0)');
-        ctx.fillStyle = gr;
-        ctx.beginPath();
-        ctx.arc(pt[0], pt[1], rad, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      // forests next (rivers cut through them)
-      for (const f of FORESTS) {
-        const d = geoDistance([f.lng, f.lat], centre);
-        if (d >= limit) continue;
-        const pt = projection([f.lng, f.lat]);
-        if (!pt) continue;
-        const edge = 1 - d / limit;
-        const rad = f.r * R * TS * (0.5 + 0.5 * edge);
-        const gr = ctx.createRadialGradient(pt[0], pt[1], 0, pt[0], pt[1], rad);
-        gr.addColorStop(0, `rgba(20,96,42,${0.82 * Math.min(1, edge * 1.6)})`);
-        gr.addColorStop(0.7, `rgba(20,96,42,${0.52 * Math.min(1, edge * 1.6)})`);
-        gr.addColorStop(1, 'rgba(20,96,42,0)');
         ctx.fillStyle = gr;
         ctx.beginPath();
         ctx.arc(pt[0], pt[1], rad, 0, Math.PI * 2);
@@ -593,8 +605,8 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       path({ type: 'Sphere' });
       ctx.fillStyle = ocean;
       ctx.fill();
-      ctx.beginPath();
-      path(LAND);
+      const centre: [number, number] = [-lambda, -phi];
+      pathCulled(LAND_CAPS, centre);
       ctx.fillStyle = landFill;
       ctx.fill();
       ctx.strokeStyle = 'rgba(30,88,44,0.4)';
@@ -603,11 +615,10 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       // Polar snow — white caps over any land above ~62° (Greenland, Siberia's
       // edge, Antarctica), clipped to the coastlines so the sea stays blue.
       ctx.save();
-      ctx.beginPath();
-      path(LAND);
+      pathCulled(LAND_CAPS, centre);
       ctx.clip();
       for (const poleLat of [90, -90]) {
-        const pd = geoDistance([0, poleLat], [-lambda, -phi]);
+        const pd = geoDistance([0, poleLat], centre);
         const capAng = (Math.PI / 180) * 33; // bigger ice — caps reach ~57° latitude
         if (pd >= Math.PI / 2 + capAng) continue;
         const pp = projection([0, poleLat]);

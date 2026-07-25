@@ -52,6 +52,27 @@ import flamingo from './flamingo.png'; // 🦩 Argentine pampas
 import gorilla from './gorilla.png'; // 🦍 Congo jungle
 import parrot from './parrot.png'; // 🦜 Amazon jungle
 import dragon from './dragon.png'; // 🐉 eastern China
+import kaaba from './kaaba.png'; // 🕋 Mecca
+import drum from './drum.png'; // 🥁 Lagos, Nigeria
+import peacock from './peacock.png'; // 🦚 Rajasthan, India
+import llama from './llama.png'; // 🦙 Machu Picchu, Peru
+import mapleleaf from './mapleleaf.png'; // 🍁 Canada
+import tulip from './tulip.png'; // 🌷 Netherlands
+import shamrock from './shamrock.png'; // ☘️ Ireland
+import koala from './koala.png'; // 🐨 Queensland, Australia
+import sloth from './sloth.png'; // 🦥 Costa Rica
+import church from './church.png'; // ⛪ Moscow
+import bison from './bison.png'; // 🦬 Yellowstone, USA
+import deer from './deer.png'; // 🦌 Scottish Highlands
+import sunflower from './sunflower.png'; // 🌻 Ukraine
+import giraffe from './giraffe.png'; // 🦒 Etosha, Namibia
+import crocodile from './crocodile.png'; // 🐊 the Upper Nile
+import ewe from './ewe.png'; // 🐑 New Zealand
+import orangutan from './orangutan.png'; // 🦧 Borneo
+import synagogue from './synagogue.png'; // 🕍 Jerusalem
+import japanesecastle from './japanesecastle.png'; // 🏯 Osaka
+import nationalpark from './nationalpark.png'; // 🏞️ Grand Canyon
+import moose from './moose.png'; // 🫎 Alaska
 
 export const LANDMARK_SRC: Record<string, string> = {
   ferriswheel, classical, mosque, cityscape, temple, tokyotower, torii, bridge,
@@ -60,4 +81,7 @@ export const LANDMARK_SRC: Record<string, string> = {
   whale, dolphin, monkey, beach, ship, octopus, shark, tropicalfish, castle,
   rocket, slotmachine, stadium, desertisland, snowman, evergreen, tent, crab,
   butterfly, horse, wolf, bear, eagle, flamingo, gorilla, parrot, dragon,
+  kaaba, drum, peacock, llama, mapleleaf, tulip, shamrock, koala, sloth,
+  church, bison, deer, sunflower, giraffe, crocodile, ewe, orangutan,
+  synagogue, japanesecastle, nationalpark, moose,
 };
