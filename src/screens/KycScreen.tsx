@@ -7,6 +7,35 @@ import { RingoButton } from '../components/Button';
 import { BackBtn, FieldLabel, Input } from '../components/ui';
 import type { KycPayload } from '../api/ringoApi';
 
+// Date of birth is typed as bare digits and shown as DD / MM / YYYY — the
+// separators appear as you type so the field is never ambiguous about which
+// number is the day and which is the month.
+const DOB_LEN = 8;
+const dobDigits = (s: string) => s.replace(/\D/g, '').slice(0, DOB_LEN);
+const formatDob = (digits: string) =>
+  [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 8)].filter((p) => p).join(' / ');
+/** DD MM YYYY → Date, or null when that day doesn't exist. */
+function parseDob(digits: string): Date | null {
+  if (digits.length !== DOB_LEN) return null;
+  const day = +digits.slice(0, 2);
+  const month = +digits.slice(2, 4);
+  const year = +digits.slice(4, 8);
+  const d = new Date(year, month - 1, day);
+  // new Date rolls 31/02 forward into March, so compare the parts back.
+  if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) return null;
+  return d;
+}
+function yearsSince(d: Date): number {
+  const now = new Date();
+  let age = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age -= 1;
+  return age;
+}
+/** What we store: an unambiguous ISO date, never the typed digits. */
+const dobToIso = (digits: string) =>
+  `${digits.slice(4, 8)}-${digits.slice(2, 4)}-${digits.slice(0, 2)}`;
+
 interface KycScreenProps {
   onBack: () => void;
   onContinue: (payload?: KycPayload) => void;
@@ -33,9 +62,28 @@ export function KycScreen({ onBack, onContinue, mandatory = false }: KycScreenPr
     { id: 'id', label: 'National ID card', sub: 'EU residents' },
     { id: 'driver', label: 'Driver’s license', sub: 'US, UK, AU' },
   ];
+  // Age gate: a real calendar date, and 18+ — the whole point of this step.
+  const dobNum = dobDigits(dob);
+  const dobDate = parseDob(dobNum);
+  const dobAge = dobDate ? yearsSince(dobDate) : null;
+  const dobError =
+    dobNum.length < DOB_LEN ? ''
+      : !dobDate ? 'That date doesn’t exist. Check the day and month.'
+      : dobAge !== null && dobAge < 18 ? 'You must be 18 or older to activate a Ringo number.'
+      : dobAge !== null && dobAge > 120 ? 'Please check the year.'
+      : '';
+  const dobOk = dobNum.length === DOB_LEN && !dobError;
+  const onDobChange = (raw: string) => {
+    let digits = dobDigits(raw);
+    // Backspacing onto a separator leaves the digits unchanged, which would
+    // freeze the field — drop one so delete always makes progress.
+    if (raw.length < dob.length && digits === dobNum) digits = digits.slice(0, -1);
+    setDob(formatDob(digits));
+  };
+
   const canNext =
     (step === 0 && !!first.trim() && !!last.trim()) ||
-    (step === 1 && dob.length >= 8) ||
+    (step === 1 && dobOk) ||
     (step === 2 && !!docType) ||
     (step === 3 && uploaded);
   const titles = ['Your legal name', 'Date of birth', 'Choose an ID document', 'Take a photo of your ID'];
@@ -85,7 +133,12 @@ export function KycScreen({ onBack, onContinue, mandatory = false }: KycScreenPr
           {step === 1 && (
             <>
               <FieldLabel>Date of birth</FieldLabel>
-              <Input value={dob} onChange={setDob} placeholder="DD / MM / YYYY" inputMode="numeric" />
+              <Input value={dob} onChange={onDobChange} placeholder="DD / MM / YYYY" inputMode="numeric" />
+              {dobError && (
+                <div role="alert" style={{ marginTop: 12, padding: '11px 14px', borderRadius: 12, background: 'rgba(229,67,26,0.10)', border: '1px solid rgba(229,67,26,0.22)', fontFamily: 'var(--font)', fontSize: 12.5, color: '#B7341A', lineHeight: 1.45 }}>
+                  {dobError}
+                </div>
+              )}
               <div style={{ marginTop: 14, padding: 14, borderRadius: 14, background: RC.cream, fontFamily: 'var(--font)', fontSize: 12, color: RC.ink, lineHeight: 1.5 }}>
                 <strong style={{ color: RC.inkStrong, fontWeight: 600 }}>Why we ask:</strong> we’re required by every country’s telecom regulator to confirm you’re 18+. We never share your DOB with third parties.
               </div>
@@ -232,7 +285,7 @@ export function KycScreen({ onBack, onContinue, mandatory = false }: KycScreenPr
           onClick={() =>
             step < 3
               ? setStep(step + 1)
-              : onContinue({ firstName: first, lastName: last, dob, docType, documentRef: fileName || 'mock_upload' })
+              : onContinue({ firstName: first, lastName: last, dob: dobToIso(dobNum), docType, documentRef: fileName || 'mock_upload' })
           }
         >
           {step < 3 ? 'Continue' : 'Submit and continue'}
