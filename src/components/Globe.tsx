@@ -103,7 +103,8 @@ const ANG_SPEED = 0.10;
 const MONUMENTS: { key: keyof typeof LANDMARK_SRC; lng: number; lat: number }[] = [
   { key: 'ferriswheel', lng: -0.12, lat: 51.5 }, // London Eye
   { key: 'classical', lng: 12.5, lat: 41.9 }, // Rome
-  { key: 'mosque', lng: 29.0, lat: 41.0 }, // Istanbul
+  { key: 'mosque', lng: 29.13, lat: 41.01 }, // Istanbul (nudged off the Bosphorus:
+  // at 110m the strait reads as sea, so the exact city point floats on water)
   { key: 'cityscape', lng: 55.3, lat: 25.2 }, // Dubai
   { key: 'temple', lng: 72.9, lat: 19.1 }, // Mumbai
   { key: 'tokyotower', lng: 139.7, lat: 35.7 }, // Tokyo
@@ -218,22 +219,6 @@ const RANGES: { lng: number; lat: number; s: number }[] = [
   { lng: 47.5, lat: 33.5, s: 0.65 }, // Zagros
   { lng: 80, lat: 42.5, s: 0.75 }, // Tian Shan
   { lng: 29, lat: -29.5, s: 0.6 }, // Drakensberg
-];
-// Sandy shores where the famous beaches are — small sand crescents that sit
-// half on the coastline, half in the shallows.
-const BEACHES: { lng: number; lat: number; r: number }[] = [
-  { lng: -86.8, lat: 21.1, r: 0.032 }, // Cancún
-  { lng: -43.18, lat: -23.0, r: 0.028 }, // Copacabana, Rio
-  { lng: 153.4, lat: -28.0, r: 0.032 }, // Gold Coast
-  { lng: 98.3, lat: 7.9, r: 0.028 }, // Phuket
-  { lng: 1.4, lat: 38.9, r: 0.026 }, // Ibiza
-  { lng: 115.2, lat: -8.7, r: 0.028 }, // Bali
-  { lng: -80.15, lat: 25.9, r: 0.028 }, // Miami
-  { lng: 39.3, lat: -6.2, r: 0.026 }, // Zanzibar
-  { lng: 73.9, lat: 15.4, r: 0.026 }, // Goa
-  { lng: -8.7, lat: 37.1, r: 0.026 }, // Algarve
-  { lng: 25.4, lat: 37.2, r: 0.024 }, // Mykonos
-  { lng: 122.0, lat: 11.9, r: 0.024 }, // Boracay
 ];
 
 const CLOUDS: { lng: number; lat: number; r: number }[] = [
@@ -393,33 +378,14 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.beginPath();
       ctx.arc(cx, cy, R, 0, Math.PI * 2);
       ctx.clip();
-      // Real biomes, clipped to the coastlines so no sand or forest can spill
-      // into the sea. Rivers and beaches draw over them below.
+      // Everything at ground level — biomes, beaches, rivers — is clipped to
+      // the coastlines, so no sand, forest or river can bleed into the sea.
       ctx.save();
       pathCulled(LAND_CAPS, centre);
       ctx.clip();
       for (const b of BIOMES) {
         pathCulled(b.caps, centre);
         ctx.fillStyle = b.fill;
-        ctx.fill();
-      }
-      ctx.restore();
-      // beaches — bright sand crescents hugging famous coastlines
-      for (const b of BEACHES) {
-        const d = geoDistance([b.lng, b.lat], centre);
-        if (d >= limit) continue;
-        const pt = projection([b.lng, b.lat]);
-        if (!pt) continue;
-        const edge = 1 - d / limit;
-        const rad = b.r * R * TS * (0.55 + 0.45 * edge);
-        const a = Math.min(1, edge * 1.7);
-        const gr = ctx.createRadialGradient(pt[0], pt[1], 0, pt[0], pt[1], rad);
-        gr.addColorStop(0, `rgba(244,224,176,${0.95 * a})`);
-        gr.addColorStop(0.6, `rgba(240,218,166,${0.55 * a})`);
-        gr.addColorStop(1, 'rgba(240,218,166,0)');
-        ctx.fillStyle = gr;
-        ctx.beginPath();
-        ctx.arc(pt[0], pt[1], rad, 0, Math.PI * 2);
         ctx.fill();
       }
       // rivers — ocean-blue threads over the land
@@ -442,6 +408,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         }
         ctx.stroke();
       }
+      ctx.restore(); // end of the coastline clip — peaks stand above it
       // mountain ranges — little cartoon peaks with snow caps
       for (const m of RANGES) {
         const d = geoDistance([m.lng, m.lat], centre);
