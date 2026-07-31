@@ -7,6 +7,16 @@ import { RingoButton } from '../components/Button';
 import { BackBtn, FieldLabel, Input } from '../components/ui';
 import { FlowSteps } from './OtpScreen';
 import { LOGO_SRC } from '../assets';
+import { Capacitor } from '@capacitor/core';
+import { isOAuthEnabled } from '../lib/ringoSupabase';
+
+// Never offer a provider that cannot complete. Native iOS signs in with Apple
+// through the system sheet, so it is always available there; on the web each
+// provider needs its redirect flow configured, which VITE_OAUTH_PROVIDERS
+// records. An ungated button just throws "provider-not-enabled" at the user.
+const NATIVE = Capacitor.isNativePlatform();
+const APPLE_OK = NATIVE || isOAuthEnabled('apple');
+const GOOGLE_OK = isOAuthEnabled('google');
 
 interface SignUpScreenProps {
   onBack: () => void;
@@ -88,6 +98,7 @@ export function SignUpScreen({ onBack, onSendCode, onAppleSignIn, onGoogleSignIn
         )}
 
         {/* Sign in with Apple — primary, top of stack (white on dark, black on light) */}
+        {APPLE_OK && (
         <button
           disabled={!!busy}
           onClick={() => run('apple', onAppleSignIn)}
@@ -113,13 +124,15 @@ export function SignUpScreen({ onBack, onSendCode, onAppleSignIn, onGoogleSignIn
             </>
           )}
         </button>
+        )}
 
         {/* Continue with Google */}
+        {GOOGLE_OK && (
         <button
           disabled={!!busy}
           onClick={() => run('google', onGoogleSignIn)}
           style={{
-            marginTop: 10, width: '100%', height: 54, borderRadius: 16,
+            marginTop: APPLE_OK ? 10 : (err ? 12 : 24), width: '100%', height: 54, borderRadius: 16,
             border: `1.5px solid ${RC.lineStrong}`, background: RC.paper, color: RC.ink,
             fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, letterSpacing: -0.1,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
@@ -140,7 +153,11 @@ export function SignUpScreen({ onBack, onSendCode, onAppleSignIn, onGoogleSignIn
             </>
           )}
         </button>
+        )}
 
+        {/* "or use email" only reads as an alternative when there is something
+            above it to be an alternative to. */}
+        {(APPLE_OK || GOOGLE_OK) && (
         <div
           style={{
             margin: '18px 0 4px', display: 'flex', alignItems: 'center', gap: 10,
@@ -152,6 +169,7 @@ export function SignUpScreen({ onBack, onSendCode, onAppleSignIn, onGoogleSignIn
           or use email
           <div style={{ flex: 1, height: 1, background: RC.line }} />
         </div>
+        )}
 
         {/* The step process belongs to the manual-email path only — and only
             once the person actually starts entering their details. Apple and
