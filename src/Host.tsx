@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { RingoDevice } from './components/Device';
 import { App } from './App';
-import { RC, applyTheme, type Scheme } from './theme';
+import { RC, applyTheme, RADIUS, type Scheme } from './theme';
 
 // True when running as an installed app (native shell or standalone PWA).
 function isStandalone(): boolean {
@@ -151,10 +151,38 @@ function BrowserMockup() {
         <span style={{ display: 'inline-block', width: 5, height: 5, borderRadius: '50%', background: RC.grad, marginLeft: 2, transform: 'translateY(-1px)' }} />
       </div>
 
+      <DemoNotice />
+
       <div style={{ transform: `scale(${scale})`, transformOrigin: 'center center' }}>
         <RingoDevice width={390} height={844}>
           <App />
         </RingoDevice>
+      </div>
+    </div>
+  );
+}
+
+// Shown beside the mockup on the public demo build only — never inside the
+// native app (this lives in the browser-frame chrome, which native skips).
+// Wording is deliberately about what is SIMULATED rather than "no backend":
+// sign-in and the country/plan data are real, so a technical viewer would
+// catch that claim; what is not real is anything that provisions or charges.
+function DemoNotice() {
+  return (
+    <div
+      style={{
+        position: 'absolute', top: 56, left: 28, maxWidth: 250,
+        padding: '10px 13px', borderRadius: RADIUS.sm,
+        background: RC.cream, border: `1px solid ${RC.line}`,
+        fontFamily: 'var(--font)', lineHeight: 1.45,
+      }}
+    >
+      <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.7, textTransform: 'uppercase', color: RC.inkStrong }}>
+        Demo
+      </div>
+      <div style={{ marginTop: 3, fontSize: 12, color: RC.ink }}>
+        Product prototype. eSIM activation, phone numbers and billing are
+        simulated — nothing is provisioned and no card is ever charged.
       </div>
     </div>
   );
