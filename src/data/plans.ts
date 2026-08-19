@@ -26,20 +26,28 @@ export const PLANS: Plan[] = [
  *  The Terms carry the same figure — change both together. */
 export const FAIR_USE_GB = 12;
 
-export type BillingPeriod = 'annual' | 'bimonthly';
+export type BillingPeriod = 'fourmonthly' | 'bimonthly';
 
-export const BILLING: Record<BillingPeriod, { label: string; months: number; note: string }> = {
-  annual: { label: 'Annual', months: 12, note: 'billed once a year' },
-  bimonthly: { label: 'Every 2 months', months: 2, note: 'billed every 2 months' },
+export const BILLING: Record<BillingPeriod, { label: string; months: number }> = {
+  // The committed term is four months. Showing a small monthly number while
+  // taking the whole term up front is the standard subscription play (Spotify,
+  // Holafly): 39.99 x 4 = 159.96 collected on day one.
+  fourmonthly: { label: 'Every 4 months', months: 4 },
+  bimonthly: { label: 'Every 2 months', months: 2 },
 };
 
-export const DEFAULT_PERIOD: BillingPeriod = 'annual';
+/** "billed EUR159.96 every 4 months" — the line under the headline price. */
+export function billingNote(period: BillingPeriod, currency = localCurrency()): string {
+  return `billed ${fmtMoney(periodChargeTotal(period, currency), currency)} every ${BILLING[period].months} months`;
+}
+
+export const DEFAULT_PERIOD: BillingPeriod = 'fourmonthly';
 
 // Per-month price by currency, per cadence. USD/EUR/GBP carry the prices the
 // owner set (39.99 annual, 44.26 bimonthly); the rest are scaled from the old
 // table's ratios and still need per-market sign-off.
 const PERIOD_PRICES: Record<BillingPeriod, Record<string, number>> = {
-  annual: {
+  fourmonthly: {
     USD: 39.99, GBP: 39.99, EUR: 39.99, AUD: 62.99, NZD: 67.99,
     CAD: 54.99, JPY: 6100, SGD: 54.99, HKD: 315, AED: 147,
   },
@@ -60,12 +68,6 @@ export function periodChargeTotal(period: BillingPeriod, currency = localCurrenc
   return periodMonthlyPrice(period, currency) * BILLING[period].months;
 }
 
-/** How much the annual cadence saves against the short one, as a percentage. */
-export function annualSavingPct(currency = localCurrency()): number {
-  const a = periodMonthlyPrice('annual', currency);
-  const b = periodMonthlyPrice('bimonthly', currency);
-  return b > 0 ? Math.round(((b - a) / b) * 100) : 0;
-}
 
 // ── Plan ordering + entitlements (used by the switch / proration logic) ──────
 /** Rank in the lineup. One rung today; higher plans slot in above it. */

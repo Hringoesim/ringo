@@ -10,10 +10,15 @@ import { BackBtn, SectionTitle } from '../components/ui';
 import { useRingoState } from '../store/store';
 import {
   PLANS, planRank, fmtMoney, fmtDate,
-  BILLING, DEFAULT_PERIOD, periodMonthlyPrice, periodChargeTotal, annualSavingPct, FAIR_USE_GB,
+  BILLING, DEFAULT_PERIOD, periodMonthlyPrice, billingNote, FAIR_USE_GB,
   type BillingPeriod,
 } from '../data/plans';
 import { PlanChangeSheet } from '../components/PlanChangeSheet';
+
+// The plan card is the deep plum of the .upgrade-ladder card on
+// ringoesim.com — the site puts its money surfaces on purple and keeps the
+// orange gradient for the button that takes the action.
+const PLUM = 'linear-gradient(155deg, #221338 0%, #3A1A46 100%)';
 
 interface PlanScreenProps {
   onBack: () => void;
@@ -31,8 +36,6 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
   // changes how often the card is charged (and the monthly rate).
   const [period, setPeriod] = useState<BillingPeriod>(DEFAULT_PERIOD);
   const perMonth = periodMonthlyPrice(period);
-  const charged = periodChargeTotal(period);
-  const saving = annualSavingPct();
   const cur = PLANS.find((p) => p.id === selected) || PLANS[0];
   const isCurrent = (id: string) => id === currentId;
   const pending = state.pendingPlanId ? PLANS.find((p) => p.id === state.pendingPlanId) : null;
@@ -45,23 +48,19 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
 
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '0 20px 120px' }}>
         {/* Plan hero — reflects selected plan */}
-        <div style={{ borderRadius: 28, padding: '24px 22px', background: RC.grad, color: '#FFFDFB', boxShadow: '0 16px 32px -24px rgba(248,80,96,0.5)', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', right: -30, top: -50, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,253,251,0.13)' }} />
-          <div style={{ position: 'absolute', right: 30, bottom: -60, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,253,251,0.10)' }} />
+        <div style={{ borderRadius: 24, padding: '24px 22px', background: PLUM, color: '#FFFDFB', boxShadow: '0 18px 40px -28px rgba(34,19,56,0.65)', position: 'relative', overflow: 'hidden' }}>
 
           <div style={{ position: 'relative' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 500, opacity: 0.85 }}>{cur.name}</div>
-              {isCurrent(cur.id) && (
-                <span style={{ padding: '3px 9px', borderRadius: 999, background: 'rgba(255,253,251,0.24)', fontFamily: 'var(--font)', fontSize: 10, fontWeight: 600, letterSpacing: 0.3 }}>Current</span>
-              )}
+
             </div>
             <div style={{ marginTop: 8, display: 'flex', alignItems: 'baseline', gap: 6 }}>
               <span style={{ fontFamily: 'var(--font)', fontSize: 64, fontWeight: 700, letterSpacing: -2, lineHeight: 1 }}>{fmtMoney(perMonth)}</span>
               <span style={{ fontFamily: 'var(--font)', fontSize: 15, fontWeight: 500, opacity: 0.85 }}>/ month</span>
             </div>
             <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 12.5, fontWeight: 500, opacity: 0.85 }}>
-              {fmtMoney(charged)} {BILLING[period].note}
+              {billingNote(period)}
             </div>
             <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 14, fontWeight: 400, opacity: 0.9, lineHeight: 1.5 }}>
               {cur.highspeed === 'Unlimited'
@@ -92,7 +91,7 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
                   position: 'absolute', top: 4, bottom: 4, left: 4, width: 'calc(50% - 4px)',
                   background: '#FFFFFF', borderRadius: 999,
                   boxShadow: '0 2px 10px rgba(0,0,0,0.18)',
-                  transform: period === 'annual' ? 'translateX(0)' : 'translateX(100%)',
+                  transform: period === DEFAULT_PERIOD ? 'translateX(0)' : 'translateX(100%)',
                   transition: `transform 0.28s ${EASE_OUT}`,
                 }}
               />
@@ -111,20 +110,8 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
                       transition: 'color 0.2s ease',
                     }}
                   >
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
-                      <span style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: -0.1 }}>{BILLING[k].label}</span>
-                      {k === 'annual' && saving > 0 && (
-                        <span
-                          style={{
-                            fontSize: 10.5, fontWeight: 700, letterSpacing: 0.2, padding: '2px 6px',
-                            borderRadius: 999, whiteSpace: 'nowrap',
-                            background: on ? 'rgba(26,15,46,0.08)' : 'rgba(255,255,255,0.18)',
-                            color: on ? RC.ink : 'rgba(255,255,255,0.82)',
-                          }}
-                        >
-                          −{saving}%
-                        </span>
-                      )}
+                    <span style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: -0.1, whiteSpace: 'nowrap' }}>
+                      {BILLING[k].label}
                     </span>
                   </button>
                 );
@@ -154,83 +141,38 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
           </div>
         )}
 
-        {/* Plan picker */}
+        {/* What you get — a plain list; with one plan there is nothing to pick
+            and nothing is "current" until someone actually subscribes. */}
         <div style={{ marginTop: 22 }}>
-          <SectionTitle>{PLANS.length > 1 ? 'Choose your plan' : 'Your plan'}</SectionTitle>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {PLANS.map((p) => {
-              const sel = p.id === selected;
-              return (
-                <div
-                  key={p.id}
-                  onClick={() => { hapticSelection(); setSelected(p.id); }}
-                  style={{
-                    borderRadius: 20, padding: '16px 18px', cursor: 'pointer',
-                    background: sel ? RC.gradSoft : RC.paper,
-                    border: `1.5px solid ${sel ? 'transparent' : RC.line}`,
-                    outline: sel ? `1.5px solid ${RC.inkStrong}` : 'none',
-                    // Selected card lifts — clear depth feedback.
-                    boxShadow: sel ? '0 2px 4px rgba(52,28,84,0.08), 0 16px 34px -18px rgba(52,28,84,0.24)' : 'none',
-                    transition: 'box-shadow 0.25s ease',
-                    position: 'relative',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    {/* radio */}
-                    <div
-                      style={{
-                        width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-                        border: sel ? 'none' : `2px solid ${RC.lineStrong}`,
-                        background: sel ? RC.grad : 'transparent',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}
-                    >
-                      {sel && (
-                        <svg width="11" height="11" viewBox="0 0 12 12">
-                          <path d="M2 6l3 3 5-6" stroke="#FFFDFB" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      )}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontFamily: 'var(--font)', fontSize: 16, fontWeight: 600, color: RC.ink, letterSpacing: -0.2 }}>{p.name}</span>
-                        {p.popular && (
-                          <span style={{ padding: '2px 8px', borderRadius: 999, background: RC.grad, color: '#FFFDFB', fontFamily: 'var(--font)', fontSize: 9.5, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase' }}>Popular</span>
-                        )}
-                        {isCurrent(p.id) && (
-                          <span style={{ padding: '2px 8px', borderRadius: 999, background: RC.cream, color: RC.inkStrong, fontFamily: 'var(--font)', fontSize: 9.5, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase' }}>Current</span>
-                        )}
-                      </div>
-                      <div style={{ fontFamily: 'var(--font)', fontSize: 12.5, color: RC.inkMute, fontWeight: 500, marginTop: 1 }}>
-                        {p.highspeed === 'Unlimited' ? 'Unlimited high-speed' : `${p.highspeed} high-speed`} · {p.tagline}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontFamily: 'var(--font)', fontSize: 20, fontWeight: 700, color: RC.inkStrong, letterSpacing: -0.5, lineHeight: 1 }}>{fmtMoney(perMonth)}</div>
-                      <div style={{ fontFamily: 'var(--font)', fontSize: 10.5, color: RC.inkMute, fontWeight: 500 }}>/mo</div>
-                    </div>
-                  </div>
-                  {sel && (
-                    <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${RC.lineStrong}` }}>
-                      {p.feats.map((f, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 0' }}>
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-                            <path d="M5 13l4 4L19 7" stroke={RC.inkStrong} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                          <span style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 500, color: RC.ink }}>{f}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+          <SectionTitle>What you get</SectionTitle>
+          <div style={{ borderRadius: 18, background: RC.paper, border: `1px solid ${RC.line}`, padding: '6px 16px' }}>
+            {cur.feats.map((f, i) => (
+              <div
+                key={f}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '13px 0',
+                  borderTop: i === 0 ? 'none' : `1px solid ${RC.line}`,
+                }}
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path d="M5 13l4 4L19 7" stroke={RC.inkStrong} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span style={{ fontFamily: 'var(--font)', fontSize: 14.5, color: RC.ink, lineHeight: 1.4 }}>{f}</span>
+              </div>
+            ))}
           </div>
+        </div>
+
+        <div style={{ marginTop: 18 }}>
+
           {!state.subscribed ? (
             <div style={{ marginTop: 14 }}>
               <RingoButton onClick={() => onCheckout?.(cur.id)}>
-                Subscribe — {fmtMoney(perMonth)}/mo, {BILLING[period].note}
+                Start my plan · {fmtMoney(perMonth)}/mo
               </RingoButton>
+              <div style={{ marginTop: 10, textAlign: 'center', fontFamily: 'var(--font)', fontSize: 12.5, color: RC.inkMute, lineHeight: 1.45 }}>
+                {billingNote(period)} · cancel anytime
+              </div>
             </div>
           ) : !isCurrent(cur.id) ? (
             <div style={{ marginTop: 14 }}>

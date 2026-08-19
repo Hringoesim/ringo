@@ -29,10 +29,10 @@ export function RingoButton({
   const base: CSSProperties = {
     border: 'none', cursor: off ? 'not-allowed' : 'pointer',
     fontFamily: 'var(--font)', fontWeight: 600,
-    fontSize: size === 'lg' ? 16 : 14, letterSpacing: -0.1,
-    height: size === 'lg' ? 56 : 44,
+    fontSize: size === 'lg' ? 15.5 : 14, letterSpacing: -0.1,
+    height: size === 'lg' ? 52 : 44,
     padding: '0 22px',
-    borderRadius: 999,
+    borderRadius: size === 'lg' ? 14 : 12,
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
     width: full ? '100%' : 'auto',
     opacity: disabled ? 0.5 : 1, // loading stays full-strength (it's active, just busy)

@@ -62,7 +62,6 @@ export function TiersScreen({ onBack }: { onBack: () => void }) {
               >
                 {/* color header */}
                 <div style={{ padding: '16px 18px', position: 'relative', overflow: 'hidden', background: `linear-gradient(135deg, ${t.c1}, ${t.c2})`, color: '#FFFDFB' }}>
-                  <div style={{ position: 'absolute', right: -30, top: -40, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,253,251,0.16)' }} />
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none">

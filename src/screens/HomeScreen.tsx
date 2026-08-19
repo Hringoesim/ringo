@@ -442,8 +442,6 @@ function TierCard({
       }}
     >
       {/* atmosphere */}
-      <div style={{ position: 'absolute', right: -60, top: -80, width: 240, height: 240, borderRadius: '50%', background: 'rgba(255,253,251,0.10)' }} />
-      <div style={{ position: 'absolute', left: -30, bottom: -90, width: 190, height: 190, borderRadius: '50%', background: 'rgba(255,253,251,0.06)' }} />
       {/* gloss sweep — catches the light */}
       <div style={{ position: 'absolute', top: 0, bottom: 0, left: '-45%', width: '45%', background: 'linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.33) 50%, transparent 100%)', transform: 'skewX(-12deg)', animation: 'ringoSheen 6s ease-in-out infinite', pointerEvents: 'none' }} />
 
