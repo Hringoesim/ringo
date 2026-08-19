@@ -90,7 +90,7 @@ export function SettingsScreen({ onBack, onSignOut, onNav }: SettingsScreenProps
   };
   const shareInvite = () => {
     haptic('light');
-    const text = `Join me on Ringo — one plan, every country. Use my code ${invite} for a discount: https://ringoesim.com`;
+    const text = `Join me on Ringo — one global eSIM, 180+ countries, no roaming fees. My code: ${invite} · https://ringoesim.com`;
     if (navigator.share) void navigator.share({ text }).catch(() => {});
     else copyInvite();
   };
@@ -181,7 +181,8 @@ export function SettingsScreen({ onBack, onSignOut, onNav }: SettingsScreenProps
       <SectionLabel>Refer &amp; earn</SectionLabel>
       <RingoCard style={{ marginTop: 10, padding: 16 }}>
         <div style={{ fontFamily: 'var(--font)', fontSize: 13, color: RC.inkMute, lineHeight: 1.5 }}>
-          Share your code — friends get a discount, you earn credit.
+          Share your code so we know who sent them. No discounts, no credit — the
+          price is the price, for you and for them.
         </div>
         <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ flex: 1, height: 46, borderRadius: 12, border: `1.5px dashed ${RC.lineStrong}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font)', fontSize: 16, fontWeight: 800, letterSpacing: 1, color: RC.inkStrong, background: RC.gradSoft }}>

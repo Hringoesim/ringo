@@ -11,15 +11,17 @@ import type { Tier } from './types';
 // that could not be kept.
 //
 // It now scores on PAID MONTHS, because that is the number the P&L is least
-// sure of (renewal is assumed 40% and unproven) and the cheapest to move. The
-// reward is account CREDIT toward the next renewal: it costs nothing until the
-// customer stays, which is exactly the behaviour worth buying. Never a
-// discount — Ringo does not do percentage-off.
+// sure of (renewal is assumed 40% and unproven).
+//
+// The rungs pay in RECOGNITION AND ACCESS — never money. No credit, no
+// discount, no free data: Ringo does not buy loyalty back with its own
+// margin. Everything promised here is something two people can actually
+// deliver on the day a customer asks for it.
 export const TIERS: Tier[] = [
   { id: 'amber',   name: 'Amber',   min: 0,  c1: '#FFB53E', c2: '#FF5D2E', glow: 'rgba(255,109,46,0.45)', perk: 'Data in 180+ countries, one allowance' },
-  { id: 'coral',   name: 'Coral',   min: 6,  c1: '#FF7E5F', c2: '#FF4778', glow: 'rgba(255,71,120,0.45)', perk: '€10 credit toward your next renewal' },
-  { id: 'crimson', name: 'Crimson', min: 12, c1: '#FF4778', c2: '#D6247E', glow: 'rgba(214,36,126,0.45)', perk: '€25 renewal credit · priority support' },
-  { id: 'aurora',  name: 'Aurora',  min: 24, c1: '#8652E0', c2: '#FF42A1', glow: 'rgba(134,82,224,0.45)', perk: '€50 renewal credit · first access to new features' },
+  { id: 'coral',   name: 'Coral',   min: 6,  c1: '#FF7E5F', c2: '#FF4778', glow: 'rgba(255,71,120,0.45)', perk: 'Priority support — you go to the front of the queue' },
+  { id: 'crimson', name: 'Crimson', min: 12, c1: '#FF4778', c2: '#D6247E', glow: 'rgba(214,36,126,0.45)', perk: 'Early access to new countries and features' },
+  { id: 'aurora',  name: 'Aurora',  min: 24, c1: '#8652E0', c2: '#FF42A1', glow: 'rgba(134,82,224,0.45)', perk: 'A direct line to the founders — help shape what ships next' },
 ];
 
 /** What each rung is measured in — used for the "N more to unlock" line. */
