@@ -378,6 +378,25 @@ export const sbData = {
     if (error) return false;
     return data === true;
   },
+  // ── register interest in what is not on sale yet ─────────────────────────
+  /** Put someone on the waitlist for a capability Ringo does not sell yet.
+   *  A guest can register with just an email — the same deal the marketing
+   *  site's waitlist offers — so interest is captured before signup. The table
+   *  is insert-only from the client, so the list cannot be read back. */
+  async registerInterest(feature: string, email?: string): Promise<{ ok: boolean; error?: string }> {
+    const sb = await getSupabase();
+    if (!sb) return { ok: false, error: 'not-configured' };
+    const { data: u } = await sb.auth.getUser();
+    const row: { user_id: string | null; email: string | null; feature: string } = u?.user
+      ? { user_id: u.user.id, email: u.user.email ?? null, feature }
+      : { user_id: null, email: (email || '').trim().toLowerCase() || null, feature };
+    if (!row.user_id && !row.email) return { ok: false, error: 'email-required' };
+    const { error } = await sb.from('plan_interest').insert(row);
+    // a duplicate means they already registered — that is a success to a user
+    if (error && !/duplicate|unique/i.test(error.message)) return { ok: false, error: error.message };
+    return { ok: true };
+  },
+
   // ── country waitlist ──────────────────────────────────────────────────────
   /** Register (on) or remove (off) the signed-in user's interest in a country. */
   async setWaitlist(countryCode: string, on: boolean): Promise<void> {

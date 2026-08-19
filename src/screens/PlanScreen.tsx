@@ -14,6 +14,7 @@ import {
   type BillingPeriod,
 } from '../data/plans';
 import { PlanChangeSheet } from '../components/PlanChangeSheet';
+import { ComingNext } from '../components/ComingNext';
 
 // The plan card is the deep plum of the .upgrade-ladder card on
 // ringoesim.com — the site puts its money surfaces on purple and keeps the
@@ -158,6 +159,11 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
           </div>
         </div>
 
+        <div style={{ marginTop: 22 }}>
+          <SectionTitle>Coming next</SectionTitle>
+          <ComingNext signedIn={!!state.email} />
+        </div>
+
         <div>
           {!state.subscribed ? (
             <div style={{ marginTop: 14 }}>
@@ -217,7 +223,15 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
                   Your line slows at the limit, it never stops.
                 </div>
               </div>
-              <RingoButton size="sm" variant="ghost" onClick={onInstall}>Add</RingoButton>
+              <span
+                style={{
+                  fontFamily: 'var(--font)', fontSize: 11, fontWeight: 700, letterSpacing: 0.4,
+                  textTransform: 'uppercase', color: RC.inkMute, padding: '6px 10px',
+                  borderRadius: 999, background: RC.cream, whiteSpace: 'nowrap',
+                }}
+              >
+                Coming soon
+              </span>
             </div>
           </RingoCard>
         </div>
