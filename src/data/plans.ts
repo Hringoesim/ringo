@@ -14,8 +14,8 @@ export const PLANS: Plan[] = [
     tagline: 'Global data + a real number', current: true, maxNumbers: 1,
     feats: [
       'A real phone number, included',
-      'Data in 180+ countries',
-      'One allowance — no home, no roaming, no zones',
+      '180+ countries, one allowance',
+      'Slowed at the limit, never cut off',
       'Cancel anytime',
     ],
   },

@@ -13,7 +13,7 @@ import { isSupabaseConfigured } from '../lib/supabase';
 import { isIapAvailable, iapProductsByPlan, type IapProduct } from '../lib/iap';
 import {
   PLANS, fmtMoney, BILLING, DEFAULT_PERIOD, periodMonthlyPrice, periodChargeTotal,
-  periodDataGB, type BillingPeriod,
+  periodDataGB, AFRICA_DAILY_GB, type BillingPeriod,
 } from '../data/plans';
 import { checkPromo, referralCode, type Promo } from '../data/promo';
 import { haptic, hapticNotify } from '../lib/haptics';
@@ -195,6 +195,7 @@ export function PaywallScreen({ planId, period = DEFAULT_PERIOD, onBack, onPaid 
 
         <div style={{ marginTop: 14, fontFamily: 'var(--font)', fontSize: 11.5, color: RC.inkMute, lineHeight: 1.5, textAlign: 'center' }}>
           {iap ? 'Billed to your Apple ID · Cancel anytime in Settings' : 'Secured by Stripe · No hidden fees · Cancel anytime'}
+          {` · Fair use ${AFRICA_DAILY_GB} GB/day on African networks`}
         </div>
 
         {/* Auto-renewable subscription disclosure — required by App Review. */}

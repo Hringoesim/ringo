@@ -10,7 +10,7 @@ import { BackBtn, SectionTitle } from '../components/ui';
 import { useRingoState } from '../store/store';
 import {
   PLANS, planRank, fmtMoney, fmtDate,
-  BILLING, DEFAULT_PERIOD, periodMonthlyPrice, billingNote, periodDataGB, AFRICA_DAILY_GB, TOP_UP, topUpPrice,
+  BILLING, DEFAULT_PERIOD, periodMonthlyPrice, billingNote, periodDataGB, TOP_UP, topUpPrice,
   type BillingPeriod,
 } from '../data/plans';
 import { PlanChangeSheet } from '../components/PlanChangeSheet';
@@ -61,9 +61,6 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
             </div>
             <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 12.5, fontWeight: 500, opacity: 0.85 }}>
               {billingNote(period)}
-            </div>
-            <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 14, fontWeight: 400, opacity: 0.9, lineHeight: 1.5 }}>
-              {`${periodDataGB(period)} GB a month across 180+ countries, with a real phone number included. One allowance — no home, no roaming, no zones. Reach the limit and the line slows down, it is never cut off, so codes still arrive and calls still work. Fair use on African networks is ${AFRICA_DAILY_GB} GB a day.`}
             </div>
             <div style={{ marginTop: 18, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {[`${periodDataGB(period)} GB / month`, 'Number included', '180+ countries', 'No zones'].map((t) => (
@@ -161,26 +158,7 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
           </div>
         </div>
 
-        <div style={{ marginTop: 18 }}>
-          <div
-            style={{
-              borderRadius: 18, background: RC.cream, border: `1px solid ${RC.line}`,
-              padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12,
-            }}
-          >
-            <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: 'var(--font)', fontSize: 14.5, fontWeight: 600, color: RC.ink }}>
-                Need more? Add {TOP_UP.gb} GB
-              </div>
-              <div style={{ marginTop: 2, fontFamily: 'var(--font)', fontSize: 12.5, color: RC.inkMute, lineHeight: 1.45 }}>
-                {fmtMoney(topUpPrice())}, one tap, any time — your line keeps working either way.
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ marginTop: 14 }}>
-
+        <div>
           {!state.subscribed ? (
             <div style={{ marginTop: 14 }}>
               <RingoButton onClick={() => onCheckout?.(cur.id, period)}>
@@ -223,6 +201,23 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
                   {pending ? `Switches to ${pending.name} ${fmtDate(state.periodEnd)}` : `Renews ${fmtDate(state.periodEnd)}`} · Billed to your Apple ID
                 </div>
               </div>
+            </div>
+          </RingoCard>
+        </div>
+
+        <div style={{ marginTop: 22 }}>
+          <SectionTitle>Running low?</SectionTitle>
+          <RingoCard style={{ padding: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontFamily: 'var(--font)', fontSize: 14.5, fontWeight: 600, color: RC.ink }}>
+                  Add {TOP_UP.gb} GB · {fmtMoney(topUpPrice())}
+                </div>
+                <div style={{ marginTop: 2, fontFamily: 'var(--font)', fontSize: 12.5, color: RC.inkMute, lineHeight: 1.45 }}>
+                  Your line slows at the limit, it never stops.
+                </div>
+              </div>
+              <RingoButton size="sm" variant="ghost" onClick={onInstall}>Add</RingoButton>
             </div>
           </RingoCard>
         </div>
