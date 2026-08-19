@@ -7,6 +7,7 @@ import { RingoButton } from '../components/Button';
 import { LOGO_SRC } from '../assets';
 import { RC, EASE_OUT } from '../theme';
 import { hapticSelection } from '../lib/haptics';
+import { SubscriptionTerms } from '../components/SubscriptionTerms';
 import {
   BILLING, DEFAULT_PERIOD, periodMonthlyPrice, periodDataGB, billingNote, fmtMoney,
   type BillingPeriod,
@@ -49,8 +50,28 @@ export function LandingScreen({
   useLayoutEffect(() => {
     const el = heroRef.current;
     if (!el) return;
-    const over = el.scrollHeight - el.clientHeight;
-    if (over > 1) setGlobe((g) => Math.max(150, g - over - 4));
+    const FLOOR = 150;
+    const fit = () => {
+      const over = el.scrollHeight - el.clientHeight;
+      if (over <= 1) return;
+      setGlobe((g) => {
+        const next = Math.max(FLOOR, g - over - 4);
+        // Shrinking the globe alone cannot always win — the offer card and the
+        // subscription disclosure take real space. Once the globe is at its
+        // floor and the hero STILL clips, drop to compact chrome (smaller logo,
+        // heading and gaps) rather than cut a sentence in half.
+        if (next === FLOOR && g === FLOOR) setCompact(true);
+        return next;
+      });
+    };
+    fit();
+    // The hero also shrinks when the block BELOW it grows (the offer card, the
+    // subscription disclosure). Watching the element catches that too — the
+    // earlier version only re-ran when the globe changed, so anything added
+    // underneath silently clipped the subhead again.
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
   }, [globe, compact]);
 
   useEffect(() => {
@@ -201,6 +222,15 @@ export function LandingScreen({
               );
             })}
           </div>
+
+          {/* The anchor, said out loud. Both terms cost the SAME per month, so
+              the twelve-month one is simply twice the data for the same money.
+              Leaving a customer to work that out themselves is the difference
+              between them picking annual and not — and annual is the 78%-margin
+              customer. Never framed as a discount: the price does not move. */}
+          <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 11.5, fontWeight: 600, color: 'rgba(255,255,255,0.80)', textAlign: 'center' }}>
+            Same {fmtMoney(periodMonthlyPrice(period))} a month either way · 12 months doubles your data
+          </div>
         </div>
 
         <div style={{ animation: launching ? 'ringoLaunchPop 0.24s cubic-bezier(0.34, 1.56, 0.64, 1) both' : 'none' }}>
@@ -208,6 +238,7 @@ export function LandingScreen({
             {buying ? 'Contacting the App Store…' : `Start my plan · ${fmtMoney(periodMonthlyPrice(period))}/mo`}
           </RingoButton>
         </div>
+        <SubscriptionTerms period={period} planName="Ringo Light" onLight />
         {buyErr && (
           <div role="alert" style={{
             padding: '9px 12px', borderRadius: 12, textAlign: 'center',

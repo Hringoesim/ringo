@@ -14,6 +14,7 @@ import {
   type BillingPeriod,
 } from '../data/plans';
 import { PlanChangeSheet } from '../components/PlanChangeSheet';
+import { SubscriptionTerms } from '../components/SubscriptionTerms';
 
 // The plan card is the deep plum of the .upgrade-ladder card on
 // ringoesim.com — the site puts its money surfaces on purple and keeps the
@@ -122,6 +123,12 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
                 );
               })}
             </div>
+            {/* Same anchor as the front page: the price per month does not
+                change between terms, so twelve months is simply twice the data
+                for the same money. Not a discount — the price never moves. */}
+            <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 11.5, fontWeight: 600, color: 'rgba(255,255,255,0.80)', textAlign: 'center' }}>
+              Same {fmtMoney(perMonth)} a month either way · 12 months doubles your data
+            </div>
           </div>
         </div>
 
@@ -175,6 +182,7 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
               <RingoButton loading={buying} onClick={buy}>
                 {buying ? 'Contacting the App Store…' : `Start my plan · ${fmtMoney(perMonth)}/mo`}
               </RingoButton>
+              <SubscriptionTerms period={period} planName={cur.name} />
               {buyErr && (
                 <div role="alert" style={{
                   marginTop: 10, padding: '10px 13px', borderRadius: 12,
