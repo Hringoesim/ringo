@@ -11,7 +11,7 @@ import { membershipFor } from '../data/tiers';
 import { referralCode } from '../data/promo';
 import { haptic, hapticNotify } from '../lib/haptics';
 import type { OnNav } from '../navigation';
-import { NUMBERS_LIVE, KYC_REQUIRED, COMING_SOON } from '../data/launch';
+import { NUMBERS_LIVE, KYC_REQUIRED } from '../data/launch';
 
 interface SettingsScreenProps {
   onBack: () => void;
@@ -199,7 +199,7 @@ export function SettingsScreen({ onBack, onSignOut, onNav }: SettingsScreenProps
         )}
         <Row label="Plan & billing" value={state.subscribed ? `${PLANS.find((p) => p.id === state.planId)?.name ?? 'Essentials'} · ${fmtMoney(planPrice(state.planId))}/mo` : 'No active plan'} onClick={() => onNav('plan')} />
         <Row label="Membership" value={membershipFor(state.score, state.pioneer).name} onClick={() => onNav('tiers')} />
-        <Row label="Your numbers" value={NUMBERS_LIVE ? `${state.numbers.length}` : COMING_SOON} onClick={() => onNav('numbers')} last />
+        <Row label="Your numbers" value={`${state.numbers.length}`} onClick={() => onNav('numbers')} last />
       </RingoCard>
 
       <SectionLabel>Security</SectionLabel>

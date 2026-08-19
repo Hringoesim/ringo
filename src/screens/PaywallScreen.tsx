@@ -11,20 +11,27 @@ import { Confetti } from '../components/Confetti';
 import { useRingoState } from '../store/store';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { isIapAvailable, iapProductsByPlan, type IapProduct } from '../lib/iap';
-import { PLANS, planPrice, fmtMoney } from '../data/plans';
+import {
+  PLANS, fmtMoney, BILLING, DEFAULT_PERIOD, periodMonthlyPrice, periodChargeTotal,
+  periodDataGB, type BillingPeriod,
+} from '../data/plans';
 import { checkPromo, referralCode, type Promo } from '../data/promo';
 import { haptic, hapticNotify } from '../lib/haptics';
 
 interface PaywallScreenProps {
   planId: string;
+  /** Billing term chosen upstream (landing / plan screen). */
+  period?: BillingPeriod;
   onBack: () => void;
   onPaid: () => void;
 }
 
-export function PaywallScreen({ planId, onBack, onPaid }: PaywallScreenProps) {
+export function PaywallScreen({ planId, period = DEFAULT_PERIOD, onBack, onPaid }: PaywallScreenProps) {
   const { state, actions } = useRingoState();
   const plan = PLANS.find((p) => p.id === planId) || PLANS[0];
-  const base = planPrice(plan.id);
+  const months = BILLING[period].months;
+  const perMonth = periodMonthlyPrice(period);
+  const base = periodChargeTotal(period); // charged today, the full term
   const ownCode = referralCode(state.name, state.email || state.name);
   const iap = isIapAvailable(); // native iOS → Apple In-App Purchase
   const [method, setMethod] = useState<'apple' | 'card'>('apple');
@@ -93,7 +100,7 @@ export function PaywallScreen({ planId, onBack, onPaid }: PaywallScreenProps) {
           {plan.name}
         </div>
         <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
-          {plan.tagline} · billed monthly, cancel anytime.
+          {periodDataGB(period)} GB a month · billed every {months} months, cancel anytime.
         </div>
 
         {/* Order summary */}
@@ -110,7 +117,7 @@ export function PaywallScreen({ planId, onBack, onPaid }: PaywallScreenProps) {
               {!iap && promo?.valid && (
                 <span style={{ fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, textDecoration: 'line-through' }}>{fmtMoney(base)}</span>
               )}
-              <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color: RC.inkStrong }}>{price}<span style={{ fontSize: 12, fontWeight: 600, color: RC.inkMute }}>/mo</span></span>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color: RC.inkStrong }}>{price}<span style={{ fontSize: 12, fontWeight: 600, display: 'none', color: RC.inkMute }}>/mo</span></span>
             </span>
           </div>
         </div>
@@ -193,7 +200,7 @@ export function PaywallScreen({ planId, onBack, onPaid }: PaywallScreenProps) {
         {/* Auto-renewable subscription disclosure — required by App Review. */}
         {iap && (
           <div style={{ marginTop: 12, fontFamily: 'var(--font)', fontSize: 10.5, color: RC.inkMute, lineHeight: 1.5 }}>
-            {plan.name} is a monthly auto-renewing subscription ({price}/month). Payment is charged to your Apple ID at purchase. It renews automatically unless turned off at least 24 hours before the current period ends; manage or cancel any time in your Apple ID settings.{' '}
+            {plan.name} renews automatically every {months} months at {price} ({fmtMoney(perMonth)}/month). Payment is charged to your Apple ID at purchase. It renews automatically unless turned off at least 24 hours before the current period ends; manage or cancel any time in your Apple ID settings.{' '}
             <span className="press" onClick={() => { haptic('light'); window.open('https://ringoesim.com/terms', '_blank', 'noopener'); }} style={{ display: 'inline-block', color: RC.inkStrong, fontWeight: 600, textDecoration: 'underline', cursor: 'pointer' }}>Terms of Use</span>
             {' · '}
             <span className="press" onClick={() => { haptic('light'); window.open('https://ringoesim.com/privacy', '_blank', 'noopener'); }} style={{ display: 'inline-block', color: RC.inkStrong, fontWeight: 600, textDecoration: 'underline', cursor: 'pointer' }}>Privacy Policy</span>
@@ -205,7 +212,7 @@ export function PaywallScreen({ planId, onBack, onPaid }: PaywallScreenProps) {
         {/* Stay disabled through the celebration→navigation window so an eager
             second tap can't fire a duplicate charge. */}
         <RingoButton loading={busy} disabled={celebrate} onClick={pay}>
-          {busy ? 'Processing…' : celebrate ? 'Done!' : iap ? `Subscribe · ${price}/mo` : `Pay ${price} — subscribe`}
+          {busy ? 'Processing…' : celebrate ? 'Done!' : `Pay ${price}`}
         </RingoButton>
         {iap && (
           <button

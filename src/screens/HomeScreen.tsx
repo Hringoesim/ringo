@@ -12,7 +12,7 @@ import { Confetti } from '../components/Confetti';
 import { RingoAvatar } from '../components/Avatar';
 import { hapticNotify } from '../lib/haptics';
 import { ICON_3D_EXTRA } from '../assets/icons3d';
-import { NUMBERS_LIVE, KYC_REQUIRED, COMING_SOON } from '../data/launch';
+import { NUMBERS_LIVE, KYC_REQUIRED, PORTING_LIVE } from '../data/launch';
 
 // Onboarding destination picks → representative country codes for the dashboard.
 const DEST_MAP: Record<string, string[]> = {
@@ -344,7 +344,7 @@ function SetupChecklist({ kycDone, subscribed, hasNumber, onNav }: { kycDone: bo
     ...(KYC_REQUIRED ? [{ label: 'Verify your identity', done: kycDone, to: 'kyc' as const }] : []),
     { label: 'Choose your plan', done: subscribed, to: 'plan' as const },
     ...(NUMBERS_LIVE
-      ? [{ label: 'Add or keep your number', done: hasNumber, to: 'addNumber' as const }]
+      ? [{ label: PORTING_LIVE ? 'Add or keep your number' : 'Set up your number', done: hasNumber, to: 'addNumber' as const }]
       : [{ label: 'Install your eSIM', done: hasNumber, to: 'install' as const }]),
   ];
   const doneCount = steps.filter((s) => s.done).length;
@@ -474,7 +474,7 @@ function TierCard({
             />
           </svg>
           <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ fontFamily: 'var(--font)', fontSize: 34, fontWeight: 700, letterSpacing: -1.5, lineHeight: 1 }}>{score}</div>
+            <div style={{ fontFamily: 'var(--font)', fontSize: 34, fontWeight: 700, letterSpacing: -1.5, lineHeight: 1.1 }}>{score}</div>
             <div style={{ fontFamily: 'var(--font)', fontSize: 9.5, fontWeight: 600, opacity: 0.9, letterSpacing: 0.4, textTransform: 'uppercase' }}>countries</div>
           </div>
         </div>
@@ -623,10 +623,10 @@ function NumberBuckets({ numbers, onMore, onAdd }: { numbers: PhoneNumber[]; onM
         </div>
         <div>
           <div style={{ fontFamily: 'var(--font)', fontSize: 15, fontWeight: 700, color: RC.inkStrong, letterSpacing: -0.2 }}>
-            {NUMBERS_LIVE ? 'Add a number' : 'Phone numbers'}
+            {'Your number'}
           </div>
           <div style={{ fontFamily: 'var(--font)', fontSize: 12, fontWeight: 500, color: RC.inkMute }}>
-            {NUMBERS_LIVE ? 'New local number or port yours in' : `${COMING_SOON} — Ringo Light is data only`}
+            {PORTING_LIVE ? 'New number, or port yours in' : 'Your Ringo number, included in the plan'}
           </div>
         </div>
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none">

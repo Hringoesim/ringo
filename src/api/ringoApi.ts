@@ -142,22 +142,20 @@ const DB: {
     kycStatus: 'pending',
     kycStepsLeft: 1,
     currentCountry: 'GB',
-    planId: 'essentials',
+    planId: 'light',
     paymentMethod: { brand: 'Visa', last4: '4242' },
   },
 
   tiers: [
-    { id: 'amber',   name: 'Amber',   min: 0,  c1: '#F4A93B', c2: '#F0792E', glow: 'rgba(240,128,56,0.5)',  perk: 'Unlimited data · 180+ countries' },
-    { id: 'coral',   name: 'Coral',   min: 6,  c1: '#FF8A6B', c2: '#F8506B', glow: 'rgba(248,80,96,0.5)',   perk: '+1 free local number · faster cap' },
+    { id: 'amber',   name: 'Amber',   min: 0,  c1: '#F4A93B', c2: '#F0792E', glow: 'rgba(240,128,56,0.5)',  perk: 'Data in 180+ countries · number included' },
+    { id: 'coral',   name: 'Coral',   min: 6,  c1: '#FF8A6B', c2: '#F8506B', glow: 'rgba(248,80,96,0.5)',   perk: 'Bonus data each month · faster cap' },
     { id: 'crimson', name: 'Crimson', min: 15, c1: '#F8506B', c2: '#C42B6B', glow: 'rgba(196,43,107,0.5)',  perk: 'Airport lounge passes · priority support' },
     { id: 'aurora',  name: 'Aurora',  min: 30, c1: '#B36BFF', c2: '#F8506B', glow: 'rgba(179,107,255,0.5)', perk: 'Free partner upgrades · 24/7 concierge' },
   ],
 
   plans: [
-    { id: 'essentials', name: 'Essentials', price: 19, highspeed: '15 GB',    tagline: 'For light trips & backups', maxNumbers: 1, feats: ['15 GB high-speed, then unlimited standard', '180+ countries', '1 number included'] },
-    { id: 'plus',       name: 'Plus',       price: 35, highspeed: '50 GB',    tagline: 'For regular travelers',     maxNumbers: 2, feats: ['50 GB high-speed', '180+ countries', '2 numbers included', 'Personal hotspot'] },
-    { id: 'pro',        name: 'Pro',        price: 59, highspeed: '150 GB',   tagline: 'For digital nomads', popular: true, maxNumbers: 3, feats: ['150 GB high-speed', '180+ countries', '3 numbers included', 'Priority 5G/4G+'] },
-    { id: 'unlimited',  name: 'Unlimited',  price: 89, highspeed: 'Unlimited', tagline: 'No caps, ever',            maxNumbers: 5, feats: ['Truly unlimited 5G — no throttle', '180+ countries', '5 numbers included', 'Always-on hotspot'] },
+    { id: 'light', name: 'Ringo Light', price: 39.99, highspeed: 'Global data', tagline: 'Global data + a real number', current: true, maxNumbers: 1,
+      feats: ['A real phone number, included', 'Data in 180+ countries', 'One allowance — no zones', 'Cancel anytime'] },
   ],
 
   countries: [
@@ -185,15 +183,15 @@ const DB: {
   ],
 
   usage: {
-    planId: 'essentials',
+    planId: 'light',
     fairUsePct: 0.34,
     renewsOn: 'May 28',
     country: 'GB',
     connected: true,
     invoices: [
-      { date: 'Apr 28', label: 'Ringo Essentials', amount: '£19.00' },
+      { date: 'Apr 28', label: 'Ringo Light', amount: '€479.88' },
       { date: 'Apr 12', label: 'Ireland number', amount: '£3.00' },
-      { date: 'Mar 28', label: 'Ringo Essentials', amount: '£19.00' },
+      { date: 'Mar 28', label: 'Ringo Light', amount: '€479.88' },
     ],
   },
 };

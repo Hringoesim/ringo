@@ -3,7 +3,7 @@ import type { Tier } from './types';
 // Membership ladder — everyone starts Amber. Score = countries connected this year.
 // (Named for warm colours, not carriers — "Orange" is a trademarked network.)
 export const TIERS: Tier[] = [
-  { id: 'amber',   name: 'Amber',   min: 0,  c1: '#FFB53E', c2: '#FF5D2E', glow: 'rgba(255,109,46,0.45)', perk: 'Unlimited data · 180+ countries' },
+  { id: 'amber',   name: 'Amber',   min: 0,  c1: '#FFB53E', c2: '#FF5D2E', glow: 'rgba(255,109,46,0.45)', perk: 'Data in 180+ countries · number included' },
   { id: 'coral',   name: 'Coral',   min: 6,  c1: '#FF7E5F', c2: '#FF4778', glow: 'rgba(255,71,120,0.45)', perk: 'Bonus data each month · faster cap' },
   { id: 'crimson', name: 'Crimson', min: 15, c1: '#FF4778', c2: '#D6247E', glow: 'rgba(214,36,126,0.45)', perk: 'Airport lounge passes · priority support' },
   { id: 'aurora',  name: 'Aurora',  min: 30, c1: '#8652E0', c2: '#FF42A1', glow: 'rgba(134,82,224,0.45)', perk: 'Free partner upgrades · 24/7 concierge' },

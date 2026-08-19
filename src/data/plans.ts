@@ -10,9 +10,14 @@ import type { Plan } from './types';
 // logic picks them up unchanged.
 export const PLANS: Plan[] = [
   {
-    id: 'light', name: 'Ringo Light', price: 39.99, highspeed: 'Unlimited',
-    tagline: 'Global data', current: true, maxNumbers: 0,
-    feats: ['Unlimited data — never cut off', '12 GB a month at full speed, then reduced', 'Data in 180+ countries', 'One eSIM, no roaming fees'],
+    id: 'light', name: 'Ringo Light', price: 39.99, highspeed: 'Global data',
+    tagline: 'Global data + a real number', current: true, maxNumbers: 1,
+    feats: [
+      'A real phone number, included',
+      'Data in 180+ countries',
+      'One allowance — no home, no roaming, no zones',
+      'Cancel anytime',
+    ],
   },
 ];
 
@@ -21,46 +26,65 @@ export const PLANS: Plan[] = [
 // Ringo Light is sold on two cadences. Both are quoted PER MONTH — the annual
 // one is charged once for twelve months, the short one every two months — so
 // the comparison a traveller makes is monthly rate vs commitment length.
-/** Fair use: data is unlimited in that it is never cut off, but full speed
- *  stops at this many GB a month and the rest of the month runs reduced.
- *  The Terms carry the same figure — change both together. */
-export const FAIR_USE_GB = 12;
 
-export type BillingPeriod = 'fourmonthly' | 'bimonthly';
+export type BillingPeriod = 'annual' | 'bimonthly';
 
-export const BILLING: Record<BillingPeriod, { label: string; months: number }> = {
-  // The committed term is four months. Showing a small monthly number while
-  // taking the whole term up front is the standard subscription play (Spotify,
-  // Holafly): 39.99 x 4 = 159.96 collected on day one.
-  fourmonthly: { label: 'Every 4 months', months: 4 },
-  bimonthly: { label: 'Every 2 months', months: 2 },
+export const BILLING: Record<
+  BillingPeriod,
+  { label: string; months: number; dataGB: number }
+> = {
+  // Same price per month on both. A longer commitment buys MORE DATA, never a
+  // discount — Ringo does not do percentage-off, ever.
+  annual: { label: '12 months', months: 12, dataGB: 40 },
+  bimonthly: { label: '2 months', months: 2, dataGB: 20 },
 };
 
-/** "billed EUR159.96 every 4 months" — the line under the headline price. */
-export function billingNote(period: BillingPeriod, currency = localCurrency()): string {
-  return `billed ${fmtMoney(periodChargeTotal(period, currency), currency)} every ${BILLING[period].months} months`;
+/** Monthly data allowance for a term, in GB. */
+export function periodDataGB(period: BillingPeriod): number {
+  return BILLING[period].dataGB;
 }
 
-export const DEFAULT_PERIOD: BillingPeriod = 'fourmonthly';
+/** Hitting a limit throttles the line, it never cuts it — bank codes still
+ *  arrive and calls still work. That is the product promise, and it is what
+ *  makes a limit an upsell moment rather than a dead SIM. */
+export const THROTTLE_NEVER_CUT = true;
+
+/** One-tap top-up offered at the limit (and at the 80% warning).
+ *  Priced to a 40% margin floor off the Africa rate. */
+export const TOP_UP = { gb: 5, price: 26.99 };
+
+/** Top-up price in the device (or given) currency. */
+export function topUpPrice(currency = localCurrency()): number {
+  const eur = TOP_UP.price;
+  const scale = (MONTHLY_PRICE[currency] ?? MONTHLY_PRICE.EUR) / MONTHLY_PRICE.EUR;
+  return currency === 'JPY' ? Math.round(eur * scale) : Math.round(eur * scale * 100) / 100;
+}
+
+/** Fair use on African networks — a daily cap, not a monthly one. */
+export const AFRICA_DAILY_GB = 1;
+
+/** "billed EUR479.88 every 12 months" — the line under the headline price. */
+export function billingNote(period: BillingPeriod, currency = localCurrency()): string {
+  const months = BILLING[period].months;
+  return `billed ${fmtMoney(periodChargeTotal(period, currency), currency)} every ${months} months`;
+}
+
+export const DEFAULT_PERIOD: BillingPeriod = 'annual';
 
 // Per-month price by currency, per cadence. USD/EUR/GBP carry the prices the
 // owner set (39.99 annual, 44.26 bimonthly); the rest are scaled from the old
 // table's ratios and still need per-market sign-off.
-const PERIOD_PRICES: Record<BillingPeriod, Record<string, number>> = {
-  fourmonthly: {
-    USD: 39.99, GBP: 39.99, EUR: 39.99, AUD: 62.99, NZD: 67.99,
-    CAD: 54.99, JPY: 6100, SGD: 54.99, HKD: 315, AED: 147,
-  },
-  bimonthly: {
-    USD: 44.26, GBP: 44.26, EUR: 44.26, AUD: 69.99, NZD: 74.99,
-    CAD: 60.99, JPY: 6750, SGD: 60.99, HKD: 349, AED: 163,
-  },
+// One monthly rate, whatever the term. EUR is the authoritative figure from
+// Ringo_Light_Master_PL.xlsx and is NET of VAT — the customer pays VAT on top
+// (EUR39.99 net = EUR47.99 gross at 20%). Other currencies still need sign-off.
+const MONTHLY_PRICE: Record<string, number> = {
+  EUR: 39.99, GBP: 39.99, USD: 39.99, AUD: 62.99, NZD: 67.99,
+  CAD: 54.99, JPY: 6100, SGD: 54.99, HKD: 315, AED: 147,
 };
 
 /** Per-month price for a cadence, in the device (or given) currency. */
-export function periodMonthlyPrice(period: BillingPeriod, currency = localCurrency()): number {
-  const table = PERIOD_PRICES[period];
-  return table[currency] ?? table.USD;
+export function periodMonthlyPrice(_period: BillingPeriod, currency = localCurrency()): number {
+  return MONTHLY_PRICE[currency] ?? MONTHLY_PRICE.EUR;
 }
 
 /** What actually gets charged each time: the monthly rate x the interval. */

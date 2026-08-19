@@ -10,7 +10,7 @@ import { BackBtn, SectionTitle } from '../components/ui';
 import { useRingoState } from '../store/store';
 import {
   PLANS, planRank, fmtMoney, fmtDate,
-  BILLING, DEFAULT_PERIOD, periodMonthlyPrice, billingNote, FAIR_USE_GB,
+  BILLING, DEFAULT_PERIOD, periodMonthlyPrice, billingNote, periodDataGB, AFRICA_DAILY_GB, TOP_UP, topUpPrice,
   type BillingPeriod,
 } from '../data/plans';
 import { PlanChangeSheet } from '../components/PlanChangeSheet';
@@ -24,7 +24,7 @@ interface PlanScreenProps {
   onBack: () => void;
   onInstall: () => void;
   /** Open checkout to pay for a plan (first subscription). */
-  onCheckout?: (id: string) => void;
+  onCheckout?: (id: string, period: BillingPeriod) => void;
 }
 
 export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
@@ -56,19 +56,17 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
 
             </div>
             <div style={{ marginTop: 8, display: 'flex', alignItems: 'baseline', gap: 6 }}>
-              <span style={{ fontFamily: 'var(--font)', fontSize: 64, fontWeight: 700, letterSpacing: -2, lineHeight: 1 }}>{fmtMoney(perMonth)}</span>
+              <span style={{ fontFamily: 'var(--font)', fontSize: 64, fontWeight: 700, letterSpacing: -2, lineHeight: 1.14 }}>{fmtMoney(perMonth)}</span>
               <span style={{ fontFamily: 'var(--font)', fontSize: 15, fontWeight: 500, opacity: 0.85 }}>/ month</span>
             </div>
             <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 12.5, fontWeight: 500, opacity: 0.85 }}>
               {billingNote(period)}
             </div>
             <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 14, fontWeight: 400, opacity: 0.9, lineHeight: 1.5 }}>
-              {cur.highspeed === 'Unlimited'
-                ? `Unlimited data in 180+ countries — ${FAIR_USE_GB} GB a month at full speed, then reduced speed for the rest of the month. Never cut off. Cancel any time.`
-                : `${cur.highspeed} high-speed data in 180+ countries, then unlimited at standard speed. Cancel any time.`}
+              {`${periodDataGB(period)} GB a month across 180+ countries, with a real phone number included. One allowance — no home, no roaming, no zones. Reach the limit and the line slows down, it is never cut off, so codes still arrive and calls still work. Fair use on African networks is ${AFRICA_DAILY_GB} GB a day.`}
             </div>
             <div style={{ marginTop: 18, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {[cur.highspeed === 'Unlimited' ? 'Unlimited data' : `${cur.highspeed} high-speed`, `${FAIR_USE_GB} GB full speed`, '180+ countries', 'Data only'].map((t) => (
+              {[`${periodDataGB(period)} GB / month`, 'Number included', '180+ countries', 'No zones'].map((t) => (
                 <div key={t} style={{ padding: '6px 12px', borderRadius: 999, background: 'rgba(255,253,251,0.22)', fontFamily: 'var(--font)', fontSize: 12, fontWeight: 600 }}>{t}</div>
               ))}
             </div>
@@ -164,10 +162,28 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
         </div>
 
         <div style={{ marginTop: 18 }}>
+          <div
+            style={{
+              borderRadius: 18, background: RC.cream, border: `1px solid ${RC.line}`,
+              padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12,
+            }}
+          >
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: 'var(--font)', fontSize: 14.5, fontWeight: 600, color: RC.ink }}>
+                Need more? Add {TOP_UP.gb} GB
+              </div>
+              <div style={{ marginTop: 2, fontFamily: 'var(--font)', fontSize: 12.5, color: RC.inkMute, lineHeight: 1.45 }}>
+                {fmtMoney(topUpPrice())}, one tap, any time — your line keeps working either way.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 14 }}>
 
           {!state.subscribed ? (
             <div style={{ marginTop: 14 }}>
-              <RingoButton onClick={() => onCheckout?.(cur.id)}>
+              <RingoButton onClick={() => onCheckout?.(cur.id, period)}>
                 Start my plan · {fmtMoney(perMonth)}/mo
               </RingoButton>
               <div style={{ marginTop: 10, textAlign: 'center', fontFamily: 'var(--font)', fontSize: 12.5, color: RC.inkMute, lineHeight: 1.45 }}>

@@ -5,8 +5,20 @@ import { useEffect, useState } from 'react';
 import { SaturnWorld } from '../components/SaturnWorld';
 import { RingoButton } from '../components/Button';
 import { LOGO_SRC } from '../assets';
+import { RC, EASE_OUT } from '../theme';
+import { hapticSelection } from '../lib/haptics';
+import {
+  BILLING, DEFAULT_PERIOD, periodMonthlyPrice, periodDataGB, billingNote, fmtMoney,
+  type BillingPeriod,
+} from '../data/plans';
 
-export function LandingScreen({ onExplore, onLogin }: { onExplore: () => void; onLogin?: () => void }) {
+export function LandingScreen({
+  onExplore, onLogin, onBuy,
+}: { onExplore: () => void; onLogin?: () => void; onBuy?: (period: BillingPeriod) => void }) {
+  // The offer is the landing page — pick a term and pay, the way Holafly and
+  // Saily open straight onto the thing you are buying. Twelve months is
+  // pre-selected: it carries the bigger allowance and the better margin.
+  const [period, setPeriod] = useState<BillingPeriod>(DEFAULT_PERIOD);
   const [globe, setGlobe] = useState(300);
   const [compact, setCompact] = useState(false);
   // Explore plays a visible launch pop, THEN navigates — a fast tap still
@@ -24,9 +36,12 @@ export function LandingScreen({ onExplore, onLogin }: { onExplore: () => void; o
       // The FULL circle always fits, on every eSIM iPhone: never wider than
       // the screen (with margin), and on short bodies (SE 667pt) it takes a
       // smaller height share so logo + headline + CTAs still fit beneath it.
-      const short = h < 760;
+      // The offer block now lives under the headline and needs roughly 200pt,
+      // so the globe takes a smaller share than it did when this screen was
+      // just a poster with one button.
+      const short = h < 800;
       setCompact(short);
-      setGlobe(Math.max(230, Math.min(w * 0.92, h * (short ? 0.4 : 0.5), 520)));
+      setGlobe(Math.max(180, Math.min(w * 0.78, h * (short ? 0.28 : 0.34), 380)));
     };
     compute();
     window.addEventListener('resize', compute);
@@ -97,16 +112,85 @@ export function LandingScreen({ onExplore, onLogin }: { onExplore: () => void; o
             lineHeight: 1.5, maxWidth: 310,
           }}
         >
-          One global data eSIM. 180+ countries, no roaming fees, no new number.
+          One allowance, 180+ countries, and a real number.
         </div>
       </div>
 
-      <div style={{ padding: compact ? '12px 24px 20px' : '18px 24px 30px', display: 'flex', flexDirection: 'column', gap: compact ? 8 : 11 }}>
-        {/* Explore first — straight into the dashboard; sign in later at a commit
-            point. The wrapper pops on click so the tap always reads. */}
-        <div style={{ animation: launching ? 'ringoLaunchPop 0.24s cubic-bezier(0.34, 1.56, 0.64, 1) both' : 'none' }}>
-          <RingoButton onClick={explore}>Explore Ringo</RingoButton>
+      <div style={{ padding: compact ? '10px 24px 18px' : '14px 24px 26px', display: 'flex', flexDirection: 'column', gap: compact ? 8 : 10 }}>
+        {/* The offer, on the front page. One price, two terms, buy. */}
+        <div
+          style={{
+            borderRadius: 20, padding: compact ? '12px 14px' : '14px 16px',
+            background: 'rgba(20,10,30,0.42)', border: '1px solid rgba(255,255,255,0.14)',
+            backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, color: '#FFFFFF' }}>
+            <span style={{ fontFamily: 'var(--font)', fontSize: compact ? 30 : 34, fontWeight: 700, letterSpacing: -1.2, lineHeight: 1.12 }}>
+              {fmtMoney(periodMonthlyPrice(period))}
+            </span>
+            <span style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 500, opacity: 0.9 }}>/ month</span>
+          </div>
+          <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 12.5, color: 'rgba(255,255,255,0.82)' }}>
+            {periodDataGB(period)} GB a month · number included · {billingNote(period)}
+          </div>
+
+          <div
+            role="tablist"
+            aria-label="Billing term"
+            style={{
+              marginTop: 11, display: 'flex', position: 'relative',
+              background: 'rgba(0,0,0,0.30)', border: '1px solid rgba(255,255,255,0.10)',
+              borderRadius: 999, padding: 4,
+            }}
+          >
+            <span
+              aria-hidden
+              style={{
+                position: 'absolute', top: 4, bottom: 4, left: 4, width: 'calc(50% - 4px)',
+                background: '#FFFFFF', borderRadius: 999, boxShadow: '0 2px 10px rgba(0,0,0,0.18)',
+                transform: period === DEFAULT_PERIOD ? 'translateX(0)' : 'translateX(100%)',
+                transition: `transform 0.28s ${EASE_OUT}`,
+              }}
+            />
+            {(Object.keys(BILLING) as BillingPeriod[]).map((k) => {
+              const on = k === period;
+              return (
+                <button
+                  key={k}
+                  role="tab"
+                  aria-selected={on}
+                  onClick={() => { hapticSelection(); setPeriod(k); }}
+                  style={{
+                    position: 'relative', flex: 1, minHeight: 40, padding: '8px 6px',
+                    background: 'transparent', border: 'none', borderRadius: 999, cursor: 'pointer',
+                    fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
+                    color: on ? RC.ink : 'rgba(255,255,255,0.66)', transition: 'color 0.2s ease',
+                  }}
+                >
+                  {BILLING[k].label} · {periodDataGB(k)} GB
+                </button>
+              );
+            })}
+          </div>
         </div>
+
+        <div style={{ animation: launching ? 'ringoLaunchPop 0.24s cubic-bezier(0.34, 1.56, 0.64, 1) both' : 'none' }}>
+          <RingoButton onClick={() => (onBuy ? onBuy(period) : explore())}>
+            Start my plan · {fmtMoney(periodMonthlyPrice(period))}/mo
+          </RingoButton>
+        </div>
+        <button
+          onClick={explore}
+          className="press"
+          style={{
+            border: 'none', background: 'transparent', cursor: 'pointer', padding: '2px 0',
+            fontFamily: 'var(--font)', fontSize: 13.5, fontWeight: 600,
+            color: 'rgba(255,255,255,0.80)', textShadow: '0 1px 6px rgba(120,30,10,0.22)',
+          }}
+        >
+          Look around first
+        </button>
         {/* Returning users need a way back in after sign-out / reinstall. */}
         {onLogin && (
           <button

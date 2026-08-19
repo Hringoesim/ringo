@@ -38,6 +38,7 @@ import { PaywallScreen } from './screens/PaywallScreen';
 import { LegalScreen } from './screens/LegalScreen';
 import { TwoFactorScreen } from './screens/TwoFactorScreen';
 import { NUMBERS_LIVE } from './data/launch';
+import type { BillingPeriod } from './data/plans';
 
 const TABBED = new Set(['home', 'browse', 'numbers', 'plan']);
 const sb = isSupabaseConfigured();
@@ -46,7 +47,7 @@ interface Frame {
   id: number;
   name: string;
   params: {
-    code?: string; preselect?: string; onboarding?: boolean; mode?: 'create' | 'login'; kycDone?: boolean;
+    code?: string; preselect?: string; onboarding?: boolean; mode?: 'create' | 'login'; kycDone?: boolean; period?: BillingPeriod;
     planId?: string; gateReturn?: 'addNumber' | 'port' | 'install'; gateArg?: string; mandatory?: boolean;
     email?: string;
   };
@@ -216,7 +217,17 @@ export function App() {
     case 'landing':
       // Explore-first: straight into the dashboard. No subscription push, no
       // sign-in wall up front — that comes later, only at a commit point.
-      body = <LandingScreen onExplore={() => replace('home')} onLogin={() => push('signup', { mode: 'login' })} />;
+      body = (
+        <LandingScreen
+          onExplore={() => replace('home')}
+          onLogin={() => push('signup', { mode: 'login' })}
+          // Buy from the front page. A guest can pay — the App Store account
+          // takes the money, so forcing a Ringo sign-up before checkout is
+          // friction every data-eSIM app has already removed. The account is
+          // required later, at the point the eSIM has to be issued to someone.
+          onBuy={(period) => { replace('home'); push('checkout', { planId: 'light', period }); }}
+        />
+      );
       break;
     case 'onboard':
       body = (
@@ -370,13 +381,14 @@ export function App() {
         <PlanScreen
           onBack={backOrHome}
           onInstall={() => gateActivation('install')}
-          onCheckout={(planId) => { if (requireAccount()) return; push('checkout', { planId }); }}
+          onCheckout={(planId, period) => push('checkout', { planId, period })}
         />
       );
       break;
     case 'checkout':
       body = (
         <PaywallScreen
+          period={current.params.period}
           planId={current.params.planId || state.planId}
           onBack={pop}
           onPaid={() => {
