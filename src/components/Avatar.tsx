@@ -1,7 +1,12 @@
+import type { ReactNode } from 'react';
 // Avatar.tsx — the user's photo, or a fun "cowboy" default. Personalisation
 // comes from the HAT / SKY / BANDANA colours seeded from the name — never from
 // skin tone: every default uses the same friendly cartoon complexion, so there
 // are no realistic/dark "default faces". Pioneers get an ultra-rare golden one.
+//
+// The avatar also CARRIES THE MEMBERSHIP: pass `tier` and the portrait sits in
+// that rung's colours behind a matching ring, so the ladder is visible on every
+// screen the avatar appears on rather than only inside the tiers page.
 function hashStr(s: string): number {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) {
@@ -29,24 +34,35 @@ export function RingoAvatar({
   avatar,
   size = 44,
   pioneer = false,
+  tier,
 }: {
   name?: string | null;
   avatar?: string | null;
   size?: number;
   pioneer?: boolean;
+  /** Membership rung — draws the ring and tints the portrait behind it. */
+  tier?: { c1: string; c2: string; glow: string } | null;
 }) {
+  // A photo still wears the membership ring around it.
   if (avatar) {
-    return <img src={avatar} alt="" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', display: 'block' }} />;
+    return (
+      <TierRing tier={tier} size={size}>
+        <img src={avatar} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', display: 'block' }} />
+      </TierRing>
+    );
   }
   const h = hashStr((name || 'ringo').trim().toLowerCase() || 'ringo');
-  if (pioneer) return <PioneerAvatar size={size} />;
+  if (pioneer) return <TierRing tier={tier} size={size}><PioneerAvatar size={size} /></TierRing>;
 
-  const sky = SKY[h % SKY.length];
+  // The membership rung owns the backdrop when there is one; otherwise fall
+  // back to the name-seeded sky so a signed-out avatar still looks personal.
+  const sky: [string, string] = tier ? [tier.c1, tier.c2] : SKY[h % SKY.length];
   const hat = HAT[(h >> 5) % HAT.length];
   const band = BANDANA[(h >> 9) % BANDANA.length];
   const gid = `av${h % 100000}`;
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" style={{ borderRadius: '50%', display: 'block' }}>
+    <TierRing tier={tier} size={size}>
+    <svg width="100%" height="100%" viewBox="0 0 100 100" style={{ borderRadius: '50%', display: 'block' }}>
       <defs>
         <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor={sky[0]} />
@@ -71,6 +87,7 @@ export function RingoAvatar({
       <path d="M31 41 Q31 17 50 17 Q69 17 69 41 Z" fill={hat} />
       <rect x="31" y="36.5" width="38" height="5.5" rx="2.5" fill="rgba(0,0,0,0.22)" />
     </svg>
+    </TierRing>
   );
 }
 
@@ -118,5 +135,33 @@ function PioneerAvatar({ size }: { size: number }) {
       <circle cx="78" cy="80" r="13" fill="url(#pio-gold)" stroke="#FFFFFF" strokeWidth="2.5" />
       <path d="M78 72.5 l1.7 3.5 3.9 .5 -2.8 2.7 .7 3.9 -3.5 -1.9 -3.5 1.9 .7 -3.9 -2.8 -2.7 3.9 -.5 Z" fill="#8A5A12" />
     </svg>
+  );
+}
+
+// The membership ring. Two pixels of the rung's own gradient around the
+// portrait, with its glow — enough to read the tier at 34px in the header,
+// quiet enough not to fight the face. No tier, no ring.
+function TierRing({
+  tier, size, children,
+}: {
+  tier?: { c1: string; c2: string; glow: string } | null;
+  size: number;
+  children: ReactNode;
+}) {
+  if (!tier) return <>{children}</>;
+  const pad = Math.max(2, Math.round(size * 0.075));
+  return (
+    <div
+      style={{
+        width: size, height: size, borderRadius: '50%', padding: pad, boxSizing: 'border-box',
+        background: `linear-gradient(135deg, ${tier.c1}, ${tier.c2})`,
+        boxShadow: `0 0 0 1px rgba(255,255,255,0.35) inset, 0 4px 12px -4px ${tier.glow}`,
+        display: 'block',
+      }}
+    >
+      <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', display: 'block' }}>
+        {children}
+      </div>
+    </div>
   );
 }

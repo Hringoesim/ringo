@@ -7,7 +7,7 @@ import { RingoAvatar } from '../components/Avatar';
 import { BackBtn } from '../components/ui';
 import { useRingoState } from '../store/store';
 import { PLANS, planPrice, fmtMoney } from '../data/plans';
-import { membershipFor } from '../data/tiers';
+import { membershipFor, paidMonths } from '../data/tiers';
 import { referralCode } from '../data/promo';
 import { haptic, hapticNotify } from '../lib/haptics';
 import type { OnNav } from '../navigation';
@@ -109,7 +109,7 @@ export function SettingsScreen({ onBack, onSignOut, onNav }: SettingsScreenProps
             className="press"
             style={{ position: 'relative', width: 56, height: 56, borderRadius: '50%', cursor: 'pointer', flexShrink: 0 }}
           >
-            <RingoAvatar name={name} avatar={state.avatar} pioneer={state.pioneer} size={56} />
+            <RingoAvatar name={name} avatar={state.avatar} pioneer={state.pioneer} size={56} tier={membershipFor(paidMonths(state.subscribedAt), state.pioneer)} />
             <div style={{ position: 'absolute', right: -2, bottom: -2, width: 22, height: 22, borderRadius: '50%', background: RC.paper, border: `1px solid ${RC.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M4 8h3l1.5-2h7L18 8h3v11H4z" stroke={RC.inkStrong} strokeWidth="2" strokeLinejoin="round" /><circle cx="12" cy="13" r="3" stroke={RC.inkStrong} strokeWidth="2" /></svg>
             </div>
@@ -198,8 +198,10 @@ export function SettingsScreen({ onBack, onSignOut, onNav }: SettingsScreenProps
           <Row label="Identity verification" value={kycValue} tone={kycTone} onClick={kyc === 'pending' ? () => onNav('kyc') : undefined} />
         )}
         <Row label="Plan & billing" value={state.subscribed ? `${PLANS.find((p) => p.id === state.planId)?.name ?? 'Essentials'} · ${fmtMoney(planPrice(state.planId))}/mo` : 'No active plan'} onClick={() => onNav('plan')} />
-        <Row label="Membership" value={membershipFor(state.score, state.pioneer).name} onClick={() => onNav('tiers')} />
-        <Row label="Your numbers" value={`${state.numbers.length}`} onClick={() => onNav('numbers')} last />
+        <Row label="Membership" value={membershipFor(paidMonths(state.subscribedAt), state.pioneer).name} onClick={() => onNav('tiers')} />
+        {NUMBERS_LIVE && (
+          <Row label="Your numbers" value={`${state.numbers.length}`} onClick={() => onNav('numbers')} last />
+        )}
       </RingoCard>
 
       <SectionLabel>Security</SectionLabel>

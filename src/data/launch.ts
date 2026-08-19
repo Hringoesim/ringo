@@ -1,21 +1,23 @@
 // launch.ts — what Ringo actually sells today.
 //
-// Ringo Light is one global eSIM: data in 180+ countries PLUS a real virtual
-// phone number (Telnyx), included in the price. The number is part of the
-// product — it is the reason a traveller picks Ringo over a cheap data-only
-// eSIM, because bank codes arrive and family can call.
-export const NUMBER_INCLUDED = true;
+// Ringo Light is ONE global data eSIM. Nothing else ships at launch.
+//
+// A virtual number was in the 19 Aug spec and has since been pulled: a
+// Telnyx-hosted number is VoIP, and VoIP numbers get reclassified by
+// line-type lookup so bank one-time codes do not arrive — which is the one
+// thing the number was meant to deliver. It comes back when numbers live on
+// a real mobile core.
+export const NUMBER_INCLUDED = false;
 
-// Porting an EXISTING number in (MNP) is a separate, later capability — the
-// included number is newly issued. Flip this when porting ships and the
-// porting flow, its checklist item and its entry points all come back.
+// Porting an existing number in (MNP) is a separate, later capability.
 export const PORTING_LIVE = false;
 
-/** Identity checks are required to issue a phone number in most markets, so
- *  KYC follows the number rather than porting. */
+/** Identity checks exist to issue phone numbers. A data-only eSIM does not
+ *  need one, so KYC is out of the launch flow (the screen is kept). */
 export const KYC_REQUIRED = NUMBER_INCLUDED;
 
-/** Kept for the surfaces that ask "can the user manage numbers yet". */
+/** Whether the user has any number to manage: the Numbers tab, the Home
+ *  number card, the Settings row and the checklist item all follow this. */
 export const NUMBERS_LIVE = NUMBER_INCLUDED;
 
 /** Shown wherever a deferred feature is surfaced. */

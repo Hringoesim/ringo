@@ -24,13 +24,23 @@ interface PlanScreenProps {
   onBack: () => void;
   onInstall: () => void;
   /** Open checkout to pay for a plan (first subscription). */
-  onCheckout?: (id: string, period: BillingPeriod) => void;
+  onCheckout?: () => Promise<{ ok: boolean; error?: string }>;
 }
 
 export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
   const { state, actions } = useRingoState();
   const currentId = state.planId;
   const [selected, setSelected] = useState(currentId);
+  const [buying, setBuying] = useState(false);
+  const [buyErr, setBuyErr] = useState('');
+  const buy = async () => {
+    if (!onCheckout || buying) return;
+    setBuyErr('');
+    setBuying(true);
+    const res = await onCheckout();
+    setBuying(false);
+    if (!res.ok) setBuyErr(res.error || 'Payment could not be completed.');
+  };
   const [changeTo, setChangeTo] = useState<string | null>(null);
   // Billing cadence. Both cadences quote a per-month price; picking one only
   // changes how often the card is charged (and the monthly rate).
@@ -162,9 +172,18 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
         <div>
           {!state.subscribed ? (
             <div style={{ marginTop: 14 }}>
-              <RingoButton onClick={() => onCheckout?.(cur.id, period)}>
-                Start my plan · {fmtMoney(perMonth)}/mo
+              <RingoButton loading={buying} onClick={buy}>
+                {buying ? 'Contacting the App Store…' : `Start my plan · ${fmtMoney(perMonth)}/mo`}
               </RingoButton>
+              {buyErr && (
+                <div role="alert" style={{
+                  marginTop: 10, padding: '10px 13px', borderRadius: 12,
+                  background: 'rgba(229,67,26,0.10)', border: '1px solid rgba(229,67,26,0.22)',
+                  fontFamily: 'var(--font)', fontSize: 12.5, color: '#B7341A', lineHeight: 1.45,
+                }}>
+                  {buyErr}
+                </div>
+              )}
               <div style={{ marginTop: 10, textAlign: 'center', fontFamily: 'var(--font)', fontSize: 12.5, color: RC.inkMute, lineHeight: 1.45 }}>
                 {billingNote(period)} · cancel anytime
               </div>

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { RC, SHADOW_CARD, SHADOW_HERO, GLASS_THIN } from '../theme';
 import { useRingoState } from '../store/store';
 import { COUNTRIES } from '../data/countries';
-import { TIERS, tierFor, nextTier, membershipFor } from '../data/tiers';
+import { TIERS, tierFor, nextTier, membershipFor, paidMonths, SCORE_UNIT } from '../data/tiers';
 import type { PhoneNumber, Tier } from '../data/types';
 import type { OnNav } from '../navigation';
 import { LOGO_SRC } from '../assets';
@@ -33,10 +33,11 @@ function greetingNow(): string {
 
 export function HomeScreen({ onNav }: { onNav: OnNav }) {
   const { state, actions } = useRingoState();
-  const rank = tierFor(state.score); // climbing rank (Orange → Coral → …)
-  const tier = membershipFor(state.score, state.pioneer); // shown membership (Pioneer or rank)
-  const next = nextTier(state.score);
-  const toNext = next ? next.min - state.score : 0;
+  const score = paidMonths(state.subscribedAt); // the ladder counts paid months
+  const rank = tierFor(score);
+  const tier = membershipFor(score, state.pioneer); // shown membership (Pioneer or rank)
+  const next = nextTier(score);
+  const toNext = next ? next.min - score : 0;
   const kycDone = state.kycStatus === 'verified';
   const leveledTo = state.tierUp ? TIERS.find((t) => t.id === state.tierUp) : null;
   useEffect(() => { if (state.tierUp) hapticNotify('success'); }, [state.tierUp]);
@@ -150,7 +151,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
               padding: 2, display: 'flex',
             }}
           >
-            <RingoAvatar name={state.name} avatar={state.avatar} pioneer={state.pioneer} size={34} />
+            <RingoAvatar name={state.name} avatar={state.avatar} pioneer={state.pioneer} size={34} tier={tier} />
           </div>
         </div>
 
@@ -169,6 +170,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
           kycDone={kycDone}
           subscribed={state.subscribed}
           hasNumber={state.numbers.length > 0}
+          hasEsim={!!state.esim}
           onNav={onNav}
         />
 
@@ -201,17 +203,20 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
 
         {/* ── HERO: membership tier card ──────────────────────── */}
         <div style={{ padding: '0 20px' }}>
-          <TierCard tier={tier} rank={rank} next={next} toNext={toNext} score={state.score} onClick={() => onNav('tiers')} />
+          <TierCard tier={tier} rank={rank} next={next} toNext={toNext} score={score} onClick={() => onNav('tiers')} />
         </div>
 
         {/* ── Metric strip ────────────────────────────────────── */}
-        <div style={{ padding: '14px 20px 0', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+        <div style={{ padding: '14px 20px 0', display: 'grid', gridTemplateColumns: NUMBERS_LIVE ? '1fr 1fr 1fr' : '1fr 1fr', gap: 10 }}>
           <MetricTile value={`${Math.round(state.dataPct * 100)}%`} label="Data used" onClick={() => onNav('plan')} />
           <MetricTile value={state.countries} label="Countries" onClick={() => onNav('browse')} />
-          <MetricTile value={state.numbers.length} label="Numbers" onClick={() => onNav('numbers')} />
+          {NUMBERS_LIVE && (
+            <MetricTile value={state.numbers.length} label="Numbers" onClick={() => onNav('numbers')} />
+          )}
         </div>
 
         {/* ── Active number (compact) ─────────────────────────── */}
+        {NUMBERS_LIVE && (<>
         <div style={{ padding: '28px 20px 10px', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
           <div style={{ fontFamily: 'var(--font)', fontSize: 18, fontWeight: 600, color: RC.ink, letterSpacing: -0.3 }}>Your numbers</div>
           <button
@@ -224,8 +229,10 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
         <div style={{ padding: '0 20px' }}>
           <NumberBuckets numbers={state.numbers} onMore={() => onNav('numbers')} onAdd={() => onNav('addNumber')} />
         </div>
+        </>)}
 
-        {/* ── KYC verification status ─────────────────────────── */}
+        {/* ── KYC verification status (only when identity is required) ── */}
+        {KYC_REQUIRED && (<>
         <div style={{ padding: '24px 20px 0' }}>
           <div
             onClick={kycDone ? undefined : () => onNav('kyc')}
@@ -287,6 +294,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
             )}
           </div>
         </div>
+        </>)}
 
         {/* ── Discovery: trips ────────────────────────────────── */}
         <div style={{ padding: '28px 20px 10px', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
@@ -337,7 +345,7 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
 
 // Finish-setup checklist — a clear, persistent list of the steps to get live
 // (verify → plan → number). Disappears once every step is done.
-function SetupChecklist({ kycDone, subscribed, hasNumber, onNav }: { kycDone: boolean; subscribed: boolean; hasNumber: boolean; onNav: OnNav }) {
+function SetupChecklist({ kycDone, subscribed, hasNumber, hasEsim, onNav }: { kycDone: boolean; subscribed: boolean; hasNumber: boolean; hasEsim: boolean; onNav: OnNav }) {
   // Ringo Light is a data eSIM: no identity check to pass and no number to
   // add, so the launch checklist is just plan → install.
   const steps: { label: string; done: boolean; to: 'kyc' | 'plan' | 'addNumber' | 'install' }[] = [
@@ -345,7 +353,7 @@ function SetupChecklist({ kycDone, subscribed, hasNumber, onNav }: { kycDone: bo
     { label: 'Choose your plan', done: subscribed, to: 'plan' as const },
     ...(NUMBERS_LIVE
       ? [{ label: PORTING_LIVE ? 'Add or keep your number' : 'Set up your number', done: hasNumber, to: 'addNumber' as const }]
-      : [{ label: 'Install your eSIM', done: hasNumber, to: 'install' as const }]),
+      : [{ label: 'Install your eSIM', done: hasEsim, to: 'install' as const }]),
   ];
   const doneCount = steps.filter((s) => s.done).length;
   if (doneCount === steps.length) return null;
@@ -459,9 +467,9 @@ function TierCard({
         </svg>
       </div>
 
-      {/* Completion ring — real countries connected inside a closing loop
-          (Apple-rings / Gestalt closure: the mind wants to close the ring).
-          The number is EVIDENCE — actual countries, not a badge. */}
+      {/* Completion ring — paid months inside a closing loop (Apple-rings /
+          Gestalt closure: the mind wants to close the ring). The number is
+          EVIDENCE — months actually paid for, not a badge. */}
       <div style={{ position: 'relative', marginTop: 16, display: 'flex', alignItems: 'center', gap: 18 }}>
         <div style={{ position: 'relative', width: 104, height: 104, flexShrink: 0 }}>
           <svg width="104" height="104" viewBox="0 0 104 104" style={{ transform: 'rotate(-90deg)' }}>
@@ -475,14 +483,14 @@ function TierCard({
           </svg>
           <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ fontFamily: 'var(--font)', fontSize: 34, fontWeight: 700, letterSpacing: -1.5, lineHeight: 1.1 }}>{score}</div>
-            <div style={{ fontFamily: 'var(--font)', fontSize: 9.5, fontWeight: 600, opacity: 0.9, letterSpacing: 0.4, textTransform: 'uppercase' }}>countries</div>
+            <div style={{ fontFamily: 'var(--font)', fontSize: 9.5, fontWeight: 600, opacity: 0.9, letterSpacing: 0.4, textTransform: 'uppercase' }}>{score === 1 ? SCORE_UNIT.one : SCORE_UNIT.many}</div>
           </div>
         </div>
         <div style={{ flex: 1 }}>
           {next ? (
             <>
               <div style={{ fontFamily: 'var(--font)', fontSize: 15.5, fontWeight: 700, lineHeight: 1.25 }}>
-                <strong style={{ fontWeight: 800 }}>{toNext} more</strong> to unlock {next.name}
+                <strong style={{ fontWeight: 800 }}>{toNext} more {toNext === 1 ? SCORE_UNIT.one : SCORE_UNIT.many}</strong> to unlock {next.name}
               </div>
               <div style={{ marginTop: 5, fontFamily: 'var(--font)', fontSize: 12.5, fontWeight: 500, opacity: 0.92, lineHeight: 1.4 }}>
                 {next.perk}

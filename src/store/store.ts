@@ -13,7 +13,7 @@ import { useEffect, useReducer } from 'react';
 import { RingoAPI, type KycPayload } from '../api/ringoApi';
 import { CO_BY_CODE } from '../data/countries';
 import { NUMBERS } from '../data/numbers';
-import { USER, tierFor } from '../data/tiers';
+import { USER } from '../data/tiers';
 import { getSession } from '../auth/auth';
 import { isSupabaseConfigured, sbData } from '../lib/ringoSupabase';
 import { log } from '../lib/log';
@@ -30,6 +30,8 @@ export interface RingoState {
   planId: string;
   /** True once a plan has been paid for. Gates eSIM activation. */
   subscribed: boolean;
+  /** When the subscription began — the membership ladder counts from here. */
+  subscribedAt: string | null;
   /** ISO date the current paid month renews (proration + downgrade timing). */
   periodEnd: string;
   /** A downgrade scheduled to take effect at `periodEnd` (null = none). The
@@ -126,6 +128,7 @@ function defaults(): RingoState {
     activeNumberId: live ? '' : 'be',
     planId: 'light',
     subscribed: false,
+    subscribedAt: null,
     periodEnd: isoIn(),
     pendingPlanId: null,
     currentCountry: USER.currentCountry || 'GB',
@@ -348,7 +351,8 @@ export const actions = {
         return { ok: false, error: 'Payment could not be completed. Please try again.' };
       }
     }
-    set({ subscribed: true, planId, pendingPlanId: null, periodEnd: isoIn() });
+    set({ subscribed: true, planId, pendingPlanId: null, periodEnd: isoIn(),
+      subscribedAt: get().subscribedAt ?? new Date().toISOString() });
     return { ok: true };
   },
 
@@ -359,7 +363,8 @@ export const actions = {
     const active = await iapActivePlan();
     if (!active) return { ok: false, error: 'No active Ringo subscription found on this Apple ID.' };
     if (sb) { try { await sbData.switchPlan(active); } catch (e) { log.warn('restore.persist', e); } }
-    set({ subscribed: true, planId: active, pendingPlanId: null });
+    set({ subscribed: true, planId: active, pendingPlanId: null,
+      subscribedAt: get().subscribedAt ?? new Date().toISOString() });
     return { ok: true, planId: active };
   },
 
@@ -447,14 +452,12 @@ export const actions = {
   async enableCountry(code: string) {
     const s = get();
     const already = s.currentCountry === code;
-    const newScore = already ? s.score : s.score + 1;
-    // Membership climbs with each genuinely-new country connected this year.
-    const leveledUp = tierFor(newScore).id !== tierFor(s.score).id;
+    // Countries no longer move the membership ladder: travelling more is what
+    // COSTS Ringo, so it cannot be the thing that earns rewards. The ladder
+    // counts paid months (see data/tiers.ts).
     set({
       currentCountry: code,
       countries: already ? s.countries : s.countries + 1,
-      score: newScore,
-      tierUp: leveledUp ? tierFor(newScore).id : s.tierUp,
     });
     try {
       await RingoAPI.connectivity.enableCountry(code);

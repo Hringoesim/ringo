@@ -1,17 +1,32 @@
 import type { Tier } from './types';
 
-// Membership ladder — everyone starts Amber. Score = countries connected this year.
-// (Named for warm colours, not carriers — "Orange" is a trademarked network.)
+// ── Membership ladder ────────────────────────────────────────────────────────
+//
+// This used to score on "countries connected this year" and reward the top
+// rungs with bonus data, lounge passes and a concierge. That was backwards on
+// both sides: visiting more countries is the behaviour that COSTS Ringo the
+// most (more data, more networks), so paying for it with more data compounded
+// the loss — and a two-person company at 41% margin cannot hand out lounge
+// passes or staff a 24/7 concierge, so those were promises to paying customers
+// that could not be kept.
+//
+// It now scores on PAID MONTHS, because that is the number the P&L is least
+// sure of (renewal is assumed 40% and unproven) and the cheapest to move. The
+// reward is account CREDIT toward the next renewal: it costs nothing until the
+// customer stays, which is exactly the behaviour worth buying. Never a
+// discount — Ringo does not do percentage-off.
 export const TIERS: Tier[] = [
-  { id: 'amber',   name: 'Amber',   min: 0,  c1: '#FFB53E', c2: '#FF5D2E', glow: 'rgba(255,109,46,0.45)', perk: 'Data in 180+ countries · number included' },
-  { id: 'coral',   name: 'Coral',   min: 6,  c1: '#FF7E5F', c2: '#FF4778', glow: 'rgba(255,71,120,0.45)', perk: 'Bonus data each month · faster cap' },
-  { id: 'crimson', name: 'Crimson', min: 15, c1: '#FF4778', c2: '#D6247E', glow: 'rgba(214,36,126,0.45)', perk: 'Airport lounge passes · priority support' },
-  { id: 'aurora',  name: 'Aurora',  min: 30, c1: '#8652E0', c2: '#FF42A1', glow: 'rgba(134,82,224,0.45)', perk: 'Free partner upgrades · 24/7 concierge' },
+  { id: 'amber',   name: 'Amber',   min: 0,  c1: '#FFB53E', c2: '#FF5D2E', glow: 'rgba(255,109,46,0.45)', perk: 'Data in 180+ countries, one allowance' },
+  { id: 'coral',   name: 'Coral',   min: 6,  c1: '#FF7E5F', c2: '#FF4778', glow: 'rgba(255,71,120,0.45)', perk: '€10 credit toward your next renewal' },
+  { id: 'crimson', name: 'Crimson', min: 12, c1: '#FF4778', c2: '#D6247E', glow: 'rgba(214,36,126,0.45)', perk: '€25 renewal credit · priority support' },
+  { id: 'aurora',  name: 'Aurora',  min: 24, c1: '#8652E0', c2: '#FF42A1', glow: 'rgba(134,82,224,0.45)', perk: '€50 renewal credit · first access to new features' },
 ];
 
-// Pioneer — a special founding membership, granted by a Pioneer code (not by
-// score). It's the top, exclusive status; Pioneers STILL climb the rank ladder
-// above (Orange → Coral → …), so it layers over `tierFor`.
+/** What each rung is measured in — used for the "N more to unlock" line. */
+export const SCORE_UNIT = { one: 'paid month', many: 'paid months' };
+
+// Pioneer — the founding membership, granted by a Pioneer code rather than
+// earned. Pioneers still climb the ladder underneath.
 export const PIONEER_TIER: Tier = {
   id: 'pioneer',
   name: 'Pioneer',
@@ -19,7 +34,7 @@ export const PIONEER_TIER: Tier = {
   c1: '#F0733A',
   c2: '#7E3A73',
   glow: 'rgba(126,58,115,0.55)',
-  perk: 'Founding member — locked-in pricing & every perk',
+  perk: 'Founding member — your price is locked for life',
 };
 
 export function tierFor(score: number): Tier {
@@ -38,11 +53,19 @@ export function nextTier(score: number): Tier | null {
   return TIERS.find((x) => x.min > score) ?? null;
 }
 
-// Default user profile — real data only: Hippolyte, home market Belgium,
-// 1 country connected so far. Stats grow only from genuine activity.
+/** Whole months paid since the subscription started. This IS the score. */
+export function paidMonths(subscribedAt: string | null): number {
+  if (!subscribedAt) return 0;
+  const start = new Date(subscribedAt).getTime();
+  if (!Number.isFinite(start)) return 0;
+  const days = (Date.now() - start) / 86400000;
+  return Math.max(0, Math.floor(days / 30));
+}
+
+// Default profile — real data only. Stats grow from genuine activity.
 export const USER = {
   name: 'Hippolyte',
-  score: 1,
+  score: 0,
   dataPct: 0,
   countries: 1,
   currentCountry: 'BE',

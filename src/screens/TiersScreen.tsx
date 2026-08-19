@@ -2,7 +2,7 @@
 import { RC } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { BackBtn } from '../components/ui';
-import { TIERS, tierFor, nextTier } from '../data/tiers';
+import { TIERS, tierFor, nextTier, paidMonths } from '../data/tiers';
 import { useRingoState } from '../store/store';
 
 const perksByTier: Record<string, string[]> = {
@@ -14,7 +14,7 @@ const perksByTier: Record<string, string[]> = {
 
 export function TiersScreen({ onBack }: { onBack: () => void }) {
   const { state } = useRingoState();
-  const score = state.score;
+  const score = paidMonths(state.subscribedAt);
   const cur = tierFor(score);
   const next = nextTier(score);
   const toNext = next ? next.min - score : 0;

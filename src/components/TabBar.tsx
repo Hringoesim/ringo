@@ -2,6 +2,7 @@
 // destinations. A translucent, blurred capsule that hovers over the content.
 import type { ReactNode } from 'react';
 import { RC, GLASS } from '../theme';
+import { NUMBERS_LIVE } from '../data/launch';
 
 type TabId = 'home' | 'browse' | 'numbers' | 'plan';
 type IconKind = 'home' | 'globe' | 'phone' | 'card';
@@ -65,10 +66,14 @@ function tabIcon(kind: IconKind) {
   };
 }
 
+// Numbers is not part of the Ringo Light launch — there is no number to
+// manage, so the tab would open an empty room. It returns with NUMBERS_LIVE.
 const tabs: { id: TabId; label: string; icon: (c: string, active: boolean) => ReactNode }[] = [
   { id: 'home', label: 'Home', icon: tabIcon('home') },
   { id: 'browse', label: 'Browse', icon: tabIcon('globe') },
-  { id: 'numbers', label: 'Numbers', icon: tabIcon('phone') },
+  ...(NUMBERS_LIVE
+    ? [{ id: 'numbers' as const, label: 'Numbers', icon: tabIcon('phone') }]
+    : []),
   { id: 'plan', label: 'Plan', icon: tabIcon('card') },
 ];
 

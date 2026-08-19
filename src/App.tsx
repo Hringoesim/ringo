@@ -181,6 +181,22 @@ export function App() {
     push(target);
   };
 
+  // ONE action pays. There is no checkout screen: "Start my plan" opens the
+  // StoreKit sheet directly and, on success, goes straight to installing the
+  // eSIM. A separate paywall page in between was a step that asked the user to
+  // agree twice to the same purchase.
+  const buyNow = async (): Promise<{ ok: boolean; error?: string }> => {
+    const res = await storeActions.checkout('light');
+    if (res.ok) {
+      hapticNotify('success');
+      replace('home');
+      push('install');
+    } else {
+      hapticNotify('error');
+    }
+    return res;
+  };
+
   const onNav: OnNav = (target: NavTarget, ...args: string[]) => {
     if (target === 'home') return goTab('home');
     if (target === 'browse') return navTab('browse');
@@ -227,7 +243,7 @@ export function App() {
           // takes the money, so forcing a Ringo sign-up before checkout is
           // friction every data-eSIM app has already removed. The account is
           // required later, at the point the eSIM has to be issued to someone.
-          onBuy={(period) => { replace('home'); push('checkout', { planId: 'light', period }); }}
+          onBuy={buyNow}
         />
       );
       break;
@@ -383,7 +399,7 @@ export function App() {
         <PlanScreen
           onBack={backOrHome}
           onInstall={() => gateActivation('install')}
-          onCheckout={(planId, period) => push('checkout', { planId, period })}
+          onCheckout={buyNow}
         />
       );
       break;
