@@ -63,7 +63,7 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
               {billingNote(period)}
             </div>
             <div style={{ marginTop: 18, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {[`${periodDataGB(period)} GB / month`, 'Number included', '180+ countries', 'No zones'].map((t) => (
+              {[`${periodDataGB(period)} GB / month`, '180+ countries', 'No zones'].map((t) => (
                 <div key={t} style={{ padding: '6px 12px', borderRadius: 999, background: 'rgba(255,253,251,0.22)', fontFamily: 'var(--font)', fontSize: 12, fontWeight: 600 }}>{t}</div>
               ))}
             </div>

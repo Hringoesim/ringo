@@ -1,7 +1,7 @@
 // PaywallScreen — the plan checkout. Real money gate: the eSIM can't be
 // activated until a plan is paid for here. Payment runs through the store's
-// `checkout` seam (demo simulates a successful charge; live mode uses Stripe,
-// so the app never touches card data).
+// `checkout` seam. Payment is Apple in-app purchase only — StoreKit takes the
+// money against the Apple ID, so the app never touches card data.
 import { useState, useEffect } from 'react';
 import { RC } from '../theme';
 import { RingoHeader } from '../components/Header';
@@ -194,7 +194,7 @@ export function PaywallScreen({ planId, period = DEFAULT_PERIOD, onBack, onPaid 
         )}
 
         <div style={{ marginTop: 14, fontFamily: 'var(--font)', fontSize: 11.5, color: RC.inkMute, lineHeight: 1.5, textAlign: 'center' }}>
-          {iap ? 'Billed to your Apple ID · Cancel anytime in Settings' : 'Secured by Stripe · No hidden fees · Cancel anytime'}
+          {'Billed to your Apple ID · Cancel anytime in Settings'}
           {` · Fair use ${AFRICA_DAILY_GB} GB/day on African networks`}
         </div>
 

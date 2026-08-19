@@ -11,9 +11,8 @@ import type { Plan } from './types';
 export const PLANS: Plan[] = [
   {
     id: 'light', name: 'Ringo Light', price: 39.99, highspeed: 'Global data',
-    tagline: 'Global data + a real number', current: true, maxNumbers: 1,
+    tagline: 'Global data', current: true, maxNumbers: 0,
     feats: [
-      'A real phone number, included',
       '180+ countries, one allowance',
       'Slowed at the limit, never cut off',
       'Cancel anytime',
@@ -56,7 +55,7 @@ export const TOP_UP = { gb: 5, price: 26.99 };
 /** Top-up price in the device (or given) currency. */
 export function topUpPrice(currency = localCurrency()): number {
   const eur = TOP_UP.price;
-  const scale = (MONTHLY_PRICE[currency] ?? MONTHLY_PRICE.EUR) / MONTHLY_PRICE.EUR;
+  const scale = (MONTHLY_NET[currency] ?? MONTHLY_NET.EUR) / MONTHLY_NET.EUR;
   return currency === 'JPY' ? Math.round(eur * scale) : Math.round(eur * scale * 100) / 100;
 }
 
@@ -77,19 +76,31 @@ export const DEFAULT_PERIOD: BillingPeriod = 'annual';
 // One monthly rate, whatever the term. EUR is the authoritative figure from
 // Ringo_Light_Master_PL.xlsx and is NET of VAT — the customer pays VAT on top
 // (EUR39.99 net = EUR47.99 gross at 20%). Other currencies still need sign-off.
-const MONTHLY_PRICE: Record<string, number> = {
+// Pricing has ONE source of truth: the net monthly figure the P&L runs on
+// (Ringo_Light_Master_PL.xlsx). Everything the customer sees is that figure
+// plus VAT, rounded once — which reproduces the sheet exactly:
+//   2 months  79.98 net -> 95.98 gross
+//   12 months 479.88 net -> 575.86 gross
+// Consumers in the EU/UK must be shown tax-inclusive prices, and the App
+// Store charges tax-inclusive regardless.
+const MONTHLY_NET: Record<string, number> = {
   EUR: 39.99, GBP: 39.99, USD: 39.99, AUD: 62.99, NZD: 67.99,
   CAD: 54.99, JPY: 6100, SGD: 54.99, HKD: 315, AED: 147,
 };
+/** Assumed VAT. The sheet models 20%; real rate varies by billing country. */
+export const VAT_RATE = 0.20;
+const gross = (net: number) => Math.round(net * (1 + VAT_RATE) * 100) / 100;
 
 /** Per-month price for a cadence, in the device (or given) currency. */
 export function periodMonthlyPrice(_period: BillingPeriod, currency = localCurrency()): number {
-  return MONTHLY_PRICE[currency] ?? MONTHLY_PRICE.EUR;
+  return gross(MONTHLY_NET[currency] ?? MONTHLY_NET.EUR);
 }
 
 /** What actually gets charged each time: the monthly rate x the interval. */
 export function periodChargeTotal(period: BillingPeriod, currency = localCurrency()): number {
-  return periodMonthlyPrice(period, currency) * BILLING[period].months;
+  // gross the TOTAL, not the monthly, so the charge matches the sheet to the cent
+  const net = (MONTHLY_NET[currency] ?? MONTHLY_NET.EUR) * BILLING[period].months;
+  return gross(net);
 }
 
 

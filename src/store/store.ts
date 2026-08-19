@@ -287,7 +287,7 @@ export const actions = {
           : n,
       ),
     });
-    // FIXME(live): schedule a Stripe subscription update at period end + queue the
+    // FIXME(live): schedule the StoreKit downgrade at period end + queue the
     // number deprovisioning jobs so the change is enforced server-side, not just UI.
     return { ok: true };
   },
@@ -317,7 +317,7 @@ export const actions = {
   },
 
   /** Pay for a plan. Demo simulates an instant successful charge; live mode
-   *  routes through the billing seam (Stripe Checkout/subscription) — the app
+   *  routes through Apple in-app purchase (StoreKit) — the app
    *  never sees card details. On success the account becomes `subscribed`,
    *  which unlocks eSIM activation and opens a fresh billing period. */
   async checkout(planId: string): Promise<{ ok: boolean; error?: string }> {
@@ -341,7 +341,7 @@ export const actions = {
       }
     } else {
       try {
-        if (sb) await sbData.switchPlan(planId); // FIXME(live): create Stripe subscription server-side
+        if (sb) await sbData.switchPlan(planId); // FIXME(live): verify the receipt server-side
         else await RingoAPI.billing.switchPlan(planId);
       } catch (e) {
         log.error('checkout', e, { planId });

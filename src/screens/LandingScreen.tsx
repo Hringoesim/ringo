@@ -1,7 +1,7 @@
 // LandingScreen — the entry screen. Vivid warm gradient sky, the Ringo logo, a
 // live flight globe, and the two pill CTAs: "Create account" (opens sign-up with
 // Apple / Google / email) and "Log in". Fully adaptive.
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useLayoutEffect, useRef } from 'react';
 import { SaturnWorld } from '../components/SaturnWorld';
 import { RingoButton } from '../components/Button';
 import { LOGO_SRC } from '../assets';
@@ -21,6 +21,7 @@ export function LandingScreen({
   const [period, setPeriod] = useState<BillingPeriod>(DEFAULT_PERIOD);
   const [globe, setGlobe] = useState(300);
   const [compact, setCompact] = useState(false);
+  const heroRef = useRef<HTMLDivElement>(null);
   // Explore plays a visible launch pop, THEN navigates — a fast tap still
   // gets its moment of feedback.
   const [launching, setLaunching] = useState(false);
@@ -29,6 +30,18 @@ export function LandingScreen({
     setLaunching(true);
     setTimeout(onExplore, 210);
   };
+  // The globe took a fixed share of the screen height, so on a 812pt phone the
+  // hero ran 23px over its box and clipped the last line of the subhead. Rather
+  // than tune a fraction per device, measure: if the hero overflows, shrink the
+  // globe by exactly the overflow. Converges in one or two passes and is
+  // correct on every screen size.
+  useLayoutEffect(() => {
+    const el = heroRef.current;
+    if (!el) return;
+    const over = el.scrollHeight - el.clientHeight;
+    if (over > 1) setGlobe((g) => Math.max(150, g - over - 4));
+  }, [globe, compact]);
+
   useEffect(() => {
     const compute = () => {
       const w = window.innerWidth;
@@ -58,11 +71,15 @@ export function LandingScreen({
         background: [
           'radial-gradient(120% 70% at 72% 22%, rgba(255,196,110,0.62) 0%, rgba(255,196,110,0) 55%)',
           'radial-gradient(120% 80% at 14% 92%, rgba(183,54,226,0.20) 0%, rgba(183,54,226,0) 62%)',
-          'linear-gradient(180deg, #FFE7C2 0%, #FFC489 20%, #FF9A5A 40%, #EF5F2A 64%, #8C2E18 88%, #571C10 100%)',
+          // Warm sunset, the way ringoesim.com runs it: orange into pink into
+          // purple. The old stops fell away into browns (#8C2E18, #571C10),
+          // which is what made the lower half look muddy and dated.
+          'linear-gradient(180deg, #FFE3B8 0%, #FFB877 17%, #FF8A5B 35%, #F2585F 55%, #D33C8E 74%, #9B57DC 91%, #7A44C4 100%)',
         ].join(', '),
       }}
     >
       <div
+        ref={heroRef}
         style={{
           // minHeight 0 + hidden overflow: if space ever runs short the column
           // clips gracefully — the front page itself NEVER scrolls.
@@ -112,7 +129,7 @@ export function LandingScreen({
             lineHeight: 1.5, maxWidth: 310,
           }}
         >
-          One allowance, 180+ countries, and a real number.
+          One allowance, 180+ countries, no roaming fees.
         </div>
       </div>
 
@@ -121,7 +138,7 @@ export function LandingScreen({
         <div
           style={{
             borderRadius: 20, padding: compact ? '12px 14px' : '14px 16px',
-            background: 'rgba(20,10,30,0.42)', border: '1px solid rgba(255,255,255,0.14)',
+            background: 'rgba(52,24,86,0.34)', border: '1px solid rgba(255,255,255,0.20)',
             backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
           }}
         >
@@ -132,7 +149,7 @@ export function LandingScreen({
             <span style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 500, opacity: 0.9 }}>/ month</span>
           </div>
           <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 12.5, color: 'rgba(255,255,255,0.82)' }}>
-            {periodDataGB(period)} GB a month · number included · {billingNote(period)}
+            {periodDataGB(period)} GB a month · {billingNote(period)}
           </div>
 
           <div
