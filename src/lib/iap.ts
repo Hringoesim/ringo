@@ -44,10 +44,15 @@ const Native = registerPlugin<StoreKitPlugin>('StoreKit');
 // Plan id ↔ App Store product id. MUST match ios/App/App/Ringo.storekit and the
 // products created in App Store Connect.
 export const PLAN_PRODUCT: Record<string, string> = {
-  // TODO(billing): the App Store Connect subscription for Ringo Light still
-  // has to be created — the four products already in ASC are the retired
-  // Essentials/Plus/Pro/Unlimited tiers. Purchases fail until it exists.
-  light: 'com.ringoesim.app.sub.light',
+  // TODO(billing): neither product exists in App Store Connect yet. The four
+  // subscriptions already there are the retired Essentials/Plus/Pro/Unlimited
+  // tiers. Ringo Light needs TWO products — one per billing cadence — because
+  // StoreKit models the interval, not just the price:
+  //   light           -> 1 year,   shown as 39.99/month (479.88 charged)
+  //   light_bimonthly -> 2 months, shown as 44.26/month (88.52 charged)
+  // Purchases fail until both are created and priced.
+  light: 'com.ringoesim.app.sub.light.annual',
+  light_bimonthly: 'com.ringoesim.app.sub.light.bimonthly',
 };
 const PRODUCT_PLAN: Record<string, string> = Object.fromEntries(
   Object.entries(PLAN_PRODUCT).map(([plan, pid]) => [pid, plan]),

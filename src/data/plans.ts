@@ -10,11 +10,62 @@ import type { Plan } from './types';
 // logic picks them up unchanged.
 export const PLANS: Plan[] = [
   {
-    id: 'light', name: 'Ringo Light', price: 15, highspeed: '10 GB',
+    id: 'light', name: 'Ringo Light', price: 39.99, highspeed: 'Unlimited',
     tagline: 'Global data', current: true, maxNumbers: 0,
-    feats: ['10 GB high-speed data / month', 'Data in 180+ countries', 'One eSIM, no roaming fees', 'Cancel anytime'],
+    feats: ['Unlimited data — never cut off', '12 GB a month at full speed, then reduced', 'Data in 180+ countries', 'One eSIM, no roaming fees'],
   },
 ];
+
+
+// ── Billing cadence ─────────────────────────────────────────────────────────
+// Ringo Light is sold on two cadences. Both are quoted PER MONTH — the annual
+// one is charged once for twelve months, the short one every two months — so
+// the comparison a traveller makes is monthly rate vs commitment length.
+/** Fair use: data is unlimited in that it is never cut off, but full speed
+ *  stops at this many GB a month and the rest of the month runs reduced.
+ *  The Terms carry the same figure — change both together. */
+export const FAIR_USE_GB = 12;
+
+export type BillingPeriod = 'annual' | 'bimonthly';
+
+export const BILLING: Record<BillingPeriod, { label: string; months: number; note: string }> = {
+  annual: { label: 'Annual', months: 12, note: 'billed once a year' },
+  bimonthly: { label: 'Every 2 months', months: 2, note: 'billed every 2 months' },
+};
+
+export const DEFAULT_PERIOD: BillingPeriod = 'annual';
+
+// Per-month price by currency, per cadence. USD/EUR/GBP carry the prices the
+// owner set (39.99 annual, 44.26 bimonthly); the rest are scaled from the old
+// table's ratios and still need per-market sign-off.
+const PERIOD_PRICES: Record<BillingPeriod, Record<string, number>> = {
+  annual: {
+    USD: 39.99, GBP: 39.99, EUR: 39.99, AUD: 62.99, NZD: 67.99,
+    CAD: 54.99, JPY: 6100, SGD: 54.99, HKD: 315, AED: 147,
+  },
+  bimonthly: {
+    USD: 44.26, GBP: 44.26, EUR: 44.26, AUD: 69.99, NZD: 74.99,
+    CAD: 60.99, JPY: 6750, SGD: 60.99, HKD: 349, AED: 163,
+  },
+};
+
+/** Per-month price for a cadence, in the device (or given) currency. */
+export function periodMonthlyPrice(period: BillingPeriod, currency = localCurrency()): number {
+  const table = PERIOD_PRICES[period];
+  return table[currency] ?? table.USD;
+}
+
+/** What actually gets charged each time: the monthly rate x the interval. */
+export function periodChargeTotal(period: BillingPeriod, currency = localCurrency()): number {
+  return periodMonthlyPrice(period, currency) * BILLING[period].months;
+}
+
+/** How much the annual cadence saves against the short one, as a percentage. */
+export function annualSavingPct(currency = localCurrency()): number {
+  const a = periodMonthlyPrice('annual', currency);
+  const b = periodMonthlyPrice('bimonthly', currency);
+  return b > 0 ? Math.round(((b - a) / b) * 100) : 0;
+}
 
 // ── Plan ordering + entitlements (used by the switch / proration logic) ──────
 /** Rank in the lineup. One rung today; higher plans slot in above it. */
@@ -32,8 +83,8 @@ export function planMaxNumbers(planId: string): number {
 // ── Multi-currency pricing (site-exact, from ringoesim.com) ──────────────────
 export const PLAN_PRICES: Record<string, number[]> = {
   // One entry per plan, in PLANS order — Ringo Light only for now.
-  USD: [19], GBP: [15], EUR: [17], AUD: [30], NZD: [32],
-  CAD: [26], JPY: [2900], SGD: [26], HKD: [150], AED: [70],
+  USD: [39.99], GBP: [39.99], EUR: [39.99], AUD: [62.99], NZD: [67.99],
+  CAD: [54.99], JPY: [6100], SGD: [54.99], HKD: [315], AED: [147],
 };
 
 const REGION_CURRENCY: Record<string, string> = {
@@ -81,8 +132,10 @@ export function planPrice(planId: string, currency = localCurrency()): number {
 /** Format an amount in the given (or device) currency, e.g. €55, £47, ¥8,900. */
 export function fmtMoney(amount: number, currency = localCurrency()): string {
   try {
+    const whole = Math.abs(amount % 1) < 0.005;
+    const digits = currency === 'JPY' || whole ? 0 : 2;
     return new Intl.NumberFormat(navigator.language || 'en', {
-      style: 'currency', currency, maximumFractionDigits: currency === 'JPY' ? 0 : 0,
+      style: 'currency', currency, minimumFractionDigits: digits, maximumFractionDigits: digits,
     }).format(amount);
   } catch {
     return `$${amount}`;

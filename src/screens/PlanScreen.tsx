@@ -1,14 +1,18 @@
 // PlanScreen — plan & billing. Real Ringo lineup with a selectable picker,
 // fair-use ring, add-ons and recent invoices.
 import { useState } from 'react';
-import { RC } from '../theme';
+import { RC , RADIUS } from '../theme';
 import { hapticSelection } from '../lib/haptics';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { RingoCard } from '../components/Card';
 import { BackBtn, SectionTitle } from '../components/ui';
 import { useRingoState } from '../store/store';
-import { PLANS, planPrice, planRank, fmtMoney, fmtDate } from '../data/plans';
+import {
+  PLANS, planRank, fmtMoney, fmtDate,
+  BILLING, DEFAULT_PERIOD, periodMonthlyPrice, periodChargeTotal, annualSavingPct, FAIR_USE_GB,
+  type BillingPeriod,
+} from '../data/plans';
 import { PlanChangeSheet } from '../components/PlanChangeSheet';
 
 interface PlanScreenProps {
@@ -23,6 +27,12 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
   const currentId = state.planId;
   const [selected, setSelected] = useState(currentId);
   const [changeTo, setChangeTo] = useState<string | null>(null);
+  // Billing cadence. Both cadences quote a per-month price; picking one only
+  // changes how often the card is charged (and the monthly rate).
+  const [period, setPeriod] = useState<BillingPeriod>(DEFAULT_PERIOD);
+  const perMonth = periodMonthlyPrice(period);
+  const charged = periodChargeTotal(period);
+  const saving = annualSavingPct();
   const cur = PLANS.find((p) => p.id === selected) || PLANS[0];
   const isCurrent = (id: string) => id === currentId;
   const pending = state.pendingPlanId ? PLANS.find((p) => p.id === state.pendingPlanId) : null;
@@ -47,20 +57,49 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
               )}
             </div>
             <div style={{ marginTop: 8, display: 'flex', alignItems: 'baseline', gap: 6 }}>
-              <span style={{ fontFamily: 'var(--font)', fontSize: 64, fontWeight: 700, letterSpacing: -2, lineHeight: 1 }}>{fmtMoney(planPrice(cur.id))}</span>
+              <span style={{ fontFamily: 'var(--font)', fontSize: 64, fontWeight: 700, letterSpacing: -2, lineHeight: 1 }}>{fmtMoney(perMonth)}</span>
               <span style={{ fontFamily: 'var(--font)', fontSize: 15, fontWeight: 500, opacity: 0.85 }}>/ month</span>
+            </div>
+            <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 12.5, fontWeight: 500, opacity: 0.85 }}>
+              {fmtMoney(charged)} {BILLING[period].note}
             </div>
             <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 14, fontWeight: 400, opacity: 0.9, lineHeight: 1.5 }}>
               {cur.highspeed === 'Unlimited'
-                ? 'Truly unlimited high-speed data in 180+ countries. No fair-use throttle. Cancel any time.'
+                ? `Unlimited data in 180+ countries — ${FAIR_USE_GB} GB a month at full speed, then reduced speed for the rest of the month. Never cut off. Cancel any time.`
                 : `${cur.highspeed} high-speed data in 180+ countries, then unlimited at standard speed. Cancel any time.`}
             </div>
             <div style={{ marginTop: 18, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {[cur.highspeed === 'Unlimited' ? 'Unlimited 5G' : `${cur.highspeed} high-speed`, '180+ countries', 'Data only'].map((t) => (
+              {[cur.highspeed === 'Unlimited' ? 'Unlimited data' : `${cur.highspeed} high-speed`, `${FAIR_USE_GB} GB full speed`, '180+ countries', 'Data only'].map((t) => (
                 <div key={t} style={{ padding: '6px 12px', borderRadius: 999, background: 'rgba(255,253,251,0.22)', fontFamily: 'var(--font)', fontSize: 12, fontWeight: 600 }}>{t}</div>
               ))}
             </div>
           </div>
+        </div>
+
+        {/* Billing cadence — the price shown is per month either way */}
+        <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
+          {(Object.keys(BILLING) as BillingPeriod[]).map((k) => {
+            const on = k === period;
+            return (
+              <button
+                key={k}
+                className="press"
+                onClick={() => { hapticSelection(); setPeriod(k); }}
+                style={{
+                  flex: 1, padding: '11px 10px', borderRadius: RADIUS.md, cursor: 'pointer',
+                  background: on ? RC.gradSoft : RC.paper,
+                  border: `1.5px solid ${on ? RC.inkStrong : RC.line}`,
+                  fontFamily: 'var(--font)', textAlign: 'center',
+                }}
+              >
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: RC.ink }}>{BILLING[k].label}</div>
+                <div style={{ marginTop: 2, fontSize: 11.5, fontWeight: 500, color: RC.inkMute }}>
+                  {fmtMoney(periodMonthlyPrice(k))}/mo
+                  {k === 'annual' && saving > 0 ? ` · save ${saving}%` : ''}
+                </div>
+              </button>
+            );
+          })}
         </div>
 
         {/* Scheduled downgrade banner */}
@@ -136,7 +175,7 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
                       </div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontFamily: 'var(--font)', fontSize: 20, fontWeight: 700, color: RC.inkStrong, letterSpacing: -0.5, lineHeight: 1 }}>{fmtMoney(planPrice(p.id))}</div>
+                      <div style={{ fontFamily: 'var(--font)', fontSize: 20, fontWeight: 700, color: RC.inkStrong, letterSpacing: -0.5, lineHeight: 1 }}>{fmtMoney(perMonth)}</div>
                       <div style={{ fontFamily: 'var(--font)', fontSize: 10.5, color: RC.inkMute, fontWeight: 500 }}>/mo</div>
                     </div>
                   </div>
@@ -159,13 +198,13 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
           {!state.subscribed ? (
             <div style={{ marginTop: 14 }}>
               <RingoButton onClick={() => onCheckout?.(cur.id)}>
-                Subscribe to {cur.name} — {fmtMoney(planPrice(cur.id))}/mo
+                Subscribe — {fmtMoney(perMonth)}/mo, {BILLING[period].note}
               </RingoButton>
             </div>
           ) : !isCurrent(cur.id) ? (
             <div style={{ marginTop: 14 }}>
               <RingoButton onClick={() => setChangeTo(cur.id)}>
-                {direction} to {cur.name} — {fmtMoney(planPrice(cur.id))}/mo
+                {direction} to {cur.name} — {fmtMoney(perMonth)}/mo
               </RingoButton>
             </div>
           ) : null}
