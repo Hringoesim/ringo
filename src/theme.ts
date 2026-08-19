@@ -82,43 +82,47 @@ const DARK: Palette = {
   lineStrong: 'rgba(255,255,255,0.20)',
   cream: 'rgba(255,255,255,0.07)',
   cream2: 'rgba(255,255,255,0.15)',
-  grad: 'linear-gradient(135deg,#FF7A2F 0%, #FB3E84 50%, #E92BA0 100%)',
-  gradSoft: 'linear-gradient(135deg, rgba(255,122,47,0.20) 0%, rgba(233,43,160,0.20) 100%)',
+  // Same orange -> amber signature as the site, lifted for a dark ground.
+  grad: 'linear-gradient(135deg,#FF6A2A 0%, #FF8A3D 52%, #FFB83D 100%)',
+  gradSoft: 'linear-gradient(135deg, rgba(255,106,42,0.20) 0%, rgba(255,184,61,0.20) 100%)',
   gradDeep:
-    'radial-gradient(130% 150% at 12% 8%, rgba(255,178,98,0.55) 0%, rgba(255,178,98,0) 46%),' +
-    'linear-gradient(135deg, #E45E37 0%, #C4497F 52%, #7E3A73 100%)',
+    'radial-gradient(130% 150% at 12% 8%, rgba(255,184,61,0.55) 0%, rgba(255,184,61,0) 46%),' +
+    'linear-gradient(135deg, #D9511F 0%, #C4642A 52%, #7A4420 100%)',
   pink: '#FB3E84',
   glass: 'rgb(18,14,26)',
   glassBar: 'rgb(15,11,21)',
   pageBg:
-    'radial-gradient(900px 600px at 18% 8%, rgba(255,122,47,0.12), transparent 60%),' +
-    'radial-gradient(760px 520px at 86% 92%, rgba(233,43,160,0.14), transparent 60%), #07060C',
+    'radial-gradient(900px 600px at 18% 8%, rgba(255,106,42,0.12), transparent 60%),' +
+    'radial-gradient(760px 520px at 86% 92%, rgba(255,184,61,0.12), transparent 60%), #07060C',
 };
 
 const LIGHT: Palette = {
   scheme: 'light',
-  bg: '#FFFFFF', // white
-  paper: '#FFFFFF', // cards (separated from bg by hairline + shadow)
-  ink: '#211A2E', // near-black with a plum cast — crisp, no espresso brown
-  inkStrong: '#F26122', // vivid brand orange for links / small accents
-  inkMute: '#8D8499', // mauve-gray secondary text (no taupe)
-  line: 'rgba(33,26,46,0.08)', // cool neutral hairline
-  lineStrong: 'rgba(33,26,46,0.14)',
-  cream: '#FBF1F7', // blush pink for soft chips/tiles (was sand)
-  cream2: '#F3E7F6', // lavender blush
-  // The full vivid sunset — brand orange → hot pink → purple.
-  grad: 'linear-gradient(135deg, #F26122 0%, #FF42A1 52%, #8652E0 100%)',
-  gradSoft: 'linear-gradient(135deg, rgba(242,97,34,0.12) 0%, rgba(134,82,224,0.10) 100%)',
+  // Tokens lifted from ringoesim.com so the app and the site are one brand.
+  // The site's own CSS variables: --bg #fffaf7, --bg2 #fef3ee, --ink #1a0f2e,
+  // --ink2 #4a3f60, --ink3 #8b7fa8, --bdr #1a0f2e1a, --or #ff5724,
+  // --pk #ff42a1, --pu #8652e0, --grad orange -> amber.
+  bg: '#FFFAF7', // warm off-white, not pure white
+  paper: '#FFFFFF',
+  ink: '#1A0F2E', // deep plum-black
+  inkStrong: '#FF5724', // brand orange
+  inkMute: '#8B7FA8', // mauve secondary
+  line: 'rgba(26,15,46,0.10)',
+  lineStrong: 'rgba(26,15,46,0.16)',
+  cream: '#FEF3EE', // warm peach tint (the site's --bg2)
+  cream2: '#FDE7DC', // one step deeper, same warmth
+  // The site's primary gradient is orange into amber — no pink or purple.
+  grad: 'linear-gradient(135deg, #F93C1F 0%, #FF7733 52%, #FFB83D 100%)',
+  gradSoft: 'linear-gradient(135deg, rgba(249,60,31,0.12) 0%, rgba(255,184,61,0.12) 100%)',
   gradDeep:
-    'radial-gradient(130% 150% at 12% 8%, #FFB262 0%, rgba(255,178,98,0) 46%),' +
-    'linear-gradient(135deg, #F26122 0%, #E23A8E 52%, #8652E0 100%)',
-  pink: '#FF42A1', // brand hot pink
-  glass: 'rgb(253,248,252)',
-  glassBar: 'rgb(252,247,251)',
-  // Pink glow up top, a violet whisper in the corner, clean white base.
+    'radial-gradient(130% 150% at 12% 8%, rgba(255,184,61,0.55) 0%, rgba(255,184,61,0) 46%),' +
+    'linear-gradient(135deg, #F93C1F 0%, #FF7733 52%, #FFB83D 100%)',
+  pink: '#FF42A1', // kept as an accent (the site's --pk)
+  glass: 'rgb(255,250,247)',
+  glassBar: 'rgb(254,247,242)',
   pageBg:
-    'radial-gradient(1100px 720px at 50% -12%, rgba(255,66,161,0.05), transparent 55%),' +
-    'radial-gradient(760px 560px at 88% 108%, rgba(134,82,224,0.04), transparent 60%), #FFFFFF',
+    'radial-gradient(1100px 720px at 50% -12%, rgba(255,87,36,0.06), transparent 55%),' +
+    'radial-gradient(760px 560px at 88% 108%, rgba(255,184,61,0.06), transparent 60%), #FFFAF7',
 };
 
 export const THEMES: Record<Scheme, Palette> = { dark: DARK, light: LIGHT };

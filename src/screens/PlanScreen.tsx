@@ -1,7 +1,7 @@
 // PlanScreen — plan & billing. Real Ringo lineup with a selectable picker,
 // fair-use ring, add-ons and recent invoices.
 import { useState } from 'react';
-import { RC , RADIUS } from '../theme';
+import { RC, EASE_OUT } from '../theme';
 import { hapticSelection } from '../lib/haptics';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
@@ -73,33 +73,64 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
                 <div key={t} style={{ padding: '6px 12px', borderRadius: 999, background: 'rgba(255,253,251,0.22)', fontFamily: 'var(--font)', fontSize: 12, fontWeight: 600 }}>{t}</div>
               ))}
             </div>
-          </div>
-        </div>
 
-        {/* Billing cadence — the price shown is per month either way */}
-        <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
-          {(Object.keys(BILLING) as BillingPeriod[]).map((k) => {
-            const on = k === period;
-            return (
-              <button
-                key={k}
-                className="press"
-                onClick={() => { hapticSelection(); setPeriod(k); }}
+            {/* Billing cadence — one box, a white thumb marks the choice.
+                Same construction as the level toggle on ringoesim.com. */}
+            <div
+              role="tablist"
+              aria-label="Billing period"
+              style={{
+                marginTop: 18, display: 'flex', position: 'relative',
+                background: 'rgba(0,0,0,0.24)', border: '1px solid rgba(255,255,255,0.10)',
+                borderRadius: 999, padding: 4,
+              }}
+            >
+              {/* the thumb slides between the two halves */}
+              <span
+                aria-hidden
                 style={{
-                  flex: 1, padding: '11px 10px', borderRadius: RADIUS.md, cursor: 'pointer',
-                  background: on ? RC.gradSoft : RC.paper,
-                  border: `1.5px solid ${on ? RC.inkStrong : RC.line}`,
-                  fontFamily: 'var(--font)', textAlign: 'center',
+                  position: 'absolute', top: 4, bottom: 4, left: 4, width: 'calc(50% - 4px)',
+                  background: '#FFFFFF', borderRadius: 999,
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.18)',
+                  transform: period === 'annual' ? 'translateX(0)' : 'translateX(100%)',
+                  transition: `transform 0.28s ${EASE_OUT}`,
                 }}
-              >
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: RC.ink }}>{BILLING[k].label}</div>
-                <div style={{ marginTop: 2, fontSize: 11.5, fontWeight: 500, color: RC.inkMute }}>
-                  {fmtMoney(periodMonthlyPrice(k))}/mo
-                  {k === 'annual' && saving > 0 ? ` · save ${saving}%` : ''}
-                </div>
-              </button>
-            );
-          })}
+              />
+              {(Object.keys(BILLING) as BillingPeriod[]).map((k) => {
+                const on = k === period;
+                return (
+                  <button
+                    key={k}
+                    role="tab"
+                    aria-selected={on}
+                    onClick={() => { hapticSelection(); setPeriod(k); }}
+                    style={{
+                      position: 'relative', flex: 1, minHeight: 44, padding: '10px 8px',
+                      background: 'transparent', border: 'none', borderRadius: 999, cursor: 'pointer',
+                      fontFamily: 'var(--font)', color: on ? RC.ink : 'rgba(255,255,255,0.62)',
+                      transition: 'color 0.2s ease',
+                    }}
+                  >
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: -0.1 }}>{BILLING[k].label}</span>
+                      {k === 'annual' && saving > 0 && (
+                        <span
+                          style={{
+                            fontSize: 10.5, fontWeight: 700, letterSpacing: 0.2, padding: '2px 6px',
+                            borderRadius: 999, whiteSpace: 'nowrap',
+                            background: on ? 'rgba(26,15,46,0.08)' : 'rgba(255,255,255,0.18)',
+                            color: on ? RC.ink : 'rgba(255,255,255,0.82)',
+                          }}
+                        >
+                          −{saving}%
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* Scheduled downgrade banner */}

@@ -37,12 +37,13 @@ export function LandingScreen({ onExplore, onLogin }: { onExplore: () => void; o
     <div
       style={{
         flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative',
-        // The approved poster look: luminous pale-peach sky (logo sits right on
-        // it), a sun glow behind the globe, melting coral → pink → deep purple.
+        // Poster look, in ringoesim.com's register: the site leads with orange
+        // into amber and keeps pink/purple as accents, so this sky is a warm
+        // sunset falling into ember rather than the pink→purple it was.
         background: [
-          'radial-gradient(120% 70% at 72% 24%, rgba(255,196,110,0.6) 0%, rgba(255,196,110,0) 55%)',
-          'radial-gradient(130% 90% at 12% 88%, rgba(134,82,224,0.5) 0%, rgba(134,82,224,0) 60%)',
-          'linear-gradient(180deg, #FFE4BA 0%, #FFC28C 24%, #FF9678 46%, #FF7E9E 66%, #9C5BD8 100%)',
+          'radial-gradient(120% 70% at 72% 22%, rgba(255,196,110,0.62) 0%, rgba(255,196,110,0) 55%)',
+          'radial-gradient(120% 80% at 14% 92%, rgba(183,54,226,0.20) 0%, rgba(183,54,226,0) 62%)',
+          'linear-gradient(180deg, #FFE7C2 0%, #FFC489 20%, #FF9A5A 40%, #EF5F2A 64%, #8C2E18 88%, #571C10 100%)',
         ].join(', '),
       }}
     >
