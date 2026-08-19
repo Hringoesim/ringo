@@ -12,6 +12,7 @@ import { Confetti } from '../components/Confetti';
 import { RingoAvatar } from '../components/Avatar';
 import { hapticNotify } from '../lib/haptics';
 import { ICON_3D_EXTRA } from '../assets/icons3d';
+import { NUMBERS_LIVE, KYC_REQUIRED, COMING_SOON } from '../data/launch';
 
 // Onboarding destination picks → representative country codes for the dashboard.
 const DEST_MAP: Record<string, string[]> = {
@@ -337,10 +338,14 @@ export function HomeScreen({ onNav }: { onNav: OnNav }) {
 // Finish-setup checklist — a clear, persistent list of the steps to get live
 // (verify → plan → number). Disappears once every step is done.
 function SetupChecklist({ kycDone, subscribed, hasNumber, onNav }: { kycDone: boolean; subscribed: boolean; hasNumber: boolean; onNav: OnNav }) {
-  const steps: { label: string; done: boolean; to: 'kyc' | 'plan' | 'addNumber' }[] = [
-    { label: 'Verify your identity', done: kycDone, to: 'kyc' },
-    { label: 'Choose your plan', done: subscribed, to: 'plan' },
-    { label: 'Add or keep your number', done: hasNumber, to: 'addNumber' },
+  // Ringo Light is a data eSIM: no identity check to pass and no number to
+  // add, so the launch checklist is just plan → install.
+  const steps: { label: string; done: boolean; to: 'kyc' | 'plan' | 'addNumber' | 'install' }[] = [
+    ...(KYC_REQUIRED ? [{ label: 'Verify your identity', done: kycDone, to: 'kyc' as const }] : []),
+    { label: 'Choose your plan', done: subscribed, to: 'plan' as const },
+    ...(NUMBERS_LIVE
+      ? [{ label: 'Add or keep your number', done: hasNumber, to: 'addNumber' as const }]
+      : [{ label: 'Install your eSIM', done: hasNumber, to: 'install' as const }]),
   ];
   const doneCount = steps.filter((s) => s.done).length;
   if (doneCount === steps.length) return null;
@@ -620,10 +625,10 @@ function NumberBuckets({ numbers, onMore, onAdd }: { numbers: PhoneNumber[]; onM
         </div>
         <div>
           <div style={{ fontFamily: 'var(--font)', fontSize: 15, fontWeight: 700, color: RC.inkStrong, letterSpacing: -0.2 }}>
-            Add a number
+            {NUMBERS_LIVE ? 'Add a number' : 'Phone numbers'}
           </div>
           <div style={{ fontFamily: 'var(--font)', fontSize: 12, fontWeight: 500, color: RC.inkMute }}>
-            New local number or port yours in
+            {NUMBERS_LIVE ? 'New local number or port yours in' : `${COMING_SOON} — Ringo Light is data only`}
           </div>
         </div>
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none">

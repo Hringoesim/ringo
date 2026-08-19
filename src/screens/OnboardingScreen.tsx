@@ -147,7 +147,7 @@ export function OnboardingScreen({ onExplore, onCreate, onBack }: Props) {
                 <div style={{ padding: '3px 9px', borderRadius: 999, background: 'rgba(255,255,255,0.24)', fontFamily: 'var(--font)', fontSize: 10.5, fontWeight: 700, letterSpacing: 0.3, textTransform: 'uppercase' }}>Best match</div>
               </div>
               <div style={{ marginTop: 8, display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                <span style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800 }}>Ringo {plan.name}</span>
+                <span style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800 }}>{plan.name}</span>
                 <span style={{ fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, opacity: 0.9 }}>{fmtMoney(planPrice(plan.id))}/mo</span>
               </div>
               <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 9 }}>

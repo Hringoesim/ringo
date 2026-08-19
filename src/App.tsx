@@ -37,6 +37,7 @@ import { SettingsScreen } from './screens/SettingsScreen';
 import { PaywallScreen } from './screens/PaywallScreen';
 import { LegalScreen } from './screens/LegalScreen';
 import { TwoFactorScreen } from './screens/TwoFactorScreen';
+import { NUMBERS_LIVE } from './data/launch';
 
 const TABBED = new Set(['home', 'browse', 'numbers', 'plan']);
 const sb = isSupabaseConfigured();
@@ -156,6 +157,10 @@ export function App() {
 
   // Identity gate (L2): buying or porting a number requires an account + KYC.
   const gateNumber = (target: 'addNumber' | 'port', arg?: string, onboarding = false) => {
+    // Numbers are deferred behind the Ringo Light launch — the UI shows them
+    // as Coming soon, and this is the backstop so no stale entry point can
+    // still route into a flow we do not sell yet.
+    if (!NUMBERS_LIVE) return;
     if (requireAccount()) return;
     if (kycCleared(state)) {
       if (target === 'addNumber') push('addNumber', { preselect: arg, onboarding });

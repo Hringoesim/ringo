@@ -44,10 +44,10 @@ const Native = registerPlugin<StoreKitPlugin>('StoreKit');
 // Plan id ↔ App Store product id. MUST match ios/App/App/Ringo.storekit and the
 // products created in App Store Connect.
 export const PLAN_PRODUCT: Record<string, string> = {
-  essentials: 'com.ringoesim.app.sub.essentials',
-  plus: 'com.ringoesim.app.sub.plus',
-  pro: 'com.ringoesim.app.sub.pro',
-  unlimited: 'com.ringoesim.app.sub.unlimited',
+  // TODO(billing): the App Store Connect subscription for Ringo Light still
+  // has to be created — the four products already in ASC are the retired
+  // Essentials/Plus/Pro/Unlimited tiers. Purchases fail until it exists.
+  light: 'com.ringoesim.app.sub.light',
 };
 const PRODUCT_PLAN: Record<string, string> = Object.fromEntries(
   Object.entries(PLAN_PRODUCT).map(([plan, pid]) => [pid, plan]),

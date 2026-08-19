@@ -90,7 +90,7 @@ export function PaywallScreen({ planId, onBack, onPaid }: PaywallScreenProps) {
       <RingoHeader title="Checkout" leading={<BackBtn onClick={onBack} />} />
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '8px 24px 16px' }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, color: RC.ink, letterSpacing: -0.7, lineHeight: 1.1 }}>
-          Ringo {plan.name}
+          {plan.name}
         </div>
         <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
           {plan.tagline} · billed monthly, cancel anytime.
@@ -193,7 +193,7 @@ export function PaywallScreen({ planId, onBack, onPaid }: PaywallScreenProps) {
         {/* Auto-renewable subscription disclosure — required by App Review. */}
         {iap && (
           <div style={{ marginTop: 12, fontFamily: 'var(--font)', fontSize: 10.5, color: RC.inkMute, lineHeight: 1.5 }}>
-            Ringo {plan.name} is a monthly auto-renewing subscription ({price}/month). Payment is charged to your Apple ID at purchase. It renews automatically unless turned off at least 24 hours before the current period ends; manage or cancel any time in your Apple ID settings.{' '}
+            {plan.name} is a monthly auto-renewing subscription ({price}/month). Payment is charged to your Apple ID at purchase. It renews automatically unless turned off at least 24 hours before the current period ends; manage or cancel any time in your Apple ID settings.{' '}
             <span className="press" onClick={() => { haptic('light'); window.open('https://ringoesim.com/terms', '_blank', 'noopener'); }} style={{ display: 'inline-block', color: RC.inkStrong, fontWeight: 600, textDecoration: 'underline', cursor: 'pointer' }}>Terms of Use</span>
             {' · '}
             <span className="press" onClick={() => { haptic('light'); window.open('https://ringoesim.com/privacy', '_blank', 'noopener'); }} style={{ display: 'inline-block', color: RC.inkStrong, fontWeight: 600, textDecoration: 'underline', cursor: 'pointer' }}>Privacy Policy</span>

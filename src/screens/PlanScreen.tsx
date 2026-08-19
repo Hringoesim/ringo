@@ -41,7 +41,7 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
 
           <div style={{ position: 'relative' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 500, opacity: 0.85 }}>Ringo {cur.name}</div>
+              <div style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 500, opacity: 0.85 }}>{cur.name}</div>
               {isCurrent(cur.id) && (
                 <span style={{ padding: '3px 9px', borderRadius: 999, background: 'rgba(255,253,251,0.24)', fontFamily: 'var(--font)', fontSize: 10, fontWeight: 600, letterSpacing: 0.3 }}>Current</span>
               )}
@@ -56,7 +56,7 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
                 : `${cur.highspeed} high-speed data in 180+ countries, then unlimited at standard speed. Cancel any time.`}
             </div>
             <div style={{ marginTop: 18, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {[cur.highspeed === 'Unlimited' ? 'Unlimited 5G' : `${cur.highspeed} high-speed`, '180+ countries', 'Multi-number'].map((t) => (
+              {[cur.highspeed === 'Unlimited' ? 'Unlimited 5G' : `${cur.highspeed} high-speed`, '180+ countries', 'Data only'].map((t) => (
                 <div key={t} style={{ padding: '6px 12px', borderRadius: 999, background: 'rgba(255,253,251,0.22)', fontFamily: 'var(--font)', fontSize: 12, fontWeight: 600 }}>{t}</div>
               ))}
             </div>
@@ -86,7 +86,7 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
 
         {/* Plan picker */}
         <div style={{ marginTop: 22 }}>
-          <SectionTitle>Choose your plan</SectionTitle>
+          <SectionTitle>{PLANS.length > 1 ? 'Choose your plan' : 'Your plan'}</SectionTitle>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {PLANS.map((p) => {
               const sel = p.id === selected;

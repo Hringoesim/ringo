@@ -124,7 +124,7 @@ function defaults(): RingoState {
   return {
     numbers: live ? [] : clone(NUMBERS),
     activeNumberId: live ? '' : 'be',
-    planId: 'essentials',
+    planId: 'light',
     subscribed: false,
     periodEnd: isoIn(),
     pendingPlanId: null,

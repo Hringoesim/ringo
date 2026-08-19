@@ -6,6 +6,8 @@ import { BackBtn } from '../components/ui';
 import { useRingoState } from '../store/store';
 import { hapticSelection } from '../lib/haptics';
 import type { OnNav } from '../navigation';
+import { NUMBERS_LIVE } from '../data/launch';
+import { RingoButton } from '../components/Button';
 
 export function NumbersScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => void }) {
   const { state, actions } = useRingoState();
@@ -15,6 +17,8 @@ export function NumbersScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => v
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <RingoHeader title="Numbers" leading={<BackBtn onClick={onBack} />} />
+      {!NUMBERS_LIVE && <NumbersComingSoon onNav={onNav} />}
+      {NUMBERS_LIVE && (<>
       <div style={{ padding: '0 20px' }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: RC.ink, letterSpacing: -0.8, lineHeight: 1.1 }}>
           Your numbers
@@ -149,6 +153,31 @@ export function NumbersScreen({ onNav, onBack }: { onNav: OnNav; onBack: () => v
             <path d="M6 3l5 5-5 5" stroke={RC.inkStrong} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
+      </div>
+      </>)}
+    </div>
+  );
+}
+
+// Numbers, calls and porting are built but not part of the Ringo Light
+// launch. Rather than hiding the tab (and losing the signal that this is
+// coming), the tab explains where the product is going.
+function NumbersComingSoon({ onNav }: { onNav: OnNav }) {
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 28px 80px', textAlign: 'center' }}>
+      <div style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: RC.inkStrong }}>
+        Coming soon
+      </div>
+      <div style={{ marginTop: 8, fontFamily: 'var(--font-display)', fontSize: 27, fontWeight: 800, color: RC.ink, letterSpacing: -0.7, lineHeight: 1.15 }}>
+        Phone numbers are on the way
+      </div>
+      <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.55 }}>
+        Ringo Light is a global data eSIM — it keeps you online in 180+ countries
+        without touching the number you already use. Local numbers, calls and
+        texts, and porting your existing number are next.
+      </div>
+      <div style={{ marginTop: 24 }}>
+        <RingoButton variant="ghost" onClick={() => onNav('plan')}>See Ringo Light</RingoButton>
       </div>
     </div>
   );

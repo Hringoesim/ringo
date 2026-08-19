@@ -5,6 +5,7 @@ import { RingoButton } from '../components/Button';
 import { BackBtn, Row, SectionTitle } from '../components/ui';
 import { CO_BY_CODE, COUNTRIES, dial } from '../data/countries';
 import type { OnNav } from '../navigation';
+import { NUMBERS_LIVE, COMING_SOON } from '../data/launch';
 
 interface CountryScreenProps {
   code: string;
@@ -64,7 +65,7 @@ export function CountryScreen({ code, onNav, onBack, onAddCountry }: CountryScre
         <SectionTitle>What you get in {c.name}</SectionTitle>
         <RingoCard style={{ padding: 0 }}>
           <Row icon="speed" title="High-speed data" sub="5G/4G+ on local partners" />
-          <Row icon="call" title="Calls & SMS" sub="Use any of your Ringo numbers" />
+          <Row icon="call" title="Calls & SMS" sub={NUMBERS_LIVE ? 'Use any of your Ringo numbers' : `${COMING_SOON} — Ringo Light is data only`} />
           <Row icon="hotspot" title="Personal hotspot" sub="Tether laptops, devices" />
           <Row icon="sos" title="Emergency calls" sub="Always free, always connected" last />
         </RingoCard>

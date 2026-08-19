@@ -1,33 +1,23 @@
 import type { Plan } from './types';
 
-// The EXACT live ringoesim.com lineup (GBP): Essentials £15, Plus £28,
-// Pro £47 (most popular), Unlimited £71. Features verbatim from the site.
-// No add-ons by design — "No daily passes, no surprise fees."
+// LAUNCH LINEUP — Ringo Light only.
+//
+// Ringo Light is one global data eSIM. Phone numbers, calls/SMS and porting
+// are deferred, so the multi-tier lineup (Essentials/Plus/Pro/Unlimited, all
+// of which sold ported numbers and calling) is not offered. The tier
+// machinery below still works, it just has a single rung today — when numbers
+// ship, add the higher plans back to this array and the switch/proration
+// logic picks them up unchanged.
 export const PLANS: Plan[] = [
   {
-    id: 'essentials', name: 'Essentials', price: 15, highspeed: '10 GB',
-    tagline: 'Light traveller', current: true, maxNumbers: 1,
-    feats: ['10 GB data / month', 'Calls & SMS in 60+ countries', '1 ported number', 'Cancel anytime'],
-  },
-  {
-    id: 'plus', name: 'Plus', price: 28, highspeed: '50 GB',
-    tagline: 'Average user', maxNumbers: 1,
-    feats: ['50 GB data / month', 'Unlimited calls (in-network)', '180+ countries', '1 ported number'],
-  },
-  {
-    id: 'pro', name: 'Pro', price: 47, highspeed: 'Unlimited',
-    tagline: 'Heavy nomad', popular: true, maxNumbers: 3,
-    feats: ['Unlimited data', '1 virtual + 2 ported numbers', '180+ countries', 'Priority network'],
-  },
-  {
-    id: 'unlimited', name: 'Unlimited', price: 71, highspeed: 'Unlimited',
-    tagline: 'Power user', maxNumbers: 4,
-    feats: ['Everything in Pro', '4 numbers (3 ported)', 'Partner perks: airline miles, lounge passes, travel insurance', 'Dedicated account manager'],
+    id: 'light', name: 'Ringo Light', price: 15, highspeed: '10 GB',
+    tagline: 'Global data', current: true, maxNumbers: 0,
+    feats: ['10 GB high-speed data / month', 'Data in 180+ countries', 'One eSIM, no roaming fees', 'Cancel anytime'],
   },
 ];
 
 // ── Plan ordering + entitlements (used by the switch / proration logic) ──────
-/** Rank in the lineup: essentials 0 < plus 1 < pro 2 < unlimited 3. */
+/** Rank in the lineup. One rung today; higher plans slot in above it. */
 export function planRank(planId: string): number {
   const i = PLANS.findIndex((p) => p.id === planId);
   return i < 0 ? 0 : i;
@@ -40,18 +30,10 @@ export function planMaxNumbers(planId: string): number {
 }
 
 // ── Multi-currency pricing (site-exact, from ringoesim.com) ──────────────────
-// Order matches PLANS: [essentials, plus, pro, unlimited].
 export const PLAN_PRICES: Record<string, number[]> = {
-  USD: [19, 35, 59, 89],
-  GBP: [15, 28, 47, 71],
-  EUR: [17, 32, 55, 82],
-  AUD: [30, 55, 90, 135],
-  NZD: [32, 58, 98, 148],
-  CAD: [26, 48, 80, 120],
-  JPY: [2900, 5300, 8900, 13400],
-  SGD: [26, 48, 80, 120],
-  HKD: [150, 275, 465, 700],
-  AED: [70, 130, 220, 330],
+  // One entry per plan, in PLANS order — Ringo Light only for now.
+  USD: [19], GBP: [15], EUR: [17], AUD: [30], NZD: [32],
+  CAD: [26], JPY: [2900], SGD: [26], HKD: [150], AED: [70],
 };
 
 const REGION_CURRENCY: Record<string, string> = {
@@ -142,16 +124,10 @@ export function estimateMonthlyGB(freq: string, destCount: number): number {
 /** Recommend the smallest plan that covers the estimated data + number needs.
  *  Data drives the tier; wanting a *local* (virtual) number or unlimited calls
  *  can bump you up. "Mobile data" is NOT a bump — nearly everyone taps it. */
-export function recommendPlan(needs: string[], freq: string, destCount: number): string {
-  const gb = estimateMonthlyGB(freq, destCount);
-  let id = 'essentials'; // 10 GB
-  if (gb > 10) id = 'plus'; // 50 GB
-  if (gb > 45 || freq === 'monthly') id = 'pro'; // unlimited data
-  if (freq === 'abroad') id = 'unlimited'; // living abroad → perks + 4 numbers
-  const atLeast = (target: string) => { if (planRank(id) < planRank(target)) id = target; };
-  if (needs.includes('local')) atLeast('pro'); // Pro is the first plan with a virtual number
-  if (needs.includes('calls')) atLeast('plus'); // unlimited calls start on Plus
-  return id;
+export function recommendPlan(_needs: string[], _freq: string, _destCount: number): string {
+  // One plan on sale, so the sizing quiz always lands on Ringo Light. The
+  // needs/frequency arguments stay in the signature for when the lineup grows.
+  return 'light';
 }
 
 /** Roughly what mainstream carriers charge to roam, per day, in local currency

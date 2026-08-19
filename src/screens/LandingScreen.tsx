@@ -96,7 +96,7 @@ export function LandingScreen({ onExplore, onLogin }: { onExplore: () => void; o
             lineHeight: 1.5, maxWidth: 310,
           }}
         >
-          180+ countries on one eSIM. Keep your number, stay connected everywhere.
+          One global data eSIM. 180+ countries, no roaming fees, no new number.
         </div>
       </div>
 
