@@ -214,6 +214,7 @@ export function SettingsScreen({ onBack, onSignOut, onNav }: SettingsScreenProps
 
       <SectionLabel>Legal</SectionLabel>
       <RingoCard style={{ marginTop: 10, padding: '2px 16px' }}>
+        <Row label="Coming next" onClick={() => onNav('coming')} />
         <Row label="Terms of service" onClick={() => onNav('terms')} />
         <Row label="Privacy policy" onClick={() => onNav('privacy')} last />
       </RingoCard>

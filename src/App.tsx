@@ -37,6 +37,7 @@ import { SettingsScreen } from './screens/SettingsScreen';
 import { PaywallScreen } from './screens/PaywallScreen';
 import { LegalScreen } from './screens/LegalScreen';
 import { TwoFactorScreen } from './screens/TwoFactorScreen';
+import { ComingScreen } from './screens/ComingScreen';
 import { NUMBERS_LIVE } from './data/launch';
 import type { BillingPeriod } from './data/plans';
 
@@ -196,6 +197,7 @@ export function App() {
     if (target === 'terms') return push('terms');
     if (target === 'privacy') return push('privacy');
     if (target === 'twofactor') return push('twofactor');
+    if (target === 'coming') return push('coming');
     // Guest taps the avatar → create an account (explore-first flow).
     if (target === 'signup') return push('signup', { mode: 'create' });
   };
@@ -419,6 +421,9 @@ export function App() {
       break;
     case 'twofactor':
       body = <TwoFactorScreen onBack={pop} />;
+      break;
+    case 'coming':
+      body = <ComingScreen onBack={pop} />;
       break;
     case 'settings':
       body = (

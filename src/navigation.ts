@@ -15,6 +15,7 @@ export type NavTarget =
   | 'terms'
   | 'privacy'
   | 'twofactor'
+  | 'coming'
   | 'signup';
 
 // Generic navigation handler. Extra args carry route params

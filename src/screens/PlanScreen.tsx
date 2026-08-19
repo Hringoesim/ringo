@@ -14,7 +14,6 @@ import {
   type BillingPeriod,
 } from '../data/plans';
 import { PlanChangeSheet } from '../components/PlanChangeSheet';
-import { ComingNext } from '../components/ComingNext';
 
 // The plan card is the deep plum of the .upgrade-ladder card on
 // ringoesim.com — the site puts its money surfaces on purple and keeps the
@@ -159,10 +158,6 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
           </div>
         </div>
 
-        <div style={{ marginTop: 22 }}>
-          <SectionTitle>Coming next</SectionTitle>
-          <ComingNext signedIn={!!state.email} />
-        </div>
 
         <div>
           {!state.subscribed ? (
