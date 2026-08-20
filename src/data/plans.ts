@@ -87,9 +87,54 @@ const MONTHLY_NET: Record<string, number> = {
   EUR: 39.99, GBP: 39.99, USD: 39.99, AUD: 62.99, NZD: 67.99,
   CAD: 54.99, JPY: 6100, SGD: 54.99, HKD: 315, AED: 147,
 };
-/** Assumed VAT. The sheet models 20%; real rate varies by billing country. */
+// Consumption tax is per COUNTRY, not global.
+//
+//  · EU — VAT is due at the customer's own rate (digital services, OSS).
+//  · UK — 0 until Ringo crosses the GBP90,000 turnover threshold and registers.
+//         NOTE: that threshold is TURNOVER, not customers: at ~EUR480 net a
+//         year it lands around 220 annual subscribers, near break-even. This
+//         must flip to 0.20 on registration or the price silently absorbs it.
+//  · US — no VAT. State sales tax on digital goods only once economic nexus
+//         is met in that state; none is assumed at launch.
+//
+// This only governs what RINGO charges directly. For App Store purchases
+// Apple is the merchant of record: it sets the tax-inclusive price and remits
+// the tax itself, so in-app the StoreKit price wins over anything computed
+// here (see storePrice in the purchase screens).
+const TAX_RATE: Record<string, number> = {
+  GB: 0, US: 0,
+  BE: 0.21, NL: 0.21, ES: 0.21, IE: 0.23, PT: 0.23, IT: 0.22, FR: 0.20,
+  AT: 0.20, DE: 0.19, LU: 0.17, FI: 0.255, GR: 0.24,
+};
+/** Fallback for countries not listed — the EU baseline the P&L models. */
 export const VAT_RATE = 0.20;
-const gross = (net: number) => Math.round(net * (1 + VAT_RATE) * 100) / 100;
+
+/** Where the customer is, for tax purposes. */
+export function taxCountry(): string {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    const byTz: Record<string, string> = {
+      'Europe/London': 'GB', 'Europe/Brussels': 'BE', 'Europe/Amsterdam': 'NL',
+      'Europe/Madrid': 'ES', 'Europe/Dublin': 'IE', 'Europe/Lisbon': 'PT',
+      'Europe/Rome': 'IT', 'Europe/Paris': 'FR', 'Europe/Vienna': 'AT',
+      'Europe/Berlin': 'DE', 'Europe/Luxembourg': 'LU', 'Europe/Helsinki': 'FI',
+      'Europe/Athens': 'GR',
+    };
+    if (byTz[tz]) return byTz[tz];
+    if (tz.startsWith('America/')) return 'US';
+    const loc = (navigator.language || '').split('-')[1];
+    if (loc) return loc.toUpperCase();
+  } catch { /* fall through */ }
+  return 'BE';
+}
+
+/** Tax rate owed on a direct Ringo sale to this customer. */
+export function taxRate(country = taxCountry()): number {
+  const r = TAX_RATE[country];
+  return r === undefined ? VAT_RATE : r;
+}
+
+const gross = (net: number) => Math.round(net * (1 + taxRate()) * 100) / 100;
 
 /** Per-month price for a cadence, in the device (or given) currency. */
 export function periodMonthlyPrice(_period: BillingPeriod, currency = localCurrency()): number {

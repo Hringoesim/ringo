@@ -7,32 +7,25 @@ import { RingoButton } from '../components/Button';
 import { LOGO_SRC } from '../assets';
 import { RC, EASE_OUT } from '../theme';
 import { hapticSelection } from '../lib/haptics';
-import { SubscriptionTerms } from '../components/SubscriptionTerms';
 import {
   BILLING, DEFAULT_PERIOD, periodMonthlyPrice, periodDataGB, billingNote, fmtMoney,
   type BillingPeriod,
 } from '../data/plans';
 
 export function LandingScreen({
-  onExplore, onLogin, onBuy,
-}: { onExplore: () => void; onLogin?: () => void; onBuy?: () => Promise<{ ok: boolean; error?: string }> }) {
-  // The offer is the landing page — pick a term and pay, the way Holafly and
-  // Saily open straight onto the thing you are buying. Twelve months is
-  // pre-selected: it carries the bigger allowance and the better margin.
+  onExplore, onLogin, onStart,
+}: { onExplore: () => void; onLogin?: () => void; onStart?: () => void }) {
+  // The price is on the front page so nobody has to sign up to find out what
+  // Ringo costs — but the first STEP is an account, then plan, pay, install,
+  // which is the order every eSIM platform uses. Twelve months is pre-selected
+  // because it carries the bigger allowance and the better margin.
   const [period, setPeriod] = useState<BillingPeriod>(DEFAULT_PERIOD);
   const [globe, setGlobe] = useState(300);
   const [compact, setCompact] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
-  const [buying, setBuying] = useState(false);
-  const [buyErr, setBuyErr] = useState('');
-  const buy = async () => {
-    if (!onBuy) { explore(); return; }
-    if (buying) return;
-    setBuyErr('');
-    setBuying(true);
-    const res = await onBuy();
-    setBuying(false);
-    if (!res.ok) setBuyErr(res.error || 'Payment could not be completed.');
+  const start = () => {
+    if (onStart) onStart();
+    else explore();
   };
   // Explore plays a visible launch pop, THEN navigates — a fast tap still
   // gets its moment of feedback.
@@ -234,20 +227,8 @@ export function LandingScreen({
         </div>
 
         <div style={{ animation: launching ? 'ringoLaunchPop 0.24s cubic-bezier(0.34, 1.56, 0.64, 1) both' : 'none' }}>
-          <RingoButton loading={buying} onClick={buy}>
-            {buying ? 'Contacting the App Store…' : `Start my plan · ${fmtMoney(periodMonthlyPrice(period))}/mo`}
-          </RingoButton>
+          <RingoButton onClick={start}>Get started</RingoButton>
         </div>
-        <SubscriptionTerms period={period} planName="Ringo Light" onLight />
-        {buyErr && (
-          <div role="alert" style={{
-            padding: '9px 12px', borderRadius: 12, textAlign: 'center',
-            background: 'rgba(255,255,255,0.16)', border: '1px solid rgba(255,255,255,0.26)',
-            fontFamily: 'var(--font)', fontSize: 12.5, color: '#FFFFFF', lineHeight: 1.4,
-          }}>
-            {buyErr}
-          </div>
-        )}
         <button
           onClick={explore}
           className="press"

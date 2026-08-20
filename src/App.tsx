@@ -239,11 +239,11 @@ export function App() {
         <LandingScreen
           onExplore={() => replace('home')}
           onLogin={() => push('signup', { mode: 'login' })}
-          // Buy from the front page. A guest can pay — the App Store account
-          // takes the money, so forcing a Ringo sign-up before checkout is
-          // friction every data-eSIM app has already removed. The account is
-          // required later, at the point the eSIM has to be issued to someone.
-          onBuy={buyNow}
+          // Account FIRST, then the eSIM flow — the order every eSIM platform
+          // uses. The front page still shows the price so nobody has to sign up
+          // to find out what it costs, but choosing a plan is not step one:
+          // sign in or create an account, then plan, pay, install.
+          onStart={() => push('signup', { mode: 'create' })}
         />
       );
       break;
