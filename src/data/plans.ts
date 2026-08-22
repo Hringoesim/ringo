@@ -264,13 +264,40 @@ export function estimateMonthlyGB(freq: string, destCount: number): number {
   return Math.round(b * (1 + 0.12 * Math.max(0, destCount - 1)));
 }
 
-/** Recommend the smallest plan that covers the estimated data + number needs.
- *  Data drives the tier; wanting a *local* (virtual) number or unlimited calls
- *  can bump you up. "Mobile data" is NOT a bump — nearly everyone taps it. */
+/** One plan on sale, so the quiz always lands on Ringo Light. */
 export function recommendPlan(_needs: string[], _freq: string, _destCount: number): string {
-  // One plan on sale, so the sizing quiz always lands on Ringo Light. The
-  // needs/frequency arguments stay in the signature for when the lineup grows.
   return 'light';
+}
+
+/** What the sizing questions actually decide now: WHICH TERM.
+ *
+ *  Both terms cost the same per month, so this is never about money — it is
+ *  about whether 20 GB a month covers the person in front of us. If it does
+ *  not they will be throttled most months, which is the one outcome that makes
+ *  a customer feel mis-sold. The reason string is shown to them verbatim, so
+ *  it has to be true either way and must never invent urgency. */
+export function recommendTerm(freq: string, destCount: number): {
+  period: BillingPeriod;
+  gbNeed: number;
+  covers: Record<BillingPeriod, boolean>;
+  reason: string;
+} {
+  const gbNeed = estimateMonthlyGB(freq, destCount);
+  const covers = {
+    annual: gbNeed <= BILLING.annual.dataGB,
+    bimonthly: gbNeed <= BILLING.bimonthly.dataGB,
+  } as Record<BillingPeriod, boolean>;
+
+  if (!covers.bimonthly && covers.annual) {
+    return { period: 'annual', gbNeed, covers,
+      reason: `Around ${gbNeed} GB a month is more than the 2-month term's ${BILLING.bimonthly.dataGB} GB, so you would be slowed most months. The 12-month term carries ${BILLING.annual.dataGB} GB for the same price per month.` };
+  }
+  if (!covers.annual) {
+    return { period: 'annual', gbNeed, covers,
+      reason: `Around ${gbNeed} GB a month is heavy use. The 12-month term gives you the most headroom at ${BILLING.annual.dataGB} GB, and you can add more data any time without changing plan.` };
+  }
+  return { period: 'annual', gbNeed, covers,
+    reason: `Around ${gbNeed} GB a month. Either term covers that, and both cost the same per month, so 12 months simply leaves you more room.` };
 }
 
 /** Roughly what mainstream carriers charge to roam, per day, in local currency

@@ -45,7 +45,10 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
   const [changeTo, setChangeTo] = useState<string | null>(null);
   // Billing cadence. Both cadences quote a per-month price; picking one only
   // changes how often the card is charged (and the monthly rate).
-  const [period, setPeriod] = useState<BillingPeriod>(DEFAULT_PERIOD);
+  // Open on whatever the sizing questions pointed at, falling back to annual.
+  const [period, setPeriod] = useState<BillingPeriod>(
+    (state.recommendedPeriod as BillingPeriod) || DEFAULT_PERIOD,
+  );
   const perMonth = periodMonthlyPrice(period);
   const cur = PLANS.find((p) => p.id === selected) || PLANS[0];
   const isCurrent = (id: string) => id === currentId;

@@ -83,7 +83,7 @@ export function SignUpScreen({ onBack, onSendCode, onAppleSignIn, onGoogleSignIn
         <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
           {login
             ? 'Welcome back. We’ll email you a 6-digit code — no password.'
-            : 'Set up in seconds — just your name and email, no password. You can add or port a number once you’re in.'}
+            : 'Set up in seconds — just your name and email, no password. Your eSIM installs in a couple of taps once you’re in.'}
         </div>
 
         {err && (

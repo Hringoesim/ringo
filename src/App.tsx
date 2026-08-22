@@ -135,9 +135,18 @@ export function App() {
   };
 
   const finishToHome = () => {
+    // A brand-new account goes through the sizing questions BEFORE the plan, so
+    // the term we put in front of them is the one their own answers point at.
+    // Someone who has already answered lands straight on the dashboard.
+    const firstTime = !auth.getSession()?.onboarded;
     auth.completeOnboarding();
     if (sb) void sbAuth.completeOnboarding();
     storeActions.syncIdentity();
+    if (firstTime) {
+      void storeActions.hydrate();
+      replace('onboard');
+      return;
+    }
     // Pull the REAL account (numbers, plan, subscription, eSIM) now that we're
     // authenticated — otherwise a mid-session sign-in shows stale guest defaults
     // until the next relaunch.
@@ -266,7 +275,11 @@ export function App() {
         <OnboardingScreen
           onBack={pop}
           onExplore={(planId, destinations) => { storeActions.applyOnboarding(planId, destinations); replace('home'); }}
-          onCreate={(planId, destinations) => { storeActions.applyOnboarding(planId, destinations); push('signup', { mode: 'create' }); }}
+          onCreate={(planId, destinations, period) => {
+            storeActions.applyOnboarding(planId, destinations, period);
+            replace('home');
+            navTab('plan');
+          }}
         />
       );
       break;
@@ -302,15 +315,13 @@ export function App() {
             }
             // Local fallback when Supabase isn't configured.
             auth.signInEmailOnly(email);
-            if (isLogin) finishToHome();
-            else push('kyc');
+            finishToHome();
           }}
         />
       );
       break;
     case 'emailOtp': {
       const otpEmail = String(current.params.email || '');
-      const otpLogin = current.params.mode === 'login';
       body = (
         <OtpScreen
           phone={otpEmail}
@@ -320,8 +331,10 @@ export function App() {
             if (!r.ok) return { ok: false, error: r.error || 'That code didn’t match.' };
             storeActions.syncIdentity();
             void storeActions.hydrate(); // pulls profile + website Pioneer match
-            if (otpLogin) finishToHome();
-            else push('kyc');
+            // New account or returning, finishToHome decides: first-timers get
+            // the sizing questions, everyone else lands on the dashboard. KYC
+            // and number setup are not part of the Ringo Light flow.
+            finishToHome();
             return { ok: true };
           }}
           onResend={async () => {

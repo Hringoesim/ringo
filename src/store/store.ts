@@ -28,6 +28,8 @@ export interface RingoState {
   numbers: PhoneNumber[];
   activeNumberId: string; // the MAIN number
   planId: string;
+  /** Term the sizing questions pointed at, so the plan screen opens on it. */
+  recommendedPeriod?: string;
   /** True once a plan has been paid for. Gates eSIM activation. */
   subscribed: boolean;
   /** When the subscription began — the membership ladder counts from here. */
@@ -513,8 +515,8 @@ export const actions = {
 
   /** Save the onboarding recommendation + chosen destinations (personalizes the
    *  dashboard so it reflects what the user told us). */
-  applyOnboarding(planId: string, destinations: string[]) {
-    set({ planId, destinations });
+  applyOnboarding(planId: string, destinations: string[], recommendedPeriod?: string) {
+    set({ planId, destinations, ...(recommendedPeriod ? { recommendedPeriod } : {}) });
   },
 
   async submitKyc(payload: KycPayload) {

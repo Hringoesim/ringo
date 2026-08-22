@@ -7,7 +7,7 @@ import { RC } from '../theme';
 import { RingoButton } from '../components/Button';
 import { BackBtn } from '../components/ui';
 import { Confetti } from '../components/Confetti';
-import { PLANS, planPrice, fmtMoney, recommendPlan, estimateMonthlyGB, estimateTripSavings } from '../data/plans';
+import { BILLING, recommendTerm, PLANS, fmtMoney, recommendPlan, estimateMonthlyGB, estimateTripSavings } from '../data/plans';
 import { haptic, hapticSelection, hapticNotify } from '../lib/haptics';
 
 const DESTINATIONS = [
@@ -20,26 +20,6 @@ const DESTINATIONS = [
   { code: 'AU', label: 'Australia', flag: '🇦🇺' },
   { code: 'ALL', label: 'All over', flag: '🌍' },
 ];
-type NeedIcon = 'signal' | 'keep' | 'sim' | 'chat';
-const NEEDS: { id: string; label: string; icon: NeedIcon }[] = [
-  { id: 'data', label: 'Mobile data', icon: 'signal' },
-  { id: 'keep', label: 'Keep my number', icon: 'keep' },
-  { id: 'local', label: 'A local number', icon: 'sim' },
-  { id: 'calls', label: 'Calls & texts', icon: 'chat' },
-];
-function needIcon(kind: NeedIcon) {
-  const p = { fill: 'none', stroke: RC.inkStrong, strokeWidth: 1.9, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
-  switch (kind) {
-    case 'signal':
-      return <svg width="19" height="19" viewBox="0 0 24 24"><path d="M4 20v-2.5M9.3 20v-6M14.6 20v-9.5M20 20v-13" {...p} /></svg>;
-    case 'keep':
-      return <svg width="19" height="19" viewBox="0 0 24 24"><path d="M15.5 21a13 13 0 01-13-13 2 2 0 012-2h2.4a1 1 0 011 .8l.85 3.1a1 1 0 01-.5 1.1L8 12a11 11 0 005 5l.9-1.35a1 1 0 011.1-.5l3.1.85a1 1 0 01.8 1V19a2 2 0 01-2 2z" {...p} /></svg>;
-    case 'sim':
-      return <svg width="19" height="19" viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="3" {...p} /><path d="M10 6h4" {...p} /></svg>;
-    case 'chat':
-      return <svg width="19" height="19" viewBox="0 0 24 24"><path d="M20 12a7 7 0 01-7 7H8l-4 3v-5.5A7 7 0 018 5h5a7 7 0 017 7z" {...p} /></svg>;
-  }
-}
 const FREQ = [
   { id: 'occasionally', label: 'Once in a while' },
   { id: 'few', label: 'A few times a year' },
@@ -49,16 +29,16 @@ const FREQ = [
 
 interface Props {
   onExplore: (planId: string, destinations: string[]) => void; // finish → dashboard as guest
-  onCreate: (planId: string, destinations: string[]) => void; // create account
+  onCreate: (planId: string, destinations: string[], period: string) => void; // continue to the plan
   onBack: () => void; // exit to landing
 }
 
 export function OnboardingScreen({ onExplore, onCreate, onBack }: Props) {
   const [step, setStep] = useState(0);
   const [dests, setDests] = useState<string[]>([]);
-  const [needs, setNeeds] = useState<string[]>([]);
+  const needs: string[] = [];
   const [freq, setFreq] = useState<string>('');
-  const total = 4;
+  const total = 3; // destinations -> frequency -> recommendation
 
   const toggle = (arr: string[], set: (v: string[]) => void, v: string) => {
     hapticSelection();
@@ -76,12 +56,13 @@ export function OnboardingScreen({ onExplore, onCreate, onBack }: Props) {
   const destCount = dests.includes('ALL') ? 8 : dests.length;
   const plan = PLANS.find((p) => p.id === recommendPlan(needs, freq, destCount)) || PLANS[1];
   const gbNeed = estimateMonthlyGB(freq, destCount);
+  const term = recommendTerm(freq, destCount);
   const sav = estimateTripSavings(plan.id, freq);
   const nCountries = dests.includes('ALL') ? '180+' : String(Math.max(dests.length, 1) * 30);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: RC.bg, position: 'relative' }}>
-      {step === 3 && <Confetti />}
+      {step === 2 && <Confetti />}
       {/* Progress + back */}
       <div style={{ padding: '54px 20px 8px', display: 'flex', alignItems: 'center', gap: 12 }}>
         <BackBtn onClick={back} />
@@ -107,17 +88,6 @@ export function OnboardingScreen({ onExplore, onCreate, onBack }: Props) {
           </Question>
         )}
         {step === 1 && (
-          <Question title="What do you need most?" sub="Choose as many as you like.">
-            <ChipGrid>
-              {NEEDS.map((n) => (
-                <Chip key={n.id} on={needs.includes(n.id)} onClick={() => toggle(needs, setNeeds, n.id)}>
-                  {needIcon(n.icon)} {n.label}
-                </Chip>
-              ))}
-            </ChipGrid>
-          </Question>
-        )}
-        {step === 2 && (
           <Question title="How often are you away?" sub="So we size the right amount of data for you.">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {FREQ.map((f) => (
@@ -128,7 +98,7 @@ export function OnboardingScreen({ onExplore, onCreate, onBack }: Props) {
             </div>
           </Question>
         )}
-        {step === 3 && (
+        {step === 2 && (
           <div style={{ animation: 'ringoFadeIn 0.45s cubic-bezier(0.34,1.4,0.64,1) both' }}>
             <div style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, color: RC.inkStrong, letterSpacing: 0.4, textTransform: 'uppercase' }}>Your plan</div>
             <div style={{ marginTop: 8, fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: RC.ink, letterSpacing: -0.8, lineHeight: 1.1 }}>
@@ -137,7 +107,7 @@ export function OnboardingScreen({ onExplore, onCreate, onBack }: Props) {
             <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 15, color: RC.inkMute, lineHeight: 1.55 }}>
               {plan.highspeed === 'Unlimited'
                 ? <>You lean on data (~{gbNeed} GB/mo across your trips), so we sized you to <strong style={{ color: RC.ink }}>unlimited</strong> — never think about it. Keep your number, one simple bill.</>
-                : <>We sized this to about <strong style={{ color: RC.ink }}>{gbNeed} GB a month</strong> across your trips. <strong style={{ color: RC.ink }}>Ringo {plan.name}</strong> covers that everywhere — no roaming, keep your number, one simple bill.</>}
+                : <>We sized this to about <strong style={{ color: RC.ink }}>{gbNeed} GB a month</strong> across your trips. <strong style={{ color: RC.ink }}>Ringo {plan.name}</strong> covers that everywhere — no roaming, no zones, one simple bill.</>}
             </div>
 
             {/* recommended plan card */}
@@ -146,17 +116,17 @@ export function OnboardingScreen({ onExplore, onCreate, onBack }: Props) {
                 <div style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, opacity: 0.9 }}>Recommended for you</div>
                 <div style={{ padding: '3px 9px', borderRadius: 999, background: 'rgba(255,255,255,0.24)', fontFamily: 'var(--font)', fontSize: 10.5, fontWeight: 700, letterSpacing: 0.3, textTransform: 'uppercase' }}>Best match</div>
               </div>
-              <div style={{ marginTop: 8, display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                <span style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800 }}>{plan.name}</span>
-                <span style={{ fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, opacity: 0.9 }}>{fmtMoney(planPrice(plan.id))}/mo</span>
+              <div style={{ marginTop: 8, display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800 }}>
+                  {BILLING[term.period].label}
+                </span>
+                <span style={{ fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, opacity: 0.9 }}>
+                  {BILLING[term.period].dataGB} GB a month
+                </span>
               </div>
-              <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 9 }}>
-                {[plan.highspeed === 'Unlimited' ? 'Unlimited high-speed data' : `${plan.highspeed} high-speed data`, '180+ countries · no roaming', needs.includes('keep') ? 'Keep your existing number' : 'Keep or add a number', 'Cancel anytime'].map((f, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9, fontFamily: 'var(--font)', fontSize: 13.5 }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#FFFDFB" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                    {f}
-                  </div>
-                ))}
+              {/* the reasoning, in their own numbers — never a bare verdict */}
+              <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 13.5, lineHeight: 1.5, opacity: 0.95 }}>
+                {term.reason}
               </div>
             </div>
 
@@ -180,7 +150,7 @@ export function OnboardingScreen({ onExplore, onCreate, onBack }: Props) {
                 <div>
                   <div style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 700, color: RC.inkStrong, textTransform: 'uppercase', letterSpacing: 0.4 }}>Ringo {plan.name}</div>
                   <div style={{ marginTop: 5, fontFamily: 'var(--font-display)', fontSize: 21, fontWeight: 800, color: RC.ink, letterSpacing: -0.5 }}>{fmtMoney(sav.ringo)}<span style={{ fontSize: 12, fontWeight: 600 }}>/mo</span></div>
-                  <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 11, color: RC.ink, lineHeight: 1.4 }}>Flat · 180+ countries · keep your number</div>
+                  <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 11, color: RC.ink, lineHeight: 1.4 }}>Flat · 180+ countries · no roaming</div>
                 </div>
               </div>
               <div style={{ marginTop: 12, fontFamily: 'var(--font)', fontSize: 10.5, color: RC.inkMute, lineHeight: 1.45 }}>
@@ -205,7 +175,7 @@ export function OnboardingScreen({ onExplore, onCreate, onBack }: Props) {
         {step < total - 1 ? (
           <RingoButton
             onClick={next}
-            disabled={(step === 0 && dests.length === 0) || (step === 1 && needs.length === 0) || (step === 2 && !freq)}
+            disabled={(step === 0 && dests.length === 0) || (step === 1 && !freq)}
           >
             Continue
           </RingoButton>
@@ -213,7 +183,7 @@ export function OnboardingScreen({ onExplore, onCreate, onBack }: Props) {
           <>
             <RingoButton onClick={() => { hapticNotify('success'); onExplore(plan.id, dests); }}>Start exploring with {plan.name}</RingoButton>
             <button
-              onClick={() => onCreate(plan.id, dests)}
+              onClick={() => onCreate(plan.id, dests, term.period)}
               style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '4px 0', fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, color: RC.inkStrong }}
             >
               Create an account to save this
