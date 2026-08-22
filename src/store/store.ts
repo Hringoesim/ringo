@@ -323,10 +323,10 @@ export const actions = {
    *  routes through Apple in-app purchase (StoreKit) — the app
    *  never sees card details. On success the account becomes `subscribed`,
    *  which unlocks eSIM activation and opens a fresh billing period. */
-  async checkout(planId: string): Promise<{ ok: boolean; error?: string }> {
+  async checkout(planId: string, period = 'annual'): Promise<{ ok: boolean; error?: string }> {
     if (isIapAvailable()) {
       // Native iOS: charge through Apple In-App Purchase (StoreKit 2).
-      const r = await iapPurchasePlan(planId);
+      const r = await iapPurchasePlan(planId, period);
       if (r.cancelled) return { ok: false, error: 'Purchase cancelled.' };
       if (r.pending) return { ok: false, error: 'Your purchase is pending approval — we’ll unlock it once it clears.' };
       if (!r.success) return { ok: false, error: r.error || 'Purchase could not be completed.' };

@@ -25,7 +25,7 @@ interface PlanScreenProps {
   onBack: () => void;
   onInstall: () => void;
   /** Open checkout to pay for a plan (first subscription). */
-  onCheckout?: () => Promise<{ ok: boolean; error?: string }>;
+  onCheckout?: (period: string) => Promise<{ ok: boolean; error?: string }>;
 }
 
 export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
@@ -38,7 +38,7 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
     if (!onCheckout || buying) return;
     setBuyErr('');
     setBuying(true);
-    const res = await onCheckout();
+    const res = await onCheckout(period);
     setBuying(false);
     if (!res.ok) setBuyErr(res.error || 'Payment could not be completed.');
   };

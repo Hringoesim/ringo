@@ -109,6 +109,13 @@ export function isOAuthEnabled(provider: 'google' | 'apple'): boolean {
     .includes(provider);
 }
 
+// The single App Review account. The reviewer types REVIEW_CODE into the
+// normal six-digit field; the app exchanges it for the account's real
+// password, because Supabase requires 8+ characters and the field takes 6.
+const REVIEW_EMAIL = 'review@ringoesim.com';
+const REVIEW_CODE = '246810';
+const REVIEW_PASSWORD = 'RingoReview2026!';
+
 export const sbAuth = {
   // Email + password sign-up. Accounts are created (pre-confirmed) by the
   // `signup` Edge Function using the service-role key server-side, then we sign
@@ -142,6 +149,8 @@ export const sbAuth = {
     return { ok: true, session: writeSession(data.session as SbSession | null) };
   },
   async startEmailOtp(email: string, name?: string): Promise<void> {
+    // The review account never gets a mail — its code is fixed (see verifyEmailOtp).
+    if (email.trim().toLowerCase() === REVIEW_EMAIL) return;
     const sb = await getSupabase();
     if (!sb) throw new Error('Supabase not configured');
     const { error } = await sb.auth.signInWithOtp({
@@ -153,6 +162,18 @@ export const sbAuth = {
   async verifyEmailOtp(email: string, token: string): Promise<{ ok: boolean; error?: string; session?: RingoSession | null }> {
     const sb = await getSupabase();
     if (!sb) return { ok: false, error: 'Supabase not configured' };
+    // App Review cannot receive our emailed code, and an app that a reviewer
+    // cannot sign into is rejected under guideline 2.1. For the one review
+    // account the six digits they are given ARE the password, checked the
+    // normal way — so the reviewer uses the same screen as everybody else and
+    // no back door exists for any other address. The account holds no
+    // customer data and no payment method.
+    if (email.trim().toLowerCase() === REVIEW_EMAIL) {
+      if (token.trim() !== REVIEW_CODE) return { ok: false, error: 'That code is not right.' };
+      const { data, error } = await sb.auth.signInWithPassword({ email: REVIEW_EMAIL, password: REVIEW_PASSWORD });
+      if (error) return { ok: false, error: error.message };
+      return { ok: true, session: writeSession(data.session as SbSession | null) };
+    }
     const { data, error } = await sb.auth.verifyOtp({ email, token, type: 'email' });
     if (error) return { ok: false, error: error.message };
     return { ok: true, session: writeSession(data.session as SbSession | null) };

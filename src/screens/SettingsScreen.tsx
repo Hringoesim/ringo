@@ -195,6 +195,9 @@ export function SettingsScreen({ onBack, onSignOut, onNav }: SettingsScreenProps
 
       <SectionLabel>Account</SectionLabel>
       <RingoCard style={{ marginTop: 10, padding: '2px 16px' }}>
+        {/* Identity checks exist to issue phone numbers. Ringo Light is data
+            only, so there is nothing to verify and nothing gated behind it —
+            the row reappears with NUMBERS_LIVE. */}
         {KYC_REQUIRED && (
           <Row label="Identity verification" value={kycValue} tone={kycTone} onClick={kyc === 'pending' ? () => onNav('kyc') : undefined} />
         )}

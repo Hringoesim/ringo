@@ -43,19 +43,24 @@ const Native = registerPlugin<StoreKitPlugin>('StoreKit');
 
 // Plan id ↔ App Store product id. MUST match ios/App/App/Ringo.storekit and the
 // products created in App Store Connect.
+// Plan + billing term -> App Store product. Ringo Light sells two terms, so
+// there are two products in the "Ringo Plan" group; a plan id alone does not
+// identify what to charge.
 export const PLAN_PRODUCT: Record<string, string> = {
-  // TODO(billing): neither product exists in App Store Connect yet. The four
-  // subscriptions already there are the retired Essentials/Plus/Pro/Unlimited
-  // tiers. Ringo Light needs TWO products — one per billing cadence — because
-  // StoreKit models the interval, not just the price:
-  //   light           -> 1 year,   shown as 39.99/month (479.88 charged)
-  //   light_bimonthly -> 2 months, shown as 44.26/month (88.52 charged)
-  // Purchases fail until both are created and priced.
-  light: 'com.ringoesim.app.sub.light.annual',
-  light_bimonthly: 'com.ringoesim.app.sub.light.bimonthly',
+  'light:annual': 'com.ringoesim.app.sub.light.year',
+  'light:bimonthly': 'com.ringoesim.app.sub.light.2mo',
 };
+/** The product for a plan on a term. */
+export function productFor(planId: string, period: string): string | undefined {
+  return PLAN_PRODUCT[`${planId}:${period}`];
+}
+// product id -> "plan:term", and product id -> plan id (term dropped), because
+// entitlement is per PLAN while pricing is per term.
+const PRODUCT_KEY: Record<string, string> = Object.fromEntries(
+  Object.entries(PLAN_PRODUCT).map(([key, pid]) => [pid, key]),
+);
 const PRODUCT_PLAN: Record<string, string> = Object.fromEntries(
-  Object.entries(PLAN_PRODUCT).map(([plan, pid]) => [pid, plan]),
+  Object.entries(PRODUCT_KEY).map(([pid, key]) => [pid, key.split(':')[0]]),
 );
 export const ALL_PRODUCT_IDS = Object.values(PLAN_PRODUCT);
 
@@ -64,15 +69,15 @@ export function isIapAvailable(): boolean {
   return Capacitor.getPlatform() === 'ios';
 }
 
-/** Localized products keyed by plan id (empty when IAP is unavailable). */
+/** Localized products keyed by "plan:term" (empty when IAP is unavailable). */
 export async function iapProductsByPlan(): Promise<Record<string, IapProduct>> {
   if (!isIapAvailable()) return {};
   try {
     const { products } = await Native.getProducts({ productIds: ALL_PRODUCT_IDS });
     const out: Record<string, IapProduct> = {};
     for (const p of products) {
-      const plan = PRODUCT_PLAN[p.id];
-      if (plan) out[plan] = p;
+      const key = PRODUCT_KEY[p.id];
+      if (key) out[key] = p;
     }
     return out;
   } catch (e) {
@@ -82,9 +87,9 @@ export async function iapProductsByPlan(): Promise<Record<string, IapProduct>> {
 }
 
 /** Present the App Store purchase sheet for a plan. */
-export async function iapPurchasePlan(planId: string): Promise<IapPurchaseResult> {
-  const productId = PLAN_PRODUCT[planId];
-  if (!productId) return { error: `Unknown plan ${planId}` };
+export async function iapPurchasePlan(planId: string, period = 'annual'): Promise<IapPurchaseResult> {
+  const productId = productFor(planId, period);
+  if (!productId) return { error: `No App Store product for ${planId} on the ${period} term` };
   try {
     return await Native.purchase({ productId });
   } catch (e) {

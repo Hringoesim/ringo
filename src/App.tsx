@@ -185,8 +185,10 @@ export function App() {
   // StoreKit sheet directly and, on success, goes straight to installing the
   // eSIM. A separate paywall page in between was a step that asked the user to
   // agree twice to the same purchase.
-  const buyNow = async (): Promise<{ ok: boolean; error?: string }> => {
-    const res = await storeActions.checkout('light');
+  const buyNow = async (period = 'annual'): Promise<{ ok: boolean; error?: string }> => {
+    // The term decides WHICH App Store product is charged — the two Ringo Light
+    // products are different lengths at different prices.
+    const res = await storeActions.checkout('light', period);
     if (res.ok) {
       hapticNotify('success');
       replace('home');
