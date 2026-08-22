@@ -111,6 +111,10 @@ export const VAT_RATE = 0.20;
 
 /** Where the customer is, for tax purposes. */
 export function taxCountry(): string {
+  // Screenshot builds pin the country so store images do not show one market's
+  // VAT. Build-time constant, compiled out of a release build.
+  const shot = import.meta.env.VITE_SHOT_COUNTRY as string | undefined;
+  if (shot) return shot;
   try {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
     const byTz: Record<string, string> = {
@@ -191,6 +195,10 @@ const TZ_CURRENCY: Record<string, string> = {
 /** Currency for where the device actually is (Belgium → EUR): timezone first,
  *  then language region, then USD — same fallback as the site. */
 export function localCurrency(): string {
+  // Screenshot builds pin the currency to the pinned country, otherwise a
+  // store image shows one market's symbol against another market's tax.
+  const shot = import.meta.env.VITE_SHOT_COUNTRY as string | undefined;
+  if (shot) return REGION_CURRENCY[shot] || 'USD';
   try {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
     if (TZ_CURRENCY[tz]) return TZ_CURRENCY[tz];

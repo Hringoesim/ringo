@@ -5,21 +5,14 @@ import { useEffect, useState, useLayoutEffect, useRef } from 'react';
 import { SaturnWorld } from '../components/SaturnWorld';
 import { RingoButton } from '../components/Button';
 import { LOGO_SRC } from '../assets';
-import { RC, EASE_OUT } from '../theme';
-import { hapticSelection } from '../lib/haptics';
-import {
-  BILLING, DEFAULT_PERIOD, periodMonthlyPrice, periodDataGB, billingNote, fmtMoney,
-  type BillingPeriod,
-} from '../data/plans';
 
 export function LandingScreen({
   onExplore, onLogin, onStart,
 }: { onExplore: () => void; onLogin?: () => void; onStart?: () => void }) {
-  // The price is on the front page so nobody has to sign up to find out what
-  // Ringo costs — but the first STEP is an account, then plan, pay, install,
-  // which is the order every eSIM platform uses. Twelve months is pre-selected
-  // because it carries the bigger allowance and the better margin.
-  const [period, setPeriod] = useState<BillingPeriod>(DEFAULT_PERIOD);
+  // A welcome screen, not a checkout. The flow is account, then plan, pay,
+  // install — so the price and the term choice belong on the plan step, where
+  // the buy button and the subscription disclosure already live. Putting them
+  // here made the front page a second checkout that nothing could complete.
   const [globe, setGlobe] = useState(300);
   const [compact, setCompact] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
@@ -159,72 +152,6 @@ export function LandingScreen({
       </div>
 
       <div style={{ padding: compact ? '10px 24px 18px' : '14px 24px 26px', display: 'flex', flexDirection: 'column', gap: compact ? 8 : 10 }}>
-        {/* The offer, on the front page. One price, two terms, buy. */}
-        <div
-          style={{
-            borderRadius: 20, padding: compact ? '12px 14px' : '14px 16px',
-            background: 'rgba(52,24,86,0.34)', border: '1px solid rgba(255,255,255,0.20)',
-            backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, color: '#FFFFFF' }}>
-            <span style={{ fontFamily: 'var(--font)', fontSize: compact ? 30 : 34, fontWeight: 700, letterSpacing: -1.2, lineHeight: 1.12 }}>
-              {fmtMoney(periodMonthlyPrice(period))}
-            </span>
-            <span style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 500, opacity: 0.9 }}>/ month</span>
-          </div>
-          <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 12.5, color: 'rgba(255,255,255,0.82)' }}>
-            {periodDataGB(period)} GB a month · {billingNote(period)}
-          </div>
-
-          <div
-            role="tablist"
-            aria-label="Billing term"
-            style={{
-              marginTop: 11, display: 'flex', position: 'relative',
-              background: 'rgba(0,0,0,0.30)', border: '1px solid rgba(255,255,255,0.10)',
-              borderRadius: 999, padding: 4,
-            }}
-          >
-            <span
-              aria-hidden
-              style={{
-                position: 'absolute', top: 4, bottom: 4, left: 4, width: 'calc(50% - 4px)',
-                background: '#FFFFFF', borderRadius: 999, boxShadow: '0 2px 10px rgba(0,0,0,0.18)',
-                transform: period === DEFAULT_PERIOD ? 'translateX(0)' : 'translateX(100%)',
-                transition: `transform 0.28s ${EASE_OUT}`,
-              }}
-            />
-            {(Object.keys(BILLING) as BillingPeriod[]).map((k) => {
-              const on = k === period;
-              return (
-                <button
-                  key={k}
-                  role="tab"
-                  aria-selected={on}
-                  onClick={() => { hapticSelection(); setPeriod(k); }}
-                  style={{
-                    position: 'relative', flex: 1, minHeight: 40, padding: '8px 6px',
-                    background: 'transparent', border: 'none', borderRadius: 999, cursor: 'pointer',
-                    fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
-                    color: on ? RC.ink : 'rgba(255,255,255,0.66)', transition: 'color 0.2s ease',
-                  }}
-                >
-                  {BILLING[k].label} · {periodDataGB(k)} GB
-                </button>
-              );
-            })}
-          </div>
-
-          {/* The anchor, said out loud. Both terms cost the SAME per month, so
-              the twelve-month one is simply twice the data for the same money.
-              Leaving a customer to work that out themselves is the difference
-              between them picking annual and not — and annual is the 78%-margin
-              customer. Never framed as a discount: the price does not move. */}
-          <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 11.5, fontWeight: 600, color: 'rgba(255,255,255,0.80)', textAlign: 'center' }}>
-            Same {fmtMoney(periodMonthlyPrice(period))} a month either way · 12 months doubles your data
-          </div>
-        </div>
 
         <div style={{ animation: launching ? 'ringoLaunchPop 0.24s cubic-bezier(0.34, 1.56, 0.64, 1) both' : 'none' }}>
           <RingoButton onClick={start}>Get started</RingoButton>

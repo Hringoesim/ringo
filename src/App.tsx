@@ -65,9 +65,21 @@ export function App() {
     name,
     params,
   });
-  const [stack, setStack] = useState<Frame[]>(() => [
-    { id: 0, name: auth.getSession() ? 'lock' : 'landing', params: {} },
-  ]);
+  // VITE_SHOT opens the app straight onto one screen, so App Store screenshots
+  // can be captured without driving the UI. It is a build-time constant, so a
+  // normal `npm run build` compiles this branch away entirely — nothing about
+  // it exists in a shipping binary.
+  const [stack, setStack] = useState<Frame[]>(() => {
+    const shot = import.meta.env.VITE_SHOT as string | undefined;
+    if (shot) {
+      const [name, ...rest] = shot.split(':');
+      const params = rest.length ? { code: rest[0] } : {};
+      return name === 'landing'
+        ? [{ id: 0, name: 'landing', params: {} }]
+        : [{ id: 0, name: 'home', params: {} }, { id: 1, name, params }];
+    }
+    return [{ id: 0, name: auth.getSession() ? 'lock' : 'landing', params: {} }];
+  });
   const current = stack[stack.length - 1];
 
   // Motion direction is set EXPLICITLY by each navigation action (push=forward,

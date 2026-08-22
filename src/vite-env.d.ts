@@ -1,6 +1,10 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
+  /** Screenshot-only: open the app on one screen. Never set in a release build. */
+  readonly VITE_SHOT?: string;
+  /** Screenshot-only: pin the tax country. Never set in a release build. */
+  readonly VITE_SHOT_COUNTRY?: string;
   /** 'mock' (default) | 'live' — selects the RingoAPI backend mode. */
   readonly VITE_RINGO_API_MODE?: 'mock' | 'live';
   /** Base URL of the live orchestration API (when mode = 'live'). */

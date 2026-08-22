@@ -192,9 +192,6 @@ export function PlanScreen({ onBack, onInstall, onCheckout }: PlanScreenProps) {
                   {buyErr}
                 </div>
               )}
-              <div style={{ marginTop: 10, textAlign: 'center', fontFamily: 'var(--font)', fontSize: 12.5, color: RC.inkMute, lineHeight: 1.45 }}>
-                {billingNote(period)} · cancel anytime
-              </div>
             </div>
           ) : !isCurrent(cur.id) ? (
             <div style={{ marginTop: 14 }}>
