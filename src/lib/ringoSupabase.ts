@@ -153,31 +153,66 @@ export const sbAuth = {
     if (email.trim().toLowerCase() === REVIEW_EMAIL) return;
     const sb = await getSupabase();
     if (!sb) throw new Error('Supabase not configured');
-    const { error } = await sb.auth.signInWithOtp({
-      email,
-      options: { shouldCreateUser: true, data: name ? { full_name: name } : undefined },
+    // NOT auth.signInWithOtp: the project's SMTP credential is rejected (535),
+    // so that path cannot deliver anything. `email-code` mints the code and
+    // sends it over the Resend HTTP API instead.
+    const { data, error } = await sb.functions.invoke('email-code', {
+      body: { action: 'send', email: email.trim().toLowerCase(), name },
     });
-    if (error) throw error;
+    if (error) {
+      let msg = 'Could not send your code. Please try again.';
+      try {
+        const ctx = (error as { context?: Response }).context;
+        const body = ctx && (await ctx.json());
+        if (body?.error) msg = body.error;
+      } catch { /* keep the default */ }
+      throw new Error(msg);
+    }
+    if (data && (data as { error?: string }).error) throw new Error((data as { error: string }).error);
   },
+
   async verifyEmailOtp(email: string, token: string): Promise<{ ok: boolean; error?: string; session?: RingoSession | null }> {
     const sb = await getSupabase();
     if (!sb) return { ok: false, error: 'Supabase not configured' };
-    // App Review cannot receive our emailed code, and an app that a reviewer
-    // cannot sign into is rejected under guideline 2.1. For the one review
-    // account the six digits they are given ARE the password, checked the
-    // normal way — so the reviewer uses the same screen as everybody else and
-    // no back door exists for any other address. The account holds no
-    // customer data and no payment method.
-    if (email.trim().toLowerCase() === REVIEW_EMAIL) {
+    const addr = email.trim().toLowerCase();
+
+    // App Review cannot receive our emailed code, and an app a reviewer cannot
+    // sign into is rejected under guideline 2.1. For the one review account the
+    // six digits they are given are exchanged for its real password, on the
+    // same screen everyone else uses. No other address has this path.
+    if (addr === REVIEW_EMAIL) {
       if (token.trim() !== REVIEW_CODE) return { ok: false, error: 'That code is not right.' };
       const { data, error } = await sb.auth.signInWithPassword({ email: REVIEW_EMAIL, password: REVIEW_PASSWORD });
       if (error) return { ok: false, error: error.message };
       return { ok: true, session: writeSession(data.session as SbSession | null) };
     }
-    const { data, error } = await sb.auth.verifyOtp({ email, token, type: 'email' });
-    if (error) return { ok: false, error: error.message };
-    return { ok: true, session: writeSession(data.session as SbSession | null) };
+
+    // Everyone else: `email-code` checks the code and, if it is right, mints a
+    // one-time token. Supabase still issues the session from that token — we
+    // only replaced the delivery of the code.
+    const { data, error } = await sb.functions.invoke('email-code', {
+      body: { action: 'verify', email: addr, code: token.trim() },
+    });
+    if (error) {
+      let msg = 'That code didn’t match.';
+      try {
+        const ctx = (error as { context?: Response }).context;
+        const body = ctx && (await ctx.json());
+        if (body?.error) msg = body.error;
+      } catch { /* keep the default */ }
+      return { ok: false, error: msg };
+    }
+    const tokenHash = (data as { token_hash?: string } | null)?.token_hash;
+    if (!tokenHash) return { ok: false, error: (data as { error?: string })?.error || 'That code didn’t match.' };
+
+    const { data: sess, error: vErr } = await sb.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: 'magiclink',
+    });
+    if (vErr) return { ok: false, error: vErr.message };
+    return { ok: true, session: writeSession(sess.session as SbSession | null) };
   },
+
   async google(): Promise<void> {
     if (!isOAuthEnabled('google')) throw new Error('google-not-enabled');
     const sb = await getSupabase();

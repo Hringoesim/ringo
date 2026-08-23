@@ -56,9 +56,13 @@ export function RingoAvatar({
 
   // The membership rung owns the backdrop when there is one; otherwise fall
   // back to the name-seeded sky so a signed-out avatar still looks personal.
+  // `>>` is a SIGNED shift, so for any hash above 2^31 (about half of all
+  // names — Hippolyte, Sanjeev, Anna, Marco…) `h >> 5` went negative, the
+  // modulo stayed negative, the lookup returned undefined and reading [0] off
+  // it crashed the whole Home screen. `>>>` keeps it unsigned.
   const sky: [string, string] = tier ? [tier.c1, tier.c2] : SKY[h % SKY.length];
-  const hat = HAT[(h >> 5) % HAT.length];
-  const band = BANDANA[(h >> 9) % BANDANA.length];
+  const hat = HAT[(h >>> 5) % HAT.length];
+  const band = BANDANA[(h >>> 9) % BANDANA.length];
   const gid = `av${h % 100000}`;
   return (
     <TierRing tier={tier} size={size}>
