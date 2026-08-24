@@ -479,13 +479,48 @@ export const sbData = {
     return (data || []).map((r) => String((r as { country_code: string }).country_code));
   },
   // ── eSIM ──────────────────────────────────────────────────────────────────
-  /** Claim an available eSIM profile from the pool (or return the one already
-   *  assigned to this user). Runs server-side via the claim_esim() function. */
+  /** Get this user's eSIM, issuing a real one through Telna when provisioning
+   *  is switched on.
+   *
+   *  Order matters: try the REAL provisioner first, and only fall back to the
+   *  demo pool when it reports `not_configured`. A customer who has paid must
+   *  never be handed a mock profile because a call failed — a genuine failure
+   *  surfaces as an error instead. */
   async claimEsim(): Promise<EsimProfile | null> {
     const sb = await getSupabase();
     if (!sb) return null;
     const { data: u } = await sb.auth.getUser();
     if (!u?.user) return null;
+
+    try {
+      const { data: live, error: liveErr } = await sb.functions.invoke('esim-provision', {
+        body: { term: 'annual' },
+      });
+      if (!liveErr && (live as { ok?: boolean })?.ok) {
+        const e = (live as { esim?: Record<string, string> }).esim;
+        if (e?.iccid) {
+          return {
+            iccid: e.iccid,
+            matchingId: e.matching_id,
+            smdp: e.smdp_plus_address,
+            confirmationCode: e.confirmation_code ?? undefined,
+            provider: e.provider ?? 'telna',
+          };
+        }
+      }
+      // 503 not_configured is expected until Telna is signed and switched on;
+      // anything else is a real failure worth seeing in the logs.
+      if (liveErr) {
+        const ctx = (liveErr as { context?: Response }).context;
+        const body = ctx && (await ctx.clone().json().catch(() => null));
+        if (body?.error && body.error !== 'not_configured') {
+          log.warn('esim-provision', body);
+        }
+      }
+    } catch (e) {
+      log.warn('esim-provision threw', e);
+    }
+
     const { data, error } = await sb.rpc('claim_esim');
     if (error) { log.warn('claimEsim', error); return null; }
     const row = (Array.isArray(data) ? data[0] : data) as Record<string, string> | null;
