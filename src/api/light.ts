@@ -6,9 +6,8 @@
 // Endpoints (all on ringoesim.com/api, CORS allows capacitor://localhost):
 //   GET  esim-plans?summary=1              from-prices per destination
 //   GET  esim-plans?destination=<id>       the plans of one destination
-//   POST esim-checkout                     -> { url } hosted Stripe Checkout
-//   GET  light-status?session=cs_…         paid? (Stripe's own word) + owner
-//   GET  esim-subscription?user&t[&usage=1][&install=cs_…]
+//   POST app-purchase                      a StoreKit signed transaction -> eSIM
+//   GET  esim-subscription?user&t[&usage=1][&install=apple:…]
 //   POST esim-subscription                 resend_install | report_problem
 //   POST lead                              email -> { id, t } (find my eSIM)
 import { log } from '../lib/log';
@@ -19,6 +18,8 @@ const API = `${SITE}/api`;
 export type Currency = 'eur' | 'usd';
 
 export interface Plan {
+  /** the App Store product that sells this line (null = not sold in the app) */
+  apple_product_id: string | null;
   plan: string;
   tier: 'data' | 'unlimited';
   data_gb: number | null;
@@ -34,6 +35,7 @@ export interface Plan {
 }
 
 export interface TopUp {
+  apple_product_id: string | null;
   plan: string;
   label: string;
   data_gb: number;
@@ -60,19 +62,15 @@ export interface Summary {
   currency: Currency;
 }
 
-export interface Status {
-  kind: string;
-  status: string;
-  paid: boolean;
-  pending: boolean;
+export interface PurchaseRecord {
+  ok: boolean;
+  environment: 'Production' | 'Sandbox';
+  transaction_id: string;
+  subscription_id: string | null;
   delivered: boolean;
-  row_status: string | null;
+  replay?: boolean;
   user_id?: string;
   t?: string;
-  plan?: string;
-  destination?: string;
-  amount_cents?: number;
-  currency?: string;
 }
 
 export interface Subscription {
@@ -122,14 +120,13 @@ export const light = {
   summary: () => request<Summary>('/esim-plans?summary=1'),
   catalog: (destination: string) => request<Catalog>(`/esim-plans?destination=${encodeURIComponent(destination)}`),
 
-  /** Mint a hosted Checkout for a plan; the app opens the URL in the system sheet. */
-  checkout: (body: { plan: string; destination: string; data_gb?: number | null; email: string; device?: string; currency?: Currency }) =>
-    request<{ url: string }>('/esim-checkout', {
-      method: 'POST',
-      body: JSON.stringify({ ...body, client: 'app' }),
-    }),
+  /** Report an App Store purchase; the site verifies Apple's signature and issues the eSIM. */
+  appPurchase: (body: { signedTransaction: string; plan: string; destination: string; data_gb?: number | null; email: string }) =>
+    request<PurchaseRecord>('/app-purchase', { method: 'POST', body: JSON.stringify(body) }),
 
-  status: (session: string) => request<Status>(`/light-status?session=${encodeURIComponent(session)}`),
+  /** "Restore purchases": the owner of a purchase the site already knows (404 otherwise). */
+  restorePurchase: (signedTransaction: string) =>
+    request<PurchaseRecord>('/app-purchase', { method: 'POST', body: JSON.stringify({ signedTransaction, restore: true }) }),
 
   subscription: (userId: string, t: string, opts: { usage?: boolean; install?: string | null } = {}) => {
     const q = new URLSearchParams({ user: userId, t });

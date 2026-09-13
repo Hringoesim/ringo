@@ -10,8 +10,9 @@ import { RingoCard } from '../components/Card';
 import { BackBtn, SectionTitle } from '../components/ui';
 import { destinationById, pictureFor } from '../data/destinations';
 import { light, money, SITE, type SubscriptionRead, type TopUp } from '../api/light';
-import { useAccount, account } from '../store/account';
+import { useAccount, account, pendingPurchase } from '../store/account';
 import { openInSheet } from '../lib/browser';
+import { iapAvailable, loadProducts, purchase, finish, restoreTransactions, manageSubscriptions, type IapProduct } from '../lib/iap';
 import { haptic, hapticNotify } from '../lib/haptics';
 
 function fmtDate(iso: string | null | undefined): string {
@@ -46,6 +47,9 @@ export function EsimScreen({ onBack, onInstall, onFind, onStore, onReport }: {
   const [err, setErr] = useState<string | null>(null);
   const [resent, setResent] = useState<string | null>(null);
   const [topping, setTopping] = useState<string | null>(null);
+  const [topProducts, setTopProducts] = useState<Map<string, IapProduct>>(new Map());
+  const [restoring, setRestoring] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
 
   const load = useCallback(async (quiet = false) => {
     if (!acct) { setLoading(false); return; }
@@ -54,6 +58,9 @@ export function EsimScreen({ onBack, onInstall, onFind, onStore, onReport }: {
       const d = await light.subscription(acct.userId, acct.t, { usage: true, install: acct.purchaseRef });
       setData(d);
       setErr(null);
+      // Apple's prices for the top-ups of this destination.
+      const ids = (d.top_ups || []).map((t) => t.apple_product_id).filter((x): x is string => Boolean(x));
+      if (ids.length) setTopProducts(await loadProducts(ids));
     } catch (e) {
       const status = (e as { status?: number }).status;
       if (status === 401) { account.forget(); setData(null); }
@@ -86,17 +93,59 @@ export function EsimScreen({ onBack, onInstall, onFind, onStore, onReport }: {
     setTimeout(() => setResent(null), 4000);
   };
 
+  // A top-up is an App Store consumable: Apple's sheet, then the signed
+  // transaction goes to the site, which lands the data on this eSIM.
   const topUp = async (t: TopUp) => {
-    if (!acct || !data?.destination) return;
+    if (!acct || !data?.destination || !t.apple_product_id) return;
+    if (!iapAvailable()) { setErr('Top-ups are bought in the Ringo iPhone app.'); return; }
+    const email = acct.email || '';
+    if (!email) { setErr('We need the email of this eSIM to add data. Use "Find my eSIM" first.'); return; }
     setTopping(t.plan);
     haptic('medium');
+    const ctx = { plan: t.plan, destination: data.destination.id, data_gb: null, email };
+    pendingPurchase.set(t.apple_product_id, ctx);
     try {
-      const { url } = await light.checkout({ plan: t.plan, destination: data.destination.id, email: acct.email || '', currency: t.currency });
-      await openInSheet(url);
-    } catch {
-      setErr('Could not start the top-up.');
+      const out = await purchase(t.apple_product_id, acct.userId);
+      if (out.state === 'purchased') {
+        const r = await light.appPurchase({ signedTransaction: out.jws, plan: t.plan, destination: data.destination.id, email });
+        await finish(out.transactionId);
+        pendingPurchase.clear(t.apple_product_id);
+        hapticNotify('success');
+        setNote(r.environment === 'Sandbox' ? 'Sandbox top-up recorded.' : `${t.data_gb} GB added to your eSIM.`);
+        setTimeout(() => setNote(null), 5000);
+        void load(true);
+      } else if (out.state === 'pending') {
+        setNote('Waiting for approval (Ask to Buy). The data lands once it is approved.');
+      } else {
+        pendingPurchase.clear(t.apple_product_id);
+      }
+    } catch (e) {
+      setErr((e as Error).message || 'Could not complete the top-up.');
     } finally {
       setTopping(null);
+    }
+  };
+
+  // "Restore purchases": every transaction this Apple ID made in the app,
+  // newest first, until the site recognises one and names its owner.
+  const restore = async () => {
+    if (!iapAvailable()) { setNote('Restore works in the Ringo iPhone app.'); return; }
+    setRestoring(true);
+    haptic('light');
+    try {
+      const txs = await restoreTransactions();
+      let found = false;
+      for (const t of txs) {
+        try {
+          const r = await light.restorePurchase(t.jws);
+          if (r.user_id && r.t) { account.set({ userId: r.user_id, t: r.t, purchaseRef: `apple:${r.transaction_id}` }); found = true; break; }
+        } catch { /* next one */ }
+      }
+      setNote(found ? 'Your purchases are back.' : txs.length ? 'No Ringo eSIM found for this Apple ID yet. If you just bought one, open the plan again.' : 'No purchases found for this Apple ID.');
+      if (found) void load();
+    } finally {
+      setRestoring(false);
+      setTimeout(() => setNote(null), 6000);
     }
   };
 
@@ -108,9 +157,11 @@ export function EsimScreen({ onBack, onInstall, onFind, onStore, onReport }: {
         {header}
         <Empty
           title="No eSIM on this phone yet."
-          sub="Buy a plan and it appears here, ready to install. Already bought one on ringoesim.com or on another phone? Find it with your email."
+          sub="Buy a plan and it appears here, ready to install. Bought a Ringo eSIM before? Restore your purchases, or find it with your email."
           primary={{ label: 'Browse plans', onClick: onStore }}
-          secondary={{ label: 'Find my eSIM', onClick: onFind }}
+          secondary={{ label: restoring ? 'Restoring…' : 'Restore purchases', onClick: () => void restore() }}
+          tertiary={{ label: 'Find my eSIM by email', onClick: onFind }}
+          note={note}
         />
       </div>
     );
@@ -191,12 +242,12 @@ export function EsimScreen({ onBack, onInstall, onFind, onStore, onReport }: {
                 <SectionTitle>Add data</SectionTitle>
                 <RingoCard style={{ padding: 0 }}>
                   {data.top_ups.map((t, i) => (
-                    <button key={t.plan} className="press" onClick={() => void topUp(t)} disabled={topping != null} style={{ width: '100%', textAlign: 'left', cursor: 'pointer', border: 'none', background: 'transparent', padding: '14px 16px', borderBottom: i === data.top_ups!.length - 1 ? 'none' : `1px solid ${RC.line}`, display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <button key={t.plan} className="press" onClick={() => void topUp(t)} disabled={topping != null || (iapAvailable() && !(t.apple_product_id && topProducts.has(t.apple_product_id)))} style={{ width: '100%', textAlign: 'left', cursor: 'pointer', border: 'none', background: 'transparent', padding: '14px 16px', borderBottom: i === data.top_ups!.length - 1 ? 'none' : `1px solid ${RC.line}`, display: 'flex', alignItems: 'center', gap: 12 }}>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontFamily: 'var(--font)', fontSize: 14.5, fontWeight: 700, color: RC.ink }}>Add {t.data_gb} GB</div>
                         <div style={{ fontFamily: 'var(--font)', fontSize: 12.5, color: RC.inkMute }}>Lands on this eSIM, valid {t.validity_days} days</div>
                       </div>
-                      <div style={{ fontFamily: 'var(--font)', fontSize: 15, fontWeight: 800, color: RC.inkStrong }}>{topping === t.plan ? '…' : money(t.amount, t.currency)}</div>
+                      <div style={{ fontFamily: 'var(--font)', fontSize: 15, fontWeight: 800, color: RC.inkStrong }}>{topping === t.plan ? '…' : (t.apple_product_id && topProducts.get(t.apple_product_id)?.displayPrice) || (iapAvailable() ? '…' : money(t.amount, t.currency))}</div>
                     </button>
                   ))}
                 </RingoCard>
@@ -209,11 +260,14 @@ export function EsimScreen({ onBack, onInstall, onFind, onStore, onReport }: {
                 <RingoCard style={{ padding: 0 }}>
                   {data?.install && <LinkRow label={resent || 'Send the install email again'} onClick={() => void resend()} />}
                   <LinkRow label="Setup guide" sub="Step by step, with screenshots" onClick={() => void openInSheet(`${SITE}/esim-setup.html`)} />
-                  <LinkRow label="Report a problem" sub="We open a case with the network and write back" onClick={onReport} last />
+                  <LinkRow label="Report a problem" sub="We open a case with the network and write back" onClick={onReport} />
+                  {sub.cycles_total > 1 && <LinkRow label="Manage subscription" sub="Change or cancel in your Apple ID settings" onClick={() => void manageSubscriptions()} />}
+                  <LinkRow label={restoring ? 'Restoring…' : 'Restore purchases'} sub="Bought with this Apple ID on another phone" onClick={() => void restore()} last />
                 </RingoCard>
               </div>
             )}
 
+            {note && <div className="rise" style={{ marginTop: 14, padding: '10px 14px', borderRadius: 12, background: 'rgba(31,138,91,0.10)', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: '#1F7A4E' }}>{note}</div>}
             {err && <div style={{ marginTop: 14, fontFamily: 'var(--font)', fontSize: 13, color: '#A12C2C' }}>{err}</div>}
 
             <div style={{ marginTop: 22, textAlign: 'center' }}>
@@ -249,7 +303,7 @@ export function LinkRow({ label, sub, onClick, last }: { label: string; sub?: st
   );
 }
 
-function Empty({ title, sub, primary, secondary }: { title: string; sub: string; primary: { label: string; onClick: () => void }; secondary?: { label: string; onClick: () => void } }) {
+function Empty({ title, sub, primary, secondary, tertiary, note }: { title: string; sub: string; primary: { label: string; onClick: () => void }; secondary?: { label: string; onClick: () => void }; tertiary?: { label: string; onClick: () => void }; note?: string | null }) {
   return (
     <div style={{ padding: '10px 20px 40px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
       <div style={{ width: 84, height: 84, borderRadius: 26, background: RC.gradSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 20 }}>
@@ -263,6 +317,10 @@ function Empty({ title, sub, primary, secondary }: { title: string; sub: string;
       <div style={{ marginTop: 22, width: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <RingoButton onClick={primary.onClick}>{primary.label}</RingoButton>
         {secondary && <RingoButton variant="ghost" onClick={secondary.onClick}>{secondary.label}</RingoButton>}
+        {tertiary && (
+          <button className="press" onClick={tertiary.onClick} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '6px 0', fontFamily: 'var(--font)', fontSize: 13.5, fontWeight: 600, color: RC.inkStrong }}>{tertiary.label}</button>
+        )}
+        {note && <div className="rise" style={{ marginTop: 6, padding: '10px 14px', borderRadius: 12, background: RC.cream, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.ink }}>{note}</div>}
       </div>
     </div>
   );

@@ -1,23 +1,29 @@
-// CheckoutScreen — email, then Stripe. The app mints a hosted Checkout on
-// ringoesim.com and opens it in the system browser sheet (Apple Pay lives
-// there). Whether the buyer comes back through the ringo:// link on the
-// return page or by tapping Done, the app then asks the site, which asks
-// Stripe, whether the session is paid; "paid" is only ever Stripe's word.
-// Once paid, the site names the buyer (their signup row and token) and the
-// app keeps that on the phone, then waits for the eSIM to be issued.
+// CheckoutScreen — email, then the App Store. The purchase sheet is Apple's
+// (StoreKit 2); the signed transaction it returns goes to ringoesim.com,
+// which verifies it against Apple's roots, issues the eSIM and names the
+// buyer's account. Only after that is the transaction finished, so a
+// purchase the app could not report is redelivered by StoreKit and
+// reported on the next launch rather than lost.
+//
+// A renewing plan is an auto-renewable subscription, and this screen states
+// what App Review requires stated before the buy button: the price and
+// period, that it renews until cancelled, where to cancel, and the links to
+// the Terms of Use and the Privacy Policy.
 import { useEffect, useRef, useState } from 'react';
 import { RC, RADIUS, SHADOW_CARD } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { BackBtn, FieldLabel, Input } from '../components/ui';
 import { pictureFor } from '../data/destinations';
-import { light, money, type Status } from '../api/light';
-import { account, pendingCheckout } from '../store/account';
-import { openInSheet, closeSheet, onSheetClosed, onAppUrl, parseReturnLink } from '../lib/browser';
+import { light, SITE } from '../api/light';
+import { account, pendingPurchase } from '../store/account';
+import { iapAvailable, purchase } from '../lib/iap';
+import { openInSheet } from '../lib/browser';
 import { haptic, hapticNotify } from '../lib/haptics';
+import { priceOf, reportTransaction } from '../lib/purchase';
 import type { Selection } from './DestinationScreen';
 
-type Stage = 'email' | 'opening' | 'paying' | 'checking' | 'issuing' | 'ready' | 'cancelled' | 'failed';
+type Stage = 'email' | 'buying' | 'recording' | 'issuing' | 'ready' | 'pending' | 'failed';
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const EMAIL_KEY = 'ringo_last_email';
@@ -27,121 +33,88 @@ function termTitle(s: Selection): string {
   if (p.mode === 'payment') return `${p.days} days`;
   return p.term_months === 12 ? '12 months' : `${p.term_months} months`;
 }
+function periodWord(months: number): string {
+  return months === 12 ? 'year' : months === 1 ? 'month' : `${months} months`;
+}
 
 export function CheckoutScreen({ selection, onBack, onReady }: { selection: Selection; onBack: () => void; onReady: () => void }) {
-  const [email, setEmail] = useState(() => { try { return localStorage.getItem(EMAIL_KEY) || ''; } catch { return ''; } });
+  const [email, setEmail] = useState(() => { try { return localStorage.getItem(EMAIL_KEY) || account.get()?.email || ''; } catch { return ''; } });
   const [stage, setStage] = useState<Stage>('email');
   const [err, setErr] = useState<string | null>(null);
-  const [status, setStatus] = useState<Status | null>(null);
-  const sessionRef = useRef<string | null>(null);
   const pollRef = useRef<number | null>(null);
+  const stopPolling = () => { if (pollRef.current) { window.clearInterval(pollRef.current); pollRef.current = null; } };
+  useEffect(() => () => stopPolling(), []);
+
+  const p = selection.plan;
+  const price = priceOf(p, selection.product);
+  const renewing = p.mode === 'subscription';
+
+  // After the site has recorded the purchase, wait for the eSIM to exist.
+  const waitForEsim = () => {
+    const acct = account.get();
+    if (!acct) { setStageBoth('ready'); return; }
+    let tries = 0;
+    setStageBoth('issuing');
+    const tick = async () => {
+      tries++;
+      try {
+        const d = await light.subscription(acct.userId, acct.t, {});
+        if (d.subscription?.esim_attached) { stopPolling(); hapticNotify('success'); setStageBoth('ready'); }
+      } catch { /* next tick */ }
+      if (tries >= 40) { stopPolling(); setStageBoth('ready'); }
+    };
+    void tick();
+    pollRef.current = window.setInterval(() => void tick(), 3000);
+  };
   const stageRef = useRef<Stage>('email');
   const setStageBoth = (s: Stage) => { stageRef.current = s; setStage(s); };
 
-  const stopPolling = () => { if (pollRef.current) { window.clearInterval(pollRef.current); pollRef.current = null; } };
-
-  // Ask the site (which asks Stripe) how the session ended. Runs until paid
-  // and issued, or until the session is clearly not going to pay.
-  const check = async (session: string) => {
-    try {
-      const s = await light.status(session);
-      setStatus(s);
-      if (s.paid) {
-        if (s.user_id && s.t) {
-          account.set({ userId: s.user_id, t: s.t, email: email.trim().toLowerCase(), purchaseRef: session });
-          pendingCheckout.set(null);
-        }
-        if (s.delivered && s.user_id) {
-          stopPolling();
-          hapticNotify('success');
-          setStageBoth('ready');
-        } else if (stageRef.current !== 'issuing') {
-          setStageBoth('issuing');
-        }
-        return;
-      }
-      // Not paid. An open session may still be paid later (they may have
-      // gone back to the sheet); an expired one will not.
-      if (s.status === 'expired' || (!s.pending && stageRef.current === 'checking')) {
-        stopPolling();
-        setStageBoth('cancelled');
-      }
-    } catch {
-      /* transient: the next tick asks again */
-    }
-  };
-
-  const startPolling = (session: string) => {
-    stopPolling();
-    void check(session);
-    pollRef.current = window.setInterval(() => void check(session), 3000);
-  };
-
-  // The two ways back from the sheet: the return page's ringo:// link, or
-  // the Done button. Either way we go and ask Stripe.
-  useEffect(() => {
-    let offUrl = () => {};
-    let offClosed = () => {};
-    void onAppUrl((url) => {
-      const r = parseReturnLink(url);
-      if (!r) return;
-      void closeSheet();
-      const session = r.session || sessionRef.current;
-      if (r.status === 'cancelled' || !session) { stopPolling(); setStageBoth('cancelled'); return; }
-      setStageBoth('checking');
-      startPolling(session);
-    }).then((off) => { offUrl = off; });
-    void onSheetClosed(() => {
-      if (stageRef.current !== 'paying' || !sessionRef.current) return;
-      setStageBoth('checking');
-      startPolling(sessionRef.current);
-    }).then((off) => { offClosed = off; });
-    return () => { offUrl(); offClosed(); stopPolling(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const pay = async () => {
+  const buy = async () => {
     const e = email.trim().toLowerCase();
     if (!EMAIL_RE.test(e)) { setErr('Enter the email your eSIM should be sent to.'); return; }
+    if (!selection.product && iapAvailable()) { setErr('This plan is not available in the App Store right now.'); return; }
     setErr(null);
     try { localStorage.setItem(EMAIL_KEY, e); } catch { /* ignore */ }
-    setStageBoth('opening');
+    if (!iapAvailable()) { setErr('Purchases are made in the Ringo iPhone app.'); return; }
     haptic('medium');
+    setStageBoth('buying');
+    const ctx = { plan: p.plan, destination: selection.destination, data_gb: selection.data_gb, email: e };
+    // Remembered before the sheet opens: if the app dies mid-purchase the
+    // unfinished transaction is reported with this context on relaunch.
+    pendingPurchase.set(selection.product!.id, ctx);
+    // The signup row's id rides on the transaction as Apple's appAccountToken,
+    // so a purchase the app never got to report can still be tied to this
+    // email by Apple's own notification.
+    let token: string | undefined;
+    try { const lead = await light.lead(e); if (lead.id) token = lead.id; } catch { /* optional */ }
+    let outcome;
     try {
-      const { url } = await light.checkout({
-        plan: selection.plan.plan,
-        destination: selection.destination,
-        data_gb: selection.data_gb,
-        email: e,
-        device: 'iPhone (Ringo app)',
-      });
-      const m = url.match(/\/pay\/(cs_(?:live|test)_[A-Za-z0-9]+)/);
-      const session = m ? m[1] : null;
-      sessionRef.current = session;
-      if (session) pendingCheckout.set({ session, email: e, destination: selection.destination, plan: selection.plan.plan, startedAt: Date.now() });
-      setStageBoth('paying');
-      await openInSheet(url);
+      outcome = await purchase(selection.product!.id, token);
     } catch (ex) {
-      const msg = ex instanceof Error ? ex.message : 'Could not start the payment.';
-      setErr(msg === 'Plans are not on sale yet.' ? 'This plan is not on sale right now. Please try again later.' : msg);
+      setErr((ex as Error).message || 'The purchase could not be started.');
       setStageBoth('email');
+      pendingPurchase.clear(selection.product!.id);
+      return;
+    }
+    if (outcome.state === 'cancelled') { pendingPurchase.clear(selection.product!.id); setStageBoth('email'); return; }
+    if (outcome.state === 'pending') { setStageBoth('pending'); return; }
+    setStageBoth('recording');
+    try {
+      await reportTransaction(outcome, ctx);
+      waitForEsim();
+    } catch (ex) {
+      // Paid but not recorded: the transaction stays unfinished and is
+      // reported again on the next launch. Say so plainly.
+      hapticNotify('error');
+      setErr((ex as Error).message || 'Could not record the purchase.');
+      setStageBoth('failed');
     }
   };
-
-  const retryCheck = () => {
-    if (!sessionRef.current) { setStageBoth('email'); return; }
-    setStageBoth('checking');
-    startPolling(sessionRef.current);
-  };
-
-  const p = selection.plan;
-  const total = money(p.billed_upfront_amount, p.currency);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <RingoHeader title={stage === 'ready' ? 'Your eSIM' : 'Checkout'} leading={stage === 'email' || stage === 'cancelled' ? <BackBtn onClick={onBack} /> : null} />
-      <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '0 20px 140px' }}>
-        {/* The order, as a card */}
+      <RingoHeader title={stage === 'ready' ? 'Your eSIM' : 'Checkout'} leading={stage === 'email' || stage === 'failed' ? <BackBtn onClick={onBack} /> : null} />
+      <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '0 20px 190px' }}>
         <div style={{ borderRadius: RADIUS.xl, overflow: 'hidden', background: RC.paper, border: `1px solid ${RC.line}`, boxShadow: SHADOW_CARD }}>
           <div style={{ position: 'relative', height: 110, background: RC.cream2 }}>
             <img src={pictureFor(selection.destination)} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
@@ -150,10 +123,10 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
             <div>
               <div style={{ fontFamily: 'var(--font)', fontSize: 16, fontWeight: 800, color: RC.ink, letterSpacing: -0.3 }}>{selection.destinationLabel}</div>
               <div style={{ marginTop: 2, fontFamily: 'var(--font)', fontSize: 13, color: RC.inkMute }}>
-                {p.tier === 'unlimited' ? 'Unlimited data' : `${selection.data_gb} GB`} · {termTitle(selection)}{p.mode === 'subscription' ? ', renews' : ', one payment'}
+                {p.tier === 'unlimited' ? 'Unlimited data' : `${selection.data_gb} GB${renewing ? ' a month' : ''}`} · {termTitle(selection)}{renewing ? ', renews' : ', one payment'}
               </div>
             </div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800, color: RC.ink, letterSpacing: -0.5 }}>{total}</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800, color: RC.ink, letterSpacing: -0.5 }}>{price.total}</div>
           </div>
         </div>
 
@@ -162,20 +135,16 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
             <FieldLabel>Email for your eSIM</FieldLabel>
             <Input value={email} onChange={setEmail} placeholder="you@example.com" type="email" inputMode="email" />
             <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 12.5, color: RC.inkMute, lineHeight: 1.5 }}>
-              Your receipt and a copy of the install link go here. No account or password needed.
+              Your eSIM activation code and receipt are sent here, and it is how we find your eSIM again on another phone. No account or password.
             </div>
             {err && <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: '#A12C2C' }}>{err}</div>}
-            <div style={{ marginTop: 22, fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute, lineHeight: 1.55 }}>
-              Payment is taken by Stripe on its own secure page, with Apple Pay or card. By paying you agree to the Ringo Terms, including immediate delivery of the eSIM.
-            </div>
           </div>
         )}
 
-        {(stage === 'opening' || stage === 'paying') && (
-          <Waiting title={stage === 'opening' ? 'Opening Stripe…' : 'Finish paying in the Stripe window'} sub="Come back here when it says the payment went through. Nothing is charged until Stripe confirms it." />
-        )}
-        {stage === 'checking' && <Waiting title="Checking with Stripe…" sub="One moment while we confirm the payment." />}
-        {stage === 'issuing' && <Waiting title="Payment confirmed. Preparing your eSIM…" sub="This usually takes under a minute. You can leave the app; the eSIM will be under My eSIM, and a copy is on its way to your email." ok />}
+        {(stage === 'buying') && <Waiting title="Confirm with your Apple ID" sub="The App Store purchase sheet is open. Nothing is charged until you confirm there." />}
+        {stage === 'recording' && <Waiting title="Payment confirmed. Recording your purchase…" sub="One moment." />}
+        {stage === 'issuing' && <Waiting title="Preparing your eSIM…" sub="This usually takes under a minute. You can leave the app; the eSIM will be under My eSIM, and a copy is on its way to your email." ok />}
+        {stage === 'pending' && <Waiting title="Waiting for approval" sub="This purchase needs approval (Ask to Buy). Once it is approved, open the app and your eSIM will be prepared." ok />}
 
         {stage === 'ready' && (
           <div className="rise" style={{ marginTop: 22, textAlign: 'center' }}>
@@ -184,32 +153,42 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
             </div>
             <div style={{ marginTop: 14, fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, color: RC.ink, letterSpacing: -0.6 }}>Your eSIM is ready.</div>
             <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
-              {status?.amount_cents ? `${money(status.amount_cents, status.currency || p.currency)} confirmed by Stripe. ` : ''}Install it now, or later from My eSIM. A copy went to {email.trim().toLowerCase()}.
+              Install it now, or later from My eSIM. A copy went to {email.trim().toLowerCase()}.
             </div>
           </div>
         )}
 
-        {stage === 'cancelled' && (
-          <div style={{ marginTop: 22, padding: 16, borderRadius: RADIUS.lg, background: RC.cream, fontFamily: 'var(--font)', fontSize: 14, color: RC.ink, lineHeight: 1.5 }}>
-            <div style={{ fontWeight: 700 }}>Nothing was charged.</div>
-            <div style={{ marginTop: 4, color: RC.inkMute }}>The payment page was closed before paying. If you did pay, tap “Check again” and we will ask Stripe.</div>
+        {stage === 'failed' && (
+          <div style={{ marginTop: 22, padding: 16, borderRadius: RADIUS.lg, background: 'rgba(220,60,60,0.08)', border: '1px solid rgba(220,60,60,0.2)', fontFamily: 'var(--font)', fontSize: 14, color: RC.ink, lineHeight: 1.5 }}>
+            <div style={{ fontWeight: 700 }}>Your payment went through, but we could not record it yet.</div>
+            <div style={{ marginTop: 4, color: RC.inkMute }}>{err} The app will try again the next time it opens; your purchase is not lost. If your eSIM is not under My eSIM within an hour, tap Help and contact us.</div>
+          </div>
+        )}
+
+        {stage === 'email' && renewing && (
+          <div style={{ marginTop: 22, padding: '14px 16px', borderRadius: RADIUS.lg, background: RC.cream, fontFamily: 'var(--font)', fontSize: 12.5, color: RC.inkMute, lineHeight: 1.6 }}>
+            <div style={{ fontWeight: 700, color: RC.ink }}>Auto-renewable subscription</div>
+            {price.total} every {periodWord(p.term_months)}, charged to your Apple ID when you confirm. It renews automatically at the same price unless you cancel at least 24 hours before the end of the current period. Manage or cancel any time in Settings › Apple ID › Subscriptions.
+          </div>
+        )}
+        {stage === 'email' && (
+          <div style={{ marginTop: 14, fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute, lineHeight: 1.6 }}>
+            By buying you agree to the{' '}
+            <button className="press" onClick={() => void openInSheet(`${SITE}/terms`)} style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 700, color: RC.inkStrong }}>Terms of Use</button>
+            {' '}and the{' '}
+            <button className="press" onClick={() => void openInSheet(`${SITE}/privacy`)} style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 700, color: RC.inkStrong }}>Privacy Policy</button>
+            , including immediate delivery of the eSIM. Prices include VAT.
           </div>
         )}
       </div>
 
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '12px 20px max(20px, env(safe-area-inset-bottom, 0px))', background: RC.glass, borderTop: `1px solid ${RC.line}` }}>
-        {stage === 'email' && <RingoButton onClick={() => void pay()}>Pay {total} with Stripe</RingoButton>}
-        {stage === 'opening' && <RingoButton loading>Opening…</RingoButton>}
-        {stage === 'paying' && <RingoButton variant="soft" onClick={() => { if (sessionRef.current) { setStageBoth('checking'); startPolling(sessionRef.current); } }}>I have paid</RingoButton>}
-        {stage === 'checking' && <RingoButton loading>Checking…</RingoButton>}
+        {stage === 'email' && <RingoButton onClick={() => void buy()}>{renewing ? `Subscribe for ${price.total}` : `Buy for ${price.total}`}</RingoButton>}
+        {(stage === 'buying' || stage === 'recording') && <RingoButton loading>One moment…</RingoButton>}
         {stage === 'issuing' && <RingoButton variant="soft" onClick={onReady}>Go to My eSIM</RingoButton>}
+        {stage === 'pending' && <RingoButton variant="soft" onClick={onReady}>Done</RingoButton>}
         {stage === 'ready' && <RingoButton onClick={onReady}>Install my eSIM</RingoButton>}
-        {stage === 'cancelled' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <RingoButton onClick={() => void pay()}>Try again</RingoButton>
-            <RingoButton variant="ghost" onClick={retryCheck}>Check again</RingoButton>
-          </div>
-        )}
+        {stage === 'failed' && <RingoButton variant="soft" onClick={onReady}>Go to My eSIM</RingoButton>}
       </div>
     </div>
   );

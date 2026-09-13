@@ -9,7 +9,9 @@ import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { BackBtn } from '../components/ui';
 import { destinationById, pictureFor } from '../data/destinations';
-import { light, money, type Catalog, type Plan } from '../api/light';
+import { light, type Catalog, type Plan } from '../api/light';
+import { loadProducts, iapAvailable, type IapProduct } from '../lib/iap';
+import { priceOf } from '../lib/purchase';
 import { haptic, hapticSelection } from '../lib/haptics';
 
 export interface Selection {
@@ -17,7 +19,8 @@ export interface Selection {
   destinationLabel: string;
   plan: Plan;
   data_gb: number | null;
-  currency: string;
+  /** Apple's product and price for this line */
+  product: IapProduct | null;
 }
 
 type Tier = 'data' | 'unlimited';
@@ -41,14 +44,15 @@ function termTitle(p: Plan): string {
   if (p.term_months === 12) return '12 months';
   return `${p.term_months} months`;
 }
-function termSub(p: Plan): string {
+function termSub(p: Plan, total: string): string {
   if (p.mode === 'payment') return 'One payment, no renewal';
-  return `${money(p.billed_upfront_amount, p.currency)} every ${p.term_months === 12 ? 'year' : `${p.term_months} months`}, cancel anytime`;
+  return `${total} every ${p.term_months === 12 ? 'year' : `${p.term_months} months`}, renews until cancelled`;
 }
 
 export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBack: () => void; onContinue: (s: Selection) => void }) {
   const dest = destinationById(id);
   const [cat, setCat] = useState<Catalog | null>(null);
+  const [products, setProducts] = useState<Map<string, IapProduct> | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [tier, setTier] = useState<Tier>('data');
   const [gb, setGb] = useState<number | null>(null);
@@ -56,20 +60,27 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
 
   useEffect(() => {
     let alive = true;
-    setCat(null); setErr(null);
-    light.catalog(id).then((c) => {
+    setCat(null); setProducts(null); setErr(null);
+    light.catalog(id).then(async (c) => {
       if (!alive) return;
       setCat(c);
       setGb(c.default_data_gb);
       setPlanId(c.default_plan);
+      // Apple's products for every line here; a line Apple does not sell
+      // (no product, or none priced) is not offered.
+      const ids = c.plans.map((p) => p.apple_product_id).filter((x): x is string => Boolean(x));
+      const map = await loadProducts(ids);
+      if (alive) setProducts(map);
     }).catch((e: Error) => { if (alive) setErr(e.message || 'Could not load the plans.'); });
     return () => { alive = false; };
   }, [id]);
 
+  const native = iapAvailable();
+  const productFor = (p: Plan): IapProduct | null => (p.apple_product_id && products?.get(p.apple_product_id)) || null;
   const plans = useMemo(() => {
     if (!cat) return [];
-    return cat.plans.filter((p) => p.tier === tier && (tier === 'unlimited' || p.data_gb === gb));
-  }, [cat, tier, gb]);
+    return cat.plans.filter((p) => p.tier === tier && (tier === 'unlimited' || p.data_gb === gb) && (!native || (products && p.apple_product_id && products.has(p.apple_product_id))));
+  }, [cat, tier, gb, native, products]);
 
   // Keep the selection valid when the tier or size changes.
   useEffect(() => {
@@ -86,8 +97,9 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
   const continueTap = () => {
     if (!cat || !selected) return;
     haptic('medium');
-    onContinue({ destination: id, destinationLabel: cat.destination.label, plan: selected, data_gb: selected.tier === 'data' ? gb : null, currency: cat.currency });
+    onContinue({ destination: id, destinationLabel: cat.destination.label, plan: selected, data_gb: selected.tier === 'data' ? gb : null, product: productFor(selected) });
   };
+  const loadingPrices = native && cat && !products;
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -113,12 +125,12 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
             {err} Check your connection and go back to try again.
           </div>
         )}
-        {!cat && !err && (
+        {(!cat || loadingPrices) && !err && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {[0, 1, 2].map((i) => <div key={i} style={{ height: 72, borderRadius: RADIUS.lg, background: RC.cream, animation: 'ringoSheen 1.4s ease-in-out infinite' }} />)}
           </div>
         )}
-        {cat && (
+        {cat && !loadingPrices && (
           <>
             <Segmented<Tier> value={tier} options={[{ id: 'data', label: 'Data' }, { id: 'unlimited', label: 'Unlimited' }]} onChange={setTier} />
 
@@ -135,8 +147,14 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
             </div>
 
             <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {plans.length === 0 && (
+                <div style={{ padding: 16, borderRadius: RADIUS.lg, background: RC.cream, fontFamily: 'var(--font)', fontSize: 13.5, color: RC.inkMute, lineHeight: 1.5 }}>
+                  No {tier === 'unlimited' ? 'unlimited' : `${gb} GB`} plan is sold in the app for this destination right now.
+                </div>
+              )}
               {plans.map((p) => {
                 const on = p.plan === planId;
+                const price = priceOf(p, productFor(p));
                 return (
                   <button
                     key={p.plan}
@@ -159,10 +177,10 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
                         <span style={{ fontFamily: 'var(--font)', fontSize: 15.5, fontWeight: 700, color: RC.ink, letterSpacing: -0.2 }}>{termTitle(p)}</span>
                         {p.recommended && <span style={{ fontFamily: 'var(--font)', fontSize: 10.5, fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', color: RC.inkStrong, background: RC.gradSoft, borderRadius: 999, padding: '3px 8px' }}>Popular</span>}
                       </div>
-                      <div style={{ marginTop: 2, fontFamily: 'var(--font)', fontSize: 12.5, color: RC.inkMute }}>{termSub(p)}</div>
+                      <div style={{ marginTop: 2, fontFamily: 'var(--font)', fontSize: 12.5, color: RC.inkMute }}>{termSub(p, price.total)}</div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 800, color: RC.ink, letterSpacing: -0.5 }}>{money(p.monthly_amount, p.currency)}</div>
+                      <div style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 800, color: RC.ink, letterSpacing: -0.5 }}>{price.monthly}</div>
                       {p.mode === 'subscription' && <div style={{ fontFamily: 'var(--font)', fontSize: 11, color: RC.inkMute }}>a month</div>}
                     </div>
                   </button>
@@ -172,7 +190,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
 
             <div style={{ marginTop: 18, padding: '14px 16px', borderRadius: RADIUS.lg, background: RC.cream, fontFamily: 'var(--font)', fontSize: 13, color: RC.ink, lineHeight: 1.55 }}>
               <div style={{ fontWeight: 700 }}>How it works</div>
-              <div style={{ marginTop: 4, color: RC.inkMute }}>Pay, and your eSIM is ready in the app within a minute. Install it in one tap, keep your own SIM for calls, and turn on Ringo data when you land. Works on any eSIM iPhone (XS and newer).</div>
+              <div style={{ marginTop: 4, color: RC.inkMute }}>Pay with your Apple ID, and your eSIM is ready in the app within a minute. Install it in one tap, keep your own SIM for calls, and turn on Ringo data when you land. Works on any eSIM iPhone (XS and newer).</div>
             </div>
           </>
         )}
@@ -182,7 +200,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '12px 20px max(20px, env(safe-area-inset-bottom, 0px))', background: RC.glass, borderTop: `1px solid ${RC.line}` }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10, fontFamily: 'var(--font)' }}>
             <span style={{ fontSize: 13, color: RC.inkMute }}>{cat.destination.label} · {selected.tier === 'unlimited' ? 'Unlimited' : `${gb} GB`} · {termTitle(selected)}</span>
-            <span style={{ fontSize: 15, fontWeight: 800, color: RC.ink }}>{money(selected.billed_upfront_amount, selected.currency)}{selected.mode === 'subscription' ? ' today' : ''}</span>
+            <span style={{ fontSize: 15, fontWeight: 800, color: RC.ink }}>{priceOf(selected, productFor(selected)).total}{selected.mode === 'subscription' ? ' today' : ''}</span>
           </div>
           <RingoButton onClick={continueTap}>Continue</RingoButton>
         </div>

@@ -10,7 +10,9 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { RingoTabBar, type TabId } from './components/TabBar';
 import { ScreenHost, type NavDir } from './components/ScreenHost';
 import { haptic } from './lib/haptics';
-import { account, pendingCheckout } from './store/account';
+import { account, pendingPurchase } from './store/account';
+import { unfinished, onTransaction, finish, type IapTransaction } from './lib/iap';
+import { reportTransaction } from './lib/purchase';
 import { light } from './api/light';
 
 import { LandingScreen } from './screens/LandingScreen';
@@ -89,20 +91,33 @@ export function App() {
     goTab(to);
   };
 
-  // A checkout that was open when the app was killed: ask Stripe how it
-  // ended, once, on the next launch. A paid one becomes the owner's eSIM.
+  // Transactions StoreKit still holds unfinished (the app died between the
+  // purchase sheet and the server, an Ask to Buy was approved later, a
+  // subscription renewed): report each with the context saved before the
+  // sheet opened, then finish it. A renewal has no context and no owner to
+  // give; the site learns of it from Apple directly, so it is only finished.
   useEffect(() => {
-    const p = pendingCheckout.get();
-    if (!p) return;
-    if (Date.now() - p.startedAt > 2 * 60 * 60 * 1000) { pendingCheckout.set(null); return; }
-    light.status(p.session).then((s) => {
-      if (s.paid && s.user_id && s.t) {
-        account.set({ userId: s.user_id, t: s.t, email: p.email, purchaseRef: p.session });
-        pendingCheckout.set(null);
-      } else if (!s.pending) {
-        pendingCheckout.set(null);
+    const settle = async (t: IapTransaction) => {
+      const ctx = pendingPurchase.get(t.productId);
+      if (ctx) {
+        try { await reportTransaction(t, ctx); } catch { /* stays unfinished, tried again next launch */ }
+        return;
       }
-    }).catch(() => {});
+      if (t.productId.includes('.sub.') && t.originalTransactionId !== t.transactionId) { await finish(t.transactionId); return; }
+      const acct = account.get();
+      if (acct?.email) {
+        // A purchase whose context is gone (storage cleared): the site may
+        // already know it from the purchase sheet's own report.
+        try {
+          const r = await light.restorePurchase(t.jws);
+          if (r.ok) await finish(t.transactionId);
+        } catch { /* left unfinished */ }
+      }
+    };
+    void unfinished().then((list) => list.forEach((t) => void settle(t)));
+    let off = () => {};
+    void onTransaction((t) => void settle(t)).then((f) => { off = f; });
+    return () => off();
   }, []);
 
   let body: ReactNode = null;

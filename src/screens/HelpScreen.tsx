@@ -10,6 +10,7 @@ import { LinkRow } from './EsimScreen';
 import { SITE } from '../api/light';
 import { openInSheet } from '../lib/browser';
 import { useAccount, account } from '../store/account';
+import { manageSubscriptions } from '../lib/iap';
 import { hapticSelection } from '../lib/haptics';
 
 const FAQ: { q: string; a: string }[] = [
@@ -17,7 +18,8 @@ const FAQ: { q: string; a: string }[] = [
   { q: 'When should I install it?', a: 'Any time before you fly. Installing does not start the clock on a 30-day plan; the days start when the eSIM first connects at your destination.' },
   { q: 'Do I keep my own number?', a: 'Yes. Your own SIM stays in the phone for calls and texts; Ringo carries the data. In Settings › Mobile Data choose Ringo for data and turn Data Roaming on for it.' },
   { q: 'What if I run out of data?', a: 'Add 10 or 20 GB from My eSIM; it lands on the same eSIM within a minute. Unlimited plans follow the fair use policy in the Terms.' },
-  { q: 'Can I get a refund?', a: 'Before the eSIM is installed and used, yes, within 14 days. Once it is installed and used, plans are non-refundable; see the Terms.' },
+  { q: 'How do I pay, and how do I cancel a renewing plan?', a: 'Every plan is bought through the App Store with your Apple ID. A renewing plan renews automatically until you cancel it in Settings › Apple ID › Subscriptions, at least 24 hours before the period ends. One-payment plans never renew.' },
+  { q: 'Can I get a refund?', a: 'Before the eSIM is installed and used, yes, within 14 days. Once it is installed and used, plans are non-refundable; see the Terms. Purchases are billed by Apple, so refund requests go through reportaproblem.apple.com.' },
 ];
 
 export function HelpScreen() {
@@ -47,14 +49,14 @@ export function HelpScreen() {
           <RingoCard style={{ padding: 0 }}>
             <LinkRow label="Setup guide" sub="Install and switch on, step by step" onClick={() => void openInSheet(`${SITE}/esim-setup.html`)} />
             <LinkRow label="Contact Ringo" sub="We answer by email, usually the same day" onClick={() => void openInSheet(`${SITE}/contact`)} />
-            <LinkRow label="ringoesim.com" sub="Plans, destinations and the blog" onClick={() => void openInSheet(SITE)} last />
+            <LinkRow label="Manage subscriptions" sub="Your Apple ID subscriptions" onClick={() => void manageSubscriptions()} last />
           </RingoCard>
         </div>
 
         <div style={{ marginTop: 22 }}>
           <SectionTitle>Legal</SectionTitle>
           <RingoCard style={{ padding: 0 }}>
-            <LinkRow label="Terms and Conditions" onClick={() => void openInSheet(`${SITE}/terms`)} />
+            <LinkRow label="Terms of Use" onClick={() => void openInSheet(`${SITE}/terms`)} />
             <LinkRow label="Privacy Policy" onClick={() => void openInSheet(`${SITE}/privacy`)} last />
           </RingoCard>
         </div>

@@ -1,4 +1,5 @@
-// FindEsimScreen — "I bought an eSIM, show it here". The website identifies
+// FindEsimScreen — "I bought an eSIM, show it here" by email (the App Store
+// route is "Restore purchases" on My eSIM). The website identifies
 // a customer by email: /api/lead returns the signup row and its token for
 // the address, the same handle the dashboard link carries. With it the app
 // shows the plan and what is left on it; the installable profile itself
