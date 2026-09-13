@@ -97,7 +97,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
   const continueTap = () => {
     if (!cat || !selected) return;
     haptic('medium');
-    onContinue({ destination: id, destinationLabel: cat.destination.label, plan: selected, data_gb: selected.tier === 'data' ? gb : null, product: productFor(selected) });
+    onContinue({ destination: id, destinationLabel: cat.destination.id === id ? cat.destination.label : `${dest?.label || id} (${cat.destination.label} plan)`, plan: selected, data_gb: selected.tier === 'data' ? gb : null, product: productFor(selected) });
   };
   const loadingPrices = native && cat && !products;
 
@@ -111,10 +111,13 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
         </div>
         <div style={{ position: 'absolute', left: 20, right: 20, bottom: 16 }}>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: '#fff', letterSpacing: -0.8, lineHeight: 1.05, textShadow: '0 2px 12px rgba(0,0,0,0.35)' }}>
-            {dest?.flag ? `${dest.flag} ` : ''}{cat?.destination.label || dest?.label || id}
+            {dest?.flag ? `${dest.flag} ` : ''}{dest?.label || cat?.destination.label || id}
           </div>
           <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 13.5, fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>
-            {cat?.destination.coverage_line || (dest ? (dest.countries === 1 ? `Works across ${dest.label}` : `Works in ${dest.countries} countries`) : '')}
+            {/* A country sells the plan that covers it (its region, or Global); say so. */}
+            {cat
+              ? (cat.destination.id === id ? cat.destination.coverage_line : `${cat.destination.label} plan: ${cat.destination.coverage_line.replace(/^Works /, 'works ')}`)
+              : (dest ? (dest.countries === 1 ? `Works across ${dest.label}` : `Works in ${dest.countries} countries`) : '')}
           </div>
         </div>
       </div>
@@ -199,7 +202,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
       {cat && selected && (
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '12px 20px max(20px, env(safe-area-inset-bottom, 0px))', background: RC.glass, borderTop: `1px solid ${RC.line}` }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10, fontFamily: 'var(--font)' }}>
-            <span style={{ fontSize: 13, color: RC.inkMute }}>{cat.destination.label} · {selected.tier === 'unlimited' ? 'Unlimited' : `${gb} GB`} · {termTitle(selected)}</span>
+            <span style={{ fontSize: 13, color: RC.inkMute }}>{cat.destination.label} plan · {selected.tier === 'unlimited' ? 'Unlimited' : `${gb} GB`} · {termTitle(selected)}</span>
             <span style={{ fontSize: 15, fontWeight: 800, color: RC.ink }}>{priceOf(selected, productFor(selected)).total}{selected.mode === 'subscription' ? ' today' : ''}</span>
           </div>
           <RingoButton onClick={continueTap}>Continue</RingoButton>

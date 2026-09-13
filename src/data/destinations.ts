@@ -16,16 +16,20 @@ export interface Destination {
   flag?: string;
 }
 
+// The five plans Ringo sells (owner 2026-09-13: Global or a region, nothing
+// else). Every other destination is listed too and sells the plan that
+// covers it, which the site resolves (a French trip buys the Europe plan,
+// a Canadian one the Global plan).
 export const REGIONS: Destination[] = [
+  { id: 'global', label: 'Global', kind: 'region', countries: 133 },
   { id: 'europe', label: 'Europe', kind: 'region', countries: 37 },
-  { id: 'usa', label: 'United States', kind: 'region', countries: 1, flag: '🇺🇸' },
   { id: 'asia', label: 'Asia', kind: 'region', countries: 19 },
   { id: 'latam', label: 'Latin America', kind: 'region', countries: 18 },
   { id: 'middle-east', label: 'Middle East', kind: 'region', countries: 12 },
-  { id: 'global', label: 'Global', kind: 'region', countries: 133 },
 ];
 
 export const COUNTRIES: Destination[] = [
+  { id: 'usa', label: 'United States', kind: 'country', countries: 1, flag: '🇺🇸' },
   { id: 'australia', label: 'Australia', kind: 'country', countries: 1, flag: '🇦🇺' },
   { id: 'brazil', label: 'Brazil', kind: 'country', countries: 1, flag: '🇧🇷' },
   { id: 'canada', label: 'Canada', kind: 'country', countries: 1, flag: '🇨🇦' },

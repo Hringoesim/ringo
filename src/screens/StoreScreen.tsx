@@ -95,7 +95,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn }: { onOpen: (
           Where are you going?
         </div>
         <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14.5, color: RC.inkMute, lineHeight: 1.45 }}>
-          Data eSIMs for 35 destinations. Pay once, install in a tap, connected when you land.
+          One Global plan or a regional one, for 35 destinations. Install in a tap, connected when you land.
         </div>
 
         <div style={{ marginTop: 16, height: 48, padding: '0 14px', borderRadius: 14, background: RC.paper, border: `1px solid ${RC.line}`, display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -117,7 +117,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn }: { onOpen: (
 
         {regions.length > 0 && (
           <>
-            <div style={{ marginTop: 22, marginBottom: 10, fontFamily: 'var(--font)', fontSize: 11, fontWeight: 700, color: RC.inkMute, letterSpacing: 0.6, textTransform: 'uppercase' }}>Regions</div>
+            <div style={{ marginTop: 22, marginBottom: 10, fontFamily: 'var(--font)', fontSize: 11, fontWeight: 700, color: RC.inkMute, letterSpacing: 0.6, textTransform: 'uppercase' }}>Plans</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {regions.map((d) => <RegionCard key={d.id} d={d} summary={summary} onOpen={() => open(d.id)} />)}
             </div>
