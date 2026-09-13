@@ -11,6 +11,8 @@ import { SITE } from '../api/light';
 import { openInSheet } from '../lib/browser';
 import { useAccount, account } from '../store/account';
 import { manageSubscriptions } from '../lib/iap';
+import { PICTURE_CREDITS } from '../data/pictureCredits';
+import { DESTINATIONS } from '../data/destinations';
 import { hapticSelection } from '../lib/haptics';
 
 const FAQ: { q: string; a: string }[] = [
@@ -22,10 +24,10 @@ const FAQ: { q: string; a: string }[] = [
   { q: 'Can I get a refund?', a: 'Before the eSIM is installed and used, yes, within 14 days. Once it is installed and used, plans are non-refundable; see the Terms. Purchases are billed by Apple, so refund requests go through reportaproblem.apple.com.' },
 ];
 
-export function HelpScreen() {
+export function HelpScreen({ onLogin }: { onLogin: () => void }) {
   const acct = useAccount();
   const [open, setOpen] = useState<number | null>(null);
-  const [forgot, setForgot] = useState(false);
+  const [credits, setCredits] = useState(false);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -61,17 +63,33 @@ export function HelpScreen() {
           </RingoCard>
         </div>
 
-        {acct && (
-          <div style={{ marginTop: 22 }}>
-            <SectionTitle>This phone</SectionTitle>
-            <RingoCard style={{ padding: 0 }}>
-              <div style={{ padding: '14px 16px', borderBottom: `1px solid ${RC.line}`, fontFamily: 'var(--font)', fontSize: 13.5, color: RC.inkMute }}>
-                eSIM shown for <span style={{ color: RC.ink, fontWeight: 600 }}>{acct.email || 'this account'}</span>
+        <div style={{ marginTop: 22 }}>
+          <SectionTitle>Account</SectionTitle>
+          <RingoCard style={{ padding: 0 }}>
+            {acct ? (
+              <>
+                <div style={{ padding: '14px 16px', borderBottom: `1px solid ${RC.line}`, fontFamily: 'var(--font)', fontSize: 13.5, color: RC.inkMute }}>
+                  Logged in as <span style={{ color: RC.ink, fontWeight: 600 }}>{acct.email || 'this account'}</span>
+                </div>
+                <LinkRow label="Log out" sub="Removes your eSIM details from this phone only" onClick={() => { hapticSelection(); account.forget(); }} last />
+              </>
+            ) : (
+              <LinkRow label="Log in" sub="With the email you bought with" onClick={onLogin} last />
+            )}
+          </RingoCard>
+        </div>
+
+        <div style={{ marginTop: 22 }}>
+          <SectionTitle>Photo credits</SectionTitle>
+          <RingoCard style={{ padding: 0 }}>
+            <LinkRow label={credits ? 'Hide the list' : 'Destination photographs'} sub="Wikimedia Commons and NASA, with their licences" onClick={() => { hapticSelection(); setCredits((c) => !c); }} last={!credits} />
+            {credits && (
+              <div style={{ padding: '4px 16px 14px', fontFamily: 'var(--font)', fontSize: 11.5, color: RC.inkMute, lineHeight: 1.6 }}>
+                {DESTINATIONS.map((d) => { const c = PICTURE_CREDITS[d.id]; return c ? <div key={d.id}><span style={{ color: RC.ink, fontWeight: 600 }}>{d.label}:</span> {c.title.replace(/\.[a-z]+$/i, '')}, {c.artist || 'unknown author'}, {c.license}</div> : null; })}
               </div>
-              <LinkRow label={forgot ? 'Forgotten' : 'Forget this eSIM on this phone'} sub="Removes the handle from this phone only. Your eSIM and email stay." onClick={() => { if (forgot) return; account.forget(); setForgot(true); }} last />
-            </RingoCard>
-          </div>
-        )}
+            )}
+          </RingoCard>
+        </div>
 
         <div style={{ marginTop: 26, textAlign: 'center', fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute, lineHeight: 1.6 }}>
           Ringo Ltd, 86-90 Paul Street, London EC2A 4NE<br />

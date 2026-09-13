@@ -34,10 +34,10 @@ function statusWord(pkg: string | null | undefined, sub: string): string {
   return sub === 'completed' ? 'Ready to use' : sub.replace(/_/g, ' ');
 }
 
-export function EsimScreen({ onBack, onInstall, onFind, onStore, onReport }: {
+export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport }: {
   onBack?: () => void;
   onInstall: (install: { apple_url: string; lpa: string }, label: string) => void;
-  onFind: () => void;
+  onLogin: () => void;
   onStore: () => void;
   onReport: () => void;
 }) {
@@ -157,10 +157,10 @@ export function EsimScreen({ onBack, onInstall, onFind, onStore, onReport }: {
         {header}
         <Empty
           title="No eSIM on this phone yet."
-          sub="Buy a plan and it appears here, ready to install. Bought a Ringo eSIM before? Restore your purchases, or find it with your email."
-          primary={{ label: 'Browse plans', onClick: onStore }}
+          sub="Buy a plan and it appears here, ready to install. Bought a Ringo eSIM before? Log in with the email you used, or restore your App Store purchases."
+          primary={{ label: 'Log in', onClick: onLogin }}
           secondary={{ label: restoring ? 'Restoring…' : 'Restore purchases', onClick: () => void restore() }}
-          tertiary={{ label: 'Find my eSIM by email', onClick: onFind }}
+          tertiary={{ label: 'Browse plans', onClick: onStore }}
           note={note}
         />
       </div>
@@ -185,7 +185,7 @@ export function EsimScreen({ onBack, onInstall, onFind, onStore, onReport }: {
             title="Nothing here yet."
             sub={`No plan is attached to ${acct.email || 'this email'}. If you just paid, give it a minute; otherwise browse the plans.`}
             primary={{ label: 'Browse plans', onClick: onStore }}
-            secondary={{ label: 'Use another email', onClick: onFind }}
+            secondary={{ label: 'Log in with another email', onClick: onLogin }}
           />
         )}
 
@@ -271,8 +271,8 @@ export function EsimScreen({ onBack, onInstall, onFind, onStore, onReport }: {
             {err && <div style={{ marginTop: 14, fontFamily: 'var(--font)', fontSize: 13, color: '#A12C2C' }}>{err}</div>}
 
             <div style={{ marginTop: 22, textAlign: 'center' }}>
-              <button className="press" onClick={onFind} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.inkMute }}>
-                Not your eSIM? Use another email
+              <button className="press" onClick={onLogin} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.inkMute }}>
+                Not your eSIM? Log in with another email
               </button>
             </div>
           </>

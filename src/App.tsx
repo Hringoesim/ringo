@@ -1,11 +1,12 @@
 // App.tsx — the shell: stack navigation + the three tabs.
 //
 //   landing → store → destination → checkout → (eSIM ready) → my eSIM → install
+//   log in (email + code) opens the eSIM bought elsewhere
 //
-// There is no account and no login. A buyer pays on Stripe's page in the
-// system browser sheet; ringoesim.com fulfils the eSIM and tells the app who
-// bought it. Everything the app knows about its owner lives in
-// src/store/account.ts, on this phone only.
+// A buyer pays through the App Store; ringoesim.com verifies the transaction,
+// fulfils the eSIM and tells the app who bought it. Log in (email + code) is
+// for a phone that did not do the buying. Everything the app knows about its
+// owner lives in src/store/account.ts, on this phone only.
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { RingoTabBar, type TabId } from './components/TabBar';
 import { ScreenHost, type NavDir } from './components/ScreenHost';
@@ -21,7 +22,7 @@ import { DestinationScreen, type Selection } from './screens/DestinationScreen';
 import { CheckoutScreen } from './screens/CheckoutScreen';
 import { EsimScreen } from './screens/EsimScreen';
 import { InstallScreen } from './screens/InstallScreen';
-import { FindEsimScreen } from './screens/FindEsimScreen';
+import { LoginScreen } from './screens/LoginScreen';
 import { ReportScreen } from './screens/ReportScreen';
 import { HelpScreen } from './screens/HelpScreen';
 
@@ -123,10 +124,10 @@ export function App() {
   let body: ReactNode = null;
   switch (current.name) {
     case 'landing':
-      body = <LandingScreen onExplore={() => leaveLanding('store')} onMyEsim={() => leaveLanding('esim')} />;
+      body = <LandingScreen onExplore={() => leaveLanding('store')} onMyEsim={() => { leaveLanding(account.get() ? 'esim' : 'store'); if (!account.get()) push('login'); }} />;
       break;
     case 'store':
-      body = <StoreScreen onOpen={(id) => push('destination', { destination: id })} onMyEsim={account.get() ? () => goTab('esim') : undefined} />;
+      body = <StoreScreen onOpen={(id) => push('destination', { destination: id })} onMyEsim={() => goTab('esim')} onLogin={() => push('login')} loggedIn={Boolean(account.get())} />;
       break;
     case 'destination':
       body = (
@@ -151,7 +152,7 @@ export function App() {
         <EsimScreen
           onBack={stack.length > 1 ? pop : undefined}
           onInstall={(install, label) => push('install', { install, label })}
-          onFind={() => push('find')}
+          onLogin={() => push('login')}
           onStore={() => goTab('store')}
           onReport={() => push('report')}
         />
@@ -160,14 +161,14 @@ export function App() {
     case 'install':
       body = <InstallScreen install={current.params.install!} label={current.params.label || 'Ringo'} onBack={pop} />;
       break;
-    case 'find':
-      body = <FindEsimScreen onBack={pop} onFound={() => goTab('esim')} />;
+    case 'login':
+      body = <LoginScreen onBack={pop} onDone={() => goTab('esim')} />;
       break;
     case 'report':
       body = <ReportScreen onBack={pop} />;
       break;
     case 'help':
-      body = <HelpScreen />;
+      body = <HelpScreen onLogin={() => push('login')} />;
       break;
     default:
       body = <div style={{ padding: 40 }}>Unknown screen: {current.name}</div>;

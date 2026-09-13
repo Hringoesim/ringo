@@ -74,7 +74,7 @@ function CountryTile({ d, summary, onOpen }: { d: Destination; summary: Summary 
   );
 }
 
-export function StoreScreen({ onOpen, onMyEsim }: { onOpen: (id: string) => void; onMyEsim?: () => void }) {
+export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn }: { onOpen: (id: string) => void; onMyEsim: () => void; onLogin: () => void; loggedIn: boolean }) {
   const summary = useSummary();
   const [q, setQ] = useState('');
   const query = q.trim().toLowerCase();
@@ -87,11 +87,9 @@ export function StoreScreen({ onOpen, onMyEsim }: { onOpen: (id: string) => void
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: 'max(54px, calc(env(safe-area-inset-top, 0px) + 12px)) 20px 120px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <img src={LOGO_SRC} alt="Ringo" style={{ height: 30, width: 'auto', display: 'block' }} />
-          {onMyEsim && (
-            <button className="press" onClick={onMyEsim} style={{ border: `1px solid ${RC.line}`, background: RC.paper, borderRadius: 999, padding: '7px 12px', fontFamily: 'var(--font)', fontSize: 12.5, fontWeight: 700, color: RC.inkStrong, cursor: 'pointer' }}>
-              My eSIM
-            </button>
-          )}
+          <button className="press" onClick={loggedIn ? onMyEsim : onLogin} style={{ border: `1px solid ${RC.line}`, background: RC.paper, borderRadius: 999, padding: '7px 12px', fontFamily: 'var(--font)', fontSize: 12.5, fontWeight: 700, color: RC.inkStrong, cursor: 'pointer' }}>
+            {loggedIn ? 'My eSIM' : 'Log in'}
+          </button>
         </div>
         <div style={{ marginTop: 18, fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: RC.ink, letterSpacing: -0.9, lineHeight: 1.08, textWrap: 'balance' }}>
           Where are you going?

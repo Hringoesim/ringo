@@ -159,7 +159,7 @@ export function LandingScreen({
             color: 'rgba(255,255,255,0.88)', textShadow: '0 1px 6px rgba(120,30,10,0.22)',
           }}
         >
-          Already have a Ringo eSIM? <span style={{ color: '#FFFFFF', fontWeight: 800 }}>Open it</span>
+          Already have a Ringo eSIM? <span style={{ color: '#FFFFFF', fontWeight: 800 }}>Log in</span>
         </button>
       </div>
     </div>

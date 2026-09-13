@@ -9,7 +9,7 @@
 //   POST app-purchase                      a StoreKit signed transaction -> eSIM
 //   GET  esim-subscription?user&t[&usage=1][&install=apple:…]
 //   POST esim-subscription                 resend_install | report_problem
-//   POST lead                              email -> { id, t } (find my eSIM)
+//   POST app-login                         email -> code by email -> { user_id, t }
 import { log } from '../lib/log';
 
 export const SITE = 'https://ringoesim.com';
@@ -147,12 +147,19 @@ export const light = {
       { method: 'POST', body: JSON.stringify({ action: 'report_problem', ...body }) },
     ),
 
-  /** The website's own account handle for an email: the signup row and its token. */
+  /** The signup row for an email (created if new): its id rides on a purchase as Apple's appAccountToken. */
   lead: (email: string) =>
     request<{ ok: boolean; id: string; t?: string }>('/lead', {
       method: 'POST',
       body: JSON.stringify({ email, attribution: { utm_source: 'ios_app' } }),
     }),
+
+  /** Log in, step one: a six-digit code is emailed. */
+  loginStart: (email: string) =>
+    request<{ ok: boolean; sent: boolean; retry_after?: number }>('/app-login', { method: 'POST', body: JSON.stringify({ email }) }),
+  /** Log in, step two: the code opens the account. */
+  loginVerify: (email: string, code: string) =>
+    request<{ ok: boolean; user_id: string; t: string; email: string }>('/app-login', { method: 'POST', body: JSON.stringify({ email, code }) }),
 };
 
 // Mirrors REASONS in the site's api/_cy-support.js: the ids are what the
