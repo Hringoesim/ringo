@@ -1,97 +1,73 @@
-// App.tsx — main shell with stack-based navigation + tab bar.
+// App.tsx — the shell: stack navigation + the three tabs.
 //
-// Entry is a SINGLE landing screen (Create account | Log in). Onboarding then
-// follows the backend orchestration order (Workstream A):
-//   account → KYC (Identity gate) → number assignment (allocate | port-in MNP)
-//   → eSIM install (SM-DP+/LPAd) → activation → home.
-// Auth is real (src/auth/auth.ts); when Supabase is configured it routes through
-// Supabase Auth + data (src/lib/ringoSupabase.ts).
-import { useState, useEffect, useRef, type ReactNode } from 'react';
-import { RingoTabBar } from './components/TabBar';
+//   landing → store → destination → checkout → (eSIM ready) → my eSIM → install
+//
+// There is no account and no login. A buyer pays on Stripe's page in the
+// system browser sheet; ringoesim.com fulfils the eSIM and tells the app who
+// bought it. Everything the app knows about its owner lives in
+// src/store/account.ts, on this phone only.
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { RingoTabBar, type TabId } from './components/TabBar';
 import { ScreenHost, type NavDir } from './components/ScreenHost';
-import { actions as storeActions, useRingoState, kycCleared } from './store/store';
-import { haptic, hapticNotify } from './lib/haptics';
-import * as auth from './auth/auth';
-import { isSupabaseConfigured, sbAuth } from './lib/ringoSupabase';
-import type { NavTarget, OnNav } from './navigation';
+import { haptic } from './lib/haptics';
+import { account, pendingCheckout } from './store/account';
+import { light } from './api/light';
 
-import { LockScreen } from './screens/LockScreen';
 import { LandingScreen } from './screens/LandingScreen';
-import { OnboardingScreen } from './screens/OnboardingScreen';
-import { NotifyPrimer } from './screens/NotifyPrimer';
-import { SignUpScreen } from './screens/SignUpScreen';
-import { OtpScreen } from './screens/OtpScreen';
-import { KycScreen } from './screens/KycScreen';
-import { NumberSetupScreen } from './screens/NumberSetupScreen';
-import { HomeScreen } from './screens/HomeScreen';
-import { BrowseScreen } from './screens/BrowseScreen';
-import { CountryScreen } from './screens/CountryScreen';
-import { NumbersScreen } from './screens/NumbersScreen';
-import { AddNumberScreen } from './screens/AddNumberScreen';
-import { PortNumberScreen } from './screens/PortNumberScreen';
-import { PlanScreen } from './screens/PlanScreen';
+import { StoreScreen } from './screens/StoreScreen';
+import { DestinationScreen, type Selection } from './screens/DestinationScreen';
+import { CheckoutScreen } from './screens/CheckoutScreen';
+import { EsimScreen } from './screens/EsimScreen';
 import { InstallScreen } from './screens/InstallScreen';
-import { ActivationScreen } from './screens/ActivationScreen';
-import { TiersScreen } from './screens/TiersScreen';
-import { SettingsScreen } from './screens/SettingsScreen';
-import { PaywallScreen } from './screens/PaywallScreen';
-import { LegalScreen } from './screens/LegalScreen';
-import { TwoFactorScreen } from './screens/TwoFactorScreen';
-import { ComingScreen } from './screens/ComingScreen';
-import { NUMBERS_LIVE } from './data/launch';
-import type { BillingPeriod } from './data/plans';
+import { FindEsimScreen } from './screens/FindEsimScreen';
+import { ReportScreen } from './screens/ReportScreen';
+import { HelpScreen } from './screens/HelpScreen';
 
-const TABBED = new Set(['home', 'browse', 'numbers', 'plan']);
-const sb = isSupabaseConfigured();
+const TABBED = new Set<string>(['store', 'esim', 'help']);
+const SEEN_KEY = 'ringo_seen_landing';
 
 interface Frame {
   id: number;
   name: string;
   params: {
-    code?: string; preselect?: string; onboarding?: boolean; mode?: 'create' | 'login'; kycDone?: boolean; period?: BillingPeriod;
-    planId?: string; gateReturn?: 'addNumber' | 'port' | 'install'; gateArg?: string; mandatory?: boolean;
-    email?: string;
+    destination?: string;
+    selection?: Selection;
+    install?: { apple_url: string; lpa: string };
+    label?: string;
   };
 }
-type TabName = 'home' | 'browse' | 'numbers' | 'plan';
 
 export function App() {
-  const { state } = useRingoState();
-  // Each frame carries a unique monotonic id so distinct navigations never share
-  // a React key (prevents a screen instance being reused with stale params).
+  // Each frame carries a unique monotonic id so distinct navigations never
+  // share a React key (prevents a screen instance being reused with stale
+  // params).
   const seqRef = useRef(0);
-  const mkFrame = (name: string, params: Frame['params'] = {}): Frame => ({
-    id: ++seqRef.current,
-    name,
-    params,
-  });
-  // VITE_SHOT opens the app straight onto one screen, so App Store screenshots
-  // can be captured without driving the UI. It is a build-time constant, so a
-  // normal `npm run build` compiles this branch away entirely — nothing about
-  // it exists in a shipping binary.
+  const mkFrame = (name: string, params: Frame['params'] = {}): Frame => ({ id: ++seqRef.current, name, params });
+
+  // VITE_SHOT opens the app straight onto one screen so App Store screenshots
+  // can be captured without driving the UI. Build-time constant: a normal
+  // build compiles the branch away.
   const [stack, setStack] = useState<Frame[]>(() => {
     const shot = import.meta.env.VITE_SHOT as string | undefined;
     if (shot) {
-      const [name, ...rest] = shot.split(':');
-      const params = rest.length ? { code: rest[0] } : {};
-      return name === 'landing'
-        ? [{ id: 0, name: 'landing', params: {} }]
-        : [{ id: 0, name: 'home', params: {} }, { id: 1, name, params }];
+      const [name, arg] = shot.split(':');
+      if (name === 'landing') return [{ id: 0, name: 'landing', params: {} }];
+      if (name === 'destination') return [{ id: 0, name: 'store', params: {} }, { id: 1, name: 'destination', params: { destination: arg || 'europe' } }];
+      // A sample activation code so the install screen can be photographed
+      // without a purchase; nothing about it is a real profile.
+      if (name === 'install') return [{ id: 0, name: 'esim', params: {} }, { id: 1, name: 'install', params: { label: arg || 'Europe', install: { lpa: 'LPA:1$consumer.e-sim.global$RINGO-SAMPLE-0000', apple_url: 'https://esimsetup.apple.com/esim_qrcode_provisioning?carddata=LPA%3A1%24consumer.e-sim.global%24RINGO-SAMPLE-0000' } } }];
+      return [{ id: 0, name, params: {} }];
     }
-    return [{ id: 0, name: auth.getSession() ? 'lock' : 'landing', params: {} }];
+    let seen = false;
+    try { seen = !!localStorage.getItem(SEEN_KEY); } catch { /* ignore */ }
+    return [{ id: 0, name: seen ? 'store' : 'landing', params: {} }];
   });
   const current = stack[stack.length - 1];
 
-  // Motion direction is set EXPLICITLY by each navigation action (push=forward,
-  // pop=back, replace/tab=fade) rather than inferred from stack length — a
-  // whole-stack replace() collapses to length 1 and would otherwise read as a
-  // backwards 'pop'. navKey is the frame id, unique per navigation.
+  // Motion direction is set EXPLICITLY by each navigation action (push =
+  // forward, pop = back, replace/tab = fade).
   const navDirRef = useRef<NavDir>('fade');
   const navKey = String(current.id);
-
-  useEffect(() => {
-    void storeActions.hydrate();
-  }, []);
 
   const push = (name: string, params: Frame['params'] = {}) => {
     navDirRef.current = 'push';
@@ -103,375 +79,80 @@ export function App() {
     haptic('light');
     setStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
   };
-  const replace = (name: string, params: Frame['params'] = {}) => {
-    navDirRef.current = 'fade';
-    setStack([mkFrame(name, params)]);
-  };
-  const goTab = (name: TabName) => {
+  const goTab = (name: TabId) => {
     navDirRef.current = 'fade';
     haptic('light');
     setStack([mkFrame(name, {})]);
   };
-  // Navigate to a tab. Switching between tab roots replaces the (shallow) stack;
-  // but opening a tab screen from a pushed detail screen (e.g. Settings → Plan)
-  // PUSHES it, so Back returns to where you came from instead of stranding you.
-  const navTab = (name: TabName) => (TABBED.has(current.name) ? goTab(name) : push(name));
-  // Back handler for tab screens: pop when we were pushed here (history exists),
-  // otherwise fall back to the home root.
-  const backOrHome = () => (stack.length > 1 ? pop() : goTab('home'));
-
-  // Ask for notifications only ONCE, and only after a real commitment (sign-in or
-  // purchase) — never upfront during a guest's exploration.
-  const NOTIFY_KEY = 'ringo_notify_asked';
-  const arriveHome = () => {
-    let asked = true;
-    try { asked = !!localStorage.getItem(NOTIFY_KEY); } catch { /* ignore */ }
-    if (!asked) {
-      try { localStorage.setItem(NOTIFY_KEY, '1'); } catch { /* ignore */ }
-      replace('notify');
-    } else {
-      replace('home');
-    }
+  const leaveLanding = (to: TabId) => {
+    try { localStorage.setItem(SEEN_KEY, '1'); } catch { /* ignore */ }
+    goTab(to);
   };
 
-  const finishToHome = () => {
-    // A brand-new account goes through the sizing questions BEFORE the plan, so
-    // the term we put in front of them is the one their own answers point at.
-    // Someone who has already answered lands straight on the dashboard.
-    const firstTime = !auth.getSession()?.onboarded;
-    auth.completeOnboarding();
-    if (sb) void sbAuth.completeOnboarding();
-    storeActions.syncIdentity();
-    if (firstTime) {
-      void storeActions.hydrate();
-      replace('onboard');
-      return;
-    }
-    // Pull the REAL account (numbers, plan, subscription, eSIM) now that we're
-    // authenticated — otherwise a mid-session sign-in shows stale guest defaults
-    // until the next relaunch.
-    void storeActions.hydrate();
-    arriveHome(); // sign-in / activation complete → offer alerts (once)
-  };
-
-  // Native OAuth deep-link completed (Host exchanged the code) → land the
-  // signed-in user on the dashboard with fresh account data.
+  // A checkout that was open when the app was killed: ask Stripe how it
+  // ended, once, on the next launch. A paid one becomes the owner's eSIM.
   useEffect(() => {
-    const done = () => finishToHome();
-    window.addEventListener('ringo-signed-in', done);
-    return () => window.removeEventListener('ringo-signed-in', done);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const p = pendingCheckout.get();
+    if (!p) return;
+    if (Date.now() - p.startedAt > 2 * 60 * 60 * 1000) { pendingCheckout.set(null); return; }
+    light.status(p.session).then((s) => {
+      if (s.paid && s.user_id && s.t) {
+        account.set({ userId: s.user_id, t: s.t, email: p.email, purchaseRef: p.session });
+        pendingCheckout.set(null);
+      } else if (!s.pending) {
+        pendingCheckout.set(null);
+      }
+    }).catch(() => {});
   }, []);
-
-  const signOut = () => {
-    if (sb) void sbAuth.signOut();
-    auth.signOut();
-    storeActions.reset();
-    replace('landing');
-  };
-
-  // Guests can explore the dashboard freely; committing (buying/porting a number,
-  // subscribing) requires an account first.
-  const isGuest = () => !auth.getSession();
-  const requireAccount = (): boolean => {
-    if (isGuest()) { hapticNotify('warning'); push('signup', { mode: 'create' }); return true; }
-    return false;
-  };
-
-  // Identity gate (L2): buying or porting a number requires an account + KYC.
-  const gateNumber = (target: 'addNumber' | 'port', arg?: string, onboarding = false) => {
-    // Numbers are deferred behind the Ringo Light launch — the UI shows them
-    // as Coming soon, and this is the backstop so no stale entry point can
-    // still route into a flow we do not sell yet.
-    if (!NUMBERS_LIVE) return;
-    if (requireAccount()) return;
-    if (kycCleared(state)) {
-      if (target === 'addNumber') push('addNumber', { preselect: arg, onboarding });
-      else push('port', { onboarding });
-    } else {
-      hapticNotify('warning');
-      push('kyc', { mandatory: true, gateReturn: target, gateArg: arg, onboarding });
-    }
-  };
-  // Alpha gate: installing/activating the eSIM requires an ACCOUNT only — not a
-  // paid plan. The IAP subscription products aren't live in App Store Connect
-  // yet, so a paywall here would dead-end on TestFlight (the owner could never
-  // reach the eSIM). Re-add `state.subscribed` once billing is live.
-  const gateActivation = (target: 'install' | 'activate') => {
-    if (requireAccount()) return;
-    push(target);
-  };
-
-  // ONE action pays. There is no checkout screen: "Start my plan" opens the
-  // StoreKit sheet directly and, on success, goes straight to installing the
-  // eSIM. A separate paywall page in between was a step that asked the user to
-  // agree twice to the same purchase.
-  const buyNow = async (period = 'annual'): Promise<{ ok: boolean; error?: string }> => {
-    // The term decides WHICH App Store product is charged — the two Ringo Light
-    // products are different lengths at different prices.
-    const res = await storeActions.checkout('light', period);
-    if (res.ok) {
-      hapticNotify('success');
-      replace('home');
-      push('install');
-    } else {
-      hapticNotify('error');
-    }
-    return res;
-  };
-
-  const onNav: OnNav = (target: NavTarget, ...args: string[]) => {
-    if (target === 'home') return goTab('home');
-    if (target === 'browse') return navTab('browse');
-    if (target === 'numbers') return navTab('numbers');
-    if (target === 'plan') return navTab('plan');
-    if (target === 'country') return push('country', { code: args[0] });
-    if (target === 'addNumber') return gateNumber('addNumber', args[0]);
-    if (target === 'install') return gateActivation('install');
-    if (target === 'activate') return gateActivation('activate');
-    if (target === 'port') return gateNumber('port');
-    if (target === 'tiers') return push('tiers');
-    if (target === 'kyc') return push('kyc');
-    if (target === 'settings') return push('settings');
-    if (target === 'terms') return push('terms');
-    if (target === 'privacy') return push('privacy');
-    if (target === 'twofactor') return push('twofactor');
-    if (target === 'coming') return push('coming');
-    // Guest taps the avatar → create an account (explore-first flow).
-    if (target === 'signup') return push('signup', { mode: 'create' });
-  };
-
-  const onboarding = !!current.params.onboarding;
-  const session = auth.getSession();
 
   let body: ReactNode = null;
   switch (current.name) {
-    case 'lock':
-      body = (
-        <LockScreen
-          userName={session?.name || 'there'}
-          onUnlock={() => replace('home')}
-          onSwitchAccount={signOut}
-        />
-      );
-      break;
     case 'landing':
-      // Explore-first: straight into the dashboard. No subscription push, no
-      // sign-in wall up front — that comes later, only at a commit point.
-      body = (
-        <LandingScreen
-          onExplore={() => replace('home')}
-          onLogin={() => push('signup', { mode: 'login' })}
-          // Account FIRST, then the eSIM flow — the order every eSIM platform
-          // uses. The front page still shows the price so nobody has to sign up
-          // to find out what it costs, but choosing a plan is not step one:
-          // sign in or create an account, then plan, pay, install.
-          onStart={() => push('signup', { mode: 'create' })}
-        />
-      );
+      body = <LandingScreen onExplore={() => leaveLanding('store')} onMyEsim={() => leaveLanding('esim')} />;
       break;
-    case 'onboard':
+    case 'store':
+      body = <StoreScreen onOpen={(id) => push('destination', { destination: id })} onMyEsim={account.get() ? () => goTab('esim') : undefined} />;
+      break;
+    case 'destination':
       body = (
-        <OnboardingScreen
+        <DestinationScreen
+          id={current.params.destination || 'europe'}
           onBack={pop}
-          onExplore={(planId, destinations) => { storeActions.applyOnboarding(planId, destinations); replace('home'); }}
-          onCreate={(planId, destinations, period) => {
-            storeActions.applyOnboarding(planId, destinations, period);
-            replace('home');
-            navTab('plan');
-          }}
-        />
-      );
-      break;
-    case 'notify':
-      body = <NotifyPrimer onDone={() => replace('home')} />;
-      break;
-    case 'signup':
-      body = (
-        <SignUpScreen
-          mode={current.params.mode}
-          onBack={pop}
-          onAppleSignIn={async () => {
-            if (sb) {
-              await sbAuth.apple(); // native: resolves signed-in; web: redirects away
-              if (auth.getSession()) { storeActions.syncIdentity(); finishToHome(); }
-              return;
-            }
-            await auth.signInWithApple();
-            finishToHome();
-          }}
-          onGoogleSignIn={async () => {
-            if (sb) { await sbAuth.google(); return; } // real Google OAuth (redirect)
-            try { await auth.signInWithGoogle(); } catch { /* cancelled */ }
-            finishToHome();
-          }}
-          onSendCode={async ({ name, email }) => {
-            const isLogin = current.params.mode === 'login';
-            if (sb) {
-              // Passwordless: name + email → 6-digit code lands in the inbox.
-              await sbAuth.startEmailOtp(email, isLogin ? undefined : name);
-              push('emailOtp', { email, mode: current.params.mode });
-              return;
-            }
-            // Local fallback when Supabase isn't configured.
-            auth.signInEmailOnly(email);
-            finishToHome();
-          }}
-        />
-      );
-      break;
-    case 'emailOtp': {
-      const otpEmail = String(current.params.email || '');
-      body = (
-        <OtpScreen
-          phone={otpEmail}
-          onBack={pop}
-          onVerify={async (code) => {
-            const r = await sbAuth.verifyEmailOtp(otpEmail, code);
-            if (!r.ok) return { ok: false, error: r.error || 'That code didn’t match.' };
-            storeActions.syncIdentity();
-            void storeActions.hydrate(); // pulls profile + website Pioneer match
-            // New account or returning, finishToHome decides: first-timers get
-            // the sizing questions, everyone else lands on the dashboard. KYC
-            // and number setup are not part of the Ringo Light flow.
-            finishToHome();
-            return { ok: true };
-          }}
-          onResend={async () => {
-            await sbAuth.startEmailOtp(otpEmail);
-            return null;
-          }}
-        />
-      );
-      break;
-    }
-    case 'kyc': {
-      const gateReturn = current.params.gateReturn;
-      const gateArg = current.params.gateArg;
-      const gateOnboarding = current.params.onboarding;
-      body = (
-        <KycScreen
-          onBack={pop}
-          mandatory={!!current.params.mandatory}
-          onContinue={(payload) => {
-            // Only record a KYC submission when the user actually completed the
-            // steps — "I'll verify later" must not file an empty submission.
-            if (payload) storeActions.submitKyc(payload);
-            // If we came here to unlock a number action, continue to it now.
-            if (gateReturn === 'addNumber') return push('addNumber', { preselect: gateArg, onboarding: gateOnboarding });
-            if (gateReturn === 'port') return push('port', { onboarding: gateOnboarding });
-            push('numberSetup', { kycDone: !!payload });
-          }}
-        />
-      );
-      break;
-    }
-    case 'numberSetup':
-      body = (
-        <NumberSetupScreen
-          kycDone={current.params.kycDone !== false}
-          onNewNumber={() => gateNumber('addNumber', undefined, true)}
-          onPortIn={() => gateNumber('port', undefined, true)}
-          onSkip={finishToHome}
-          onBack={pop}
-        />
-      );
-      break;
-    case 'home':
-      body = <HomeScreen onNav={onNav} />;
-      break;
-    case 'browse':
-      body = <BrowseScreen onNav={onNav} onBack={backOrHome} />;
-      break;
-    case 'country':
-      body = (
-        <CountryScreen
-          code={current.params.code as string}
-          onNav={onNav}
-          onBack={pop}
-          onAddCountry={(code) => { storeActions.enableCountry(code); gateActivation('install'); }}
-        />
-      );
-      break;
-    case 'numbers':
-      body = <NumbersScreen onNav={onNav} onBack={backOrHome} />;
-      break;
-    case 'addNumber':
-      body = (
-        <AddNumberScreen
-          preselect={current.params.preselect}
-          onBack={pop}
-          onContinue={(code) => {
-            storeActions.allocateNumber(code);
-            if (onboarding) gateActivation('install');
-            else goTab('numbers');
-          }}
-        />
-      );
-      break;
-    case 'port':
-      body = (
-        <PortNumberScreen
-          onBack={pop}
-          onContinue={(payload) => {
-            storeActions.portNumber(payload);
-            if (onboarding) gateActivation('install');
-            else goTab('numbers');
-          }}
-        />
-      );
-      break;
-    case 'plan':
-      body = (
-        <PlanScreen
-          onBack={backOrHome}
-          onInstall={() => gateActivation('install')}
-          onCheckout={buyNow}
+          onContinue={(selection) => push('checkout', { selection })}
         />
       );
       break;
     case 'checkout':
       body = (
-        <PaywallScreen
-          period={current.params.period}
-          planId={current.params.planId || state.planId}
+        <CheckoutScreen
+          selection={current.params.selection!}
           onBack={pop}
-          onPaid={() => {
-            // Payment done → continue to whatever the paywall was gating. Replace
-            // the checkout frame with install (pop the paywall, push install) so
-            // the back stack is preserved and Back from Install still works —
-            // never trap the user on a single-frame stack.
-            if (current.params.gateReturn === 'install') { pop(); push('install'); }
-            else arriveHome(); // purchase complete → offer alerts (once)
-          }}
+          onReady={() => goTab('esim')}
+        />
+      );
+      break;
+    case 'esim':
+      body = (
+        <EsimScreen
+          onBack={stack.length > 1 ? pop : undefined}
+          onInstall={(install, label) => push('install', { install, label })}
+          onFind={() => push('find')}
+          onStore={() => goTab('store')}
+          onReport={() => push('report')}
         />
       );
       break;
     case 'install':
-      body = <InstallScreen onBack={pop} onActivate={() => push('activate')} />;
+      body = <InstallScreen install={current.params.install!} label={current.params.label || 'Ringo'} onBack={pop} />;
       break;
-    case 'activate':
-      body = <ActivationScreen onDone={finishToHome} />;
+    case 'find':
+      body = <FindEsimScreen onBack={pop} onFound={() => goTab('esim')} />;
       break;
-    case 'tiers':
-      body = <TiersScreen onBack={pop} />;
+    case 'report':
+      body = <ReportScreen onBack={pop} />;
       break;
-    case 'terms':
-      body = <LegalScreen doc="terms" onBack={pop} />;
-      break;
-    case 'privacy':
-      body = <LegalScreen doc="privacy" onBack={pop} />;
-      break;
-    case 'twofactor':
-      body = <TwoFactorScreen onBack={pop} />;
-      break;
-    case 'coming':
-      body = <ComingScreen onBack={pop} />;
-      break;
-    case 'settings':
-      body = (
-        <SettingsScreen onBack={pop} onSignOut={signOut} onNav={onNav} />
-      );
+    case 'help':
+      body = <HelpScreen />;
       break;
     default:
       body = <div style={{ padding: 40 }}>Unknown screen: {current.name}</div>;

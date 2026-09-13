@@ -62,28 +62,19 @@ export function Host() {
     return () => window.removeEventListener('resize', compute);
   }, []);
 
-  // Hide the native splash once mounted.
+  // Hide the native splash once mounted. launchAutoHide is off, so this is the
+  // only thing that dismisses it: run it after a frame so we uncover painted UI
+  // rather than an empty webview, and again on a timeout so a failure in here
+  // can never strand someone on the splash.
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
-    void import('@capacitor/splash-screen').then(({ SplashScreen }) => SplashScreen.hide()).catch(() => {});
+    const hide = () =>
+      void import('@capacitor/splash-screen').then(({ SplashScreen }) => SplashScreen.hide()).catch(() => {});
+    const raf = requestAnimationFrame(() => requestAnimationFrame(hide));
+    const backstop = setTimeout(hide, 4000);
     setTheme(theme); // sync status bar on launch
+    return () => { cancelAnimationFrame(raf); clearTimeout(backstop); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // OAuth deep-link return (Google/Apple web flow on the phone): Safari bounces
-  // back via com.ringoesim.app://auth-callback?code=… — finish the sign-in.
-  useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
-    let remove: (() => void) | undefined;
-    void import('@capacitor/app').then(({ App: CapApp }) => {
-      const sub = CapApp.addListener('appUrlOpen', ({ url }) => {
-        void import('./lib/ringoSupabase').then(({ sbAuth }) =>
-          sbAuth.completeOAuth(url).then((ok) => { if (ok) window.dispatchEvent(new Event('ringo-signed-in')); }),
-        );
-      });
-      remove = () => { void sub.then((s) => s.remove()); };
-    }).catch(() => {});
-    return () => remove?.();
   }, []);
 
   // WKWebView scrolls the document when the keyboard opens for a low input

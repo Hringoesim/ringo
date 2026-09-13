@@ -1,41 +1,24 @@
-// esim.ts — eSIM profile helpers. A profile (ICCID + SM-DP+ address + matching id
-// + confirmation code) is the real LPA activation data, handed out from the
-// backend pool (see supabase claim_esim). Here we turn it into the LPA string,
-// a scannable QR, and Apple's native "Add eSIM" universal link.
+// esim.ts — helpers around the SGP.22 LPA activation string
+// (LPA:1$<SM-DP+>$<matching id>[$<confirmation code>]) that ringoesim.com
+// hands the app for an eSIM it sold: a scannable QR for another device and
+// the parts for manual entry.
 import qrcode from 'qrcode-generator';
 
-export interface EsimProfile {
-  iccid: string;
+export interface LpaParts {
+  smdp: string;
   matchingId: string;
-  smdp: string; // SM-DP+ address, e.g. rsp1.cmlink.com
   confirmationCode?: string;
-  provider?: string;
 }
 
-/** The SGP.22 LPA activation string encoded in the QR / entered manually.
- *  Format: LPA:1$SM-DP+$MatchingID[$ConfirmationCode]. When the profile carries
- *  a confirmation code we embed it (field 4) so iOS installs without stopping to
- *  prompt for it — the CMI test profiles require one. */
-export function lpaString(p: EsimProfile): string {
-  const base = `LPA:1$${p.smdp}$${p.matchingId}`;
-  return p.confirmationCode ? `${base}$${p.confirmationCode}` : base;
-}
-
-/** iOS 17.4+ universal link that opens the native "Add eSIM" flow pre-filled —
- *  self-install, no scanning needed on the device itself. */
-export function appleInstallUrl(p: EsimProfile): string {
-  return `https://esimsetup.apple.com/esim_qrcode_provisioning?carddata=${encodeURIComponent(lpaString(p))}`;
+export function lpaParts(lpa: string): LpaParts {
+  const [, smdp = '', matchingId = '', confirmationCode] = String(lpa).split('$');
+  return confirmationCode ? { smdp, matchingId, confirmationCode } : { smdp, matchingId };
 }
 
 /** A crisp, scannable QR of the LPA string, as a data URI for an <img>. */
-export function qrDataUri(p: EsimProfile): string {
+export function qrDataUri(lpa: string): string {
   const qr = qrcode(0, 'M');
-  qr.addData(lpaString(p));
+  qr.addData(lpa);
   qr.make();
   return qr.createDataURL(6, 4); // 6px modules, 4-module quiet zone
-}
-
-/** Human-friendly ICCID with light grouping. */
-export function formatIccid(iccid: string): string {
-  return iccid.replace(/(.{4})/g, '$1 ').trim();
 }

@@ -2,10 +2,9 @@
 // destinations. A translucent, blurred capsule that hovers over the content.
 import type { ReactNode } from 'react';
 import { RC, GLASS } from '../theme';
-import { NUMBERS_LIVE } from '../data/launch';
 
-type TabId = 'home' | 'browse' | 'numbers' | 'plan';
-type IconKind = 'home' | 'globe' | 'phone' | 'card';
+export type TabId = 'store' | 'esim' | 'help';
+type IconKind = 'globe' | 'sim' | 'help';
 
 // Wise-style tab icons — friendly, rounded, generous stroke; the ACTIVE state
 // solidifies (filled glyph with details knocked out) the way Wise fills its
@@ -15,16 +14,6 @@ function tabIcon(kind: IconKind) {
     const s = { stroke: color, strokeWidth: 2.1, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' as const };
     const k = 'rgba(255,255,255,0.9)'; // knock-out for filled (active) glyphs
     switch (kind) {
-      case 'home':
-        return active ? (
-          <svg width="21" height="21" viewBox="0 0 24 24">
-            <path d="M3.4 11 12 4l8.6 7v8a1.8 1.8 0 0 1-1.8 1.8h-3.1v-4.6a1.5 1.5 0 0 0-1.5-1.5h-2.4a1.5 1.5 0 0 0-1.5 1.5v4.6H5.2A1.8 1.8 0 0 1 3.4 19z" fill={color} />
-          </svg>
-        ) : (
-          <svg width="21" height="21" viewBox="0 0 24 24">
-            <path d="M3.4 11 12 4l8.6 7v8a1.8 1.8 0 0 1-1.8 1.8h-3.1v-4.6a1.5 1.5 0 0 0-1.5-1.5h-2.4a1.5 1.5 0 0 0-1.5 1.5v4.6H5.2A1.8 1.8 0 0 1 3.4 19z" {...s} />
-          </svg>
-        );
       case 'globe':
         return active ? (
           <svg width="21" height="21" viewBox="0 0 24 24">
@@ -37,44 +26,40 @@ function tabIcon(kind: IconKind) {
             <path d="M3 12h18M12 3c2.5 2.6 4 5.6 4 9s-1.5 6.4-4 9c-2.5-2.6-4-5.6-4-9s1.5-6.4 4-9z" {...s} />
           </svg>
         );
-      case 'phone':
+      case 'sim':
         return active ? (
           <svg width="21" height="21" viewBox="0 0 24 24">
-            <rect x="6" y="2.6" width="12" height="18.8" rx="3.4" fill={color} />
-            <rect x="10.2" y="17.3" width="3.6" height="1.7" rx="0.85" fill={k} />
+            <path d="M7 2.6h6.2L18 7.4v11.4a2.6 2.6 0 0 1-2.6 2.6H7a2.6 2.6 0 0 1-2.6-2.6V5.2A2.6 2.6 0 0 1 7 2.6z" fill={color} />
+            <rect x="8" y="11" width="8" height="6" rx="1.4" fill={k} />
           </svg>
         ) : (
           <svg width="21" height="21" viewBox="0 0 24 24">
-            <rect x="6" y="2.6" width="12" height="18.8" rx="3.4" {...s} />
-            <rect x="10.2" y="17.3" width="3.6" height="1.7" rx="0.85" fill={color} />
+            <path d="M7 2.6h6.2L18 7.4v11.4a2.6 2.6 0 0 1-2.6 2.6H7a2.6 2.6 0 0 1-2.6-2.6V5.2A2.6 2.6 0 0 1 7 2.6z" {...s} />
+            <rect x="8" y="11" width="8" height="6" rx="1.4" {...s} />
           </svg>
         );
-      case 'card':
+      case 'help':
         return active ? (
           <svg width="21" height="21" viewBox="0 0 24 24">
-            <rect x="2.6" y="5.4" width="18.8" height="13.2" rx="3.4" fill={color} />
-            <rect x="2.6" y="9.2" width="18.8" height="2.2" fill={k} />
-            <rect x="6" y="14.4" width="5" height="1.8" rx="0.9" fill={k} />
+            <circle cx="12" cy="12" r="9" fill={color} />
+            <path d="M9.4 9.6a2.7 2.7 0 0 1 5.3.6c0 1.6-2.2 2-2.2 3.4" stroke={k} strokeWidth="1.9" fill="none" strokeLinecap="round" />
+            <circle cx="12.5" cy="16.6" r="1" fill={k} />
           </svg>
         ) : (
           <svg width="21" height="21" viewBox="0 0 24 24">
-            <rect x="2.6" y="5.4" width="18.8" height="13.2" rx="3.4" {...s} />
-            <path d="M2.6 10.3h18.8" {...s} />
+            <circle cx="12" cy="12" r="9" {...s} />
+            <path d="M9.4 9.6a2.7 2.7 0 0 1 5.3.6c0 1.6-2.2 2-2.2 3.4" {...s} />
+            <circle cx="12.5" cy="16.6" r="1" fill={color} />
           </svg>
         );
     }
   };
 }
 
-// Numbers is not part of the Ringo Light launch — there is no number to
-// manage, so the tab would open an empty room. It returns with NUMBERS_LIVE.
 const tabs: { id: TabId; label: string; icon: (c: string, active: boolean) => ReactNode }[] = [
-  { id: 'home', label: 'Home', icon: tabIcon('home') },
-  { id: 'browse', label: 'Browse', icon: tabIcon('globe') },
-  ...(NUMBERS_LIVE
-    ? [{ id: 'numbers' as const, label: 'Numbers', icon: tabIcon('phone') }]
-    : []),
-  { id: 'plan', label: 'Plan', icon: tabIcon('card') },
+  { id: 'store', label: 'eSIMs', icon: tabIcon('globe') },
+  { id: 'esim', label: 'My eSIM', icon: tabIcon('sim') },
+  { id: 'help', label: 'Help', icon: tabIcon('help') },
 ];
 
 export function RingoTabBar({
@@ -98,14 +83,14 @@ export function RingoTabBar({
         style={{
           ...GLASS, borderRadius: 30, pointerEvents: 'auto', overflow: 'hidden',
           position: 'relative', paddingTop: 9, paddingBottom: 9,
-          display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr',
+          display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
         }}
       >
         {/* One gradient pill that MORPHS between tabs (slides), not a per-icon fade. */}
         {activeIndex >= 0 && (
           <div
             style={{
-              position: 'absolute', top: 7, left: 0, width: '25%', height: 34,
+              position: 'absolute', top: 7, left: 0, width: '33.333%', height: 34,
               display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
               transform: `translateX(${activeIndex * 100}%)`,
               transition: 'transform 0.4s cubic-bezier(0.34, 1.4, 0.64, 1)',

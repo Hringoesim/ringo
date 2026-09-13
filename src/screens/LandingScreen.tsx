@@ -1,26 +1,20 @@
-// LandingScreen — the entry screen. Vivid warm gradient sky, the Ringo logo, a
-// live flight globe, and the two pill CTAs: "Create account" (opens sign-up with
-// Apple / Google / email) and "Log in". Fully adaptive.
+// LandingScreen — the welcome screen, shown once. Vivid warm gradient sky, the
+// Ringo logo, the flight globe, and two ways in: browse the eSIMs, or open the
+// one you already have. Fully adaptive.
 import { useEffect, useState, useLayoutEffect, useRef } from 'react';
 import { SaturnWorld } from '../components/SaturnWorld';
 import { RingoButton } from '../components/Button';
 import { LOGO_SRC } from '../assets';
 
 export function LandingScreen({
-  onExplore, onLogin, onStart,
-}: { onExplore: () => void; onLogin?: () => void; onStart?: () => void }) {
-  // A welcome screen, not a checkout. The flow is account, then plan, pay,
-  // install — so the price and the term choice belong on the plan step, where
-  // the buy button and the subscription disclosure already live. Putting them
-  // here made the front page a second checkout that nothing could complete.
+  onExplore, onMyEsim,
+}: { onExplore: () => void; onMyEsim: () => void }) {
+  // A welcome screen, not a checkout: the plans and prices live on the store,
+  // one tap away.
   const [globe, setGlobe] = useState(300);
   const [compact, setCompact] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
-  const start = () => {
-    if (onStart) onStart();
-    else explore();
-  };
-  // Explore plays a visible launch pop, THEN navigates — a fast tap still
+  // Explore plays a visible launch pop, THEN navigates, so a fast tap still
   // gets its moment of feedback.
   const [launching, setLaunching] = useState(false);
   const explore = () => {
@@ -147,40 +141,26 @@ export function LandingScreen({
             lineHeight: 1.5, maxWidth: 310,
           }}
         >
-          One allowance, 180+ countries, no roaming fees.
+          Data eSIMs for 35 destinations. Pay once, install in a tap, connected when you land.
         </div>
       </div>
 
       <div style={{ padding: compact ? '10px 24px 18px' : '14px 24px 26px', display: 'flex', flexDirection: 'column', gap: compact ? 8 : 10 }}>
 
         <div style={{ animation: launching ? 'ringoLaunchPop 0.24s cubic-bezier(0.34, 1.56, 0.64, 1) both' : 'none' }}>
-          <RingoButton onClick={start}>Get started</RingoButton>
+          <RingoButton onClick={explore}>Browse eSIMs</RingoButton>
         </div>
         <button
-          onClick={explore}
+          onClick={onMyEsim}
           className="press"
           style={{
-            border: 'none', background: 'transparent', cursor: 'pointer', padding: '2px 0',
-            fontFamily: 'var(--font)', fontSize: 13.5, fontWeight: 600,
-            color: 'rgba(255,255,255,0.80)', textShadow: '0 1px 6px rgba(120,30,10,0.22)',
+            border: 'none', background: 'transparent', cursor: 'pointer', padding: '4px 0',
+            fontFamily: 'var(--font)', fontSize: 14.5, fontWeight: 600,
+            color: 'rgba(255,255,255,0.88)', textShadow: '0 1px 6px rgba(120,30,10,0.22)',
           }}
         >
-          Look around first
+          Already have a Ringo eSIM? <span style={{ color: '#FFFFFF', fontWeight: 800 }}>Open it</span>
         </button>
-        {/* Returning users need a way back in after sign-out / reinstall. */}
-        {onLogin && (
-          <button
-            onClick={onLogin}
-            className="press"
-            style={{
-              border: 'none', background: 'transparent', cursor: 'pointer', padding: '4px 0',
-              fontFamily: 'var(--font)', fontSize: 14.5, fontWeight: 600,
-              color: 'rgba(255,255,255,0.88)', textShadow: '0 1px 6px rgba(120,30,10,0.22)',
-            }}
-          >
-            Already have an account? <span style={{ color: '#FFFFFF', fontWeight: 800 }}>Log in</span>
-          </button>
-        )}
       </div>
     </div>
   );
