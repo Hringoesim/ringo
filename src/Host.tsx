@@ -10,9 +10,12 @@ import { App } from './App';
 import { RC, applyTheme, RADIUS, type Scheme } from './theme';
 
 // True when running as an installed app (native shell or standalone PWA).
+// `?shot=1` forces it, so App Store screenshots can be captured from a
+// desktop headless browser without the mockup frame around them.
 function isStandalone(): boolean {
   if (Capacitor.isNativePlatform()) return true;
   if (typeof window === 'undefined') return false;
+  if (new URLSearchParams(window.location.search).has('shot')) return true;
   const mm = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
   const iosStandalone = (window.navigator as unknown as { standalone?: boolean }).standalone;
   return !!(mm || iosStandalone);
@@ -153,11 +156,8 @@ function BrowserMockup() {
   );
 }
 
-// Shown beside the mockup on the public demo build only — never inside the
+// Shown beside the mockup in a desktop browser only, never inside the
 // native app (this lives in the browser-frame chrome, which native skips).
-// Wording is deliberately about what is SIMULATED rather than "no backend":
-// sign-in and the country/plan data are real, so a technical viewer would
-// catch that claim; what is not real is anything that provisions or charges.
 function DemoNotice() {
   return (
     <div
@@ -172,8 +172,8 @@ function DemoNotice() {
         Demo
       </div>
       <div style={{ marginTop: 3, fontSize: 12, color: RC.ink }}>
-        Product prototype. eSIM activation, phone numbers and billing are
-        simulated — nothing is provisioned and no card is ever charged.
+        Browser preview of the Ringo iPhone app. Plans, prices and payments
+        are the real ones from ringoesim.com.
       </div>
     </div>
   );
