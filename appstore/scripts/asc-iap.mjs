@@ -11,7 +11,11 @@ import { asc } from './asc.mjs';
 import { readFileSync, statSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 const SITE = process.env.SITE || '/Users/hippolytevanmarcke/new website Ringo april 2026/NEW-website';
-const { appleCatalog } = await import(`${SITE}/api/_apple-products.js`);
+const { appleCatalog, APPLE_GEN } = await import(`${SITE}/api/_apple-products.js`);
+// The reference name (internal, never shown to buyers) must be unique per
+// app: a reprice keeps the delivered thing and its USD figure, so the
+// catalogue generation tag keeps the name apart from an earlier set's.
+const refName = (p, usd) => `${p.name} $${money(usd)}${APPLE_GEN ? ` ${APPLE_GEN}` : ''}`;
 const { convert } = await import(`${SITE}/api/_light-currency.js`);
 const APP = '6787133742';
 const GROUP = '22248864';
@@ -81,8 +85,8 @@ for (const p of catalog) {
     let obj = kind === 'sub' ? existingSub.get(p.productId) : existingIap.get(p.productId);
     if (!obj) {
       const r = kind === 'sub'
-        ? await asc('POST', '/v1/subscriptions', { data: { type: 'subscriptions', attributes: { name: `${p.name} $${money(usd)}`, productId: p.productId, subscriptionPeriod: p.period, groupLevel: GROUP_LEVEL[p.period] || 3, reviewNote: reviewNote(p), familySharable: false }, relationships: { group: { data: { type: 'subscriptionGroups', id: GROUP } } } } })
-        : await asc('POST', '/v2/inAppPurchases', { data: { type: 'inAppPurchases', attributes: { name: `${p.name} $${money(usd)}`, productId: p.productId, inAppPurchaseType: 'CONSUMABLE', reviewNote: reviewNote(p) }, relationships: { app: { data: { type: 'apps', id: APP } } } } });
+        ? await asc('POST', '/v1/subscriptions', { data: { type: 'subscriptions', attributes: { name: refName(p, usd), productId: p.productId, subscriptionPeriod: p.period, groupLevel: GROUP_LEVEL[p.period] || 3, reviewNote: reviewNote(p), familySharable: false }, relationships: { group: { data: { type: 'subscriptionGroups', id: GROUP } } } } })
+        : await asc('POST', '/v2/inAppPurchases', { data: { type: 'inAppPurchases', attributes: { name: refName(p, usd), productId: p.productId, inAppPurchaseType: 'CONSUMABLE', reviewNote: reviewNote(p) }, relationships: { app: { data: { type: 'apps', id: APP } } } } });
       if (r.status !== 201) throw new Error(`create ${r.status} ${JSON.stringify(r.json).slice(0, 300)}`);
       obj = r.json.data; summary.created++;
       log('created');

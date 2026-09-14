@@ -97,7 +97,7 @@ export function App() {
   // the two things that make every plan read "not sold" without any error.
   useEffect(() => {
     if (!iapAvailable()) return;
-    void loadProducts(['com.ringoesim.app.plan.rl_30.10gb.10999', 'com.ringoesim.app.sub.rl_annual.10gb.41988'])
+    void loadProducts(['com.ringoesim.app.plan.rl_30.10gb.7999.g2', 'com.ringoesim.app.sub.rl_annual.10gb.29988.g2'])
       .then((m) => { setStoreStatus({ checked: true, available: m.size }); console.info(`[ringo:iap] products available at launch: ${m.size} of 2`); })
       .catch((e) => { setStoreStatus({ checked: true, error: String((e as Error)?.message || e) }); console.warn('[ringo:iap] product probe failed', e); });
   }, []);
