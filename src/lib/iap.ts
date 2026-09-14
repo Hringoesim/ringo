@@ -10,6 +10,7 @@
 // redelivers (app killed mid-purchase, Ask to Buy approved later, renewals)
 // arrive through onTransaction and go through the same path.
 import { Capacitor, registerPlugin, type PluginListenerHandle } from '@capacitor/core';
+import { useSyncExternalStore } from 'react';
 import { log } from './log';
 
 export interface IapProduct {
@@ -53,6 +54,18 @@ const Native = registerPlugin<StoreKitPlugin>('StoreKit');
 export const iapAvailable = (): boolean => Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
 
 const productCache = new Map<string, IapProduct>();
+
+/** What the launch probe saw: how many of the two reference products the App Store returned. Shown under Help for support. */
+export interface StoreStatus { checked: boolean; available: number; error: string | null }
+let status: StoreStatus = { checked: false, available: 0, error: null };
+const statusListeners = new Set<() => void>();
+export function setStoreStatus(next: Partial<StoreStatus>): void {
+  status = { ...status, ...next };
+  statusListeners.forEach((l) => l());
+}
+export function useStoreStatus(): StoreStatus {
+  return useSyncExternalStore((l) => { statusListeners.add(l); return () => statusListeners.delete(l); }, () => status, () => status);
+}
 
 /** Apple's products for these ids; missing ids are simply absent (not sold). */
 export async function loadProducts(ids: string[]): Promise<Map<string, IapProduct>> {

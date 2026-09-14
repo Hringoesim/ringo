@@ -10,7 +10,7 @@ import { LinkRow } from './EsimScreen';
 import { SITE } from '../api/light';
 import { openInSheet } from '../lib/browser';
 import { useAccount, account } from '../store/account';
-import { manageSubscriptions } from '../lib/iap';
+import { manageSubscriptions, iapAvailable, useStoreStatus } from '../lib/iap';
 import { PICTURE_CREDITS } from '../data/pictureCredits';
 import { DESTINATIONS } from '../data/destinations';
 import { hapticSelection } from '../lib/haptics';
@@ -26,6 +26,7 @@ const FAQ: { q: string; a: string }[] = [
 
 export function HelpScreen({ onLogin }: { onLogin: () => void }) {
   const acct = useAccount();
+  const storeStatus = useStoreStatus();
   const [open, setOpen] = useState<number | null>(null);
   const [credits, setCredits] = useState(false);
 
@@ -51,7 +52,7 @@ export function HelpScreen({ onLogin }: { onLogin: () => void }) {
           <RingoCard style={{ padding: 0 }}>
             <LinkRow label="Setup guide" sub="Install and switch on, step by step" onClick={() => void openInSheet(`${SITE}/esim-setup.html`)} />
             <LinkRow label="Contact Ringo" sub="We answer by email, usually the same day" onClick={() => void openInSheet(`${SITE}/contact`)} />
-            <LinkRow label="Manage subscriptions" sub="Your Apple ID subscriptions" onClick={() => void manageSubscriptions()} last />
+            <LinkRow label="Manage subscriptions" sub={`Your Apple ID subscriptions${iapAvailable() ? ` · ${storeStatus.error ? `App Store: ${storeStatus.error}` : storeStatus.checked ? (storeStatus.available > 0 ? 'App Store connected' : 'App Store: no products available') : 'checking the App Store'}` : ''}`} onClick={() => void manageSubscriptions()} last />
           </RingoCard>
         </div>
 

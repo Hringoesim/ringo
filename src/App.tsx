@@ -12,7 +12,7 @@ import { RingoTabBar, type TabId } from './components/TabBar';
 import { ScreenHost, type NavDir } from './components/ScreenHost';
 import { haptic } from './lib/haptics';
 import { account, pendingPurchase } from './store/account';
-import { unfinished, onTransaction, finish, type IapTransaction } from './lib/iap';
+import { unfinished, onTransaction, finish, loadProducts, iapAvailable, setStoreStatus, type IapTransaction } from './lib/iap';
 import { reportTransaction } from './lib/purchase';
 import { light } from './api/light';
 
@@ -91,6 +91,16 @@ export function App() {
     try { localStorage.setItem(SEEN_KEY, '1'); } catch { /* ignore */ }
     goTab(to);
   };
+
+  // One line in the device log at launch saying whether the App Store
+  // returns our products: the Paid Apps agreement and the product state are
+  // the two things that make every plan read "not sold" without any error.
+  useEffect(() => {
+    if (!iapAvailable()) return;
+    void loadProducts(['com.ringoesim.app.plan.rl_30.10gb.10999', 'com.ringoesim.app.sub.rl_annual.10gb.41988'])
+      .then((m) => { setStoreStatus({ checked: true, available: m.size }); console.info(`[ringo:iap] products available at launch: ${m.size} of 2`); })
+      .catch((e) => { setStoreStatus({ checked: true, error: String((e as Error)?.message || e) }); console.warn('[ringo:iap] product probe failed', e); });
+  }, []);
 
   // Transactions StoreKit still holds unfinished (the app died between the
   // purchase sheet and the server, an Ask to Buy was approved later, a
