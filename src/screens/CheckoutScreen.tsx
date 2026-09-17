@@ -31,7 +31,7 @@ const EMAIL_KEY = 'ringo_last_email';
 function termTitle(s: Selection): string {
   const p = s.plan;
   if (p.mode === 'payment') return `${p.days} days`;
-  return p.term_months === 12 ? '12 months' : `${p.term_months} months`;
+  return p.term_months === 1 ? 'Monthly' : p.term_months === 12 ? '12 months' : `${p.term_months} months`;
 }
 function periodWord(months: number): string {
   return months === 12 ? 'year' : months === 1 ? 'month' : `${months} months`;

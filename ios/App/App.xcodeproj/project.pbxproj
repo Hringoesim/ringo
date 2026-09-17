@@ -15,6 +15,7 @@
 		AAAA000100000000000000B2 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000100000000000000A2 /* MainViewController.swift */; };
 		AAAA000100000000000000B3 /* BiometricAuthPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000100000000000000A3 /* BiometricAuthPlugin.swift */; };
 		AAAA000100000000000000B4 /* NotifyPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000100000000000000A4 /* NotifyPlugin.swift */; };
+		AAAA000100000000000000B7 /* GoogleSignInPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000100000000000000A7 /* GoogleSignInPlugin.swift */; };
 		AAAA000100000000000000B5 /* StoreKitPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000100000000000000A5 /* StoreKitPlugin.swift */; };
 		504EC30D1FED79650016851F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30B1FED79650016851F /* Main.storyboard */; };
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
@@ -31,6 +32,7 @@
 		AAAA000100000000000000A2 /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
 		AAAA000100000000000000A3 /* BiometricAuthPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuthPlugin.swift; sourceTree = "<group>"; };
 		AAAA000100000000000000A4 /* NotifyPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotifyPlugin.swift; sourceTree = "<group>"; };
+		AAAA000100000000000000A7 /* GoogleSignInPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleSignInPlugin.swift; sourceTree = "<group>"; };
 		AAAA000100000000000000A5 /* StoreKitPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreKitPlugin.swift; sourceTree = "<group>"; };
 		504EC30C1FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		504EC30E1FED79650016851F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -76,6 +78,7 @@
 				AAAA000100000000000000A2 /* MainViewController.swift */,
 				AAAA000100000000000000A3 /* BiometricAuthPlugin.swift */,
 				AAAA000100000000000000A4 /* NotifyPlugin.swift */,
+				AAAA000100000000000000A7 /* GoogleSignInPlugin.swift */,
 				AAAA000100000000000000A5 /* StoreKitPlugin.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
@@ -174,6 +177,7 @@
 				AAAA000100000000000000B2 /* MainViewController.swift in Sources */,
 				AAAA000100000000000000B3 /* BiometricAuthPlugin.swift in Sources */,
 				AAAA000100000000000000B4 /* NotifyPlugin.swift in Sources */,
+				AAAA000100000000000000B7 /* GoogleSignInPlugin.swift in Sources */,
 				AAAA000100000000000000B5 /* StoreKitPlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

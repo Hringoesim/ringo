@@ -6,6 +6,8 @@ interface ImportMetaEnv {
   /** test builds only: report the App Store launch probe to ringoesim.com */
   readonly VITE_PROBE_BEACON?: string;
   readonly VITE_BUILD?: string;
+  /** Google OAuth client id (iOS type) for Sign in with Google; the button is hidden without it */
+  readonly VITE_GOOGLE_IOS_CLIENT_ID?: string;
   /** Screenshot-only: pin the tax country. Never set in a release build. */
   readonly VITE_SHOT_COUNTRY?: string;
   /** 'mock' (default) | 'live' — selects the RingoAPI backend mode. */

@@ -39,14 +39,20 @@ function Segmented<T extends string>({ value, options, onChange }: { value: T; o
   );
 }
 
+// Row copy. The renewing plans are said plainly, once, under the list (and
+// in full on the purchase screen, as App Review requires); the rows
+// themselves carry the term and the price, the monthly one simply "a month,
+// cancel anytime" (owner 2026-09-17: a renewal plan, not shouted).
 function termTitle(p: Plan): string {
   if (p.mode === 'payment') return p.days === 30 ? '30 days' : `${p.days} days`;
+  if (p.term_months === 1) return 'Monthly';
   if (p.term_months === 12) return '12 months';
   return `${p.term_months} months`;
 }
 function termSub(p: Plan, total: string): string {
-  if (p.mode === 'payment') return 'One payment, no renewal';
-  return `${total} every ${p.term_months === 12 ? 'year' : `${p.term_months} months`}, renews until cancelled`;
+  if (p.mode === 'payment') return 'One payment';
+  if (p.term_months === 1) return `${total} a month, cancel anytime`;
+  return `${total} every ${p.term_months === 12 ? 'year' : `${p.term_months} months`}, cancel anytime`;
 }
 
 export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBack: () => void; onContinue: (s: Selection) => void }) {
@@ -199,6 +205,12 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
                 );
               })}
             </div>
+
+            {plans.some((p) => p.mode === 'subscription') && (
+              <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute, lineHeight: 1.5 }}>
+                Monthly and multi-month plans renew automatically through your Apple ID until you cancel in Settings › Apple ID › Subscriptions. 30-day plans do not renew.
+              </div>
+            )}
 
             <div style={{ marginTop: 18, padding: '14px 16px', borderRadius: RADIUS.lg, background: RC.cream, fontFamily: 'var(--font)', fontSize: 13, color: RC.ink, lineHeight: 1.55 }}>
               <div style={{ fontWeight: 700 }}>How it works</div>

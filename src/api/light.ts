@@ -57,6 +57,26 @@ export interface Catalog {
   top_ups: TopUp[];
 }
 
+export interface TravelBadge {
+  destination: string;
+  label: string;
+  kind: 'region' | 'country';
+  iso: string | null;
+  flag: string | null;
+  region: string | null;
+  countries: number;
+  first_at: string | null;
+  last_at: string | null;
+  plans: number;
+  active: boolean;
+}
+export interface Profile {
+  email: string;
+  member_since: string | null;
+  badges: TravelBadge[];
+  stats: { destinations: number; plans: number; countries_reachable: number };
+}
+
 export interface Summary {
   from: Record<string, number>;
   currency: Currency;
@@ -161,6 +181,14 @@ export const light = {
   deleteAccount: (userId: string, t: string) =>
     request<{ ok: boolean; deleted: boolean }>(`/app-account-delete?${new URLSearchParams({ user: userId, t }).toString()}`, { method: 'POST', body: '{}' }),
   /** Log in, step two: the code opens the account. */
+  /** Sign in with Apple or Google: the provider's identity token opens the same account. */
+  loginProvider: (provider: 'apple' | 'google', idToken: string, nonce: string) =>
+    request<{ ok: boolean; user_id: string; t: string; email: string; provider: string }>('/app-login', { method: 'POST', body: JSON.stringify({ provider, id_token: idToken, nonce }) }),
+
+  /** The profile: who is logged in and the badges of where their eSIMs have taken them. */
+  profile: (userId: string, t: string) =>
+    request<Profile>(`/app-profile?${new URLSearchParams({ user: userId, t }).toString()}`),
+
   loginVerify: (email: string, code: string) =>
     request<{ ok: boolean; user_id: string; t: string; email: string }>('/app-login', { method: 'POST', body: JSON.stringify({ email, code }) }),
 };

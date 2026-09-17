@@ -25,7 +25,7 @@ const FAQ: { q: string; a: string }[] = [
   { q: 'Can I get a refund?', a: 'Before the eSIM is installed and used, yes, within 14 days. Once it is installed and used, plans are non-refundable; see the Terms. Purchases are billed by Apple, so refund requests go through reportaproblem.apple.com.' },
 ];
 
-export function HelpScreen({ onLogin }: { onLogin: () => void }) {
+export function HelpScreen({ onLogin, onProfile }: { onLogin: () => void; onProfile: () => void }) {
   const acct = useAccount();
   const storeStatus = useStoreStatus();
   const [open, setOpen] = useState<number | null>(null);
@@ -88,6 +88,7 @@ export function HelpScreen({ onLogin }: { onLogin: () => void }) {
                 <div style={{ padding: '14px 16px', borderBottom: `1px solid ${RC.line}`, fontFamily: 'var(--font)', fontSize: 13.5, color: RC.inkMute }}>
                   Logged in as <span style={{ color: RC.ink, fontWeight: 600 }}>{acct.email || 'this account'}</span>
                 </div>
+                <LinkRow label="My profile" sub="Your travel badges, one per destination" onClick={() => { hapticSelection(); onProfile(); }} />
                 <LinkRow label="Log out" sub="Removes your eSIM details from this phone only" onClick={() => { hapticSelection(); account.forget(); }} />
                 {deleting === 'confirm' ? (
                   <div style={{ padding: '14px 16px', fontFamily: 'var(--font)', fontSize: 13.5, color: RC.ink, lineHeight: 1.5 }}>
@@ -105,7 +106,7 @@ export function HelpScreen({ onLogin }: { onLogin: () => void }) {
             ) : deleting === 'done' ? (
               <div style={{ padding: '14px 16px', fontFamily: 'var(--font)', fontSize: 13.5, color: '#1F7A4E', fontWeight: 600 }}>Your account has been deleted.</div>
             ) : (
-              <LinkRow label="Log in" sub="With the email you bought with" onClick={onLogin} last />
+              <LinkRow label="Log in" sub="With Apple, Google or your email" onClick={onLogin} last />
             )}
           </RingoCard>
         </div>
