@@ -157,6 +157,9 @@ export const light = {
   /** Log in, step one: a six-digit code is emailed. */
   loginStart: (email: string) =>
     request<{ ok: boolean; sent: boolean; retry_after?: number }>('/app-login', { method: 'POST', body: JSON.stringify({ email }) }),
+  /** Delete the account: identifiers wiped on the site, purchases kept. */
+  deleteAccount: (userId: string, t: string) =>
+    request<{ ok: boolean; deleted: boolean }>(`/app-account-delete?${new URLSearchParams({ user: userId, t }).toString()}`, { method: 'POST', body: '{}' }),
   /** Log in, step two: the code opens the account. */
   loginVerify: (email: string, code: string) =>
     request<{ ok: boolean; user_id: string; t: string; email: string }>('/app-login', { method: 'POST', body: JSON.stringify({ email, code }) }),

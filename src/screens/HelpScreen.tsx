@@ -5,9 +5,10 @@ import { useState } from 'react';
 import { RC } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoCard } from '../components/Card';
+import { RingoButton } from '../components/Button';
 import { SectionTitle } from '../components/ui';
 import { LinkRow } from './EsimScreen';
-import { SITE } from '../api/light';
+import { SITE, light } from '../api/light';
 import { openInSheet } from '../lib/browser';
 import { useAccount, account } from '../store/account';
 import { manageSubscriptions, iapAvailable, useStoreStatus } from '../lib/iap';
@@ -29,6 +30,21 @@ export function HelpScreen({ onLogin }: { onLogin: () => void }) {
   const storeStatus = useStoreStatus();
   const [open, setOpen] = useState<number | null>(null);
   const [credits, setCredits] = useState(false);
+  const [deleting, setDeleting] = useState<'idle' | 'confirm' | 'busy' | 'done' | 'failed'>('idle');
+
+  // Delete the account (App Review 5.1.1(v)): the site replaces every
+  // identifier on the person's rows; the eSIM on the phone keeps working.
+  const deleteAccount = async () => {
+    if (!acct) return;
+    setDeleting('busy');
+    try {
+      await light.deleteAccount(acct.userId, acct.t);
+      account.forget();
+      setDeleting('done');
+    } catch {
+      setDeleting('failed');
+    }
+  };
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -72,8 +88,22 @@ export function HelpScreen({ onLogin }: { onLogin: () => void }) {
                 <div style={{ padding: '14px 16px', borderBottom: `1px solid ${RC.line}`, fontFamily: 'var(--font)', fontSize: 13.5, color: RC.inkMute }}>
                   Logged in as <span style={{ color: RC.ink, fontWeight: 600 }}>{acct.email || 'this account'}</span>
                 </div>
-                <LinkRow label="Log out" sub="Removes your eSIM details from this phone only" onClick={() => { hapticSelection(); account.forget(); }} last />
+                <LinkRow label="Log out" sub="Removes your eSIM details from this phone only" onClick={() => { hapticSelection(); account.forget(); }} />
+                {deleting === 'confirm' ? (
+                  <div style={{ padding: '14px 16px', fontFamily: 'var(--font)', fontSize: 13.5, color: RC.ink, lineHeight: 1.5 }}>
+                    <div style={{ fontWeight: 700 }}>Delete your account?</div>
+                    <div style={{ marginTop: 4, color: RC.inkMute }}>Your email and details are removed from Ringo and we stop writing to you. An eSIM already on your phone keeps working until it runs out; it cannot be resent or topped up afterwards.</div>
+                    <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                      <RingoButton size="sm" variant="ghost" full={false} onClick={() => setDeleting('idle')}>Keep it</RingoButton>
+                      <RingoButton size="sm" full={false} onClick={() => void deleteAccount()}>Delete my account</RingoButton>
+                    </div>
+                  </div>
+                ) : (
+                  <LinkRow label={deleting === 'busy' ? 'Deleting…' : deleting === 'failed' ? 'Could not delete, try again' : 'Delete my account'} sub="Removes your email and details from Ringo" onClick={() => { hapticSelection(); if (deleting !== 'busy') setDeleting('confirm'); }} last />
+                )}
               </>
+            ) : deleting === 'done' ? (
+              <div style={{ padding: '14px 16px', fontFamily: 'var(--font)', fontSize: 13.5, color: '#1F7A4E', fontWeight: 600 }}>Your account has been deleted.</div>
             ) : (
               <LinkRow label="Log in" sub="With the email you bought with" onClick={onLogin} last />
             )}
