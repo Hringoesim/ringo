@@ -97,9 +97,20 @@ export function App() {
   // the two things that make every plan read "not sold" without any error.
   useEffect(() => {
     if (!iapAvailable()) return;
-    const ids = ['com.ringoesim.app.plan.rl_30.10gb.7999.g2', 'com.ringoesim.app.sub.rl_annual.10gb.29988.g2'];
     let alive = true;
     (async () => {
+      // The reference products are Europe's, read from the live catalogue so
+      // a reprice (new product ids) never leaves the probe asking for
+      // products that no longer exist.
+      let ids: string[] = [];
+      try {
+        const c = await light.catalog('europe');
+        ids = c.plans.map((p) => p.apple_product_id).filter((x): x is string => Boolean(x)).slice(0, 2);
+      } catch (e) {
+        setStoreStatus({ checked: true, error: String((e as Error)?.message || e) });
+        return;
+      }
+      if (!ids.length) { setStoreStatus({ checked: true, available: 0 }); return; }
       // An empty answer right at launch is often the store not being ready
       // yet, so the probe asks again a few times before it is believed.
       for (let i = 0; alive && i < 4; i++) {
@@ -107,7 +118,7 @@ export function App() {
         try {
           const m = await loadProducts(ids, { fresh: i > 0 });
           setStoreStatus({ checked: true, available: m.size, error: null });
-          console.info(`[ringo:iap] products available at launch: ${m.size} of 2 (try ${i + 1})`);
+          console.info(`[ringo:iap] products available at launch: ${m.size} of ${ids.length} (try ${i + 1})`);
           if (m.size) return;
         } catch (e) {
           setStoreStatus({ checked: true, error: String((e as Error)?.message || e) });
