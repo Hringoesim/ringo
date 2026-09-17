@@ -1,21 +1,10 @@
-// Mirror the Ringo Light catalogue into App Store Connect in-app purchases:
-// one consumable per one-payment line, one auto-renewable subscription per
-// renewing line (see the site's api/_apple-products.js). Idempotent: creates
-// what is missing, renames a subscription whose display name drifted, and
-// leaves the rest alone. Then run asc-sub-prices.mjs for the subscriptions.
-//
-// Usage: SITE=/path/to/NEW-website node asc-iap.mjs [--dry] [--only <productId>]
-// Needs the ADMIN App Store Connect key (see asc.mjs) and a review
-// screenshot at SHOT (any 1290x2796 PNG of the plan screen).
+// Mirror the Ringo Light catalogue into App Store Connect in-app purchases.
+// Usage: node asc-iap.mjs [--dry] [--only <productId>]
 import { asc } from './asc.mjs';
 import { readFileSync, statSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-const SITE = process.env.SITE || '/Users/hippolytevanmarcke/new website Ringo april 2026/NEW-website';
-const { appleCatalog, APPLE_GEN } = await import(`${SITE}/api/_apple-products.js`);
-// The reference name (internal, never shown to buyers) must be unique per
-// app: a reprice keeps the delivered thing and its USD figure, so the
-// catalogue generation tag keeps the name apart from an earlier set's.
-const refName = (p, usd) => `${p.name} $${money(usd)}${APPLE_GEN ? ` ${APPLE_GEN}` : ''}`;
+const SITE = '/Users/hippolytevanmarcke/new website Ringo april 2026/NEW-website-app-api';
+const { appleCatalog } = await import(`${SITE}/api/_apple-products.js`);
 const { convert } = await import(`${SITE}/api/_light-currency.js`);
 const APP = '6787133742';
 const GROUP = '22248864';
@@ -23,7 +12,7 @@ const SP = new URL('.', import.meta.url).pathname;
 const DRY = process.argv.includes('--dry');
 const ONLY = process.argv.includes('--only') ? process.argv[process.argv.indexOf('--only') + 1] : null;
 const MAX_USD = 1000;
-const SHOT = process.env.SHOT || `${SP}/../review-screenshot.png`;
+const SHOT = `${SP}/shots/4-destination.png`;
 const shotBuf = readFileSync(SHOT); const shotMd5 = createHash('md5').update(shotBuf).digest('hex'); const shotSize = statSync(SHOT).size;
 
 const terr = await asc('GET', `/v1/territories?limit=200`);
@@ -85,8 +74,8 @@ for (const p of catalog) {
     let obj = kind === 'sub' ? existingSub.get(p.productId) : existingIap.get(p.productId);
     if (!obj) {
       const r = kind === 'sub'
-        ? await asc('POST', '/v1/subscriptions', { data: { type: 'subscriptions', attributes: { name: refName(p, usd), productId: p.productId, subscriptionPeriod: p.period, groupLevel: GROUP_LEVEL[p.period] || 3, reviewNote: reviewNote(p), familySharable: false }, relationships: { group: { data: { type: 'subscriptionGroups', id: GROUP } } } } })
-        : await asc('POST', '/v2/inAppPurchases', { data: { type: 'inAppPurchases', attributes: { name: refName(p, usd), productId: p.productId, inAppPurchaseType: 'CONSUMABLE', reviewNote: reviewNote(p) }, relationships: { app: { data: { type: 'apps', id: APP } } } } });
+        ? await asc('POST', '/v1/subscriptions', { data: { type: 'subscriptions', attributes: { name: `${p.name} $${money(usd)}`, productId: p.productId, subscriptionPeriod: p.period, groupLevel: GROUP_LEVEL[p.period] || 3, reviewNote: reviewNote(p), familySharable: false }, relationships: { group: { data: { type: 'subscriptionGroups', id: GROUP } } } } })
+        : await asc('POST', '/v2/inAppPurchases', { data: { type: 'inAppPurchases', attributes: { name: `${p.name} $${money(usd)}`, productId: p.productId, inAppPurchaseType: 'CONSUMABLE', reviewNote: reviewNote(p) }, relationships: { app: { data: { type: 'apps', id: APP } } } } });
       if (r.status !== 201) throw new Error(`create ${r.status} ${JSON.stringify(r.json).slice(0, 300)}`);
       obj = r.json.data; summary.created++;
       log('created');
