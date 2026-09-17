@@ -67,11 +67,11 @@ export function useStoreStatus(): StoreStatus {
   return useSyncExternalStore((l) => { statusListeners.add(l); return () => statusListeners.delete(l); }, () => status, () => status);
 }
 
-/** Apple's products for these ids; missing ids are simply absent (not sold). */
-export async function loadProducts(ids: string[]): Promise<Map<string, IapProduct>> {
+/** Apple's products for these ids; missing ids are simply absent (not sold). `fresh` asks the App Store again for ids it did not return before. */
+export async function loadProducts(ids: string[], { fresh = false }: { fresh?: boolean } = {}): Promise<Map<string, IapProduct>> {
   const out = new Map<string, IapProduct>();
   if (!iapAvailable() || !ids.length) return out;
-  const missing = ids.filter((id) => !productCache.has(id));
+  const missing = fresh ? ids : ids.filter((id) => !productCache.has(id));
   if (missing.length) {
     try {
       const { products } = await Native.getProducts({ productIds: missing });

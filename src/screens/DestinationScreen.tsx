@@ -57,6 +57,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
   const [tier, setTier] = useState<Tier>('data');
   const [gb, setGb] = useState<number | null>(null);
   const [planId, setPlanId] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -67,13 +68,19 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
       setGb(c.default_data_gb);
       setPlanId(c.default_plan);
       // Apple's products for every line here; a line Apple does not sell
-      // (no product, or none priced) is not offered.
+      // (no product, or none priced) is not offered. The App Store can
+      // answer with nothing for a moment (a cold start, a slow network), so
+      // an empty answer is asked again a few times before it is believed.
       const ids = c.plans.map((p) => p.apple_product_id).filter((x): x is string => Boolean(x));
-      const map = await loadProducts(ids);
+      let map = await loadProducts(ids);
+      for (let i = 0; i < 4 && alive && map.size === 0 && iapAvailable(); i++) {
+        await new Promise((r) => setTimeout(r, 1500 * (i + 1)));
+        map = await loadProducts(ids, { fresh: true });
+      }
       if (alive) setProducts(map);
     }).catch((e: Error) => { if (alive) setErr(e.message || 'Could not load the plans.'); });
     return () => { alive = false; };
-  }, [id]);
+  }, [id, reloadKey]);
 
   const native = iapAvailable();
   const productFor = (p: Plan): IapProduct | null => (p.apple_product_id && products?.get(p.apple_product_id)) || null;
@@ -152,7 +159,9 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
             <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
               {plans.length === 0 && (
                 <div style={{ padding: 16, borderRadius: RADIUS.lg, background: RC.cream, fontFamily: 'var(--font)', fontSize: 13.5, color: RC.inkMute, lineHeight: 1.5 }}>
-                  No {tier === 'unlimited' ? 'unlimited' : `${gb} GB`} plan is sold in the app for this destination right now.
+                  {native && products && products.size === 0
+                    ? <>The App Store did not return the prices just now. Check your connection and try again.<div style={{ marginTop: 10 }}><RingoButton size="sm" variant="soft" full={false} onClick={() => { setProducts(null); setReloadKey((k) => k + 1); }}>Try again</RingoButton></div></>
+                    : <>No {tier === 'unlimited' ? 'unlimited' : `${gb} GB`} plan is sold for this destination right now. Try the other size or tier.</>}
                 </div>
               )}
               {plans.map((p) => {

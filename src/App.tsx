@@ -97,9 +97,25 @@ export function App() {
   // the two things that make every plan read "not sold" without any error.
   useEffect(() => {
     if (!iapAvailable()) return;
-    void loadProducts(['com.ringoesim.app.plan.rl_30.10gb.7999.g2', 'com.ringoesim.app.sub.rl_annual.10gb.29988.g2'])
-      .then((m) => { setStoreStatus({ checked: true, available: m.size }); console.info(`[ringo:iap] products available at launch: ${m.size} of 2`); })
-      .catch((e) => { setStoreStatus({ checked: true, error: String((e as Error)?.message || e) }); console.warn('[ringo:iap] product probe failed', e); });
+    const ids = ['com.ringoesim.app.plan.rl_30.10gb.7999.g2', 'com.ringoesim.app.sub.rl_annual.10gb.29988.g2'];
+    let alive = true;
+    (async () => {
+      // An empty answer right at launch is often the store not being ready
+      // yet, so the probe asks again a few times before it is believed.
+      for (let i = 0; alive && i < 4; i++) {
+        if (i) await new Promise((r) => setTimeout(r, 3000 * i));
+        try {
+          const m = await loadProducts(ids, { fresh: i > 0 });
+          setStoreStatus({ checked: true, available: m.size, error: null });
+          console.info(`[ringo:iap] products available at launch: ${m.size} of 2 (try ${i + 1})`);
+          if (m.size) return;
+        } catch (e) {
+          setStoreStatus({ checked: true, error: String((e as Error)?.message || e) });
+          console.warn('[ringo:iap] product probe failed', e);
+        }
+      }
+    })();
+    return () => { alive = false; };
   }, []);
 
   // Transactions StoreKit still holds unfinished (the app died between the
