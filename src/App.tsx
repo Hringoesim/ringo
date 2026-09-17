@@ -113,17 +113,25 @@ export function App() {
       if (!ids.length) { setStoreStatus({ checked: true, available: 0 }); return; }
       // An empty answer right at launch is often the store not being ready
       // yet, so the probe asks again a few times before it is believed.
+      let last: { available: number; error: string | null } = { available: 0, error: null };
       for (let i = 0; alive && i < 4; i++) {
         if (i) await new Promise((r) => setTimeout(r, 3000 * i));
         try {
           const m = await loadProducts(ids, { fresh: i > 0 });
+          last = { available: m.size, error: null };
           setStoreStatus({ checked: true, available: m.size, error: null });
           console.info(`[ringo:iap] products available at launch: ${m.size} of ${ids.length} (try ${i + 1})`);
-          if (m.size) return;
+          if (m.size) break;
         } catch (e) {
-          setStoreStatus({ checked: true, error: String((e as Error)?.message || e) });
+          last = { available: 0, error: String((e as Error)?.message || e) };
+          setStoreStatus({ checked: true, error: last.error });
           console.warn('[ringo:iap] product probe failed', e);
         }
+      }
+      // A test build (VITE_PROBE_BEACON=1) tells ringoesim.com what the store
+      // answered, so a real device can be checked without its screen.
+      if (import.meta.env.VITE_PROBE_BEACON === '1') {
+        void fetch('https://ringoesim.com/api/app-probe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...last, of: ids.length, ids, build: import.meta.env.VITE_BUILD || 'dev' }) }).catch(() => {});
       }
     })();
     return () => { alive = false; };

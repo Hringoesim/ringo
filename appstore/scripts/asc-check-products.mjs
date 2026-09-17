@@ -1,6 +1,6 @@
 import { asc } from './asc.mjs';
 const want = new Set();
-for (const d of ['global','europe','asia','latam','middle-east','usa','france']) {
+for (const d of ['global','europe','asia','latam','middle-east','usa','australia','brazil','canada','china','colombia','egypt','france','germany','greece','iceland','india','indonesia','italy','japan','malaysia','mexico','morocco','new-zealand','portugal','singapore','south-africa','south-korea','spain','switzerland','thailand','turkey','uae','united-kingdom','vietnam']) {
   const j = await (await fetch(`https://ringoesim.com/api/esim-plans?destination=${d}`)).json();
   for (const p of j.plans || []) if (p.apple_product_id) want.add(p.apple_product_id);
   for (const t of j.topups || j.top_ups || []) if (t.apple_product_id) want.add(t.apple_product_id);

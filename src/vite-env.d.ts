@@ -3,6 +3,9 @@
 interface ImportMetaEnv {
   /** Screenshot-only: open the app on one screen. Never set in a release build. */
   readonly VITE_SHOT?: string;
+  /** test builds only: report the App Store launch probe to ringoesim.com */
+  readonly VITE_PROBE_BEACON?: string;
+  readonly VITE_BUILD?: string;
   /** Screenshot-only: pin the tax country. Never set in a release build. */
   readonly VITE_SHOT_COUNTRY?: string;
   /** 'mock' (default) | 'live' — selects the RingoAPI backend mode. */
