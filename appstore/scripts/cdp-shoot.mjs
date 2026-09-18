@@ -34,6 +34,12 @@ try {
     const r = await send('Runtime.evaluate', { expression: `document.body.innerText.includes(${JSON.stringify(readyProbe || '')})`, returnByValue: true }, sessionId);
     if (r.result?.result?.value) break;
   }
+  // The store's photographs come from ringoesim.com: wait until every picture on screen has loaded.
+  for (let i = 0; i < 40; i++) {
+    const r = await send('Runtime.evaluate', { expression: `[...document.images].every((im) => im.complete)`, returnByValue: true }, sessionId);
+    if (r.result?.result?.value) break;
+    await sleep(250);
+  }
   await sleep(1500);
   const shot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false }, sessionId);
   writeFileSync(out, Buffer.from(shot.result.data, 'base64'));

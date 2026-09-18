@@ -3,7 +3,7 @@ SP="$(dirname "$0")"
 cd "$HOME/ringo"
 mkdir -p "$SP/shots"
 i=0
-for spec in "landing|Browse eSIMs" "store|From " "destination:europe|Continue" "destination:global|Continue" "install:Europe|Install on this iPhone" "help|Common questions"; do
+for spec in "landing|Browse plans first" "store|From " "destination:europe|Continue" "destination:global|Continue" "install:Europe|Install on this iPhone" "help|Common questions"; do
   i=$((i+1)); port=$((5400+i))
   shot="${spec%%|*}"; probe="${spec#*|}"; name="${shot%%:*}"
   out="$SP/shots/$i-$name.png"; rm -f "$out"
