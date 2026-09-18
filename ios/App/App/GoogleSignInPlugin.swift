@@ -3,6 +3,7 @@ import UIKit
 import Capacitor
 import AuthenticationServices
 import CryptoKit
+import Network
 
 // Embedded "Sign in with Google" plugin (pure Swift, no SDK): the standard
 // OAuth 2.0 authorization-code flow with PKCE in the system's
@@ -24,6 +25,32 @@ public class GoogleSignInPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticatio
     ]
 
     private var session: ASWebAuthenticationSession?
+    private var loopback: NWListener?
+
+    // RFC 8252 loopback: while the sheet is open the app answers on
+    // http://localhost:<port>, the address Ringo's Supabase project sends a
+    // finished sign-in to (its Site URL; only the owner's dashboard could add
+    // the app's own scheme to the redirect list). The page served there hands
+    // the session fragment to the app's scheme, which the sheet catches.
+    private func startLoopback(port: UInt16, scheme: String) -> Bool {
+        stopLoopback()
+        guard let p = NWEndpoint.Port(rawValue: port), let l = try? NWListener(using: .tcp, on: p) else { return false }
+        let target = "\(scheme)://auth/callback"
+        let html = "<!doctype html><meta name=viewport content='width=device-width,initial-scale=1'><title>Ringo</title><body style='font-family:-apple-system,sans-serif;padding:48px 24px;text-align:center;color:#1A0F2E'><p>Back to Ringo\u{2026}</p><p><a id=go href='\(target)' style='color:#F2585F;font-weight:600'>Open Ringo</a></p><script>var f=location.hash||('#'+location.search.slice(1));var u='\(target)'+f;document.getElementById('go').href=u;location.replace(u)</script>"
+        let body = Data(html.utf8)
+        let head = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: \(body.count)\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n"
+        let reply = Data(head.utf8) + body
+        l.newConnectionHandler = { conn in
+            conn.start(queue: .global())
+            conn.receive(minimumIncompleteLength: 1, maximumLength: 65536) { _, _, _, _ in
+                conn.send(content: reply, completion: .contentProcessed { _ in conn.cancel() })
+            }
+        }
+        l.start(queue: .global())
+        loopback = l
+        return true
+    }
+    private func stopLoopback() { loopback?.cancel(); loopback = nil }
 
     private static func randomString(_ bytes: Int) -> String {
         var data = [UInt8](repeating: 0, count: bytes)
@@ -80,9 +107,13 @@ public class GoogleSignInPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticatio
     // with the session in the fragment. openAuth({ url, scheme }) -> { callback }
     @objc func openAuth(_ call: CAPPluginCall) {
         guard let urlString = call.getString("url"), let url = URL(string: urlString), let scheme = call.getString("scheme"), !scheme.isEmpty else { call.reject("Bad request."); return }
+        if let port = call.getInt("loopbackPort"), port > 0, port < 65536, !startLoopback(port: UInt16(port), scheme: scheme) {
+            call.reject("Could not open the sign-in return path."); return
+        }
         DispatchQueue.main.async {
             let s = ASWebAuthenticationSession(url: url, callbackURLScheme: scheme) { [weak self] callback, error in
                 self?.session = nil
+                self?.stopLoopback()
                 if let error = error as? ASWebAuthenticationSessionError, error.code == .canceledLogin { call.resolve(["cancelled": true]); return }
                 if let error = error { call.reject(error.localizedDescription, nil, error); return }
                 guard let cb = callback else { call.reject("The sign-in did not return to the app."); return }

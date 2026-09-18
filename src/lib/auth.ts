@@ -14,7 +14,7 @@ interface SignInWithApplePlugin {
 }
 interface GoogleSignInPlugin {
   signIn(o: { clientId: string; nonce?: string }): Promise<{ idToken?: string; accessToken?: string; nonce?: string; cancelled?: boolean }>;
-  openAuth(o: { url: string; scheme: string }): Promise<{ callback?: string; cancelled?: boolean }>;
+  openAuth(o: { url: string; scheme: string; loopbackPort?: number }): Promise<{ callback?: string; cancelled?: boolean }>;
 }
 const Apple = registerPlugin<SignInWithApplePlugin>('SignInWithApple');
 const Google = registerPlugin<GoogleSignInPlugin>('GoogleSignIn');
@@ -23,10 +23,15 @@ export const GOOGLE_IOS_CLIENT_ID = (import.meta.env.VITE_GOOGLE_IOS_CLIENT_ID a
 // Ringo's Supabase project "APP3" already has Google (and Apple) sign-in
 // configured, so Google needs no client of its own here: the system sheet
 // opens Supabase's authorize page, Supabase talks to Google, and the session
-// comes back to the app on its URL scheme. ringoesim.com then reads the
-// account's email from that session (/api/app-login, provider "supabase").
+// comes back to the app. Supabase only redirects to its Site URL,
+// http://localhost:3000 (the redirect list is the owner's dashboard), so
+// while the sheet is open the app itself answers on that port and forwards
+// the session to its own scheme (RFC 8252 loopback, GoogleSignInPlugin).
+// ringoesim.com then reads the account's email from the session
+// (/api/app-login, provider "supabase").
 export const SUPABASE_AUTH_URL = 'https://swfojlhulsgivzrxqtkv.supabase.co/auth/v1';
-export const AUTH_CALLBACK = 'com.ringoesim.app://auth/callback';
+export const AUTH_LOOPBACK_PORT = 3000;
+export const AUTH_RETURN = `http://localhost:${AUTH_LOOPBACK_PORT}`;
 export const appleSignInAvailable = (): boolean => Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
 export const googleSignInAvailable = (): boolean => appleSignInAvailable() && (Boolean(GOOGLE_IOS_CLIENT_ID) || flags.get().google_signin === true);
 
@@ -72,10 +77,10 @@ export async function signInWithGoogle(): Promise<SignInResult> {
 }
 
 async function signInWithGoogleViaSupabase(): Promise<SignInResult> {
-  const url = `${SUPABASE_AUTH_URL}/authorize?${new URLSearchParams({ provider: 'google', redirect_to: AUTH_CALLBACK }).toString()}`;
+  const url = `${SUPABASE_AUTH_URL}/authorize?${new URLSearchParams({ provider: 'google', redirect_to: AUTH_RETURN }).toString()}`;
   let callback: string;
   try {
-    const r = await Google.openAuth({ url, scheme: 'com.ringoesim.app' });
+    const r = await Google.openAuth({ url, scheme: 'com.ringoesim.app', loopbackPort: AUTH_LOOPBACK_PORT });
     if (r.cancelled || !r.callback) return { ok: false, cancelled: true };
     callback = r.callback;
   } catch (e) {
