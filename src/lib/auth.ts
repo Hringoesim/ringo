@@ -7,6 +7,7 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { light } from '../api/light';
 import { account } from '../store/account';
+import { flags } from '../store/flags';
 
 interface SignInWithApplePlugin {
   authorize(o: { nonce?: string }): Promise<{ response: { identityToken: string; user: string; email?: string; givenName?: string; familyName?: string } }>;
@@ -27,7 +28,7 @@ export const GOOGLE_IOS_CLIENT_ID = (import.meta.env.VITE_GOOGLE_IOS_CLIENT_ID a
 export const SUPABASE_AUTH_URL = 'https://swfojlhulsgivzrxqtkv.supabase.co/auth/v1';
 export const AUTH_CALLBACK = 'com.ringoesim.app://auth/callback';
 export const appleSignInAvailable = (): boolean => Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
-export const googleSignInAvailable = (): boolean => appleSignInAvailable();
+export const googleSignInAvailable = (): boolean => appleSignInAvailable() && (Boolean(GOOGLE_IOS_CLIENT_ID) || flags.get().google_signin === true);
 
 function nonce(): string {
   const b = new Uint8Array(24); crypto.getRandomValues(b);

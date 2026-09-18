@@ -55,6 +55,8 @@ export interface Catalog {
   plans: Plan[];
   from_amount: number;
   top_ups: TopUp[];
+  /** switches for the app, see store/flags.ts */
+  app_flags?: { google_signin?: boolean };
   /** every destination the site sells */
   destinations: { id: string; label: string; kind: string; countries?: number; iso?: string | null; region?: string | null }[];
 }

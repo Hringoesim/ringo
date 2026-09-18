@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react';
 import { light } from '../api/light';
 import { DESTINATIONS, flagOf, type Destination } from '../data/destinations';
+import { flags } from './flags';
 
 let cache: Destination[] | null = null;
 
@@ -14,6 +15,7 @@ export function useDestinations(): Destination[] {
     if (cache) return;
     let alive = true;
     light.catalog('europe').then((c) => {
+      flags.set(c.app_flags);
       const out: Destination[] = c.destinations.map((d) => ({ id: d.id, label: d.label, kind: d.kind === 'region' ? 'region' : 'country', countries: d.countries || 1, flag: d.iso ? flagOf(d.iso) : undefined, region: d.region || null }));
       cache = out;
       if (alive) setList(out);
