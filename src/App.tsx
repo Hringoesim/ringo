@@ -64,9 +64,12 @@ export function App() {
       if (name === 'install') return [{ id: 0, name: 'esim', params: {} }, { id: 1, name: 'install', params: { label: arg || 'Europe', install: { lpa: 'LPA:1$consumer.e-sim.global$RINGO-SAMPLE-0000', apple_url: 'https://esimsetup.apple.com/esim_qrcode_provisioning?carddata=LPA%3A1%24consumer.e-sim.global%24RINGO-SAMPLE-0000' } } }];
       return [{ id: 0, name, params: {} }];
     }
-    let seen = false;
-    try { seen = !!localStorage.getItem(SEEN_KEY); } catch { /* ignore */ }
-    return [{ id: 0, name: seen ? 'store' : 'landing', params: {} }];
+    // The welcome screen (sign in or create an account) opens every cold
+    // start until there is an account; "Browse plans first" skips it for the
+    // rest of the session only (owner 2026-09-18: sign-in must be seen).
+    let skip = false;
+    try { skip = Boolean(account.get()) || sessionStorage.getItem(SEEN_KEY) === '1'; } catch { /* ignore */ }
+    return [{ id: 0, name: skip ? 'store' : 'landing', params: {} }];
   });
   const current = stack[stack.length - 1];
 
@@ -91,7 +94,7 @@ export function App() {
     setStack([mkFrame(name, {})]);
   };
   const leaveLanding = (to: TabId) => {
-    try { localStorage.setItem(SEEN_KEY, '1'); } catch { /* ignore */ }
+    try { sessionStorage.setItem(SEEN_KEY, '1'); } catch { /* ignore */ }
     goTab(to);
   };
 
