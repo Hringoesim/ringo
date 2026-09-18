@@ -88,14 +88,14 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn }: { onOpen: (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <img src={LOGO_SRC} alt="Ringo" style={{ height: 30, width: 'auto', display: 'block' }} />
           <button className="press" onClick={loggedIn ? onMyEsim : onLogin} style={{ border: `1px solid ${RC.line}`, background: RC.paper, borderRadius: 999, padding: '7px 12px', fontFamily: 'var(--font)', fontSize: 12.5, fontWeight: 700, color: RC.inkStrong, cursor: 'pointer' }}>
-            {loggedIn ? 'My eSIM' : 'Log in'}
+            {loggedIn ? 'My eSIM' : 'Sign in'}
           </button>
         </div>
         <div style={{ marginTop: 18, fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: RC.ink, letterSpacing: -0.9, lineHeight: 1.08, textWrap: 'balance' }}>
           Where are you going?
         </div>
         <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14.5, color: RC.inkMute, lineHeight: 1.45 }}>
-          One Global plan or a regional one, for 35 destinations. Install in a tap, connected when you land.
+          35 destinations. Install in a tap, connected when you land.
         </div>
 
         <div style={{ marginTop: 16, height: 48, padding: '0 14px', borderRadius: 14, background: RC.paper, border: `1px solid ${RC.line}`, display: 'flex', alignItems: 'center', gap: 10 }}>

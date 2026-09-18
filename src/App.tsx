@@ -38,6 +38,8 @@ interface Frame {
     selection?: Selection;
     install?: { apple_url: string; lpa: string };
     label?: string;
+    /** the login screen opens straight on the email step */
+    email?: boolean;
   };
 }
 
@@ -170,7 +172,7 @@ export function App() {
   let body: ReactNode = null;
   switch (current.name) {
     case 'landing':
-      body = <LandingScreen onExplore={() => leaveLanding('store')} onMyEsim={() => { leaveLanding(account.get() ? 'esim' : 'store'); if (!account.get()) push('login'); }} />;
+      body = <LandingScreen onExplore={() => leaveLanding('store')} onSignedIn={() => leaveLanding('esim')} onEmail={() => { leaveLanding('store'); push('login', { email: true }); }} />;
       break;
     case 'store':
       body = <StoreScreen onOpen={(id) => push('destination', { destination: id })} onMyEsim={() => goTab('esim')} onLogin={() => push('login')} loggedIn={Boolean(account.get())} />;
@@ -208,7 +210,7 @@ export function App() {
       body = <InstallScreen install={current.params.install!} label={current.params.label || 'Ringo'} onBack={pop} />;
       break;
     case 'login':
-      body = <LoginScreen onBack={pop} onDone={() => goTab('esim')} />;
+      body = <LoginScreen onBack={pop} onDone={() => goTab('esim')} startWithEmail={Boolean(current.params.email)} />;
       break;
     case 'report':
       body = <ReportScreen onBack={pop} />;

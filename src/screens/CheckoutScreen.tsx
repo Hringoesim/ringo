@@ -123,7 +123,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
             <div>
               <div style={{ fontFamily: 'var(--font)', fontSize: 16, fontWeight: 800, color: RC.ink, letterSpacing: -0.3 }}>{selection.destinationLabel}</div>
               <div style={{ marginTop: 2, fontFamily: 'var(--font)', fontSize: 13, color: RC.inkMute }}>
-                {p.tier === 'unlimited' ? 'Unlimited data' : `${selection.data_gb} GB${renewing ? ' a month' : ''}`} · {termTitle(selection)}{renewing ? ', renews' : ', one payment'}
+                {p.tier === 'unlimited' ? 'Unlimited data' : `${selection.data_gb} GB${renewing ? ' a month' : ''}`} · {termTitle(selection)}
               </div>
             </div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800, color: RC.ink, letterSpacing: -0.5 }}>{price.total}</div>
@@ -135,15 +135,15 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
             <FieldLabel>Email for your eSIM</FieldLabel>
             <Input value={email} onChange={setEmail} placeholder="you@example.com" type="email" inputMode="email" />
             <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 12.5, color: RC.inkMute, lineHeight: 1.5 }}>
-              Your eSIM activation code and receipt are sent here, and it is how we find your eSIM again on another phone. No account or password.
+              The activation code and receipt go here.
             </div>
             {err && <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: '#A12C2C' }}>{err}</div>}
           </div>
         )}
 
-        {(stage === 'buying') && <Waiting title="Confirm with your Apple ID" sub="The App Store purchase sheet is open. Nothing is charged until you confirm there." />}
+        {(stage === 'buying') && <Waiting title="Confirm with your Apple ID" sub="Nothing is charged until you confirm." />}
         {stage === 'recording' && <Waiting title="Payment confirmed. Recording your purchase…" sub="One moment." />}
-        {stage === 'issuing' && <Waiting title="Preparing your eSIM…" sub="This usually takes under a minute. You can leave the app; the eSIM will be under My eSIM, and a copy is on its way to your email." ok />}
+        {stage === 'issuing' && <Waiting title="Preparing your eSIM…" sub="Under a minute. It lands under My eSIM and in your email." ok />}
         {stage === 'pending' && <Waiting title="Waiting for approval" sub="This purchase needs approval (Ask to Buy). Once it is approved, open the app and your eSIM will be prepared." ok />}
 
         {stage === 'ready' && (
@@ -166,9 +166,8 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
         )}
 
         {stage === 'email' && renewing && (
-          <div style={{ marginTop: 22, padding: '14px 16px', borderRadius: RADIUS.lg, background: RC.cream, fontFamily: 'var(--font)', fontSize: 12.5, color: RC.inkMute, lineHeight: 1.6 }}>
-            <div style={{ fontWeight: 700, color: RC.ink }}>Auto-renewable subscription</div>
-            {price.total} every {periodWord(p.term_months)}, charged to your Apple ID when you confirm. It renews automatically at the same price unless you cancel at least 24 hours before the end of the current period. Manage or cancel any time in Settings › Apple ID › Subscriptions.
+          <div style={{ marginTop: 18, padding: '12px 14px', borderRadius: RADIUS.lg, background: RC.cream, fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute, lineHeight: 1.55 }}>
+            <span style={{ fontWeight: 700, color: RC.ink }}>Renews {price.total} every {periodWord(p.term_months)}</span> through your Apple ID until you cancel in Settings › Apple ID › Subscriptions, at least 24 hours before renewal. Charged when you confirm.
           </div>
         )}
         {stage === 'email' && (
@@ -177,7 +176,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
             <button className="press" onClick={() => void openInSheet(`${SITE}/terms`)} style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 700, color: RC.inkStrong }}>Terms of Use</button>
             {' '}and the{' '}
             <button className="press" onClick={() => void openInSheet(`${SITE}/privacy`)} style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 700, color: RC.inkStrong }}>Privacy Policy</button>
-            , including immediate delivery of the eSIM. Prices include VAT.
+            . Prices include VAT.
           </div>
         )}
       </div>
