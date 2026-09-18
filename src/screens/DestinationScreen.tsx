@@ -161,7 +161,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
             {/* What every card below delivers, said once. */}
             <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {(tier === 'data'
-                ? [`${gb} GB${renews ? ' a month' : ''}`, 'Full speed', 'No daily cap', 'Hotspot']
+                ? [`${gb} GB${selected?.mode === 'subscription' ? ' a month' : ''}`, 'Full speed', 'No daily cap', 'Hotspot']
                 : ['Unlimited data', 'Fair use', 'Hotspot']
               ).map((t) => (
                 <span key={t} style={{ fontFamily: 'var(--font)', fontSize: 12, fontWeight: 700, color: RC.inkStrong, background: RC.gradSoft, borderRadius: 999, padding: '5px 10px' }}>{t}</span>
