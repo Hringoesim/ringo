@@ -1,5 +1,5 @@
 #!/bin/zsh
-SP="$(dirname "$0")"
+SP="$(cd "$(dirname "$0")" && pwd)"
 cd "$HOME/ringo"
 mkdir -p "$SP/shots"
 i=0
