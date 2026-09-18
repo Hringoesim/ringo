@@ -1,6 +1,6 @@
 import { asc } from './asc.mjs';
 const V = '41fd4b82-76ff-423b-a207-7ad0a0525eff';
-const notes = `This submission replaces the one we cancelled on 18 September (it had been returned with a question about one price; the answer is repeated in point 7). It carries the app's in-app purchases: 235 one-time products (30-day plans, 3/7-day unlimited plans, top-ups) and 126 auto-renewable subscriptions in two groups, "Ringo Plan" (Global and the regions) and "Ringo Country Plan" (single countries). Every product has a review note saying where it is in the app.
+const notes = `This submission replaces the one we cancelled on 18 September (it had been returned with a question about one price; the answer is repeated in point 7). It carries 197 of the app's in-app purchases (the 200-item limit): every product of the Global, Europe, USA, Asia, Latin America and Middle East plans (one-time and the subscriptions of group "Ringo Plan"), every country's 30-day data plan and most unlimited plans, plus group "Ringo Country Plan". The remaining single-country renewing plans and top-ups (about 150) follow in a second submission once this one is approved; the app only shows plans the App Store returns as on sale. Every product has a review note saying where it is in the app.
 
 1. SCREEN RECORDING: attached (physical iPhone, latest iOS): launch, browsing the plans, sign-in with an email code, a sandbox purchase, the eSIM ready with the Install button, Manage subscription, Delete my account.
 
@@ -12,7 +12,7 @@ const notes = `This submission replaces the one we cancelled on 18 September (it
 
 5. REGIONAL DIFFERENCES: none in features. Prices are the App Store's per storefront (euro prices set in Belgium as the base, US dollar prices set for the United States). The same destinations are listed everywhere. Single-country subscriptions are available in Belgium and the United States at submission time; the remaining storefronts are being priced and will be opened as the pricing completes.
 
-6. REGULATED INDUSTRY: Ringo Ltd (England and Wales, company 16972659) resells mobile data eSIMs supplied by licensed carrier partners (ConnectedYou, Telna); we do not operate a network and need no telecom licence for resale. Destination photographs are our own site's (Wikimedia Commons / NASA, credited under Help > Photo credits).
+6. REGULATED INDUSTRY: Ringo Ltd (England and Wales, company 16972659) resells mobile data eSIMs supplied by licensed carrier partners (ConnectedYou, Telna); we do not operate a network and need no telecom licence for resale. Photographs are our site's (Wikimedia Commons / NASA, credited under Help > Photo credits).
 
 7. PRICES: every price is intended as configured and matches ringoesim.com. The dearest is the Latin America 10 GB per month plan on a 2-month term at $91.99 (2 x $45.99), the same as EUR 79.98 on our site; Latin America is our most expensive region because of wholesale data costs there. Renewing plans are always cheaper per month than the one-payment plan of the same size.
 

@@ -1,11 +1,16 @@
 // Drive one headless Chrome over CDP: 430x932 @3x, wait for the live prices, capture.
 import { writeFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { mkdtempSync } from 'node:fs';
+import { join } from 'node:path';
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const SP = new URL('.', import.meta.url).pathname;
 const [,, port, out, readyProbe] = process.argv;
+// A throwaway Chrome profile outside the repo (the repo is public; a profile inside it was once swept into a commit).
+const PROFILE = mkdtempSync(join(tmpdir(), 'ringo-cdp-'));
 const url = `http://localhost:${port}/?shot=1`;
-const chrome = spawn(CHROME, ['--headless=new', '--no-sandbox', '--disable-gpu', '--hide-scrollbars', `--remote-debugging-port=9333`, `--user-data-dir=${SP}/chrome-cdp-profile`, 'about:blank'], { stdio: 'ignore' });
+const chrome = spawn(CHROME, ['--headless=new', '--no-sandbox', '--disable-gpu', '--hide-scrollbars', `--remote-debugging-port=9333`, `--user-data-dir=${PROFILE}`, 'about:blank'], { stdio: 'ignore' });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let ws, id = 0; const pending = new Map();
 async function connect() {
