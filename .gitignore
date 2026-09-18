@@ -27,3 +27,8 @@ pnpm-debug.log*
 .env
 .env.local
 .vercel
+
+# Headless Chrome profiles written by appstore/scripts/cdp-shoot.mjs: never commit (browser caches, Chrome keys)
+appstore/scripts/chrome-cdp-profile/
+appstore/scripts/chrome-*profile*/
+appstore/scripts/*.log
