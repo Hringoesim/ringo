@@ -157,8 +157,8 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport }: {
         {header}
         <Empty
           title="No eSIM on this phone yet."
-          sub="Buy a plan and it appears here, ready to install. Bought a Ringo eSIM before? Log in with the email you used, or restore your App Store purchases."
-          primary={{ label: 'Log in', onClick: onLogin }}
+          sub="Buy a plan and it appears here, ready to install. Bought before? Sign in, or restore your App Store purchases."
+          primary={{ label: 'Sign in', onClick: onLogin }}
           secondary={{ label: restoring ? 'Restoring…' : 'Restore purchases', onClick: () => void restore() }}
           tertiary={{ label: 'Browse plans', onClick: onStore }}
           note={note}
@@ -185,7 +185,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport }: {
             title="Nothing here yet."
             sub={`No plan is attached to ${acct.email || 'this email'}. If you just paid, give it a minute; otherwise browse the plans.`}
             primary={{ label: 'Browse plans', onClick: onStore }}
-            secondary={{ label: 'Log in with another email', onClick: onLogin }}
+            secondary={{ label: 'Sign in with another account', onClick: onLogin }}
           />
         )}
 
