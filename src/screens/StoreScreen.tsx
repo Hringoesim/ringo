@@ -1,12 +1,14 @@
-// StoreScreen — every destination the site sells (owner 2026-09-18: "sell
-// data to all destinations"): the Global plan, the regions and the United
-// States as picture tiles, then every country grouped by region with its
-// flag, all from the live catalogue so a country added on the site appears
-// here without a release. Search filters everything.
+// StoreScreen — every destination the site sells, in the website's own
+// cards (owner 2026-09-18: "pictures on all the plans, the same UI as the
+// website, to gain trust"): a white card with a 16:9 photograph, the flag
+// and the name over it, "From €X" and one line about the plan underneath.
+// The photographs are the site's (ringoesim.com/img/data-esims), so the
+// app and the site show the same picture for the same place; the list
+// itself comes from the live catalogue.
 import { useMemo, useState } from 'react';
-import { RC, RADIUS, SHADOW_CARD } from '../theme';
+import { RC, RADIUS } from '../theme';
 import { LOGO_SRC } from '../assets';
-import { pictureFor, hasPicture, FEATURED, type Destination } from '../data/destinations';
+import { pictureFor, skyFor, FEATURED, type Destination } from '../data/destinations';
 import { useSummary } from '../store/summary';
 import { useDestinations } from '../store/destinations';
 import { money } from '../api/light';
@@ -14,38 +16,34 @@ import { haptic } from '../lib/haptics';
 
 const REGION_ORDER = ['Europe', 'North America', 'Latin America', 'Caribbean', 'Asia-Pacific', 'Oceania', 'Middle East', 'Africa', 'Central Asia and Caucasus'];
 
-function FromPill({ id, summary }: { id: string; summary: ReturnType<typeof useSummary> }) {
-  const from = summary?.from?.[id];
-  if (from == null) return null;
-  return <span style={{ fontFamily: 'var(--font)', fontSize: 12.5, fontWeight: 700, color: '#fff', background: 'rgba(20,10,30,0.45)', backdropFilter: 'blur(8px)', borderRadius: 999, padding: '6px 11px', whiteSpace: 'nowrap' }}>From {money(from, summary!.currency)}</span>;
-}
-
-function Tile({ d, summary, onOpen, big }: { d: Destination; summary: ReturnType<typeof useSummary>; onOpen: (id: string) => void; big?: boolean }) {
+/** The picture every card opens with: the photograph over a sunset sky, the flag and the name. */
+export function Picture({ d, big = false, compact = false }: { d: Destination; big?: boolean; compact?: boolean }) {
   return (
-    <button className="press" onClick={() => onOpen(d.id)} style={{ position: 'relative', textAlign: 'left', cursor: 'pointer', border: 'none', padding: 0, borderRadius: RADIUS.xl, overflow: 'hidden', background: RC.cream2, height: big ? 150 : 118, boxShadow: SHADOW_CARD }}>
-      {hasPicture(d.id)
-        ? <img src={pictureFor(d.id)} alt="" loading="lazy" decoding="async" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-        : <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #FFB877 0%, #F2585F 55%, #9B57DC 100%)' }} />}
-      <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(20,10,30,0) 30%, rgba(20,10,30,0.72) 100%)' }} />
-      <div style={{ position: 'absolute', left: 14, right: 14, bottom: 12, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: big ? 24 : 19, fontWeight: 800, color: '#fff', letterSpacing: -0.5, lineHeight: 1.05, textShadow: '0 2px 10px rgba(0,0,0,0.35)' }}>{d.flag ? `${d.flag} ` : ''}{d.label}</div>
-          <div style={{ marginTop: 3, fontFamily: 'var(--font)', fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.88)' }}>{d.countries > 1 ? `${d.countries} countries` : 'Own plan'}</div>
-        </div>
-        <FromPill id={d.id} summary={summary} />
+    <div style={{ position: 'relative', aspectRatio: '16 / 9', background: skyFor(d.id), overflow: 'hidden' }}>
+      <img src={pictureFor(d.id)} alt="" loading={big ? 'eager' : 'lazy'} decoding="async" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+      <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(26,15,46,0) 45%, rgba(26,15,46,0.72) 100%)' }} />
+      <div style={{ position: 'absolute', left: compact ? 12 : 16, right: compact ? 12 : 16, bottom: compact ? 10 : 12, display: 'flex', alignItems: 'center', gap: compact ? 7 : 10, minWidth: 0 }}>
+        {d.flag && <span aria-hidden style={{ fontSize: big ? 26 : compact ? 16 : 20, lineHeight: 1 }}>{d.flag}</span>}
+        <span style={{ fontFamily: 'var(--font-display)', fontSize: big ? 24 : compact ? 15 : 18, fontWeight: 800, color: '#fff', letterSpacing: -0.4, textShadow: '0 2px 10px rgba(0,0,0,0.35)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.label}</span>
       </div>
-    </button>
+    </div>
   );
 }
 
-function CountryRow({ d, summary, onOpen, last }: { d: Destination; summary: ReturnType<typeof useSummary>; onOpen: (id: string) => void; last: boolean }) {
+function whatLine(d: Destination): string {
+  if (d.kind === 'region' || d.id === 'usa') return d.countries > 1 ? `${d.countries} countries, one plan` : 'Its own plan, 30 days or renewing';
+  return '30 days, or a plan that renews';
+}
+
+function Card({ d, summary, onOpen, big = false, compact = false }: { d: Destination; summary: ReturnType<typeof useSummary>; onOpen: (id: string) => void; big?: boolean; compact?: boolean }) {
   const from = summary?.from?.[d.id];
   return (
-    <button className="press" onClick={() => onOpen(d.id)} style={{ width: '100%', textAlign: 'left', cursor: 'pointer', border: 'none', background: 'transparent', padding: '12px 14px', borderBottom: last ? 'none' : `1px solid ${RC.line}`, display: 'flex', alignItems: 'center', gap: 12 }}>
-      <span style={{ fontSize: 24, lineHeight: 1, width: 30, textAlign: 'center' }} aria-hidden>{d.flag || '🌐'}</span>
-      <span style={{ flex: 1, fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, color: RC.ink }}>{d.label}</span>
-      {from != null && <span style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, color: RC.inkStrong }}>from {money(from, summary!.currency)}</span>}
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden><path d="M6 3l5 5-5 5" stroke={RC.inkMute} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+    <button className="press" onClick={() => onOpen(d.id)} style={{ textAlign: 'left', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'column', background: RC.paper, border: `1.5px solid ${RC.line}`, borderRadius: 22, overflow: 'hidden', width: '100%' }}>
+      <Picture d={d} big={big} compact={compact} />
+      <div style={{ padding: compact ? '10px 12px 12px' : '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: compact ? 2 : 4, width: '100%', boxSizing: 'border-box' }}>
+        <div style={{ fontFamily: 'var(--font)', fontSize: compact ? 15 : 17, fontWeight: 700, color: RC.ink, letterSpacing: -0.2 }}>{from != null ? `From ${money(from, summary!.currency)}` : ' '}</div>
+        <div style={{ fontFamily: 'var(--font)', fontSize: compact ? 12 : 13, color: RC.inkMute }}>{compact ? '30 days, or renews' : whatLine(d)}</div>
+      </div>
     </button>
   );
 }
@@ -91,17 +89,17 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn }: { onOpen: (
         {featured.length > 0 && (
           <>
             <div style={{ margin: '20px 0 10px', fontFamily: 'var(--font)', fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: RC.inkMute }}>Plans</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
-              {featured.map((d, i) => <Tile key={d.id} d={d} summary={summary} onOpen={open} big={i === 0} />)}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
+              {featured.map((d, i) => <Card key={d.id} d={d} summary={summary} onOpen={open} big={i === 0} />)}
             </div>
           </>
         )}
 
         {grouped.map(([region, list]) => (
           <div key={region}>
-            <div style={{ margin: '22px 0 8px', fontFamily: 'var(--font)', fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: RC.inkMute }}>{region}</div>
-            <div style={{ borderRadius: RADIUS.lg, background: RC.paper, border: `1px solid ${RC.line}`, boxShadow: SHADOW_CARD, overflow: 'hidden' }}>
-              {list.map((d, i) => <CountryRow key={d.id} d={d} summary={summary} onOpen={open} last={i === list.length - 1} />)}
+            <div style={{ margin: '22px 0 10px', fontFamily: 'var(--font)', fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: RC.inkMute }}>{region}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {list.map((d) => <Card key={d.id} d={d} summary={summary} onOpen={open} compact />)}
             </div>
           </div>
         ))}
@@ -110,7 +108,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn }: { onOpen: (
           <div style={{ marginTop: 24, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, textAlign: 'center' }}>Nothing matches “{q}”.</div>
         )}
         {all.length === 0 && (
-          <div style={{ marginTop: 20, display: 'grid', gap: 10 }}>{[0, 1, 2].map((i) => <div key={i} style={{ height: 118, borderRadius: RADIUS.xl, background: RC.cream, animation: 'ringoSheen 1.4s ease-in-out infinite' }} />)}</div>
+          <div style={{ marginTop: 20, display: 'grid', gap: 12 }}>{[0, 1, 2].map((i) => <div key={i} style={{ height: 200, borderRadius: 22, background: RC.cream, animation: 'ringoSheen 1.4s ease-in-out infinite' }} />)}</div>
         )}
       </div>
     </div>

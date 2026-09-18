@@ -12,7 +12,7 @@ import { RingoButton } from '../components/Button';
 import { BackBtn, SectionTitle } from '../components/ui';
 import { light, type Profile, type TravelBadge } from '../api/light';
 import { useAccount } from '../store/account';
-import { pictureFor, destinationById } from '../data/destinations';
+import { pictureFor, skyFor } from '../data/destinations';
 
 const TIER_COLORS: Record<string, [string, string]> = { amber: ['#FFB53E', '#FF5D2E'], coral: ['#FF7E5F', '#FF4778'], crimson: ['#FF4778', '#D6247E'], aurora: ['#8652E0', '#FF42A1'] };
 
@@ -25,11 +25,10 @@ function when(iso: string | null): string {
 }
 
 function Badge({ b }: { b: TravelBadge }) {
-  const listed = Boolean(destinationById(b.destination));
   const mark = b.flag || REGION_MARK[b.destination] || '🌐';
   return (
-    <div style={{ position: 'relative', borderRadius: RADIUS.lg, overflow: 'hidden', background: RC.cream, aspectRatio: '1 / 1.15', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-      {listed && <img src={pictureFor(b.destination)} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.9 }} />}
+    <div style={{ position: 'relative', borderRadius: RADIUS.lg, overflow: 'hidden', background: skyFor(b.destination), aspectRatio: '1 / 1.15', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+      <img src={pictureFor(b.destination)} alt="" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.9 }} />
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(10,8,16,0) 30%, rgba(10,8,16,0.82) 100%)' }} />
       <div style={{ position: 'absolute', top: 10, left: 10, width: 40, height: 40, borderRadius: 20, background: 'rgba(255,255,255,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, boxShadow: '0 4px 14px rgba(0,0,0,0.18)' }} aria-hidden>{mark}</div>
       {b.active && <div style={{ position: 'absolute', top: 14, right: 10, padding: '3px 8px', borderRadius: 999, background: RC.grad, color: '#fff', fontFamily: 'var(--font)', fontSize: 10.5, fontWeight: 800, letterSpacing: 0.3 }}>ACTIVE</div>}

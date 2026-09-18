@@ -14,7 +14,7 @@ import { RC, RADIUS, SHADOW_CARD } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { BackBtn, FieldLabel, Input } from '../components/ui';
-import { pictureFor, hasPicture } from '../data/destinations';
+import { pictureFor, skyFor } from '../data/destinations';
 import { light, SITE } from '../api/light';
 import { account, pendingPurchase } from '../store/account';
 import { iapAvailable, purchase } from '../lib/iap';
@@ -116,10 +116,8 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
       <RingoHeader title={stage === 'ready' ? 'Your eSIM' : 'Checkout'} leading={stage === 'email' || stage === 'failed' ? <BackBtn onClick={onBack} /> : null} />
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '0 20px 190px' }}>
         <div style={{ borderRadius: RADIUS.xl, overflow: 'hidden', background: RC.paper, border: `1px solid ${RC.line}`, boxShadow: SHADOW_CARD }}>
-          <div style={{ position: 'relative', height: 110, background: RC.cream2 }}>
-            {hasPicture(selection.destination)
-              ? <img src={pictureFor(selection.destination)} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-              : <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #FFB877 0%, #F2585F 55%, #9B57DC 100%)' }} />}
+          <div style={{ position: 'relative', height: 110, background: skyFor(selection.destination) }}>
+            <img src={pictureFor(selection.destination)} alt="" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           </div>
           <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <div>

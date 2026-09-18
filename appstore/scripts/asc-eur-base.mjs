@@ -37,6 +37,18 @@ for (const p of appleCatalog()) {
   const termCents = p.cents;   // the id's cents are the amount charged per term (a subscription's whole term, a plan's one payment)
   const log = (m) => console.log(`${p.productId} EUR ${money(termCents)} ${m}`);
   try {
+    if (kind === 'iap') {
+      const sched = await asc('GET', `/v2/inAppPurchases/${obj.id}/iapPriceSchedule?include=baseTerritory`);
+      if (sched.json?.included?.[0]?.id === BASE) { summary.skipped++; continue; }
+    } else {
+      const pr = await asc('GET', `/v1/subscriptions/${obj.id}/prices?include=subscriptionPricePoint,territory&limit=200`);
+      const rows = pr.json?.data || [];
+      if (rows.length >= 175) {
+        const bel = rows.find(r => r.relationships?.territory?.data?.id === BASE);
+        const pp = (pr.json.included || []).find(i => i.id === bel?.relationships?.subscriptionPricePoint?.data?.id);
+        if (pp && Number(pp.attributes.customerPrice) >= termCents / 100 && Number(pp.attributes.customerPrice) < termCents / 100 + 1) { summary.skipped++; continue; }
+      }
+    }
     const pt = await belPoint(kind, obj.id, termCents);
     if (!pt) throw new Error('no BEL price point');
     if (DRY) { log(`-> BEL point ${pt.attributes.customerPrice}`); continue; }

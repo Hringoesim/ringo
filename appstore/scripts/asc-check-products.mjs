@@ -1,10 +1,9 @@
 import { asc } from './asc.mjs';
-const want = new Set();
-for (const d of ['global','europe','asia','latam','middle-east','usa','australia','brazil','canada','china','colombia','egypt','france','germany','greece','iceland','india','indonesia','italy','japan','malaysia','mexico','morocco','new-zealand','portugal','singapore','south-africa','south-korea','spain','switzerland','thailand','turkey','uae','united-kingdom','vietnam']) {
-  const j = await (await fetch(`https://ringoesim.com/api/esim-plans?destination=${d}`)).json();
-  for (const p of j.plans || []) if (p.apple_product_id) want.add(p.apple_product_id);
-  for (const t of j.topups || j.top_ups || []) if (t.apple_product_id) want.add(t.apple_product_id);
-}
+const SITE = '/Users/hippolytevanmarcke/new website Ringo april 2026/NEW-website-app-api';
+const { appleCatalog } = await import(`${SITE}/api/_apple-products.js`);
+const { convert } = await import(`${SITE}/api/_light-currency.js`);
+// Every product the catalogue needs in the App Store (the few above Apple's $1,000 cap are skipped by the mirror and hidden by the app).
+const want = new Set(appleCatalog().filter(p => convert(p.cents, 'usd') / 100 <= 1000).map(p => p.productId));
 const have = new Map();
 async function page(path) { let url = path; while (url) { const r = await asc('GET', url); for (const x of r.json.data || []) have.set(x.attributes.productId, x.attributes.state); const n = r.json.links?.next; url = n ? n.replace(/^https:\/\/api\.appstoreconnect\.apple\.com/, '') : null; } }
 await page(`/v1/apps/6787133742/inAppPurchasesV2?limit=200`);

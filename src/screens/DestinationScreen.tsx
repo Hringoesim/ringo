@@ -10,7 +10,7 @@ import { RC, RADIUS, SHADOW_CARD, SHADOW_RAISED } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { BackBtn } from '../components/ui';
-import { pictureFor, hasPicture } from '../data/destinations';
+import { pictureFor, skyFor } from '../data/destinations';
 import { useDestinations, destinationFrom } from '../store/destinations';
 import { light, type Catalog, type Plan } from '../api/light';
 import { loadProducts, iapAvailable, type IapProduct } from '../lib/iap';
@@ -121,10 +121,8 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <div style={{ position: 'relative', height: 180, flexShrink: 0, background: RC.cream2 }}>
-        {hasPicture(id)
-          ? <img src={pictureFor(id)} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-          : <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #FFB877 0%, #F2585F 55%, #9B57DC 100%)' }} />}
+      <div style={{ position: 'relative', height: 180, flexShrink: 0, background: skyFor(id) }}>
+        <img src={pictureFor(id)} alt="" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(20,10,30,0.25) 0%, rgba(20,10,30,0) 35%, rgba(20,10,30,0.7) 100%)' }} />
         <div style={{ position: 'absolute', left: 0, right: 0, top: 0 }}>
           <RingoHeader leading={<BackBtn onClick={onBack} />} />

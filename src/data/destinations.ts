@@ -84,7 +84,29 @@ export function destinationById(id: string | null | undefined): Destination | nu
   return DESTINATIONS.find((d) => d.id === id) || null;
 }
 
-/** Bundled picture (800x450) for a destination card. */
+/**
+ * The destination's photograph: the website's own file, so the app and the
+ * site show the same picture for the same place (owner 2026-09-18: "use the
+ * same UI as on the website to gain trust"). The 35 bundled pictures stay
+ * as the offline stand-in.
+ */
+export const SITE_PICTURES = 'https://ringoesim.com/img/data-esims';
 export function pictureFor(id: string): string {
-  return `${import.meta.env.BASE_URL}img/destinations/${id}.jpg`;
+  return `${SITE_PICTURES}/${id}.jpg`;
+}
+export function bundledPictureFor(id: string): string | null {
+  return hasPicture(id) ? `${import.meta.env.BASE_URL}img/destinations/${id}.jpg` : null;
+}
+
+// The website's sunset skies behind a picture while it loads (and where a
+// photograph is missing), picked by name so a hundred countries do not read
+// as one orange wall.
+const SKIES = [
+  'linear-gradient(135deg,hsl(8,95%,55%),hsl(20,100%,60%),hsl(38,100%,62%))',
+  'linear-gradient(135deg,hsl(20,100%,58%),hsl(38,100%,60%),hsl(46,100%,64%))',
+  'linear-gradient(135deg,hsl(330,90%,58%),hsl(14,100%,57%),hsl(28,100%,62%))',
+  'linear-gradient(135deg,hsl(262,70%,58%),hsl(300,70%,58%),hsl(330,100%,63%))',
+];
+export function skyFor(id: string): string {
+  return SKIES[[...String(id)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 997, 7) % SKIES.length];
 }
