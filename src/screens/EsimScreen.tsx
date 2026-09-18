@@ -34,8 +34,9 @@ function statusWord(pkg: string | null | undefined, sub: string): string {
   return sub === 'completed' ? 'Ready to use' : sub.replace(/_/g, ' ');
 }
 
-export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport }: {
+export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onProfile }: {
   onBack?: () => void;
+  onProfile: () => void;
   onInstall: (install: { apple_url: string; lpa: string }, label: string) => void;
   onLogin: () => void;
   onStore: () => void;
@@ -149,7 +150,13 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport }: {
     }
   };
 
-  const header = <RingoHeader title="My eSIM" leading={onBack ? <BackBtn onClick={onBack} /> : null} />;
+  // The profile (travel badges, Ringo status) sits one tap from the eSIM, top right, once there is an account.
+  const profileBtn = acct ? (
+    <button className="press" onClick={onProfile} aria-label="Your profile" style={{ width: 40, height: 40, borderRadius: 999, border: `1.5px solid ${RC.line}`, background: RC.paper, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden><circle cx="12" cy="8.5" r="4" stroke={RC.inkStrong} strokeWidth="2" /><path d="M4.5 20c.9-3.6 3.8-5.5 7.5-5.5s6.6 1.9 7.5 5.5" stroke={RC.inkStrong} strokeWidth="2" strokeLinecap="round" /></svg>
+    </button>
+  ) : null;
+  const header = <RingoHeader title="My eSIM" leading={onBack ? <BackBtn onClick={onBack} /> : null} trailing={profileBtn} />;
 
   if (!acct) {
     return (
@@ -185,7 +192,8 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport }: {
             title="Nothing here yet."
             sub={`No plan is attached to ${acct.email || 'this email'}. If you just paid, give it a minute; otherwise browse the plans.`}
             primary={{ label: 'Browse plans', onClick: onStore }}
-            secondary={{ label: 'Sign in with another account', onClick: onLogin }}
+            secondary={{ label: 'Your profile', onClick: onProfile }}
+            tertiary={{ label: 'Sign in with another account', onClick: onLogin }}
           />
         )}
 

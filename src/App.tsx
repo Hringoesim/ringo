@@ -206,6 +206,7 @@ export function App() {
           onLogin={() => push('login')}
           onStore={() => goTab('store')}
           onReport={() => push('report')}
+          onProfile={() => push('profile')}
         />
       );
       break;
