@@ -13,13 +13,21 @@ interface SignInWithApplePlugin {
 }
 interface GoogleSignInPlugin {
   signIn(o: { clientId: string; nonce?: string }): Promise<{ idToken?: string; accessToken?: string; nonce?: string; cancelled?: boolean }>;
+  openAuth(o: { url: string; scheme: string }): Promise<{ callback?: string; cancelled?: boolean }>;
 }
 const Apple = registerPlugin<SignInWithApplePlugin>('SignInWithApple');
 const Google = registerPlugin<GoogleSignInPlugin>('GoogleSignIn');
 
 export const GOOGLE_IOS_CLIENT_ID = (import.meta.env.VITE_GOOGLE_IOS_CLIENT_ID as string | undefined) || '';
+// Ringo's Supabase project "APP3" already has Google (and Apple) sign-in
+// configured, so Google needs no client of its own here: the system sheet
+// opens Supabase's authorize page, Supabase talks to Google, and the session
+// comes back to the app on its URL scheme. ringoesim.com then reads the
+// account's email from that session (/api/app-login, provider "supabase").
+export const SUPABASE_AUTH_URL = 'https://swfojlhulsgivzrxqtkv.supabase.co/auth/v1';
+export const AUTH_CALLBACK = 'com.ringoesim.app://auth/callback';
 export const appleSignInAvailable = (): boolean => Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
-export const googleSignInAvailable = (): boolean => appleSignInAvailable() && Boolean(GOOGLE_IOS_CLIENT_ID);
+export const googleSignInAvailable = (): boolean => appleSignInAvailable();
 
 function nonce(): string {
   const b = new Uint8Array(24); crypto.getRandomValues(b);
@@ -47,9 +55,9 @@ export async function signInWithApple(): Promise<SignInResult> {
   return finish('apple', token, raw);
 }
 
-/** Google's sheet (system browser, PKCE), then the account. */
+/** Google's sheet (system browser), then the account: through Supabase, or straight to Google when an iOS client is configured. */
 export async function signInWithGoogle(): Promise<SignInResult> {
-  if (!GOOGLE_IOS_CLIENT_ID) return { ok: false, error: 'Google sign-in is not available yet.' };
+  if (!GOOGLE_IOS_CLIENT_ID) return signInWithGoogleViaSupabase();
   const raw = nonce();
   let token: string;
   try {
@@ -62,7 +70,25 @@ export async function signInWithGoogle(): Promise<SignInResult> {
   return finish('google', token, raw);
 }
 
-async function finish(provider: 'apple' | 'google', token: string, raw: string): Promise<SignInResult> {
+async function signInWithGoogleViaSupabase(): Promise<SignInResult> {
+  const url = `${SUPABASE_AUTH_URL}/authorize?${new URLSearchParams({ provider: 'google', redirect_to: AUTH_CALLBACK }).toString()}`;
+  let callback: string;
+  try {
+    const r = await Google.openAuth({ url, scheme: 'com.ringoesim.app' });
+    if (r.cancelled || !r.callback) return { ok: false, cancelled: true };
+    callback = r.callback;
+  } catch (e) {
+    return { ok: false, error: String((e as Error)?.message || 'Google did not complete the sign-in.') };
+  }
+  // Supabase returns the session in the fragment (implicit flow); an error comes as query or fragment fields.
+  const u = new URL(callback);
+  const params = new URLSearchParams(u.hash.startsWith('#') ? u.hash.slice(1) : u.search.slice(1));
+  const token = params.get('access_token');
+  if (!token) return { ok: false, error: params.get('error_description') || 'Google did not complete the sign-in.' };
+  return finish('supabase', token, '');
+}
+
+async function finish(provider: 'apple' | 'google' | 'supabase', token: string, raw: string): Promise<SignInResult> {
   try {
     const r = await light.loginProvider(provider, token, raw);
     account.set({ userId: r.user_id, t: r.t, email: r.email, purchaseRef: null });

@@ -186,7 +186,7 @@ export const light = {
     request<{ ok: boolean; deleted: boolean }>(`/app-account-delete?${new URLSearchParams({ user: userId, t }).toString()}`, { method: 'POST', body: '{}' }),
   /** Log in, step two: the code opens the account. */
   /** Sign in with Apple or Google: the provider's identity token opens the same account. */
-  loginProvider: (provider: 'apple' | 'google', idToken: string, nonce: string) =>
+  loginProvider: (provider: 'apple' | 'google' | 'supabase', idToken: string, nonce: string) =>
     request<{ ok: boolean; user_id: string; t: string; email: string; provider: string }>('/app-login', { method: 'POST', body: JSON.stringify({ provider, id_token: idToken, nonce }) }),
 
   /** The profile: who is logged in and the badges of where their eSIMs have taken them. */

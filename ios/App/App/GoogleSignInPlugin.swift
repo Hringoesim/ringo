@@ -19,7 +19,8 @@ public class GoogleSignInPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticatio
     public let identifier = "GoogleSignInPlugin"
     public let jsName = "GoogleSignIn"
     public let pluginMethods: [CAPPluginMethod] = [
-        CAPPluginMethod(name: "signIn", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "signIn", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "openAuth", returnType: CAPPluginReturnPromise)
     ]
 
     private var session: ASWebAuthenticationSession?
@@ -65,6 +66,27 @@ public class GoogleSignInPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticatio
                       let code = items.first(where: { $0.name == "code" })?.value,
                       items.first(where: { $0.name == "state" })?.value == state else { call.reject("Google did not return a code."); return }
                 self?.exchange(code: code, clientId: clientId, redirect: redirect, verifier: verifier, nonce: nonce, call: call)
+            }
+            s.presentationContextProvider = self
+            s.prefersEphemeralWebBrowserSession = false
+            self.session = s
+            if !s.start() { call.reject("Could not open the sign-in sheet.") }
+        }
+    }
+
+    // Any OAuth page in the system sheet, back to the app on its own scheme:
+    // ringoesim's Supabase project (APP3) brokers Google with the client the
+    // owner set there in June 2026, and lands on com.ringoesim.app://auth/callback
+    // with the session in the fragment. openAuth({ url, scheme }) -> { callback }
+    @objc func openAuth(_ call: CAPPluginCall) {
+        guard let urlString = call.getString("url"), let url = URL(string: urlString), let scheme = call.getString("scheme"), !scheme.isEmpty else { call.reject("Bad request."); return }
+        DispatchQueue.main.async {
+            let s = ASWebAuthenticationSession(url: url, callbackURLScheme: scheme) { [weak self] callback, error in
+                self?.session = nil
+                if let error = error as? ASWebAuthenticationSessionError, error.code == .canceledLogin { call.resolve(["cancelled": true]); return }
+                if let error = error { call.reject(error.localizedDescription, nil, error); return }
+                guard let cb = callback else { call.reject("The sign-in did not return to the app."); return }
+                call.resolve(["callback": cb.absoluteString])
             }
             s.presentationContextProvider = self
             s.prefersEphemeralWebBrowserSession = false
