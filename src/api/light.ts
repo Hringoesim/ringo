@@ -55,6 +55,8 @@ export interface Catalog {
   plans: Plan[];
   from_amount: number;
   top_ups: TopUp[];
+  /** every destination the site sells */
+  destinations: { id: string; label: string; kind: string; countries?: number; iso?: string | null; region?: string | null }[];
 }
 
 export interface TravelBadge {
@@ -70,11 +72,13 @@ export interface TravelBadge {
   plans: number;
   active: boolean;
 }
+export interface LoyaltyTier { id: string; name: string; min: number; perk: string }
 export interface Profile {
   email: string;
   member_since: string | null;
   badges: TravelBadge[];
-  stats: { destinations: number; plans: number; countries_reachable: number };
+  stats: { destinations: number; plans: number; countries_reachable: number; paid_months: number };
+  loyalty: { paid_months: number; tier: LoyaltyTier & { next: { id: string; name: string; min: number; to_go: number } | null }; tiers: LoyaltyTier[] };
 }
 
 export interface Summary {

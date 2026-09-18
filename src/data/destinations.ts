@@ -14,6 +14,22 @@ export interface Destination {
   countries: number;
   /** ISO flag emoji for country tiles (regions use a picture only) */
   flag?: string;
+  /** the store section a country sits in (from the site's catalogue) */
+  region?: string | null;
+}
+
+/** The tiles at the top of the store, in order: the plans that cover many countries. */
+export const FEATURED = ['global', 'europe', 'usa', 'asia', 'latam', 'middle-east'];
+
+/** The ISO 3166-1 alpha-2 code as its flag emoji. */
+export function flagOf(iso: string | null | undefined): string {
+  const s = String(iso || '').toUpperCase();
+  return /^[A-Z]{2}$/.test(s) ? String.fromCodePoint(...[...s].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65)) : '';
+}
+
+/** Only the destinations bundled with a photograph; the rest get a gradient. */
+export function hasPicture(id: string): boolean {
+  return [...REGIONS, ...COUNTRIES].some((d) => d.id === id);
 }
 
 // The five plans Ringo sells (owner 2026-09-13: Global or a region, nothing

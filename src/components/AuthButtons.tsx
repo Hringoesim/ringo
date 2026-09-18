@@ -35,8 +35,9 @@ export function AuthButtons({ onSignedIn, onEmail, onDark = false }: { onSignedI
   const showApple = appleSignInAvailable() || Boolean(import.meta.env.VITE_SHOT);
   return (
     <div style={{ display: 'grid', gap: 10 }}>
+      {/* Apple's white style: allowed by the Sign in with Apple guidelines, and the owner wants no black button. */}
       {showApple && (
-        <button className="press" disabled={busy !== null} onClick={() => void social('apple')} aria-label="Sign in with Apple" style={row({ background: '#000', color: '#fff', fontFamily: '-apple-system, var(--font)', fontSize: 17 })}>
+        <button className="press" disabled={busy !== null} onClick={() => void social('apple')} aria-label="Sign in with Apple" style={row({ background: '#fff', color: '#000', border: `1.5px solid ${onDark ? 'transparent' : '#000'}`, fontFamily: '-apple-system, var(--font)', fontSize: 17 })}>
           <span style={{ fontSize: 20, lineHeight: 1 }}></span>{busy === 'apple' ? 'Opening…' : 'Sign in with Apple'}
         </button>
       )}

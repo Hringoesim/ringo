@@ -7,7 +7,8 @@ const SITE = '/Users/hippolytevanmarcke/new website Ringo april 2026/NEW-website
 const { appleCatalog } = await import(`${SITE}/api/_apple-products.js`);
 const { convert } = await import(`${SITE}/api/_light-currency.js`);
 const APP = '6787133742';
-const GROUP = '22248864';
+const GROUP = '22248864';               // regions: 'Ringo Plan'
+const BASE = 'BEL';                     // prices come from the euro catalogue
 const SP = new URL('.', import.meta.url).pathname;
 const DRY = process.argv.includes('--dry');
 const ONLY = process.argv.includes('--only') ? process.argv[process.argv.indexOf('--only') + 1] : null;
@@ -28,12 +29,23 @@ const money = (n) => n.toFixed(2);
 // Existing products by productId
 const existingIap = new Map(); let url = `/v1/apps/${APP}/inAppPurchasesV2?limit=200`;
 while (url) { const r = await asc('GET', url); for (const x of r.json?.data || []) existingIap.set(x.attributes.productId, x); url = r.json?.links?.next || null; }
-const existingSub = new Map(); url = `/v1/subscriptionGroups/${GROUP}/subscriptions?limit=200`;
-while (url) { const r = await asc('GET', url); for (const x of r.json?.data || []) existingSub.set(x.attributes.productId, x); url = r.json?.links?.next || null; }
+const groups = (await asc('GET', `/v1/apps/${APP}/subscriptionGroups?limit=50`)).json.data;
+let COUNTRY_GROUP = groups.find(g => g.attributes.referenceName === 'Ringo Country Plan')?.id;
+if (!COUNTRY_GROUP && !DRY) {
+  const g = await asc('POST', '/v1/subscriptionGroups', { data: { type: 'subscriptionGroups', attributes: { referenceName: 'Ringo Country Plan' }, relationships: { app: { data: { type: 'apps', id: APP } } } } });
+  COUNTRY_GROUP = g.json?.data?.id; console.log('created group Ringo Country Plan', g.status, COUNTRY_GROUP);
+  if (COUNTRY_GROUP) await asc('POST', '/v1/subscriptionGroupLocalizations', { data: { type: 'subscriptionGroupLocalizations', attributes: { locale: 'en-US', name: 'Ringo Country Plan', customAppName: 'Ringo eSIM' }, relationships: { subscriptionGroup: { data: { type: 'subscriptionGroups', id: COUNTRY_GROUP } } } } });
+}
+const REGIONS = new Set(['global', 'europe', 'asia', 'latam', 'middle-east', 'usa']);
+const groupFor = (p) => (p.destinations.some(d => REGIONS.has(d)) ? GROUP : COUNTRY_GROUP);
+const existingSub = new Map();
+for (const gid of [GROUP, COUNTRY_GROUP].filter(Boolean)) { url = `/v1/subscriptionGroups/${gid}/subscriptions?limit=200`;
+  while (url) { const r = await asc('GET', url); for (const x of r.json?.data || []) existingSub.set(x.attributes.productId, x); url = r.json?.links?.next || null; } }
 
-async function pricePointFor(kind, id, usd) {
+async function pricePointFor(kind, id, amount, terr = 'USA') {
+  const usd = amount;
   const target = money(usd);
-  let u = kind === 'sub' ? `/v1/subscriptions/${id}/pricePoints?filter[territory]=USA&limit=200` : `/v2/inAppPurchases/${id}/pricePoints?filter[territory]=USA&limit=200`;
+  let u = kind === 'sub' ? `/v1/subscriptions/${id}/pricePoints?filter[territory]=${terr}&limit=200` : `/v2/inAppPurchases/${id}/pricePoints?filter[territory]=${terr}&limit=200`;
   let best = null;
   while (u) {
     const r = await asc('GET', u);
@@ -74,7 +86,7 @@ for (const p of catalog) {
     let obj = kind === 'sub' ? existingSub.get(p.productId) : existingIap.get(p.productId);
     if (!obj) {
       const r = kind === 'sub'
-        ? await asc('POST', '/v1/subscriptions', { data: { type: 'subscriptions', attributes: { name: `${p.name} $${money(usd)}`, productId: p.productId, subscriptionPeriod: p.period, groupLevel: GROUP_LEVEL[p.period] || 3, reviewNote: reviewNote(p), familySharable: false }, relationships: { group: { data: { type: 'subscriptionGroups', id: GROUP } } } } })
+        ? await asc('POST', '/v1/subscriptions', { data: { type: 'subscriptions', attributes: { name: `${p.name} $${money(usd)}`, productId: p.productId, subscriptionPeriod: p.period, groupLevel: GROUP_LEVEL[p.period] || 3, reviewNote: reviewNote(p), familySharable: false }, relationships: { group: { data: { type: 'subscriptionGroups', id: groupFor(p) } } } } })
         : await asc('POST', '/v2/inAppPurchases', { data: { type: 'inAppPurchases', attributes: { name: `${p.name} $${money(usd)}`, productId: p.productId, inAppPurchaseType: 'CONSUMABLE', reviewNote: reviewNote(p) }, relationships: { app: { data: { type: 'apps', id: APP } } } } });
       if (r.status !== 201) throw new Error(`create ${r.status} ${JSON.stringify(r.json).slice(0, 300)}`);
       obj = r.json.data; summary.created++;
@@ -124,14 +136,17 @@ for (const p of catalog) {
     }
     // 4. price
     if (!has(kind === 'sub' ? 'subscriptionPrices' : 'inAppPurchasePriceSchedules')) {
-      const pt = await pricePointFor(kind, id, usd);
-      if (!pt) throw new Error(`no USD price point for ${usd}`);
-      if (Number(pt.attributes.customerPrice) !== usd) log(`price point ${pt.attributes.customerPrice} (nearest to ${money(usd)})`);
+      const eur = await pricePointFor(kind, id, p.cents / 100, BASE);
+      const pt = await pricePointFor(kind, id, usd, 'USA');
+      if (!eur || !pt) throw new Error(`no price point (BEL ${money(p.cents / 100)} / USA ${money(usd)})`);
       const r = kind === 'sub'
-        ? await asc('POST', '/v1/subscriptionPrices', { data: { type: 'subscriptionPrices', attributes: { preserveCurrentPrice: false }, relationships: { subscription: { data: { type: 'subscriptions', id } }, subscriptionPricePoint: { data: { type: 'subscriptionPricePoints', id: pt.id } } } } })
+        ? await asc('POST', '/v1/subscriptionPrices', { data: { type: 'subscriptionPrices', attributes: { preserveCurrentPrice: false }, relationships: { subscription: { data: { type: 'subscriptions', id } }, subscriptionPricePoint: { data: { type: 'subscriptionPricePoints', id: eur.id } } } } })
         : await asc('POST', '/v1/inAppPurchasePriceSchedules', {
-            data: { type: 'inAppPurchasePriceSchedules', relationships: { inAppPurchase: { data: { type: 'inAppPurchases', id } }, baseTerritory: { data: { type: 'territories', id: 'USA' } }, manualPrices: { data: [{ type: 'inAppPurchasePrices', id: '${p1}' }] } } },
-            included: [{ type: 'inAppPurchasePrices', id: '${p1}', attributes: { startDate: null }, relationships: { inAppPurchasePricePoint: { data: { type: 'inAppPurchasePricePoints', id: pt.id } } } }],
+            data: { type: 'inAppPurchasePriceSchedules', relationships: { inAppPurchase: { data: { type: 'inAppPurchases', id } }, baseTerritory: { data: { type: 'territories', id: BASE } }, manualPrices: { data: [{ type: 'inAppPurchasePrices', id: '${p1}' }, { type: 'inAppPurchasePrices', id: '${p2}' }] } } },
+            included: [
+              { type: 'inAppPurchasePrices', id: '${p1}', attributes: { startDate: null }, relationships: { inAppPurchasePricePoint: { data: { type: 'inAppPurchasePricePoints', id: eur.id } } } },
+              { type: 'inAppPurchasePrices', id: '${p2}', attributes: { startDate: null }, relationships: { inAppPurchasePricePoint: { data: { type: 'inAppPurchasePricePoints', id: pt.id } } } },
+            ],
           });
       if (r.status !== 201) throw new Error(`price ${r.status} ${JSON.stringify(r.json).slice(0, 300)}`);
       summary.priced++;

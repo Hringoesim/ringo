@@ -14,6 +14,8 @@ import { light, type Profile, type TravelBadge } from '../api/light';
 import { useAccount } from '../store/account';
 import { pictureFor, destinationById } from '../data/destinations';
 
+const TIER_COLORS: Record<string, [string, string]> = { amber: ['#FFB53E', '#FF5D2E'], coral: ['#FF7E5F', '#FF4778'], crimson: ['#FF4778', '#D6247E'], aurora: ['#8652E0', '#FF42A1'] };
+
 const REGION_MARK: Record<string, string> = { europe: '🇪🇺', asia: '🌏', latam: '🌎', 'middle-east': '🕌', global: '🌍' };
 
 function when(iso: string | null): string {
@@ -89,6 +91,24 @@ export function ProfileScreen({ onBack, onBrowse, onLogin }: { onBack: () => voi
                 </RingoCard>
               ))}
             </div>
+
+            {profile?.loyalty && (() => {
+              const t = profile.loyalty.tier; const [c1, c2] = TIER_COLORS[t.id] || TIER_COLORS.amber;
+              const next = t.next; const prevMin = t.min; const span = next ? next.min - prevMin : 1;
+              const pct = next ? Math.min(100, Math.round(((profile.loyalty.paid_months - prevMin) / span) * 100)) : 100;
+              return (
+                <div style={{ marginBottom: 18, padding: '16px 18px', borderRadius: RADIUS.xl, background: `linear-gradient(135deg, ${c1} 0%, ${c2} 100%)`, color: '#fff', boxShadow: `0 14px 30px -14px ${c2}88` }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+                    <div style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 800, letterSpacing: 0.8, textTransform: 'uppercase', opacity: 0.9 }}>Ringo status</div>
+                    <div style={{ fontFamily: 'var(--font)', fontSize: 12, fontWeight: 700, opacity: 0.9 }}>{profile.loyalty.paid_months} paid {profile.loyalty.paid_months === 1 ? 'month' : 'months'}</div>
+                  </div>
+                  <div style={{ marginTop: 4, fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, letterSpacing: -0.6 }}>{t.name}</div>
+                  <div style={{ marginTop: 2, fontFamily: 'var(--font)', fontSize: 13, opacity: 0.95 }}>{t.perk}</div>
+                  <div style={{ marginTop: 12, height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.3)' }}><div style={{ width: `${pct}%`, height: '100%', borderRadius: 3, background: '#fff' }} /></div>
+                  <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 12, opacity: 0.9 }}>{next ? `${next.to_go} more paid ${next.to_go === 1 ? 'month' : 'months'} to ${next.name}` : 'Top of the ladder'}</div>
+                </div>
+              );
+            })()}
 
             <SectionTitle>Travel badges</SectionTitle>
             {err ? (
