@@ -15,7 +15,7 @@ const money = (c) => (c / 100).toFixed(2);
 
 const iap = new Map(); let url = `/v1/apps/6787133742/inAppPurchasesV2?limit=200`;
 while (url) { const r = await asc('GET', url); for (const x of r.json.data) iap.set(x.attributes.productId, x); url = r.json.links?.next?.replace(/^https:\/\/api\.appstoreconnect\.apple\.com/, '') || null; }
-const subs = new Map(); for (const x of (await asc('GET', `/v1/subscriptionGroups/22248864/subscriptions?limit=200`)).json.data) subs.set(x.attributes.productId, x);
+const subs = new Map(); for (const gid of ['22248864', '22395785']) for (const x of (await asc('GET', `/v1/subscriptionGroups/${gid}/subscriptions?limit=200`)).json.data) subs.set(x.attributes.productId, x);
 
 // The Belgian price point at (or just above) the catalogue amount.
 async function belPoint(kind, id, cents, terr = BASE) {
