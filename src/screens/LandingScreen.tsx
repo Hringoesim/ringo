@@ -107,7 +107,7 @@ export function LandingScreen({
             lineHeight: 1.45, maxWidth: 300,
           }}
         >
-          eSIMs for 35 destinations. Install in a tap, connected when you land.
+          eSIMs for 196 countries and every region. Install in a tap, connected when you land.
         </div>
       </div>
 
