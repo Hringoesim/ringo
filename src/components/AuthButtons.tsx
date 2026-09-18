@@ -30,9 +30,12 @@ export function AuthButtons({ onSignedIn, onEmail, onDark = false }: { onSignedI
     fontFamily: 'var(--font)', fontSize: 16, fontWeight: 600, ...extra,
   });
 
+  // The App Store screenshots are shot in a browser (VITE_SHOT), where the
+  // native sheet does not exist; they still show the button the phone shows.
+  const showApple = appleSignInAvailable() || Boolean(import.meta.env.VITE_SHOT);
   return (
     <div style={{ display: 'grid', gap: 10 }}>
-      {appleSignInAvailable() && (
+      {showApple && (
         <button className="press" disabled={busy !== null} onClick={() => void social('apple')} aria-label="Sign in with Apple" style={row({ background: '#000', color: '#fff', fontFamily: '-apple-system, var(--font)', fontSize: 17 })}>
           <span style={{ fontSize: 20, lineHeight: 1 }}></span>{busy === 'apple' ? 'Opening…' : 'Sign in with Apple'}
         </button>
