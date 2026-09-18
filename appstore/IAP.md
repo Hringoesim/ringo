@@ -28,3 +28,12 @@ at `https://ringoesim.com/api/appstore-notifications` (set as the
 production and sandbox Server Notification URL in App Store Connect).
 Sandbox purchases (App Review, TestFlight) are fulfilled from the carrier
 test profiles and never reach a supplier.
+
+## Price base (2026-09-18)
+
+Every product is priced from the catalogue's EUR figure with **Belgium as the base territory**
+(`appstore/scripts/asc-eur-base.mjs`): the Belgian price point equals the catalogue cents, Apple
+equalizes the other storefronts, and the **US storefront is set by hand to the site's USD figure**
+(`convert(cents, 'usd')`), because Apple's equalization of a VAT-inclusive euro price lands under
+the margin floor in dollars. Before this the base was USA at EUR x 1.15 and Belgian buyers saw
+EUR 29.99 for a EUR 22.99 plan. Run the script after `asc-iap.mjs` whenever products are created.
