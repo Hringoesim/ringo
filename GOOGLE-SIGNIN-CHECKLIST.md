@@ -15,7 +15,7 @@ Your values (you'll need these below):
 ## Part A — Create a Google sign-in client (only you can do this)
 
 1. Go to **https://console.cloud.google.com** and sign in
-   (hippolytebusiness@gmail.com).
+   (the Google account that owns the Ringo project).
 2. Top-left **project dropdown** → **New Project** → Name: **Ringo** → **Create**.
    Wait a few seconds, then make sure **Ringo** is selected in that dropdown.
 3. In the top search bar type **Google Auth Platform** and open it
@@ -33,7 +33,7 @@ Your values (you'll need these below):
    **Client secret** (starts with `GOCSPX-`) right now.
 6. ⚠️ New apps start in **Testing** mode — only listed test users can sign in.
    Left menu: **Audience** → **Test users** → **+ Add users** → add
-   **hippolytebusiness@gmail.com** → Save.
+   the owner Google account → Save.
    (Later, to open it to everyone: **Audience** → **Publish app**.)
 
 ## Part B — Hand off to Claude (automated)
