@@ -67,6 +67,12 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
     pollRef.current = window.setInterval(() => void tick(), 3000);
   };
   const stageRef = useRef<Stage>('email');
+
+  // Sign in with Apple can hand us a Hide My Email relay address. Apple's
+  // relay refuses senders that are not registered with Apple, so mail to it
+  // bounces: the app must not tell anyone to go and look for it. The eSIM
+  // itself is always here, under My eSIM.
+  const relayEmail = /@privaterelay\.appleid\.com$/i.test(email.trim());
   const setStageBoth = (s: Stage) => { stageRef.current = s; setStage(s); };
 
   const buy = async () => {
@@ -135,7 +141,9 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
             <FieldLabel>Email for your eSIM</FieldLabel>
             <Input value={email} onChange={setEmail} placeholder="you@example.com" type="email" inputMode="email" />
             <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 12.5, color: RC.inkMute, lineHeight: 1.5 }}>
-              The activation code and receipt go here.
+              {relayEmail
+                ? 'Your eSIM installs here in the app. Apple hides this address, so use a real one if you also want it by email.'
+                : 'The activation code and receipt go here.'}
             </div>
             {err && <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: '#A12C2C' }}>{err}</div>}
           </div>
@@ -143,7 +151,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
 
         {(stage === 'buying') && <Waiting title="Confirm with your Apple ID" sub="Nothing is charged until you confirm." />}
         {stage === 'recording' && <Waiting title="Payment confirmed. Recording your purchase…" sub="One moment." />}
-        {stage === 'issuing' && <Waiting title="Preparing your eSIM…" sub="Under a minute. It lands under My eSIM and in your email." ok />}
+        {stage === 'issuing' && <Waiting title="Preparing your eSIM…" sub={relayEmail ? 'Under a minute. It lands under My eSIM, here in the app.' : 'Under a minute. It lands under My eSIM and in your email.'} ok />}
         {stage === 'pending' && <Waiting title="Waiting for approval" sub="This purchase needs approval (Ask to Buy). Once it is approved, open the app and your eSIM will be prepared." ok />}
 
         {stage === 'ready' && (
@@ -153,7 +161,9 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
             </div>
             <div style={{ marginTop: 14, fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, color: RC.ink, letterSpacing: -0.6 }}>Your eSIM is ready.</div>
             <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
-              Install it now, or later from My eSIM. A copy went to {email.trim().toLowerCase()}.
+              {relayEmail
+                ? 'Install it now, or later from My eSIM. Your eSIM lives in the app, so nothing is waiting in an inbox.'
+                : `Install it now, or later from My eSIM. A copy went to ${email.trim().toLowerCase()}.`}
             </div>
           </div>
         )}
