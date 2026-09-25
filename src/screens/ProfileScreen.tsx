@@ -80,9 +80,9 @@ export function ProfileScreen({ onBack, onBrowse, onLogin }: { onBack: () => voi
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 18 }}>
               {[
-                { n: profile?.stats.destinations ?? '–', l: 'destinations' },
-                { n: profile?.stats.plans ?? '–', l: 'eSIM plans' },
-                { n: profile?.stats.countries_reachable ?? '–', l: 'countries covered' },
+                { n: profile?.stats.destinations ?? '…', l: 'destinations' },
+                { n: profile?.stats.plans ?? '…', l: 'eSIM plans' },
+                { n: profile?.stats.countries_reachable ?? '…', l: 'countries covered' },
               ].map((s) => (
                 <RingoCard key={s.l} style={{ padding: '12px 10px', textAlign: 'center' }}>
                   <div style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, color: RC.ink, letterSpacing: -0.6 }}>{s.n}</div>
@@ -96,7 +96,7 @@ export function ProfileScreen({ onBack, onBrowse, onLogin }: { onBack: () => voi
               const next = t.next; const prevMin = t.min; const span = next ? next.min - prevMin : 1;
               const pct = next ? Math.min(100, Math.round(((profile.loyalty.paid_months - prevMin) / span) * 100)) : 100;
               return (
-                <div style={{ marginBottom: 18, padding: '16px 18px', borderRadius: RADIUS.xl, background: `linear-gradient(135deg, ${c1} 0%, ${c2} 100%)`, color: '#fff', boxShadow: `0 14px 30px -14px ${c2}88` }}>
+                <div style={{ marginBottom: 18, padding: '16px 18px', borderRadius: RADIUS.card, background: `linear-gradient(135deg, ${c1} 0%, ${c2} 100%)`, color: '#fff', boxShadow: `0 14px 30px -14px ${c2}88` }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
                     <div style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 800, letterSpacing: 0.8, textTransform: 'uppercase', opacity: 0.9 }}>Ringo status</div>
                     <div style={{ fontFamily: 'var(--font)', fontSize: 12, fontWeight: 700, opacity: 0.9 }}>{profile.loyalty.paid_months} paid {profile.loyalty.paid_months === 1 ? 'month' : 'months'}</div>
@@ -111,7 +111,7 @@ export function ProfileScreen({ onBack, onBrowse, onLogin }: { onBack: () => voi
 
             <SectionTitle>Travel badges</SectionTitle>
             {err ? (
-              <RingoCard><div style={{ fontFamily: 'var(--font)', fontSize: 13.5, color: '#A12C2C', fontWeight: 600 }}>{err}</div></RingoCard>
+              <RingoCard><div style={{ fontFamily: 'var(--font)', fontSize: 13.5, color: RC.error, fontWeight: 600 }}>{err}</div></RingoCard>
             ) : !profile ? (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 {[0, 1].map((i) => <div key={i} style={{ borderRadius: RADIUS.lg, background: RC.cream, aspectRatio: '1 / 1.15' }} />)}

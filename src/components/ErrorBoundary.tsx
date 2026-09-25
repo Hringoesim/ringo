@@ -2,6 +2,7 @@
 // single bad screen shows a friendly recovery card instead of a white screen.
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { log } from '../lib/log';
+import { RADIUS } from '../theme';
 
 interface Props {
   children: ReactNode;
@@ -42,12 +43,12 @@ export class ErrorBoundary extends Component<Props, State> {
           Something went sideways
         </div>
         <div style={{ fontSize: 14, color: 'var(--rc-ink-mute, #7A6E75)', lineHeight: 1.5, maxWidth: 280 }}>
-          Ringo hit an unexpected error. Reloading usually sorts it — your account and plan are safe.
+          Ringo hit an unexpected error. Reloading usually sorts it. Your account and plan are safe.
         </div>
         <button
           onClick={this.reload}
           style={{
-            marginTop: 6, height: 50, padding: '0 28px', borderRadius: 999, cursor: 'pointer',
+            marginTop: 6, height: 50, padding: '0 28px', borderRadius: RADIUS.control, cursor: 'pointer',
             border: 'none', color: '#FFFDFB', fontSize: 15, fontWeight: 700,
             background: 'linear-gradient(120deg, #FF9A4D, #FF4D8D 55%, #A55BFF)',
           }}

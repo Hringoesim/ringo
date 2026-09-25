@@ -1,6 +1,7 @@
 // ui.tsx — small shared building blocks used across screens.
 import { useState, type CSSProperties, type ReactNode } from 'react';
-import { RC, RADIUS, hexA } from '../theme';
+import { RC, RADIUS, SHADOW_CARD, TAP, hexA } from '../theme';
+import { hapticSelection } from '../lib/haptics';
 
 export function BackBtn({ onClick }: { onClick?: () => void }) {
   return (
@@ -9,7 +10,7 @@ export function BackBtn({ onClick }: { onClick?: () => void }) {
       onClick={onClick}
       aria-label="Back"
       style={{
-        width: 40, height: 40, borderRadius: '50%',
+        width: TAP, height: TAP, borderRadius: '50%', padding: 0, flexShrink: 0,
         background: RC.cream, border: `1.5px solid ${RC.lineStrong}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', boxShadow: '0 4px 12px -6px rgba(52,28,84,0.16)',
@@ -19,6 +20,59 @@ export function BackBtn({ onClick }: { onClick?: () => void }) {
         <path d="M10 2L4 8l6 6" stroke={RC.inkStrong} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </button>
+  );
+}
+
+// A round 44pt header button (the profile button and any other header icon).
+export function IconButton({ onClick, label, children }: { onClick?: () => void; label: string; children: ReactNode }) {
+  return (
+    <button
+      className="press"
+      onClick={onClick}
+      aria-label={label}
+      style={{
+        width: TAP, height: TAP, borderRadius: '50%', padding: 0, flexShrink: 0,
+        border: `1.5px solid ${RC.line}`, background: RC.paper, cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+// A text-only action with a 44pt hit area. The padding is taken back with a
+// negative margin so the words sit where a bare link would.
+export function TextLink({ onClick, children, color, align = 'center', style = {} }: { onClick?: () => void; children: ReactNode; color?: string; align?: 'left' | 'center'; style?: CSSProperties }) {
+  return (
+    <button
+      className="press"
+      onClick={onClick}
+      style={{
+        minHeight: TAP, padding: '0 16px', margin: '-13px -16px', boxSizing: 'border-box',
+        display: 'inline-flex', alignItems: 'center', justifyContent: align === 'left' ? 'flex-start' : 'center',
+        border: 'none', background: 'transparent', cursor: 'pointer',
+        fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, color: color ?? RC.inkStrong, ...style,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+// The segmented toggle (Data / Unlimited, 10 / 20 GB): RADIUS.control outside,
+// a sliding paper pill inside, and 44pt tall buttons.
+export function Segmented<T extends string>({ value, options, onChange }: { value: T; options: { id: T; label: string }[]; onChange: (v: T) => void }) {
+  const idx = Math.max(0, options.findIndex((o) => o.id === value));
+  return (
+    <div role="tablist" style={{ position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${options.length}, 1fr)`, padding: 4, borderRadius: RADIUS.control, background: RC.cream, border: `1px solid ${RC.line}` }}>
+      <div aria-hidden style={{ position: 'absolute', top: 4, bottom: 4, left: 4, width: `calc((100% - 8px) / ${options.length})`, borderRadius: RADIUS.control - 4, background: RC.paper, boxShadow: SHADOW_CARD, transform: `translateX(${idx * 100}%)`, transition: 'transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1)' }} />
+      {options.map((o) => (
+        <button key={o.id} role="tab" aria-selected={o.id === value} onClick={() => { hapticSelection(); onChange(o.id); }} style={{ position: 'relative', border: 'none', background: 'transparent', cursor: 'pointer', height: TAP, fontFamily: 'var(--font)', fontSize: 14, fontWeight: 700, color: o.id === value ? RC.ink : RC.inkMute, transition: 'color .2s' }}>
+          {o.label}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -57,7 +111,7 @@ export function Input({ value, onChange, placeholder, type = 'text', inputMode }
       inputMode={inputMode}
       style={{
         width: '100%', height: 54, padding: '0 16px', boxSizing: 'border-box',
-        borderRadius: RADIUS.md, background: RC.paper,
+        borderRadius: RADIUS.control, background: RC.paper,
         border: `1.5px solid ${active ? RC.inkStrong : RC.line}`,
         // Soft ember focus ring — clear interactive feedback, smoothly eased.
         boxShadow: focused ? `0 0 0 3px ${hexA(RC.inkStrong, 0.12)}` : 'none',

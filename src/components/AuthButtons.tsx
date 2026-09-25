@@ -27,7 +27,7 @@ export function AuthButtons({ onSignedIn, onEmail, onDark = false }: { onSignedI
   };
 
   const row = (extra: React.CSSProperties): React.CSSProperties => ({
-    height: 52, borderRadius: RADIUS.md, border: 'none', width: '100%',
+    height: 52, borderRadius: RADIUS.control, border: 'none', width: '100%',
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer',
     fontFamily: 'var(--font)', fontSize: 16, fontWeight: 600, ...extra,
   });
@@ -53,7 +53,7 @@ export function AuthButtons({ onSignedIn, onEmail, onDark = false }: { onSignedI
         : { background: RC.paper, color: RC.ink, border: `1.5px solid ${RC.lineStrong}` })}>
         Continue with email
       </button>
-      {err && <div style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: onDark ? '#FFE3B8' : '#A12C2C', textAlign: 'center' }}>{err}</div>}
+      {err && <div style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: onDark ? '#FFE3B8' : RC.error, textAlign: 'center' }}>{err}</div>}
     </div>
   );
 }

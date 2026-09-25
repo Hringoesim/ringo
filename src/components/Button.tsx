@@ -1,6 +1,6 @@
 // Button.tsx — reusable warm primary button (gradient) and variants.
 import type { CSSProperties, ReactNode } from 'react';
-import { RC, SHADOW_BUTTON } from '../theme';
+import { RC, RADIUS, SHADOW_BUTTON } from '../theme';
 import { haptic } from '../lib/haptics';
 
 interface RingoButtonProps {
@@ -32,7 +32,7 @@ export function RingoButton({
     fontSize: size === 'lg' ? 15.5 : 14, letterSpacing: -0.1,
     height: size === 'lg' ? 52 : 44,
     padding: '0 22px',
-    borderRadius: size === 'lg' ? 14 : 12,
+    borderRadius: RADIUS.control,
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
     width: full ? '100%' : 'auto',
     opacity: disabled ? 0.5 : 1, // loading stays full-strength (it's active, just busy)

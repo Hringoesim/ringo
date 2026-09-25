@@ -52,6 +52,12 @@ export interface Palette {
   glassBar: string;
   /** ambient page background (around the device) */
   pageBg: string;
+  /** error text, and the soft fill behind an error message */
+  error: string;
+  errorSoft: string;
+  /** success text and icons, and the soft fill behind a success message */
+  success: string;
+  successSoft: string;
 }
 
 // Elevation — depth comes from soft plum-tinted shadows, not color (a cool
@@ -69,7 +75,17 @@ export const SHADOW_HERO = '0 18px 40px -20px rgba(134,82,224,0.5)';
 // stretching edge to edge. At phone widths (375 to 430pt) it never engages.
 export const COLUMN_MAX = 520;
 
-export const RADIUS = { sm: 12, md: 16, lg: 20, xl: 24, pill: 999 } as const;
+export const RADIUS = { sm: 12, md: 16, lg: 20, xl: 24, pill: 999, card: 20, control: 16 } as const;
+
+// The shape rule, one line each:
+//   cards    RADIUS.card (20), a 1px RC.line border and SHADOW_CARD
+//   controls RADIUS.control (16): buttons, inputs, segmented toggles, choice rows
+//   tap targets are never under 44pt (TAP) in either direction
+// cardSurface() reads RC at call time so it follows the live theme.
+export const TAP = 44;
+export function cardSurface(): CSSProperties {
+  return { background: RC.paper, borderRadius: RADIUS.card, border: `1px solid ${RC.line}`, boxShadow: SHADOW_CARD };
+}
 
 // The signature spring + the standard iOS ease-out, named once so motion is
 // consistent everywhere (chips, tiles, sheets, progress bars).
@@ -99,6 +115,11 @@ const DARK: Palette = {
   pageBg:
     'radial-gradient(900px 600px at 18% 8%, rgba(255,106,42,0.12), transparent 60%),' +
     'radial-gradient(760px 520px at 86% 92%, rgba(255,184,61,0.12), transparent 60%), #07060C',
+  // Lifted so they read on near-black.
+  error: '#FF7A7A',
+  errorSoft: 'rgba(255,122,122,0.12)',
+  success: '#4CC98A',
+  successSoft: 'rgba(76,201,138,0.12)',
 };
 
 const LIGHT: Palette = {
@@ -128,6 +149,11 @@ const LIGHT: Palette = {
   pageBg:
     'radial-gradient(1100px 720px at 50% -12%, rgba(255,87,36,0.06), transparent 55%),' +
     'radial-gradient(760px 560px at 88% 108%, rgba(255,184,61,0.06), transparent 60%), #FFFAF7',
+  // The values the screens already hard-code (#A12C2C, #1F7A4E), named once.
+  error: '#A12C2C',
+  errorSoft: 'rgba(220,60,60,0.08)',
+  success: '#1F7A4E',
+  successSoft: 'rgba(31,138,91,0.10)',
 };
 
 export const THEMES: Record<Scheme, Palette> = { dark: DARK, light: LIGHT };
@@ -148,6 +174,8 @@ export function applyTheme(name: Scheme): void {
     root.setProperty('--line', p.line);
     root.setProperty('--line-strong', p.lineStrong);
     root.setProperty('--grad', p.grad);
+    root.setProperty('--error', p.error);
+    root.setProperty('--success', p.success);
     document.body.style.background = p.pageBg;
     document.body.style.color = p.ink;
     const meta = document.querySelector('meta[name="theme-color"]');
