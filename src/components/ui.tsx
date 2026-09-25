@@ -43,10 +43,11 @@ export function IconButton({ onClick, label, children }: { onClick?: () => void;
 
 // A text-only action with a 44pt hit area. The padding is taken back with a
 // negative margin so the words sit where a bare link would.
-export function TextLink({ onClick, children, color, align = 'center', style = {} }: { onClick?: () => void; children: ReactNode; color?: string; align?: 'left' | 'center'; style?: CSSProperties }) {
+export function TextLink({ onClick, children, color, align = 'center', disabled = false, style = {} }: { onClick?: () => void; children: ReactNode; color?: string; align?: 'left' | 'center'; disabled?: boolean; style?: CSSProperties }) {
   return (
     <button
-      className="press"
+      className={disabled ? undefined : 'press'}
+      disabled={disabled}
       onClick={onClick}
       style={{
         minHeight: TAP, padding: '0 16px', margin: '-13px -16px', boxSizing: 'border-box',
@@ -201,7 +202,7 @@ export function Row({
     >
       <div
         style={{
-          width: 36, height: 36, borderRadius: 12,
+          width: 36, height: 36, borderRadius: RADIUS.sm,
           background: active ? RC.grad : RC.cream,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           color: active ? '#FFFDFB' : RC.inkStrong,

@@ -3,11 +3,11 @@
 // for: the install email again and reporting a problem. Everything is read
 // from ringoesim.com against the owner's token; the app keeps no copy.
 import { useCallback, useEffect, useState } from 'react';
-import { RC, RADIUS, SHADOW_CARD } from '../theme';
+import { RC, RADIUS, cardSurface } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { RingoCard } from '../components/Card';
-import { BackBtn, SectionTitle } from '../components/ui';
+import { BackBtn, IconButton, SectionTitle, TextLink } from '../components/ui';
 import { destinationById, pictureFor } from '../data/destinations';
 import { light, money, SITE, type SubscriptionRead, type TopUp } from '../api/light';
 import { useAccount, account, pendingPurchase } from '../store/account';
@@ -151,9 +151,9 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
 
   // The profile (travel badges, Ringo status) sits one tap from the eSIM, top right, once there is an account.
   const profileBtn = acct ? (
-    <button className="press" onClick={onProfile} aria-label="Your profile" style={{ width: 40, height: 40, borderRadius: 999, border: `1.5px solid ${RC.line}`, background: RC.paper, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
+    <IconButton onClick={onProfile} label="Your profile">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden><circle cx="12" cy="8.5" r="4" stroke={RC.inkStrong} strokeWidth="2" /><path d="M4.5 20c.9-3.6 3.8-5.5 7.5-5.5s6.6 1.9 7.5 5.5" stroke={RC.inkStrong} strokeWidth="2" strokeLinecap="round" /></svg>
-    </button>
+    </IconButton>
   ) : null;
   const header = <RingoHeader title="My eSIM" leading={onBack ? <BackBtn onClick={onBack} /> : null} trailing={profileBtn} />;
 
@@ -183,7 +183,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
       {header}
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '0 20px 130px' }}>
         {loading && !data && (
-          <div style={{ height: 180, borderRadius: RADIUS.xl, background: RC.cream, animation: 'ringoSheen 1.4s ease-in-out infinite' }} />
+          <div style={{ height: 180, borderRadius: RADIUS.card, border: `1px solid ${RC.line}`, background: RC.cream, animation: 'ringoSheen 1.4s ease-in-out infinite' }} />
         )}
 
         {!loading && !sub && (
@@ -198,7 +198,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
 
         {sub && (
           <>
-            <div style={{ borderRadius: RADIUS.xl, overflow: 'hidden', background: RC.paper, border: `1px solid ${RC.line}`, boxShadow: SHADOW_CARD }}>
+            <div style={{ ...cardSurface(), overflow: 'hidden' }}>
               <div style={{ position: 'relative', height: 120, background: RC.cream2 }}>
                 {data?.destination && <img src={pictureFor(data.destination.id)} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
                 <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(20,10,30,0) 40%, rgba(20,10,30,0.7) 100%)' }} />
@@ -274,13 +274,13 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
               </div>
             )}
 
-            {note && <div className="rise" style={{ marginTop: 14, padding: '10px 14px', borderRadius: 12, background: 'rgba(31,138,91,0.10)', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: '#1F7A4E' }}>{note}</div>}
-            {err && <div style={{ marginTop: 14, fontFamily: 'var(--font)', fontSize: 13, color: '#A12C2C' }}>{err}</div>}
+            {note && <div className="rise" style={{ marginTop: 14, padding: '10px 14px', borderRadius: RADIUS.sm, background: RC.successSoft, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.success }}>{note}</div>}
+            {err && <div style={{ marginTop: 14, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.error }}>{err}</div>}
 
             <div style={{ marginTop: 22, textAlign: 'center' }}>
-              <button className="press" onClick={onLogin} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.inkMute }}>
+              <TextLink onClick={onLogin} color={RC.inkMute} style={{ fontSize: 13 }}>
                 Not your eSIM? Sign in with another email
-              </button>
+              </TextLink>
             </div>
           </>
         )}
@@ -291,7 +291,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ flex: 1, padding: '10px 12px', borderRadius: 14, background: RC.cream }}>
+    <div style={{ flex: 1, padding: '10px 12px', borderRadius: RADIUS.sm, background: RC.cream }}>
       <div style={{ fontFamily: 'var(--font)', fontSize: 10.5, fontWeight: 700, color: RC.inkMute, letterSpacing: 0.5, textTransform: 'uppercase' }}>{label}</div>
       <div style={{ marginTop: 3, fontFamily: 'var(--font)', fontSize: 15, fontWeight: 800, color: RC.ink, letterSpacing: -0.3 }}>{value}</div>
     </div>
@@ -327,9 +327,9 @@ function Empty({ title, sub, primary, secondary, tertiary, note, inset = true }:
         <RingoButton onClick={primary.onClick}>{primary.label}</RingoButton>
         {secondary && <RingoButton variant="ghost" onClick={secondary.onClick}>{secondary.label}</RingoButton>}
         {tertiary && (
-          <button className="press" onClick={tertiary.onClick} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '6px 0', fontFamily: 'var(--font)', fontSize: 13.5, fontWeight: 600, color: RC.inkStrong }}>{tertiary.label}</button>
+          <TextLink onClick={tertiary.onClick} style={{ margin: '-7px 0', fontSize: 13.5 }}>{tertiary.label}</TextLink>
         )}
-        {note && <div className="rise" style={{ marginTop: 6, padding: '10px 14px', borderRadius: 12, background: RC.cream, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.ink }}>{note}</div>}
+        {note && <div className="rise" style={{ marginTop: 6, padding: '10px 14px', borderRadius: RADIUS.sm, background: RC.cream, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.ink }}>{note}</div>}
       </div>
     </div>
   );

@@ -10,7 +10,7 @@
 // period, that it renews until cancelled, where to cancel, and the links to
 // the Terms of Use and the Privacy Policy.
 import { useEffect, useRef, useState } from 'react';
-import { RC, RADIUS, SHADOW_CARD } from '../theme';
+import { RC, RADIUS, cardSurface } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { BackBtn, FieldLabel, Input } from '../components/ui';
@@ -27,6 +27,10 @@ type Stage = 'email' | 'buying' | 'recording' | 'issuing' | 'ready' | 'pending' 
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const EMAIL_KEY = 'ringo_last_email';
+
+// An inline link inside the small print: padded to a 44pt hit area, and the
+// padding taken back with a negative margin so the line keeps its height.
+const INLINE_LINK: React.CSSProperties = { border: 'none', background: 'transparent', padding: '14px 0', margin: '-14px 0', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', lineHeight: 'inherit', fontWeight: 700, color: RC.inkStrong, verticalAlign: 'baseline' };
 
 function periodWord(months: number): string {
   return months === 12 ? 'year' : months === 1 ? 'month' : `${months} months`;
@@ -117,7 +121,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <RingoHeader title={stage === 'ready' ? 'Your eSIM' : 'Checkout'} leading={stage === 'email' || stage === 'failed' ? <BackBtn onClick={onBack} /> : null} />
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '0 20px 190px' }}>
-        <div style={{ borderRadius: RADIUS.xl, overflow: 'hidden', background: RC.paper, border: `1px solid ${RC.line}`, boxShadow: SHADOW_CARD }}>
+        <div style={{ ...cardSurface(), overflow: 'hidden' }}>
           <div style={{ position: 'relative', height: 110, background: skyFor(selection.destination) }}>
             <img src={pictureFor(selection.destination)} alt="" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           </div>
@@ -141,7 +145,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
                 ? 'Your eSIM installs here in the app. Apple hides this address, so use a real one if you also want it by email.'
                 : 'The activation code and receipt go here.'}
             </div>
-            {err && <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: '#A12C2C' }}>{err}</div>}
+            {err && <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.error }}>{err}</div>}
           </div>
         )}
 
@@ -165,23 +169,23 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
         )}
 
         {stage === 'failed' && (
-          <div style={{ marginTop: 22, padding: 16, borderRadius: RADIUS.lg, background: 'rgba(220,60,60,0.08)', border: '1px solid rgba(220,60,60,0.2)', fontFamily: 'var(--font)', fontSize: 14, color: RC.ink, lineHeight: 1.5 }}>
+          <div style={{ marginTop: 22, padding: 16, borderRadius: RADIUS.sm, background: RC.errorSoft, fontFamily: 'var(--font)', fontSize: 14, color: RC.ink, lineHeight: 1.5 }}>
             <div style={{ fontWeight: 700 }}>Your payment went through, but we could not record it yet.</div>
             <div style={{ marginTop: 4, color: RC.inkMute }}>{err} The app will try again the next time it opens; your purchase is not lost. If your eSIM is not under My eSIM within an hour, tap Help and contact us.</div>
           </div>
         )}
 
         {stage === 'email' && renewing && (
-          <div style={{ marginTop: 18, padding: '12px 14px', borderRadius: RADIUS.lg, background: RC.cream, fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute, lineHeight: 1.55 }}>
+          <div style={{ marginTop: 18, padding: '12px 14px', borderRadius: RADIUS.sm, background: RC.cream, fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute, lineHeight: 1.55 }}>
             <span style={{ fontWeight: 700, color: RC.ink }}>Renews {price.total} every {periodWord(p.term_months)}</span> through your Apple ID until you cancel in Settings › Apple ID › Subscriptions, at least 24 hours before a renewal. No minimum term: cancel any time and keep the period you paid for. Charged when you confirm.
           </div>
         )}
         {stage === 'email' && (
           <div style={{ marginTop: 14, fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute, lineHeight: 1.6 }}>
             By buying you agree to the{' '}
-            <button className="press" onClick={() => void openInSheet(`${SITE}/terms?app=1`)} style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 700, color: RC.inkStrong }}>Terms of Use</button>
+            <button className="press" onClick={() => void openInSheet(`${SITE}/terms?app=1`)} style={INLINE_LINK}>Terms of Use</button>
             {' '}and the{' '}
-            <button className="press" onClick={() => void openInSheet(`${SITE}/privacy?app=1`)} style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 700, color: RC.inkStrong }}>Privacy Policy</button>
+            <button className="press" onClick={() => void openInSheet(`${SITE}/privacy?app=1`)} style={INLINE_LINK}>Privacy Policy</button>
             . Prices include VAT.
           </div>
         )}
@@ -203,8 +207,8 @@ function Waiting({ title, sub, ok = false }: { title: string; sub: string; ok?: 
   return (
     <div style={{ marginTop: 26, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
       {ok ? (
-        <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(31,138,91,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#1F7A4E" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        <div style={{ width: 44, height: 44, borderRadius: '50%', background: RC.successSoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke={RC.success} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </div>
       ) : (
         <div style={{ width: 34, height: 34, borderRadius: '50%', border: `3px solid ${RC.line}`, borderTopColor: RC.inkStrong, animation: 'ringoSpin 0.7s linear infinite' }} />

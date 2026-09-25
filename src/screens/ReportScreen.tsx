@@ -40,7 +40,7 @@ export function ReportScreen({ onBack }: { onBack: () => void }) {
       <RingoHeader title="Report a problem" leading={<BackBtn onClick={onBack} />} />
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '0 20px 40px' }}>
         {done ? (
-          <div className="rise" style={{ padding: 18, borderRadius: RADIUS.lg, background: 'rgba(31,138,91,0.10)', border: '1px solid rgba(31,138,91,0.24)', fontFamily: 'var(--font)', fontSize: 14, color: '#1F7A4E', lineHeight: 1.5, fontWeight: 600 }}>
+          <div className="rise" style={{ padding: 18, borderRadius: RADIUS.sm, background: RC.successSoft, fontFamily: 'var(--font)', fontSize: 14, color: RC.success, lineHeight: 1.5, fontWeight: 600 }}>
             {done}
             <div style={{ marginTop: 14 }}><RingoButton size="sm" variant="soft" onClick={onBack}>Back to my eSIM</RingoButton></div>
           </div>
@@ -55,7 +55,7 @@ export function ReportScreen({ onBack }: { onBack: () => void }) {
                 {PROBLEM_REASONS.map((r) => {
                   const on = r.id === reason;
                   return (
-                    <button key={r.id} className="press" onClick={() => { hapticSelection(); setReason(r.id); }} style={{ textAlign: 'left', cursor: 'pointer', padding: '12px 14px', borderRadius: 14, background: RC.paper, border: `1.5px solid ${on ? RC.inkStrong : RC.line}`, fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, color: RC.ink }}>
+                    <button key={r.id} className="press" onClick={() => { hapticSelection(); setReason(r.id); }} style={{ textAlign: 'left', cursor: 'pointer', minHeight: 48, padding: '12px 14px', borderRadius: RADIUS.control, background: RC.paper, border: `1.5px solid ${on ? RC.inkStrong : RC.line}`, fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, color: RC.ink }}>
                       {r.label}
                     </button>
                   );
@@ -69,9 +69,9 @@ export function ReportScreen({ onBack }: { onBack: () => void }) {
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Where you are, what the phone shows, what you tried"
                 rows={4}
-                style={{ width: '100%', padding: 14, borderRadius: 14, border: `1.5px solid ${RC.line}`, background: RC.paper, fontFamily: 'var(--font)', fontSize: 15, color: RC.ink, outline: 'none', resize: 'none' }}
+                style={{ width: '100%', padding: 14, boxSizing: 'border-box', borderRadius: RADIUS.control, border: `1.5px solid ${RC.line}`, background: RC.paper, fontFamily: 'var(--font)', fontSize: 15, color: RC.ink, outline: 'none', resize: 'none' }}
               />
-              {err && <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: '#A12C2C' }}>{err}</div>}
+              {err && <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.error }}>{err}</div>}
             </div>
             <div style={{ marginTop: 18 }}>
               <RingoButton loading={busy} onClick={() => void send()}>Send</RingoButton>

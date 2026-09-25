@@ -4,11 +4,11 @@
 // same activation data typed by hand. The LPA string comes from
 // ringoesim.com, released against the App Store reference of the purchase.
 import { useState } from 'react';
-import { RC, SHADOW_CARD } from '../theme';
+import { RC, RADIUS, cardSurface } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { RingoCard } from '../components/Card';
-import { BackBtn, SectionTitle, Step } from '../components/ui';
+import { BackBtn, SectionTitle, Step, TextLink } from '../components/ui';
 import { qrDataUri, lpaParts } from '../lib/esim';
 import { openExternal, openInSheet } from '../lib/browser';
 import { SITE } from '../api/light';
@@ -28,7 +28,7 @@ function DetailRow({ label, value, last }: { label: string; value: string; last?
         <div style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 600, color: RC.inkMute, letterSpacing: 0.4, textTransform: 'uppercase' }}>{label}</div>
         <div style={{ marginTop: 2, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 13, fontWeight: 600, color: RC.ink, wordBreak: 'break-all' }}>{value}</div>
       </div>
-      <span style={{ flexShrink: 0, fontFamily: 'var(--font)', fontSize: 12, fontWeight: 700, color: copied ? '#1F7A4E' : RC.inkStrong }}>
+      <span style={{ flexShrink: 0, fontFamily: 'var(--font)', fontSize: 12, fontWeight: 700, color: copied ? RC.success : RC.inkStrong }}>
         {copied ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, animation: 'ringoConfirm 1.4s ease both' }}>Copied ✓</span> : 'Copy'}
       </span>
     </div>
@@ -78,15 +78,15 @@ export function InstallScreen({ install, label, onBack }: { install: { apple_url
         </div>
 
         {opened && (
-          <div className="rise" style={{ marginTop: 14, padding: '12px 14px', borderRadius: 14, background: 'rgba(31,138,91,0.10)', border: '1px solid rgba(31,138,91,0.24)', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: '#1F7A4E', lineHeight: 1.45 }}>
+          <div className="rise" style={{ marginTop: 14, padding: '12px 14px', borderRadius: RADIUS.sm, background: RC.successSoft, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.success, lineHeight: 1.45 }}>
             {oneTap ? 'If iOS did not open Add eSIM, go to ' : 'Go to '}Settings › Mobile Data › Add eSIM › Use QR Code › Enter Details Manually and paste the code below.
           </div>
         )}
 
         <div style={{ marginTop: 22 }}>
           <SectionTitle>Installing on another phone?</SectionTitle>
-          <div style={{ padding: 20, borderRadius: 24, background: RC.paper, border: `1px solid ${RC.line}`, boxShadow: SHADOW_CARD, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div style={{ width: 190, height: 190, borderRadius: 18, padding: 10, background: '#FFFFFF', boxShadow: 'inset 0 0 0 1px ' + RC.line }}>
+          <div style={{ ...cardSurface(), padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ width: 190, height: 190, borderRadius: RADIUS.sm, padding: 10, background: '#FFFFFF', boxShadow: 'inset 0 0 0 1px ' + RC.line }}>
               <img src={qrDataUri(install.lpa)} alt="eSIM activation QR" style={{ width: '100%', height: '100%', imageRendering: 'pixelated' }} />
             </div>
             <div style={{ marginTop: 12, fontFamily: 'var(--font)', fontSize: 12.5, color: RC.inkMute, textAlign: 'center', lineHeight: 1.5 }}>
@@ -95,12 +95,12 @@ export function InstallScreen({ install, label, onBack }: { install: { apple_url
           </div>
         </div>
 
-        <div style={{ marginTop: 18 }}>
-          <button onClick={() => { hapticSelection(); setShowManual((s) => !s); }} className="press" style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '4px 0', fontFamily: 'var(--font)', fontSize: 13.5, fontWeight: 600, color: RC.inkStrong }}>
+        <div style={{ marginTop: 18, textAlign: 'center' }}>
+          <TextLink onClick={() => { hapticSelection(); setShowManual((s) => !s); }}>
             {showManual ? 'Hide manual details' : 'Enter the details manually'}
-          </button>
+          </TextLink>
           {showManual && (
-            <RingoCard style={{ marginTop: 8, padding: 0 }}>
+            <RingoCard style={{ marginTop: 18, padding: 0, textAlign: 'left' }}>
               <DetailRow label="SM-DP+ Address" value={parts.smdp} />
               <DetailRow label="Activation Code" value={parts.matchingId} />
               {parts.confirmationCode && <DetailRow label="Confirmation Code" value={parts.confirmationCode} />}
@@ -109,10 +109,10 @@ export function InstallScreen({ install, label, onBack }: { install: { apple_url
           )}
         </div>
 
-        <div style={{ marginTop: 18, textAlign: 'center' }}>
-          <button className="press" onClick={() => void openInSheet(`${SITE}/esim-setup.html`)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.inkMute }}>
+        <div style={{ marginTop: 26, textAlign: 'center' }}>
+          <TextLink onClick={() => void openInSheet(`${SITE}/esim-setup.html`)}>
             Full setup guide with screenshots
-          </button>
+          </TextLink>
         </div>
       </div>
 

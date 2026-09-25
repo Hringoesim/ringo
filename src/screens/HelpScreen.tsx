@@ -93,7 +93,7 @@ export function HelpScreen({ onLogin, onProfile }: { onLogin: () => void; onProf
             {acct ? (
               <>
                 <div style={{ padding: '14px 16px', borderBottom: `1px solid ${RC.line}`, fontFamily: 'var(--font)', fontSize: 13.5, color: RC.inkMute }}>
-                  Logged in as <span style={{ color: RC.ink, fontWeight: 600 }}>{acct.email || 'this account'}</span>
+                  Signed in as <span style={{ color: RC.ink, fontWeight: 600 }}>{acct.email || 'this account'}</span>
                 </div>
                 <LinkRow label="My profile" sub="Your travel badges, one per destination" onClick={() => { hapticSelection(); onProfile(); }} />
                 <LinkRow label="Sign out" sub="Removes your eSIM details from this phone only" onClick={() => { hapticSelection(); account.forget(); }} />
@@ -111,7 +111,7 @@ export function HelpScreen({ onLogin, onProfile }: { onLogin: () => void; onProf
                 )}
               </>
             ) : deleting === 'done' ? (
-              <div style={{ padding: '14px 16px', fontFamily: 'var(--font)', fontSize: 13.5, color: '#1F7A4E', fontWeight: 600 }}>Your account has been deleted.</div>
+              <div style={{ padding: '14px 16px', fontFamily: 'var(--font)', fontSize: 13.5, color: RC.success, fontWeight: 600 }}>Your account has been deleted.</div>
             ) : (
               <LinkRow label="Sign in" sub="With Apple or your email" onClick={onLogin} last />
             )}

@@ -9,7 +9,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { RC, RADIUS, SHADOW_CARD, SHADOW_RAISED } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
-import { BackBtn } from '../components/ui';
+import { BackBtn, Segmented } from '../components/ui';
 import { pictureFor, skyFor , bundledPictureFor} from '../data/destinations';
 import { useDestinations, destinationFrom } from '../store/destinations';
 import { light, type Catalog, type Plan } from '../api/light';
@@ -28,20 +28,6 @@ export interface Selection {
 }
 
 type Tier = 'data' | 'unlimited';
-
-function Segmented<T extends string>({ value, options, onChange }: { value: T; options: { id: T; label: string }[]; onChange: (v: T) => void }) {
-  const idx = Math.max(0, options.findIndex((o) => o.id === value));
-  return (
-    <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${options.length}, 1fr)`, padding: 4, borderRadius: 14, background: RC.cream, border: `1px solid ${RC.line}` }}>
-      <div aria-hidden style={{ position: 'absolute', top: 4, bottom: 4, left: 4, width: `calc((100% - 8px) / ${options.length})`, borderRadius: 11, background: RC.paper, boxShadow: SHADOW_CARD, transform: `translateX(${idx * 100}%)`, transition: 'transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1)' }} />
-      {options.map((o) => (
-        <button key={o.id} onClick={() => { hapticSelection(); onChange(o.id); }} style={{ position: 'relative', border: 'none', background: 'transparent', cursor: 'pointer', height: 38, fontFamily: 'var(--font)', fontSize: 14, fontWeight: 700, color: o.id === value ? RC.ink : RC.inkMute, transition: 'color .2s' }}>
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 // Card copy: the term as a title, one short line, the price. Renewal is
 // stated once under the cards and in full on the purchase screen. The same
@@ -152,13 +138,13 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
 
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '14px 20px 150px' }}>
         {err && (
-          <div style={{ padding: 14, borderRadius: 14, background: 'rgba(220,60,60,0.08)', border: '1px solid rgba(220,60,60,0.2)', fontFamily: 'var(--font)', fontSize: 13.5, color: '#A12C2C', lineHeight: 1.5 }}>
+          <div style={{ padding: 14, borderRadius: RADIUS.sm, background: RC.errorSoft, fontFamily: 'var(--font)', fontSize: 13.5, color: RC.error, lineHeight: 1.5 }}>
             {err} Check your connection and try again.
           </div>
         )}
         {(!cat || loadingPrices) && !err && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {[0, 1, 2].map((i) => <div key={i} style={{ height: 76, borderRadius: RADIUS.lg, background: RC.cream, animation: 'ringoSheen 1.4s ease-in-out infinite' }} />)}
+            {[0, 1, 2].map((i) => <div key={i} style={{ height: 76, borderRadius: RADIUS.card, border: `1px solid ${RC.line}`, background: RC.cream, animation: 'ringoSheen 1.4s ease-in-out infinite' }} />)}
           </div>
         )}
         {cat && !loadingPrices && (
@@ -183,7 +169,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
 
             <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
               {plans.length === 0 && (
-                <div style={{ padding: 16, borderRadius: RADIUS.lg, background: RC.cream, fontFamily: 'var(--font)', fontSize: 13.5, color: RC.inkMute, lineHeight: 1.5 }}>
+                <div style={{ padding: 16, borderRadius: RADIUS.sm, background: RC.cream, fontFamily: 'var(--font)', fontSize: 13.5, color: RC.inkMute, lineHeight: 1.5 }}>
                   {native && products && products.size === 0
                     ? <>The App Store did not answer just now.<div style={{ marginTop: 10 }}><RingoButton size="sm" variant="soft" full={false} onClick={() => { setProducts(null); setReloadKey((k) => k + 1); }}>Try again</RingoButton></div></>
                     : <>Not sold here yet. Try the other size or tier.</>}
@@ -201,9 +187,11 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
                     aria-pressed={on}
                     style={{
                       textAlign: 'left', cursor: 'pointer', width: '100%',
-                      padding: '16px 18px', borderRadius: RADIUS.lg,
-                      background: on ? RC.paper : RC.paper,
-                      border: `2px solid ${on ? RC.inkStrong : RC.line}`,
+                      // The card rule; the chosen card trades 1px of padding
+                      // for a 2px orange border so nothing shifts.
+                      padding: on ? '15px 17px' : '16px 18px', borderRadius: RADIUS.card,
+                      background: RC.paper,
+                      border: on ? `2px solid ${RC.inkStrong}` : `1px solid ${RC.line}`,
                       boxShadow: on ? SHADOW_RAISED : SHADOW_CARD,
                       display: 'flex', alignItems: 'center', gap: 14,
                       transition: 'border-color .18s, box-shadow .18s',

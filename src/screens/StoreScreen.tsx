@@ -6,7 +6,7 @@
 // app and the site show the same picture for the same place; the list
 // itself comes from the live catalogue.
 import { useMemo, useState } from 'react';
-import { RC, RADIUS } from '../theme';
+import { RC, RADIUS, TAP, cardSurface } from '../theme';
 import { LOGO_SRC } from '../assets';
 import { pictureFor, skyFor, FEATURED, type Destination , bundledPictureFor} from '../data/destinations';
 import { useSummary, useAppleFrom } from '../store/summary';
@@ -53,7 +53,7 @@ function Card({ d, summary, apple, onOpen, big = false, compact = false }: { d: 
   const catalogueFrom = summary?.from?.[d.id];
   const from = apple[d.id] ?? (catalogueFrom != null ? money(catalogueFrom, summary!.currency) : null);
   return (
-    <button className="press" onClick={() => onOpen(d.id)} style={{ textAlign: 'left', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'column', background: RC.paper, border: `1.5px solid ${RC.line}`, borderRadius: 22, overflow: 'hidden', width: '100%' }}>
+    <button className="press" onClick={() => onOpen(d.id)} style={{ textAlign: 'left', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'column', ...cardSurface(), overflow: 'hidden', width: '100%' }}>
       <Picture d={d} big={big} compact={compact} />
       <div style={{ padding: compact ? '10px 12px 12px' : '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: compact ? 2 : 4, width: '100%', boxSizing: 'border-box' }}>
         <div style={{ fontFamily: 'var(--font)', fontSize: compact ? 15 : 17, fontWeight: 700, color: RC.ink, letterSpacing: -0.2 }}>{from != null ? `From ${from}` : ' '}</div>
@@ -86,7 +86,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn }: { onOpen: (
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: 'max(54px, calc(env(safe-area-inset-top, 0px) + 12px)) 20px 120px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <img src={LOGO_SRC} alt="Ringo" style={{ height: 30, width: 'auto', display: 'block' }} />
-          <button className="press" onClick={loggedIn ? onMyEsim : onLogin} style={{ border: `1px solid ${RC.line}`, background: RC.paper, borderRadius: 999, padding: '7px 12px', fontFamily: 'var(--font)', fontSize: 12.5, fontWeight: 700, color: RC.inkStrong, cursor: 'pointer' }}>
+          <button className="press" onClick={loggedIn ? onMyEsim : onLogin} style={{ border: `1px solid ${RC.line}`, background: RC.paper, borderRadius: 999, minHeight: TAP, padding: '0 16px', fontFamily: 'var(--font)', fontSize: 13.5, fontWeight: 700, color: RC.inkStrong, cursor: 'pointer' }}>
             {loggedIn ? 'My eSIM' : 'Sign in'}
           </button>
         </div>
@@ -99,7 +99,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn }: { onOpen: (
 
         <div style={{ marginTop: 16, position: 'relative' }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)' }}><circle cx="11" cy="11" r="7" stroke={RC.inkMute} strokeWidth="2" /><path d="M20 20l-3.5-3.5" stroke={RC.inkMute} strokeWidth="2" strokeLinecap="round" /></svg>
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search a country or region" aria-label="Search destinations" style={{ width: '100%', height: 50, padding: '0 16px 0 44px', boxSizing: 'border-box', borderRadius: RADIUS.md, border: `1.5px solid ${RC.line}`, background: RC.paper, outline: 'none', fontFamily: 'var(--font)', fontSize: 15.5, color: RC.ink }} />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search a country or region" aria-label="Search destinations" style={{ width: '100%', height: 50, padding: '0 16px 0 44px', boxSizing: 'border-box', borderRadius: RADIUS.control, border: `1.5px solid ${RC.line}`, background: RC.paper, outline: 'none', fontFamily: 'var(--font)', fontSize: 15.5, color: RC.ink }} />
         </div>
 
         {featured.length > 0 && (
@@ -124,7 +124,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn }: { onOpen: (
           <div style={{ marginTop: 24, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, textAlign: 'center' }}>Nothing matches “{q}”.</div>
         )}
         {all.length === 0 && (
-          <div style={{ marginTop: 20, display: 'grid', gap: 12 }}>{[0, 1, 2].map((i) => <div key={i} style={{ height: 200, borderRadius: 22, background: RC.cream, animation: 'ringoSheen 1.4s ease-in-out infinite' }} />)}</div>
+          <div style={{ marginTop: 20, display: 'grid', gap: 12 }}>{[0, 1, 2].map((i) => <div key={i} style={{ height: 200, borderRadius: RADIUS.card, border: `1px solid ${RC.line}`, background: RC.cream, animation: 'ringoSheen 1.4s ease-in-out infinite' }} />)}</div>
         )}
       </div>
     </div>

@@ -7,6 +7,7 @@
 import { useEffect, useState, useLayoutEffect, useRef } from 'react';
 import { SaturnWorld } from '../components/SaturnWorld';
 import { AuthButtons } from '../components/AuthButtons';
+import { TextLink } from '../components/ui';
 import { LOGO_SRC } from '../assets';
 import { COLUMN_MAX } from '../theme';
 
@@ -128,17 +129,13 @@ export function LandingScreen({
           Sign in or create an account
         </div>
         <AuthButtons onSignedIn={onSignedIn} onEmail={onEmail} onDark />
-        <button
+        <TextLink
           onClick={onExplore}
-          className="press"
-          style={{
-            border: 'none', background: 'transparent', cursor: 'pointer', padding: '6px 0 0',
-            fontFamily: 'var(--font)', fontSize: 14, fontWeight: 700,
-            color: '#FFFFFF', textShadow: '0 1px 6px rgba(120,30,10,0.22)',
-          }}
+          color="#FFFFFF"
+          style={{ margin: '-4px 0 -10px', fontWeight: 700, textShadow: '0 1px 6px rgba(120,30,10,0.22)' }}
         >
           Browse plans first
-        </button>
+        </TextLink>
       </div>
       {/* On tall screens a share of the height sits under the buttons, so the
           sign-in block starts near 60% of the screen instead of the bottom.

@@ -7,7 +7,7 @@ import { RC, RADIUS } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { AuthButtons } from '../components/AuthButtons';
-import { BackBtn, FieldLabel, Input } from '../components/ui';
+import { BackBtn, FieldLabel, Input, TextLink } from '../components/ui';
 import { light } from '../api/light';
 import { account } from '../store/account';
 import { hapticNotify, hapticSelection } from '../lib/haptics';
@@ -68,7 +68,7 @@ export function LoginScreen({ onBack, onDone, initialEmail = '', startWithEmail 
 
   const H = ({ children }: { children: string }) => <div style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 800, color: RC.ink, letterSpacing: -0.7, lineHeight: 1.15 }}>{children}</div>;
   const P = ({ children }: { children: React.ReactNode }) => <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>{children}</div>;
-  const Err = () => err ? <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: '#A12C2C', lineHeight: 1.45 }}>{err}</div> : null;
+  const Err = () => err ? <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.error, lineHeight: 1.45 }}>{err}</div> : null;
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -98,18 +98,17 @@ export function LoginScreen({ onBack, onDone, initialEmail = '', startWithEmail 
             </div>
             {/* App Review is given a fixed code, and the field for it used to
                 sit behind a send that their address cannot receive. */}
-            <div style={{ marginTop: 12, textAlign: 'center' }}>
-              <button
-                className="press"
+            <div style={{ marginTop: 22, textAlign: 'center' }}>
+              <TextLink
                 onClick={() => {
                   if (!EMAIL_RE.test(email.trim().toLowerCase())) { setErr('Enter a valid email.'); return; }
                   hapticSelection(); setErr(null); setStage('code');
                   setTimeout(() => codeRef.current?.focus(), 200);
                 }}
-                style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 13.5, fontWeight: 600, color: RC.inkStrong }}
+                style={{ fontSize: 13.5 }}
               >
                 I already have a code
-              </button>
+              </TextLink>
             </div>
           </>
         )}
@@ -127,17 +126,17 @@ export function LoginScreen({ onBack, onDone, initialEmail = '', startWithEmail 
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 placeholder="123456"
-                style={{ width: '100%', height: 58, padding: '0 16px', borderRadius: RADIUS.md, background: RC.paper, border: `1.5px solid ${code.length === 6 ? RC.inkStrong : RC.line}`, outline: 'none', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 26, fontWeight: 700, letterSpacing: 8, color: RC.ink, textAlign: 'center' }}
+                style={{ width: '100%', height: 58, padding: '0 16px', borderRadius: RADIUS.control, background: RC.paper, border: `1.5px solid ${code.length === 6 ? RC.inkStrong : RC.line}`, outline: 'none', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 26, fontWeight: 700, letterSpacing: 8, color: RC.ink, textAlign: 'center' }}
               />
               <Err />
             </div>
             <div style={{ marginTop: 22 }}>
               <RingoButton loading={busy} disabled={code.length !== 6} onClick={() => void verify()}>Sign in</RingoButton>
             </div>
-            <div style={{ marginTop: 14, textAlign: 'center' }}>
-              <button className="press" disabled={wait > 0 || busy} onClick={() => void send()} style={{ border: 'none', background: 'transparent', cursor: wait > 0 ? 'default' : 'pointer', fontFamily: 'var(--font)', fontSize: 13.5, fontWeight: 600, color: wait > 0 ? RC.inkMute : RC.inkStrong }}>
+            <div style={{ marginTop: 24, textAlign: 'center' }}>
+              <TextLink disabled={wait > 0 || busy} onClick={() => void send()} color={wait > 0 ? RC.inkMute : RC.inkStrong} style={{ fontSize: 13.5, cursor: wait > 0 ? 'default' : 'pointer' }}>
                 {wait > 0 ? `Send a new code in ${wait}s` : 'Send a new code'}
-              </button>
+              </TextLink>
             </div>
           </>
         )}

@@ -201,13 +201,13 @@ export const light = {
       body: JSON.stringify({ email, attribution: { utm_source: 'ios_app' } }),
     }),
 
-  /** Log in, step one: a six-digit code is emailed. */
+  /** Sign in, step one: a six-digit code is emailed. */
   loginStart: (email: string) =>
     request<{ ok: boolean; sent: boolean; retry_after?: number }>('/app-login', { method: 'POST', body: JSON.stringify({ email }) }),
   /** Delete the account: identifiers wiped on the site, purchases kept. */
   deleteAccount: (userId: string, t: string) =>
     request<{ ok: boolean; deleted: boolean }>(`/app-account-delete?${new URLSearchParams({ user: userId, t }).toString()}`, { method: 'POST', body: '{}' }),
-  /** Log in, step two: the code opens the account. */
+  /** Sign in, step two: the code opens the account. */
   /** Sign in with Apple or Google: the provider's identity token opens the same account. */
   loginProvider: (provider: 'apple' | 'google' | 'supabase', idToken: string, nonce: string) =>
     request<{ ok: boolean; user_id: string; t: string; email: string; provider: string }>('/app-login', { method: 'POST', body: JSON.stringify({ provider, id_token: idToken, nonce }) }),
