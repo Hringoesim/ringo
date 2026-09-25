@@ -1,7 +1,7 @@
 // purchase.ts — the two pieces of the App Store purchase shared by screens:
 // how a line's price reads (always Apple's on the phone) and how a paid
 // transaction is reported to ringoesim.com and then finished.
-import { light, money, type Plan } from '../api/light';
+import { light, money, type Plan , ApiError } from '../api/light';
 import { account, pendingPurchase } from '../store/account';
 import { finish, type IapProduct, type IapTransaction } from './iap';
 
@@ -20,7 +20,12 @@ export function priceOf(plan: Plan, product: IapProduct | null): { total: string
 /** Report a paid transaction to the site and, once it is recorded, finish it. Shared with the relaunch path in App.tsx. */
 export async function reportTransaction(t: IapTransaction, ctx: { plan: string; destination: string; data_gb: number | null; email: string }) {
   const r = await light.appPurchase({ signedTransaction: t.jws, plan: ctx.plan, destination: ctx.destination, data_gb: ctx.data_gb, email: ctx.email });
-  if (r.user_id && r.t) account.set({ userId: r.user_id, t: r.t, email: ctx.email, purchaseRef: `apple:${r.transaction_id}` });
+  // No owner handle means the site could not tie the purchase to an
+  // account. Finishing the transaction here would tell StoreKit it was
+  // delivered, with money taken and nothing on the phone to show for it, so
+  // it stays unfinished and is reported again on the next launch.
+  if (!r.user_id || !r.t) throw new ApiError('Your purchase went through, but we could not open your account yet.', 502);
+  account.set({ userId: r.user_id, t: r.t, email: ctx.email, purchaseRef: `apple:${r.transaction_id}` });
   await finish(t.transactionId);
   pendingPurchase.clear(t.productId);
   return r;

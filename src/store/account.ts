@@ -2,7 +2,7 @@
 //
 // There is no login. A buyer is identified the way the website identifies
 // them: by email, through the signup row (`userId`) and its per-user token
-// (`t`), both handed back by ringoesim.com once Stripe says a purchase is
+// (`t`), both handed back by ringoesim.com once Apple says a purchase is
 // paid, or by /api/lead when someone types the email they bought with.
 // `purchaseRef` is the App Store transaction (apple:<id>) of the purchase
 // made from this phone; the site only releases the installable eSIM profile

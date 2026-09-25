@@ -99,7 +99,9 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
     } catch (ex) {
       setErr((ex as Error).message || 'The purchase could not be started.');
       setStageBoth('email');
-      pendingPurchase.clear(selection.product!.id);
+      // The context stays. StoreKit rejects an unverified transaction AFTER
+      // the money moved, and the redelivered transaction must still know
+      // which destination and email it was for.
       return;
     }
     if (outcome.state === 'cancelled') { pendingPurchase.clear(selection.product!.id); setStageBoth('email'); return; }
@@ -177,15 +179,15 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
 
         {stage === 'email' && renewing && (
           <div style={{ marginTop: 18, padding: '12px 14px', borderRadius: RADIUS.lg, background: RC.cream, fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute, lineHeight: 1.55 }}>
-            <span style={{ fontWeight: 700, color: RC.ink }}>Renews {price.total} every {periodWord(p.term_months)}</span> through your Apple ID until you cancel in Settings › Apple ID › Subscriptions, at least 24 hours before renewal. Charged when you confirm.
+            <span style={{ fontWeight: 700, color: RC.ink }}>Renews {price.total} every {periodWord(p.term_months)}</span> through your Apple ID until you cancel in Settings › Apple ID › Subscriptions, at least 24 hours before a renewal. No minimum term: cancel any time and keep the period you paid for. Charged when you confirm.
           </div>
         )}
         {stage === 'email' && (
           <div style={{ marginTop: 14, fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute, lineHeight: 1.6 }}>
             By buying you agree to the{' '}
-            <button className="press" onClick={() => void openInSheet(`${SITE}/terms`)} style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 700, color: RC.inkStrong }}>Terms of Use</button>
+            <button className="press" onClick={() => void openInSheet(`${SITE}/terms?app=1`)} style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 700, color: RC.inkStrong }}>Terms of Use</button>
             {' '}and the{' '}
-            <button className="press" onClick={() => void openInSheet(`${SITE}/privacy`)} style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 700, color: RC.inkStrong }}>Privacy Policy</button>
+            <button className="press" onClick={() => void openInSheet(`${SITE}/privacy?app=1`)} style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 700, color: RC.inkStrong }}>Privacy Policy</button>
             . Prices include VAT.
           </div>
         )}

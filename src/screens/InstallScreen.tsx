@@ -2,7 +2,7 @@
 // opens iOS's own "Add eSIM" flow with the profile pre-filled (iOS 17.4+);
 // the QR is for installing on another device; the manual fields are the
 // same activation data typed by hand. The LPA string comes from
-// ringoesim.com, released against the Stripe reference of the purchase.
+// ringoesim.com, released against the App Store reference of the purchase.
 import { useState } from 'react';
 import { RC, SHADOW_CARD } from '../theme';
 import { RingoHeader } from '../components/Header';
@@ -40,10 +40,20 @@ export function InstallScreen({ install, label, onBack }: { install: { apple_url
   const [opened, setOpened] = useState(false);
   const parts = lpaParts(install.lpa);
 
+  // The one-tap link (esimsetup.apple.com) only opens Add eSIM on iOS 17.4
+  // and later; the app runs from iOS 16. Older systems get the manual route
+  // as the primary one instead of a button that opens an empty Safari page.
+  const oneTap = (() => {
+    const m = /OS (\d+)_(\d+)/.exec(navigator.userAgent);
+    if (!m) return true;
+    const major = Number(m[1]), minor = Number(m[2]);
+    return major > 17 || (major === 17 && minor >= 4);
+  })();
+
   const installOnDevice = () => {
     haptic('medium');
     setOpened(true);
-    void openExternal(install.apple_url);
+    if (oneTap) void openExternal(install.apple_url);
   };
 
   return (
@@ -59,7 +69,9 @@ export function InstallScreen({ install, label, onBack }: { install: { apple_url
 
         <div style={{ marginTop: 18 }}>
           <RingoCard style={{ padding: 0 }}>
-            <Step num="1" title="Tap “Install on this iPhone”" sub="iOS opens Add eSIM with everything filled in" />
+            {oneTap
+              ? <Step num="1" title="Tap “Install on this iPhone”" sub="iOS opens Add eSIM with everything filled in" />
+              : <Step num="1" title="Settings › Mobile Data › Add eSIM" sub="Choose Enter Details Manually and paste the details below" />}
             <Step num="2" title="Confirm, and label it Ringo" sub="Choose “Travel” or “Secondary” when iOS asks" />
             <Step num="3" title="When you land: Ringo for data, roaming on" sub="Settings › Mobile Data › Ringo, and turn on Data Roaming for it" last />
           </RingoCard>
@@ -67,7 +79,7 @@ export function InstallScreen({ install, label, onBack }: { install: { apple_url
 
         {opened && (
           <div className="rise" style={{ marginTop: 14, padding: '12px 14px', borderRadius: 14, background: 'rgba(31,138,91,0.10)', border: '1px solid rgba(31,138,91,0.24)', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: '#1F7A4E', lineHeight: 1.45 }}>
-            If iOS did not open Add eSIM, go to Settings › Mobile Data › Add eSIM › Use QR Code › Enter Details Manually and paste the code below.
+            {oneTap ? 'If iOS did not open Add eSIM, go to ' : 'Go to '}Settings › Mobile Data › Add eSIM › Use QR Code › Enter Details Manually and paste the code below.
           </div>
         )}
 
@@ -105,7 +117,7 @@ export function InstallScreen({ install, label, onBack }: { install: { apple_url
       </div>
 
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '12px 20px max(20px, env(safe-area-inset-bottom, 0px))', borderTop: `1px solid ${RC.line}`, background: RC.glass }}>
-        <RingoButton onClick={installOnDevice}>{opened ? 'Open Add eSIM again' : 'Install on this iPhone'}</RingoButton>
+        <RingoButton onClick={installOnDevice}>{!oneTap ? 'Show the install details' : opened ? 'Open Add eSIM again' : 'Install on this iPhone'}</RingoButton>
       </div>
     </div>
   );

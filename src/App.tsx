@@ -163,15 +163,18 @@ export function App() {
         return;
       }
       if (t.productId.includes('.sub.') && t.originalTransactionId !== t.transactionId) { await finish(t.transactionId); return; }
+      // A purchase whose context is gone (storage cleared, a reinstall): the
+      // signed transaction is the proof, so the site is asked regardless of
+      // whether an account is on the phone. Gating this on a stored email
+      // left such a purchase redelivered at every launch and never finished.
       const acct = account.get();
-      if (acct?.email) {
-        // A purchase whose context is gone (storage cleared): the site may
-        // already know it from the purchase sheet's own report.
-        try {
-          const r = await light.restorePurchase(t.jws);
-          if (r.ok) await finish(t.transactionId);
-        } catch { /* left unfinished */ }
-      }
+      try {
+        const r = await light.restorePurchase(t.jws);
+        if (r.ok) {
+          if (r.user_id && r.t) account.set({ userId: r.user_id, t: r.t, email: r.email ?? acct?.email ?? null, purchaseRef: `apple:${r.transaction_id}` });
+          await finish(t.transactionId);
+        }
+      } catch { /* left unfinished, tried again next launch */ }
     };
     void unfinished().then((list) => list.forEach((t) => void settle(t)));
     let off = () => {};

@@ -100,7 +100,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
     if (!acct || !data?.destination || !t.apple_product_id) return;
     if (!iapAvailable()) { setErr('Top-ups are bought in the Ringo iPhone app.'); return; }
     const email = acct.email || '';
-    if (!email) { setErr('We need the email of this eSIM to add data. Use "Find my eSIM" first.'); return; }
+    if (!email) { setErr('Sign in with the email this eSIM was bought with before adding data.'); return; }
     setTopping(t.plan);
     haptic('medium');
     const ctx = { plan: t.plan, destination: data.destination.id, data_gb: null, email };
@@ -139,7 +139,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
       for (const t of txs) {
         try {
           const r = await light.restorePurchase(t.jws);
-          if (r.user_id && r.t) { account.set({ userId: r.user_id, t: r.t, purchaseRef: `apple:${r.transaction_id}` }); found = true; break; }
+          if (r.user_id && r.t) { account.set({ userId: r.user_id, t: r.t, email: r.email ?? null, purchaseRef: `apple:${r.transaction_id}` }); found = true; break; }
         } catch { /* next one */ }
       }
       setNote(found ? 'Your purchases are back.' : txs.length ? 'No Ringo eSIM found for this Apple ID yet. If you just bought one, open the plan again.' : 'No purchases found for this Apple ID.');
@@ -269,7 +269,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
                   {data?.install && <LinkRow label={resent || 'Send the install email again'} onClick={() => void resend()} />}
                   <LinkRow label="Setup guide" sub="Step by step, with screenshots" onClick={() => void openInSheet(`${SITE}/esim-setup.html`)} />
                   <LinkRow label="Report a problem" sub="We open a case with the network and write back" onClick={onReport} />
-                  {sub.cycles_total > 1 && <LinkRow label="Manage subscription" sub="Change or cancel in your Apple ID settings" onClick={() => void manageSubscriptions()} />}
+                  {(sub.cycles_total > 1 || /_1m$/.test(String(sub.plan))) && <LinkRow label="Manage subscription" sub="Change or cancel in your Apple ID settings" onClick={() => void manageSubscriptions()} />}
                   <LinkRow label={restoring ? 'Restoring…' : 'Restore purchases'} sub="Bought with this Apple ID on another phone" onClick={() => void restore()} last />
                 </RingoCard>
               </div>

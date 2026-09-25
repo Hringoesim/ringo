@@ -40,7 +40,7 @@ public class StoreKitPlugin: CAPPlugin, CAPBridgedPlugin {
                 guard let self = self else { continue }
                 if case .verified(let transaction) = update {
                     let payload = self.transactionDict(transaction, jws: update.jwsRepresentation)
-                    await MainActor.run { self.notifyListeners("transaction", data: payload) }
+                    await MainActor.run { self.notifyListeners("transaction", data: payload, retainUntilConsumed: true) }
                 }
             }
         }
@@ -187,7 +187,11 @@ public class StoreKitPlugin: CAPPlugin, CAPBridgedPlugin {
                 }
             }
             arr.sort { ($0["purchaseDate"] as? Double ?? 0) > ($1["purchaseDate"] as? Double ?? 0) }
-            call.resolve(["transactions": Array(arr.prefix(20))])
+            // One entry per original transaction first, so a long-lived subscription
+            // whose renewals fill the newest slots still restores from its origin.
+            var seen = Set<String>()
+            let firsts = arr.filter { seen.insert(($0["originalTransactionId"] as? String) ?? "").inserted }
+            call.resolve(["transactions": Array((firsts + arr).prefix(60))])
         }
     }
 

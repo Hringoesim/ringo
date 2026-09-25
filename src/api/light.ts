@@ -1,5 +1,5 @@
 // light.ts — the app's client for ringoesim.com. The website's backend is the
-// only backend: it holds the catalogue, mints the Stripe Checkout, fulfils
+// only backend: it holds the catalogue, records App Store purchases, fulfils
 // the eSIM with the supplier and answers what a buyer owns. The app never
 // computes a price or decides a payment is done on its own; it asks.
 //
@@ -97,6 +97,8 @@ export interface PurchaseRecord {
   replay?: boolean;
   user_id?: string;
   t?: string;
+  /** The buyer's email, so a restored phone can top up without a sign-in. */
+  email?: string;
 }
 
 export interface Subscription {

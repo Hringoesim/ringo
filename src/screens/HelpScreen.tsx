@@ -67,7 +67,7 @@ export function HelpScreen({ onLogin, onProfile }: { onLogin: () => void; onProf
           <SectionTitle>Guides and contact</SectionTitle>
           <RingoCard style={{ padding: 0 }}>
             <LinkRow label="Setup guide" sub="Install and switch on, step by step" onClick={() => void openInSheet(`${SITE}/esim-setup.html`)} />
-            <LinkRow label="Contact Ringo" sub="Your message is confirmed within a minute, answered by a person the same day" onClick={() => void openInSheet(`${SITE}/contact`)} />
+            <LinkRow label="Contact Ringo" sub="Your message is confirmed within a minute, answered by a person the same day" onClick={() => void openInSheet(`${SITE}/contact?app=1`)} />
             <LinkRow label="Manage subscriptions" sub={`Your Apple ID subscriptions${iapAvailable() ? ` · ${storeStatus.error ? `App Store: ${storeStatus.error}` : storeStatus.checked ? (storeStatus.available > 0 ? 'App Store connected' : 'App Store: no products available') : 'checking the App Store'}` : ''}`} onClick={() => void manageSubscriptions()} last />
           </RingoCard>
         </div>
@@ -75,8 +75,8 @@ export function HelpScreen({ onLogin, onProfile }: { onLogin: () => void; onProf
         <div style={{ marginTop: 22 }}>
           <SectionTitle>Legal</SectionTitle>
           <RingoCard style={{ padding: 0 }}>
-            <LinkRow label="Terms of Use" onClick={() => void openInSheet(`${SITE}/terms`)} />
-            <LinkRow label="Privacy Policy" onClick={() => void openInSheet(`${SITE}/privacy`)} last />
+            <LinkRow label="Terms of Use" onClick={() => void openInSheet(`${SITE}/terms?app=1`)} />
+            <LinkRow label="Privacy Policy" onClick={() => void openInSheet(`${SITE}/privacy?app=1`)} last />
           </RingoCard>
         </div>
 
