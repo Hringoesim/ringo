@@ -65,7 +65,7 @@ function Card({ d, summary, apple, onOpen, big = false, compact = false }: { d: 
 
 export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn }: { onOpen: (id: string) => void; onMyEsim: () => void; onLogin: () => void; loggedIn: boolean }) {
   const summary = useSummary();
-  const apple = useAppleFrom();
+  const apple = useAppleFrom(summary);
   const all = useDestinations();
   const [q, setQ] = useState('');
   const query = q.trim().toLowerCase();

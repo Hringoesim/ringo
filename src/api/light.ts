@@ -86,6 +86,8 @@ export interface Profile {
 export interface Summary {
   from: Record<string, number>;
   currency: Currency;
+  /** Per destination, the App Store product ids of its cheapest offer on each term (absent on an older site). */
+  from_lines?: Record<string, string[]>;
 }
 
 export interface PurchaseRecord {
