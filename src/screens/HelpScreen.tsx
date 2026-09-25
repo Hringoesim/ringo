@@ -67,7 +67,7 @@ export function HelpScreen({ onLogin, onProfile }: { onLogin: () => void; onProf
           <SectionTitle>Guides and contact</SectionTitle>
           <RingoCard style={{ padding: 0 }}>
             <LinkRow label="Setup guide" sub="Install and switch on, step by step" onClick={() => void openInSheet(`${SITE}/esim-setup.html`)} />
-            <LinkRow label="Contact Ringo" sub="We answer by email, usually the same day" onClick={() => void openInSheet(`${SITE}/contact`)} />
+            <LinkRow label="Contact Ringo" sub="Your message is confirmed within a minute, answered by a person the same day" onClick={() => void openInSheet(`${SITE}/contact`)} />
             <LinkRow label="Manage subscriptions" sub={`Your Apple ID subscriptions${iapAvailable() ? ` · ${storeStatus.error ? `App Store: ${storeStatus.error}` : storeStatus.checked ? (storeStatus.available > 0 ? 'App Store connected' : 'App Store: no products available') : 'checking the App Store'}` : ''}`} onClick={() => void manageSubscriptions()} last />
           </RingoCard>
         </div>
