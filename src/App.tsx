@@ -156,8 +156,11 @@ export function App() {
   // sheet opened, then finish it. A renewal has no context and no owner to
   // give; the site learns of it from Apple directly, so it is only finished.
   useEffect(() => {
-    const settle = async (t: IapTransaction) => {
-      const ctx = pendingPurchase.get(t.productId);
+    // `nth`: several unfinished transactions of one product at launch take
+    // that product's waiting contexts in order, oldest purchase first,
+    // rather than all reading the same one.
+    const settle = async (t: IapTransaction, nth = 0) => {
+      const ctx = pendingPurchase.get(t.productId, nth);
       if (ctx) {
         try { await reportTransaction(t, ctx); } catch { /* stays unfinished, tried again next launch */ }
         return;
@@ -176,7 +179,14 @@ export function App() {
         }
       } catch { /* left unfinished, tried again next launch */ }
     };
-    void unfinished().then((list) => list.forEach((t) => void settle(t)));
+    void unfinished().then((list) => {
+      const seen = new Map<string, number>();
+      [...list].sort((a, b) => a.purchaseDate - b.purchaseDate).forEach((t) => {
+        const nth = seen.get(t.productId) ?? 0;
+        seen.set(t.productId, nth + 1);
+        void settle(t, nth);
+      });
+    });
     let off = () => {};
     void onTransaction((t) => void settle(t)).then((f) => { off = f; });
     return () => off();

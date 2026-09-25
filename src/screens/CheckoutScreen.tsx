@@ -84,10 +84,9 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
     if (!iapAvailable()) { setErr('Purchases are made in the Ringo iPhone app.'); return; }
     haptic('medium');
     setStageBoth('buying');
-    const ctx = { plan: p.plan, destination: selection.destination, data_gb: selection.data_gb, email: e };
     // Remembered before the sheet opens: if the app dies mid-purchase the
     // unfinished transaction is reported with this context on relaunch.
-    pendingPurchase.set(selection.product!.id, ctx);
+    const ctx = pendingPurchase.set(selection.product!.id, { plan: p.plan, destination: selection.destination, data_gb: selection.data_gb, email: e });
     // The signup row's id rides on the transaction as Apple's appAccountToken,
     // so a purchase the app never got to report can still be tied to this
     // email by Apple's own notification.
@@ -104,7 +103,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
       // which destination and email it was for.
       return;
     }
-    if (outcome.state === 'cancelled') { pendingPurchase.clear(selection.product!.id); setStageBoth('email'); return; }
+    if (outcome.state === 'cancelled') { pendingPurchase.clear(selection.product!.id, ctx.startedAt); setStageBoth('email'); return; }
     if (outcome.state === 'pending') { setStageBoth('pending'); return; }
     setStageBoth('recording');
     try {

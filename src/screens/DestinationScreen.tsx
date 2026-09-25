@@ -14,6 +14,7 @@ import { pictureFor, skyFor , bundledPictureFor} from '../data/destinations';
 import { useDestinations, destinationFrom } from '../store/destinations';
 import { light, type Catalog, type Plan } from '../api/light';
 import { loadProducts, iapAvailable, type IapProduct } from '../lib/iap';
+import { rememberAppleLines } from '../store/summary';
 import { priceOf } from '../lib/purchase';
 import { haptic, hapticSelection } from '../lib/haptics';
 
@@ -88,6 +89,8 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
         map = await loadProducts(ids, { fresh: true });
       }
       if (alive) setProducts(map);
+      // The store cards read this destination's "From" from Apple from now on.
+      rememberAppleLines([id, c.destination.id], c.plans);
     }).catch((e: Error) => { if (alive) setErr(e.message || 'Could not load the plans.'); });
     return () => { alive = false; };
   }, [id, reloadKey]);

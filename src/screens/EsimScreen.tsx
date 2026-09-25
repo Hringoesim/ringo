@@ -103,14 +103,13 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
     if (!email) { setErr('Sign in with the email this eSIM was bought with before adding data.'); return; }
     setTopping(t.plan);
     haptic('medium');
-    const ctx = { plan: t.plan, destination: data.destination.id, data_gb: null, email };
-    pendingPurchase.set(t.apple_product_id, ctx);
+    const ctx = pendingPurchase.set(t.apple_product_id, { plan: t.plan, destination: data.destination.id, data_gb: null, email });
     try {
       const out = await purchase(t.apple_product_id, acct.userId);
       if (out.state === 'purchased') {
         const r = await light.appPurchase({ signedTransaction: out.jws, plan: t.plan, destination: data.destination.id, email });
         await finish(out.transactionId);
-        pendingPurchase.clear(t.apple_product_id);
+        pendingPurchase.clear(t.apple_product_id, ctx.startedAt);
         hapticNotify('success');
         setNote(r.environment === 'Sandbox' ? 'Sandbox top-up recorded.' : `${t.data_gb} GB added to your eSIM.`);
         setTimeout(() => setNote(null), 5000);
@@ -118,7 +117,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
       } else if (out.state === 'pending') {
         setNote('Waiting for approval (Ask to Buy). The data lands once it is approved.');
       } else {
-        pendingPurchase.clear(t.apple_product_id);
+        pendingPurchase.clear(t.apple_product_id, ctx.startedAt);
       }
     } catch (e) {
       setErr((e as Error).message || 'Could not complete the top-up.');

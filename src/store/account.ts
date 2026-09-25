@@ -73,17 +73,59 @@ export function useAccount(): Account | null {
 
 // What a purchase in flight was for, keyed by App Store product id: the
 // context the site needs (destination, size, email) to fulfil a transaction
-// StoreKit redelivers after the app was killed mid-purchase.
+// StoreKit redelivers after the app was killed mid-purchase, or after an Ask
+// to Buy was approved. One product serves every destination sold at the same
+// price, so a product can have several purchases in flight (Spain awaiting a
+// parent's approval, then France bought at once): each product keeps a list,
+// newest first, and a redelivered transaction takes the oldest context left.
 const PENDING_KEY = 'ringo_pending_purchases_v1';
+const PENDING_CAP = 4;
 export interface PurchaseContext { plan: string; destination: string; data_gb: number | null; email: string; startedAt?: number }
-function readPending(): Record<string, PurchaseContext> {
-  try { const raw = localStorage.getItem(PENDING_KEY); return raw ? (JSON.parse(raw) as Record<string, PurchaseContext>) : {}; } catch { return {}; }
+type PendingStore = Record<string, PurchaseContext[]>;
+const isContext = (v: unknown): v is PurchaseContext =>
+  Boolean(v) && typeof v === 'object' && typeof (v as PurchaseContext).plan === 'string' && typeof (v as PurchaseContext).destination === 'string';
+function readPending(): PendingStore {
+  try {
+    const raw = localStorage.getItem(PENDING_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : {};
+    if (!parsed || typeof parsed !== 'object') return {};
+    const out: PendingStore = {};
+    for (const [id, v] of Object.entries(parsed as Record<string, unknown>)) {
+      // Before the list, each product held one context object; an install
+      // updated with a purchase in flight keeps it as a one-entry list.
+      const list = (Array.isArray(v) ? v : [v]).filter(isContext).map((c) => ({ ...c, startedAt: c.startedAt ?? 0 }));
+      if (list.length) out[id] = list;
+    }
+    return out;
+  } catch { return {}; }
 }
-function writePending(v: Record<string, PurchaseContext>): void {
+function writePending(v: PendingStore): void {
   try { localStorage.setItem(PENDING_KEY, JSON.stringify(v)); } catch { /* ignore */ }
 }
 export const pendingPurchase = {
-  get(productId: string): PurchaseContext | null { return readPending()[productId] || null; },
-  set(productId: string, ctx: PurchaseContext): void { const all = readPending(); all[productId] = { ...ctx, startedAt: Date.now() }; writePending(all); },
-  clear(productId: string): void { const all = readPending(); delete all[productId]; writePending(all); },
+  /** The oldest context still waiting for this product (`nth` skips that many, for several unfinished transactions of one product). */
+  get(productId: string, nth = 0): PurchaseContext | null {
+    const list = readPending()[productId] || [];
+    return list[list.length - 1 - nth] || null;
+  },
+  /** Remember a purchase about to open the App Store sheet; returns the stored context, whose startedAt identifies it for clear(). */
+  set(productId: string, ctx: PurchaseContext): PurchaseContext {
+    const all = readPending();
+    const list = all[productId] || [];
+    const stamped = { ...ctx, startedAt: Math.max(Date.now(), (list[0]?.startedAt ?? 0) + 1) };
+    all[productId] = [stamped, ...list].slice(0, PENDING_CAP);
+    writePending(all);
+    return stamped;
+  },
+  /** Consume one context: the one started at `startedAt`, or the oldest when it is not given. */
+  clear(productId: string, startedAt?: number): void {
+    const all = readPending();
+    const list = all[productId];
+    if (!list?.length) return;
+    const i = startedAt == null ? list.length - 1 : list.findIndex((c) => c.startedAt === startedAt);
+    if (i < 0) return;
+    list.splice(i, 1);
+    if (list.length) all[productId] = list; else delete all[productId];
+    writePending(all);
+  },
 };

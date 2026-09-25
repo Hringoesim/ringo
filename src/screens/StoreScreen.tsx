@@ -9,7 +9,7 @@ import { useMemo, useState } from 'react';
 import { RC, RADIUS } from '../theme';
 import { LOGO_SRC } from '../assets';
 import { pictureFor, skyFor, FEATURED, type Destination , bundledPictureFor} from '../data/destinations';
-import { useSummary } from '../store/summary';
+import { useSummary, useAppleFrom } from '../store/summary';
 import { useDestinations } from '../store/destinations';
 import { money } from '../api/light';
 import { haptic } from '../lib/haptics';
@@ -47,13 +47,16 @@ function whatLine(d: Destination): string {
   return '30 days, or a plan that renews';
 }
 
-function Card({ d, summary, onOpen, big = false, compact = false }: { d: Destination; summary: ReturnType<typeof useSummary>; onOpen: (id: string) => void; big?: boolean; compact?: boolean }) {
-  const from = summary?.from?.[d.id];
+function Card({ d, summary, apple, onOpen, big = false, compact = false }: { d: Destination; summary: ReturnType<typeof useSummary>; apple: Record<string, string>; onOpen: (id: string) => void; big?: boolean; compact?: boolean }) {
+  // Apple's price where StoreKit has answered for this destination (the
+  // plan screen shows the same), else the catalogue's.
+  const catalogueFrom = summary?.from?.[d.id];
+  const from = apple[d.id] ?? (catalogueFrom != null ? money(catalogueFrom, summary!.currency) : null);
   return (
     <button className="press" onClick={() => onOpen(d.id)} style={{ textAlign: 'left', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'column', background: RC.paper, border: `1.5px solid ${RC.line}`, borderRadius: 22, overflow: 'hidden', width: '100%' }}>
       <Picture d={d} big={big} compact={compact} />
       <div style={{ padding: compact ? '10px 12px 12px' : '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: compact ? 2 : 4, width: '100%', boxSizing: 'border-box' }}>
-        <div style={{ fontFamily: 'var(--font)', fontSize: compact ? 15 : 17, fontWeight: 700, color: RC.ink, letterSpacing: -0.2 }}>{from != null ? `From ${money(from, summary!.currency)}` : ' '}</div>
+        <div style={{ fontFamily: 'var(--font)', fontSize: compact ? 15 : 17, fontWeight: 700, color: RC.ink, letterSpacing: -0.2 }}>{from != null ? `From ${from}` : ' '}</div>
         <div style={{ fontFamily: 'var(--font)', fontSize: compact ? 12 : 13, color: RC.inkMute }}>{compact ? '30 days, or renews' : whatLine(d)}</div>
       </div>
     </button>
@@ -62,6 +65,7 @@ function Card({ d, summary, onOpen, big = false, compact = false }: { d: Destina
 
 export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn }: { onOpen: (id: string) => void; onMyEsim: () => void; onLogin: () => void; loggedIn: boolean }) {
   const summary = useSummary();
+  const apple = useAppleFrom();
   const all = useDestinations();
   const [q, setQ] = useState('');
   const query = q.trim().toLowerCase();
@@ -102,7 +106,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn }: { onOpen: (
           <>
             <div style={{ margin: '20px 0 10px', fontFamily: 'var(--font)', fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: RC.inkMute }}>Plans</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
-              {featured.map((d, i) => <Card key={d.id} d={d} summary={summary} onOpen={open} big={i === 0} />)}
+              {featured.map((d, i) => <Card key={d.id} d={d} summary={summary} apple={apple} onOpen={open} big={i === 0} />)}
             </div>
           </>
         )}
@@ -111,7 +115,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn }: { onOpen: (
           <div key={region}>
             <div style={{ margin: '22px 0 10px', fontFamily: 'var(--font)', fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: RC.inkMute }}>{region}</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              {list.map((d) => <Card key={d.id} d={d} summary={summary} onOpen={open} compact />)}
+              {list.map((d) => <Card key={d.id} d={d} summary={summary} apple={apple} onOpen={open} compact />)}
             </div>
           </div>
         ))}
