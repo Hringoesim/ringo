@@ -8,7 +8,7 @@
 import { useMemo, useState } from 'react';
 import { RC, RADIUS } from '../theme';
 import { LOGO_SRC } from '../assets';
-import { pictureFor, skyFor, FEATURED, type Destination } from '../data/destinations';
+import { pictureFor, skyFor, FEATURED, type Destination , bundledPictureFor} from '../data/destinations';
 import { useSummary } from '../store/summary';
 import { useDestinations } from '../store/destinations';
 import { money } from '../api/light';
@@ -32,7 +32,7 @@ const REGION_ORDER = ['Europe', 'North America', 'Latin America', 'Caribbean', '
 export function Picture({ d, big = false, compact = false }: { d: Destination; big?: boolean; compact?: boolean }) {
   return (
     <div style={{ position: 'relative', aspectRatio: '16 / 9', background: skyFor(d.id), overflow: 'hidden' }}>
-      <img src={pictureFor(d.id)} alt="" loading={big ? 'eager' : 'lazy'} decoding="async" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+      <img src={pictureFor(d.id)} alt="" loading={big ? 'eager' : 'lazy'} decoding="async" onError={(e) => { const el = e.currentTarget as HTMLImageElement; const b = bundledPictureFor(d.id); if (b && !el.src.endsWith(b)) { el.src = b; } else { el.style.display = 'none'; } }} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
       <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(26,15,46,0) 45%, rgba(26,15,46,0.72) 100%)' }} />
       <div style={{ position: 'absolute', left: compact ? 12 : 16, right: compact ? 12 : 16, bottom: compact ? 10 : 12, display: 'flex', alignItems: 'center', gap: compact ? 7 : 10, minWidth: 0 }}>
         {d.flag && <span aria-hidden style={{ fontSize: big ? 26 : compact ? 16 : 20, lineHeight: 1 }}>{d.flag}</span>}
@@ -90,7 +90,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn }: { onOpen: (
           Where are you going?
         </div>
         <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14.5, color: RC.inkMute, lineHeight: 1.45 }}>
-          {total ? `${total} countries and every region.` : 'Every country and region.'} Install in a tap, connected when you land.
+          {total > 60 ? `${total} countries and every region.` : 'Every country and every region.'} Install in a tap, connected when you land.
         </div>
 
         <div style={{ marginTop: 16, position: 'relative' }}>

@@ -12,6 +12,7 @@ import { RingoTabBar, type TabId } from './components/TabBar';
 import { ScreenHost, type NavDir } from './components/ScreenHost';
 import { haptic } from './lib/haptics';
 import { account, pendingPurchase } from './store/account';
+import { useDestinations } from './store/destinations';
 import { unfinished, onTransaction, finish, loadProducts, iapAvailable, setStoreStatus, type IapTransaction } from './lib/iap';
 import { reportTransaction } from './lib/purchase';
 import { light } from './api/light';
@@ -44,6 +45,12 @@ interface Frame {
 }
 
 export function App() {
+  // Loads the destination list once at launch and, with it, the remote
+  // switches the site sends (app_flags). Without this the welcome and login
+  // screens never saw a flag, because only the store tab fetched it: turning
+  // Google sign-in on would have changed nothing until someone opened the
+  // store first.
+  useDestinations();
   // Each frame carries a unique monotonic id so distinct navigations never
   // share a React key (prevents a screen instance being reused with stale
   // params).
