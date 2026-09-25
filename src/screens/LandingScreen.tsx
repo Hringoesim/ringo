@@ -68,11 +68,22 @@ export function LandingScreen({
         style={{
           flex: 1, minHeight: 0, overflow: 'hidden',
           display: 'flex', flexDirection: 'column', alignItems: 'center',
-          justifyContent: 'center', padding: compact ? '12px 24px 0' : '20px 24px 0', textAlign: 'center',
+          // Hug the sign-in block: the hero's spare room goes to the sky above
+          // it, not to a gap between the tagline and the buttons. Short
+          // (compact) screens keep the original centring.
+          justifyContent: compact ? 'center' : 'flex-end', padding: compact ? '12px 24px 0' : '20px 24px 16px', textAlign: 'center',
         }}
       >
-        <div style={{ marginBottom: compact ? 2 : 6, filter: 'drop-shadow(0 4px 14px rgba(120,30,10,0.16))' }}>
-          <img src={LOGO_SRC} alt="Ringo" style={{ height: compact ? 50 : 64, width: 'auto', display: 'block' }} />
+        {/* The gradient wordmark sits on a soft white pill: straight on the
+            orange sky it read at about 1.3:1 and nearly vanished. There is no
+            white wordmark, so the logo itself stays exactly as it is. */}
+        <div
+          style={{
+            marginBottom: compact ? 2 : 6, padding: compact ? '2px 12px' : '4px 12px', borderRadius: 999,
+            background: 'rgba(255,255,255,0.92)', boxShadow: '0 6px 20px rgba(120,30,10,0.16)',
+          }}
+        >
+          <img src={LOGO_SRC} alt="Ringo" style={{ height: compact ? 46 : 58, width: 'auto', display: 'block' }} />
         </div>
 
         <div style={{ marginTop: compact ? 6 : 10, position: 'relative' }}>
@@ -129,6 +140,10 @@ export function LandingScreen({
           Browse plans first
         </button>
       </div>
+      {/* On tall screens a share of the height sits under the buttons, so the
+          sign-in block starts near 60% of the screen instead of the bottom.
+          Short (compact) screens give it all back to the hero. */}
+      <div aria-hidden style={{ flex: compact ? '0 0 0px' : '0.5 1 0px', minHeight: 0 }} />
     </div>
   );
 }
