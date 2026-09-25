@@ -189,9 +189,9 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
         {!loading && !sub && (
           <Empty
             title="Nothing here yet."
-            sub={`No plan is attached to ${acct.email || 'this email'}. If you just paid, give it a minute; otherwise browse the plans.`}
+            sub={<>No plan on this account yet.{acct.email && <span style={{ display: 'block', marginTop: 2, color: RC.ink, fontWeight: 600, overflowWrap: 'anywhere' }}>{acct.email}</span>}<span style={{ display: 'block', marginTop: 8 }}>If you just paid, give it a minute. Otherwise browse the plans.</span></>}
             primary={{ label: 'Browse plans', onClick: onStore }}
-            secondary={{ label: 'Your profile', onClick: onProfile }}
+            inset={false}
             tertiary={{ label: 'Sign in with another account', onClick: onLogin }}
           />
         )}
@@ -279,7 +279,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
 
             <div style={{ marginTop: 22, textAlign: 'center' }}>
               <button className="press" onClick={onLogin} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.inkMute }}>
-                Not your eSIM? Log in with another email
+                Not your eSIM? Sign in with another email
               </button>
             </div>
           </>
@@ -310,9 +310,11 @@ export function LinkRow({ label, sub, onClick, last }: { label: string; sub?: st
   );
 }
 
-function Empty({ title, sub, primary, secondary, tertiary, note }: { title: string; sub: string; primary: { label: string; onClick: () => void }; secondary?: { label: string; onClick: () => void }; tertiary?: { label: string; onClick: () => void }; note?: string | null }) {
+// inset: false inside a scroller that already has the 20pt side gutters, so
+// the signed-in and signed-out states are the same width.
+function Empty({ title, sub, primary, secondary, tertiary, note, inset = true }: { title: string; sub: React.ReactNode; inset?: boolean; primary: { label: string; onClick: () => void }; secondary?: { label: string; onClick: () => void }; tertiary?: { label: string; onClick: () => void }; note?: string | null }) {
   return (
-    <div style={{ padding: '10px 20px 40px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+    <div style={{ padding: inset ? '10px 20px 40px' : '10px 0 40px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
       <div style={{ width: 84, height: 84, borderRadius: 26, background: RC.gradSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 20 }}>
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden>
           <rect x="4" y="3" width="16" height="18" rx="3" stroke={RC.inkStrong} strokeWidth="1.8" />

@@ -44,8 +44,10 @@ function Segmented<T extends string>({ value, options, onChange }: { value: T; o
 }
 
 // Card copy: the term as a title, one short line, the price. Renewal is
-// stated once under the cards and in full on the purchase screen.
-function termTitle(p: Plan): string {
+// stated once under the cards and in full on the purchase screen. The same
+// term name is used here, in the footer and at checkout.
+// eslint-disable-next-line react-refresh/only-export-components
+export function termTitle(p: Plan): string {
   if (p.mode === 'payment') return `${p.days} days`;
   if (p.term_months === 1) return 'Monthly';
   if (p.term_months === 12) return '1 year';
@@ -60,6 +62,11 @@ function badge(p: Plan, plans: Plan[]): string | null {
   if (p.mode === 'subscription' && p.term_months === 12) return 'Best value';
   if (p.recommended && !plans.some((q) => q.mode === 'subscription' && q.term_months === 12)) return 'Popular';
   return null;
+}
+
+/** What a line costs in one go: Apple's price on the phone, else the catalogue's. */
+function upfront(p: Plan, product: IapProduct | null): number {
+  return product ? product.price : p.billed_upfront_amount;
 }
 
 export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBack: () => void; onContinue: (s: Selection) => void }) {
@@ -79,7 +86,8 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
       if (!alive) return;
       setCat(c);
       setGb(c.default_data_gb);
-      setPlanId(c.default_plan);
+      // Not c.default_plan: the screen opens on the cheapest line (below).
+      setPlanId(null);
       // Apple's products for every line here; a line Apple does not sell is
       // not offered. An empty answer is asked again before it is believed.
       const ids = c.plans.map((p) => p.apple_product_id).filter((x): x is string => Boolean(x));
@@ -104,11 +112,13 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
 
   useEffect(() => {
     if (!plans.length) return;
-    if (!plans.some((p) => p.plan === planId)) {
-      const rec = plans.find((p) => p.recommended) || plans[0];
-      setPlanId(rec.plan);
-    }
-  }, [plans, planId]);
+    // Cheapest first and selected (owner 2026-09-25): the cheapest one-payment
+    // line of this tier, or Monthly when there is none. Never the 1 year.
+    if (plans.some((p) => p.plan === planId)) return;
+    const cost = (p: Plan) => upfront(p, (p.apple_product_id && products?.get(p.apple_product_id)) || null);
+    const once = plans.filter((p) => p.mode === 'payment').sort((a, b) => cost(a) - cost(b));
+    setPlanId((once[0] || plans.find((p) => p.mode === 'subscription' && p.term_months === 1) || plans[0]).plan);
+  }, [plans, planId, products]);
 
   const selected = plans.find((p) => p.plan === planId) || null;
   const sizes = cat?.sizes || [];
@@ -164,7 +174,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
             {/* What every card below delivers, said once. */}
             <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {(tier === 'data'
-                ? [`${gb} GB${selected?.mode === 'subscription' ? ' a month' : ''}`, 'Full speed', 'No daily cap', 'Hotspot']
+                ? [`${gb} GB${selected?.mode === 'subscription' ? ' a month' : ''}`, 'No daily cap', 'Hotspot']
                 : ['Unlimited data', 'Fair use', 'Hotspot']
               ).map((t) => (
                 <span key={t} style={{ fontFamily: 'var(--font)', fontSize: 12, fontWeight: 700, color: RC.inkStrong, background: RC.gradSoft, borderRadius: 999, padding: '5px 10px' }}>{t}</span>

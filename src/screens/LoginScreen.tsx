@@ -72,7 +72,7 @@ export function LoginScreen({ onBack, onDone, initialEmail = '', startWithEmail 
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <RingoHeader title={stage === 'choose' ? 'Sign in' : stage === 'email' ? 'Your email' : 'Your code'} leading={<BackBtn onClick={back} />} />
+      <RingoHeader title="Sign in" leading={<BackBtn onClick={back} />} />
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '0 20px 40px' }}>
         {stage === 'choose' && (
           <>

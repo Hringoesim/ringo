@@ -21,18 +21,13 @@ import { iapAvailable, purchase } from '../lib/iap';
 import { openInSheet } from '../lib/browser';
 import { haptic, hapticNotify } from '../lib/haptics';
 import { priceOf, reportTransaction } from '../lib/purchase';
-import type { Selection } from './DestinationScreen';
+import { termTitle, type Selection } from './DestinationScreen';
 
 type Stage = 'email' | 'buying' | 'recording' | 'issuing' | 'ready' | 'pending' | 'failed';
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const EMAIL_KEY = 'ringo_last_email';
 
-function termTitle(s: Selection): string {
-  const p = s.plan;
-  if (p.mode === 'payment') return `${p.days} days`;
-  return p.term_months === 1 ? 'Monthly' : p.term_months === 12 ? '12 months' : `${p.term_months} months`;
-}
 function periodWord(months: number): string {
   return months === 12 ? 'year' : months === 1 ? 'month' : `${months} months`;
 }
@@ -130,7 +125,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
             <div>
               <div style={{ fontFamily: 'var(--font)', fontSize: 16, fontWeight: 800, color: RC.ink, letterSpacing: -0.3 }}>{selection.destinationLabel}</div>
               <div style={{ marginTop: 2, fontFamily: 'var(--font)', fontSize: 13, color: RC.inkMute }}>
-                {p.tier === 'unlimited' ? 'Unlimited data' : `${selection.data_gb} GB${renewing ? ' a month' : ''}`} · {termTitle(selection)}
+                {p.tier === 'unlimited' ? 'Unlimited data' : `${selection.data_gb} GB${renewing ? ' a month' : ''}`} · {termTitle(selection.plan)}
               </div>
             </div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800, color: RC.ink, letterSpacing: -0.5 }}>{price.total}</div>
@@ -139,7 +134,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
 
         {stage === 'email' && (
           <div style={{ marginTop: 22 }}>
-            <FieldLabel>Email for your eSIM</FieldLabel>
+            <FieldLabel>Your email</FieldLabel>
             <Input value={email} onChange={setEmail} placeholder="you@example.com" type="email" inputMode="email" />
             <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 12.5, color: RC.inkMute, lineHeight: 1.5 }}>
               {relayEmail
