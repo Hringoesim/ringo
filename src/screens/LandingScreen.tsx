@@ -93,7 +93,11 @@ export function LandingScreen({
     if (!el) return;
     const FLOOR = 120;
     const fit = () => {
-      const over = el.scrollHeight - el.clientHeight;
+      // The hero hugs its bottom edge, so an overflow runs off the top, where
+      // scrollHeight does not count it: measure the logo against the padding too.
+      const logo = logoRef.current?.getBoundingClientRect().top;
+      const floor = el.getBoundingClientRect().top + parseFloat(getComputedStyle(el).paddingTop || '0');
+      const over = Math.max(el.scrollHeight - el.clientHeight, logo === undefined ? 0 : Math.ceil(floor - logo));
       if (over <= 1) return;
       setGlobe((g) => {
         const next = Math.max(FLOOR, g - over - 4);
@@ -131,8 +135,11 @@ export function LandingScreen({
       const h = window.innerHeight;
       const short = h < 800;
       setCompact(short);
-      // The sign-in block below needs about 260pt, so the globe takes less.
-      setGlobe(Math.max(140, Math.min(w * 0.6, h * (short ? 0.2 : 0.26), 280)));
+      // Owner 2026-09-26: a bigger globe. About 350pt on a 430x932 phone and
+      // 300pt on 375x812, leaving room for the native sign-in block (three
+      // 52pt buttons plus "Browse plans first"); the overflow check above
+      // trims it further if the text still does not fit.
+      setGlobe(Math.max(140, Math.min(w * 0.82, h * (short ? 0.25 : 0.378), 360)));
     };
     compute();
     window.addEventListener('resize', compute);
@@ -178,12 +185,15 @@ export function LandingScreen({
       <div
         ref={heroRef}
         style={{
-          flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative',
+          // Sized by its content first; only the spare height is shared with
+          // the spacer under the sign-in block, so the globe never shrinks to
+          // make room for empty sky.
+          flex: '1 1 auto', minHeight: 0, overflow: 'hidden', position: 'relative',
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           // Hug the sign-in block: the hero's spare room goes to the sky above
           // it, not to a gap between the tagline and the buttons. Short
           // (compact) screens keep the original centring.
-          justifyContent: compact ? 'center' : 'flex-end', padding: compact ? '12px 24px 0' : '20px 24px 16px', textAlign: 'center',
+          justifyContent: compact ? 'center' : 'flex-end', padding: compact ? '12px 24px 0' : 'max(20px, calc(env(safe-area-inset-top, 0px) + 6px)) 24px 16px', textAlign: 'center',
           ...(onCream ? {
             margin: 'max(12px, calc(env(safe-area-inset-top, 0px) + 4px)) 12px 0', borderRadius: 28,
             background: 'linear-gradient(180deg, #FFFAF7 0%, #FEF3EE 100%)',
@@ -212,7 +222,7 @@ export function LandingScreen({
           />
           <div style={{ animation: 'ringoGlobeIn 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) both' }}>
             <div style={{ animation: 'ringoGlobeFloat 6s ease-in-out infinite' }}>
-              <SaturnWorld size={globe} />
+              <SaturnWorld size={globe} satellite />
             </div>
           </div>
         </div>

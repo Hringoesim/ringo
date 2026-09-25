@@ -259,3 +259,18 @@ textarea,
   70% { transform: scale(1.04); }
   100% { transform: scale(1); }
 }
+
+/* Landing satellite (components/Satellite.tsx): two eased sways a quarter
+   period apart trace the ellipse; the near-side copy shows for half a turn. */
+@keyframes ringoSatX {
+  from { transform: translateX(calc(var(--rx) * -1)); }
+  to { transform: translateX(var(--rx)); }
+}
+@keyframes ringoSatY {
+  from { transform: translateY(calc(var(--ry) * -1)) scale(0.78); }
+  to { transform: translateY(var(--ry)) scale(1.08); }
+}
+@keyframes ringoSatNear {
+  0%, 49.9% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}

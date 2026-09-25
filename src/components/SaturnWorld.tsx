@@ -1,14 +1,18 @@
 // SaturnWorld — the landing globe. The rendered Earth (lazy-loaded, code-split)
 // carries the flight simulation itself (arcs connecting real countries, rotating
 // with the globe). No halo — just the globe filling the box.
+// With `satellite` a small satellite circles it: its orbit is drawn under the planet and over
+// it, so the far side of the orbit passes behind the globe.
 import { lazy, Suspense } from 'react';
+import { Orbit } from './Satellite';
 
 const RingoGlobe = lazy(() => import('./Globe').then((m) => ({ default: m.RingoGlobe })));
 
-export function SaturnWorld({ size = 300 }: { size?: number }) {
+export function SaturnWorld({ size = 300, satellite = false }: { size?: number; satellite?: boolean }) {
   const planet = size; // globe fills the box — NO ring/halo/shadow around it
   return (
     <div style={{ width: size, height: size, position: 'relative' }}>
+      {satellite && <Orbit size={size} side="back" />}
       <div style={{ position: 'absolute', inset: 0, width: planet, height: planet }}>
         {/* The fallback is a still blue planet in the same palette, so the real
             globe fades in over it instead of popping in over a pink flash. */}
@@ -27,6 +31,7 @@ export function SaturnWorld({ size = 300 }: { size?: number }) {
           <RingoGlobe size={planet} />
         </Suspense>
       </div>
+      {satellite && <Orbit size={size} side="front" />}
     </div>
   );
 }
