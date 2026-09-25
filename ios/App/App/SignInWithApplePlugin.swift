@@ -55,7 +55,7 @@ public class SignInWithApplePlugin: CAPPlugin, CAPBridgedPlugin,
 
     public func authorizationController(controller: ASAuthorizationController,
                                         didCompleteWithError error: Error) {
-        pendingCall?.reject(error.localizedDescription, nil, error)
+        pendingCall?.reject(error.localizedDescription, String((error as NSError).code), error)
         pendingCall = nil
     }
 

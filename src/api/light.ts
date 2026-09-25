@@ -128,11 +128,28 @@ export class ApiError extends Error {
   }
 }
 
+// No timeout and a network that accepts the connection then answers nothing
+// leaves every button spinning for ever, which is what a proxied review
+// network looks like. WKWebView also throws the bare string "Load failed"
+// offline, which callers were showing to people verbatim.
+const TIMEOUT_MS = 20000;
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API}${path}`, {
-    ...init,
-    headers: { Accept: 'application/json', ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...(init.headers || {}) },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API}${path}`, {
+      ...init,
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+      headers: { Accept: 'application/json', ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...(init.headers || {}) },
+    });
+  } catch (err) {
+    const timedOut = (err as Error)?.name === 'TimeoutError';
+    log.warn('api', `${path} -> ${timedOut ? 'timed out' : 'no connection'}`);
+    throw new ApiError(
+      timedOut ? 'Ringo took too long to answer. Try again in a moment.' : 'No connection to Ringo. Check your internet and try again.',
+      0,
+    );
+  }
   const body = (await res.json().catch(() => null)) as (T & { error?: string; message?: string }) | null;
   if (!res.ok) {
     const msg = (body && (body.message || body.error)) || `Request failed (${res.status})`;

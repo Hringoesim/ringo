@@ -96,6 +96,21 @@ export function LoginScreen({ onBack, onDone, initialEmail = '', startWithEmail 
             <div style={{ marginTop: 22 }}>
               <RingoButton loading={busy} onClick={() => void send()}>Send my code</RingoButton>
             </div>
+            {/* App Review is given a fixed code, and the field for it used to
+                sit behind a send that their address cannot receive. */}
+            <div style={{ marginTop: 12, textAlign: 'center' }}>
+              <button
+                className="press"
+                onClick={() => {
+                  if (!EMAIL_RE.test(email.trim().toLowerCase())) { setErr('Enter a valid email.'); return; }
+                  hapticSelection(); setErr(null); setStage('code');
+                  setTimeout(() => codeRef.current?.focus(), 200);
+                }}
+                style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 13.5, fontWeight: 600, color: RC.inkStrong }}
+              >
+                I already have a code
+              </button>
+            </div>
           </>
         )}
 

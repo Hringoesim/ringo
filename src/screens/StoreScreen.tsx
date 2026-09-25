@@ -14,6 +14,18 @@ import { useDestinations } from '../store/destinations';
 import { money } from '../api/light';
 import { haptic } from '../lib/haptics';
 
+// What people actually type. "United States" does not contain "usa", so the
+// most obvious search in an eSIM store returned nothing at all.
+const ALIASES: Record<string, string> = {
+  usa: 'usa', us: 'usa', america: 'usa', 'united states': 'usa',
+  uk: 'united-kingdom', britain: 'united-kingdom', england: 'united-kingdom',
+  scotland: 'united-kingdom', wales: 'united-kingdom',
+  holland: 'netherlands', emirates: 'uae', dubai: 'uae', turkiye: 'turkey',
+  burma: 'myanmar', czechia: 'czech-republic', korea: 'south-korea',
+};
+const matches = (d: Destination, q: string) =>
+  !q || d.label.toLowerCase().includes(q) || d.id.includes(q) || ALIASES[q] === d.id;
+
 const REGION_ORDER = ['Europe', 'North America', 'Latin America', 'Caribbean', 'Asia-Pacific', 'Oceania', 'Middle East', 'Africa', 'Central Asia and Caucasus'];
 
 /** The picture every card opens with: the photograph over a sunset sky, the flag and the name. */
@@ -55,9 +67,9 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn }: { onOpen: (
   const query = q.trim().toLowerCase();
   const open = (id: string) => { haptic('light'); onOpen(id); };
 
-  const featured = useMemo(() => FEATURED.map((id) => all.find((d) => d.id === id)).filter((d): d is Destination => Boolean(d) && (!query || d!.label.toLowerCase().includes(query))), [all, query]);
+  const featured = useMemo(() => FEATURED.map((id) => all.find((d) => d.id === id)).filter((d): d is Destination => Boolean(d) && matches(d!, query)), [all, query]);
   const grouped = useMemo(() => {
-    const countries = all.filter((d) => d.kind === 'country' && !FEATURED.includes(d.id) && (!query || d.label.toLowerCase().includes(query)));
+    const countries = all.filter((d) => d.kind === 'country' && !FEATURED.includes(d.id) && matches(d, query));
     const by = new Map<string, Destination[]>();
     for (const d of countries) { const k = d.region || 'More'; if (!by.has(k)) by.set(k, []); by.get(k)!.push(d); }
     for (const list of by.values()) list.sort((a, b) => a.label.localeCompare(b.label));

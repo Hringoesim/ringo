@@ -54,8 +54,12 @@ export async function signInWithApple(): Promise<SignInResult> {
     const { response } = await Apple.authorize({ nonce: await sha256Hex(raw) });
     token = response.identityToken;
   } catch (e) {
-    const msg = String((e as Error)?.message || e);
-    if (/cancel/i.test(msg) || /1001/.test(msg)) return { ok: false, cancelled: true };
+    // The plugin now passes Apple's NSError code through. Matching on the
+    // message alone read a dismissed sheet as a failure on any device that is
+    // not in English, because "cancel" only appears in the English string.
+    const err = e as { message?: string; code?: string };
+    const msg = String(err?.message || e);
+    if (err?.code === '1001' || /cancel/i.test(msg) || /1001/.test(msg)) return { ok: false, cancelled: true };
     return { ok: false, error: 'Apple did not complete the sign-in.' };
   }
   return finish('apple', token, raw);
