@@ -114,7 +114,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn }: { onOpen: (
         {grouped.map(([region, list]) => (
           <div key={region}>
             <div style={{ margin: '22px 0 10px', fontFamily: 'var(--font)', fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: RC.inkMute }}>{region}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(146px, 1fr))', gap: 10 }}>
               {list.map((d) => <Card key={d.id} d={d} summary={summary} apple={apple} onOpen={open} compact />)}
             </div>
           </div>

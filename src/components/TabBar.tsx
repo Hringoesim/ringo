@@ -1,7 +1,7 @@
 // TabBar.tsx — floating Liquid Glass (iOS 26) tab bar for the top-level
 // destinations. A translucent, blurred capsule that hovers over the content.
 import type { ReactNode } from 'react';
-import { RC, GLASS } from '../theme';
+import { RC, GLASS, COLUMN_MAX } from '../theme';
 
 export type TabId = 'store' | 'esim' | 'help';
 type IconKind = 'globe' | 'sim' | 'help';
@@ -75,6 +75,8 @@ export function RingoTabBar({
     <div
       style={{
         position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 50, pointerEvents: 'none',
+        // Same centred column as the screens on an iPad; full width on a phone.
+        maxWidth: COLUMN_MAX, marginLeft: 'auto', marginRight: 'auto',
         paddingLeft: 14, paddingRight: 14,
         paddingBottom: 'max(10px, env(safe-area-inset-bottom, 0px))',
       }}

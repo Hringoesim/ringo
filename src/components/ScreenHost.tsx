@@ -4,7 +4,8 @@
 // reconciliation) into the leaving layer — never unmounted/remounted — so
 // transition start pays no double mount and running state (canvas, timers,
 // scroll) survives the exit animation.
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type CSSProperties } from 'react';
+import { COLUMN_MAX } from '../theme';
 
 export type NavDir = 'push' | 'pop' | 'fade';
 
@@ -15,18 +16,29 @@ export type NavDir = 'push' | 'pop' | 'fade';
 // after the motion fully settles (matches index.css: push/pop 0.44s, fade 0.36s).
 const DURATION: Record<NavDir, number> = { push: 460, pop: 460, fade: 380 };
 
-export function ScreenHost({ navKey, dir, children, onSwipeBack }: { navKey: string; dir: NavDir; children: ReactNode; onSwipeBack?: () => void }) {
+// The layer itself spans the screen (its background fills an iPad); the
+// screen inside it is held to a centred column no wider than COLUMN_MAX.
+// A `fullBleed` screen (the welcome sky) keeps the whole width and centres
+// its own content.
+const column = (fullBleed: boolean): CSSProperties => ({
+  flex: 1, minHeight: 0, width: '100%', maxWidth: fullBleed ? undefined : COLUMN_MAX,
+  margin: '0 auto', display: 'flex', flexDirection: 'column', position: 'relative',
+});
+
+export function ScreenHost({ navKey, dir, children, onSwipeBack, fullBleed = false }: { navKey: string; dir: NavDir; children: ReactNode; onSwipeBack?: () => void; fullBleed?: boolean }) {
   const lastKey = useRef(navKey);
   const lastNode = useRef<ReactNode>(children);
-  const [leaving, setLeaving] = useState<{ key: string; node: ReactNode; dir: NavDir } | null>(null);
+  const lastFull = useRef(fullBleed);
+  const [leaving, setLeaving] = useState<{ key: string; node: ReactNode; dir: NavDir; full: boolean } | null>(null);
 
   // Adjust-state-during-render: the moment the screen identity changes, move
   // the previous screen into the leaving layer synchronously (same render).
   if (navKey !== lastKey.current) {
-    setLeaving({ key: lastKey.current, node: lastNode.current, dir });
+    setLeaving({ key: lastKey.current, node: lastNode.current, dir, full: lastFull.current });
     lastKey.current = navKey;
   }
   lastNode.current = children;
+  lastFull.current = fullBleed;
 
   // Clear the leaving layer when its exit animation completes.
   useEffect(() => {
@@ -48,13 +60,13 @@ export function ScreenHost({ navKey, dir, children, onSwipeBack }: { navKey: str
   if (leaving && leaving.key !== navKey) {
     layers.push(
       <div key={leaving.key} className={`screen-layer ${leaveClass}`} style={{ zIndex: leaveZ }} aria-hidden>
-        {leaving.node}
+        <div style={column(leaving.full)}>{leaving.node}</div>
       </div>,
     );
   }
   layers.push(
     <div key={navKey} className={`screen-layer ${enterClass}`} style={{ zIndex: enterZ }}>
-      {children}
+      <div style={column(fullBleed)}>{children}</div>
     </div>,
   );
 

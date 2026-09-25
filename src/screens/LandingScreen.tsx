@@ -8,6 +8,7 @@ import { useEffect, useState, useLayoutEffect, useRef } from 'react';
 import { SaturnWorld } from '../components/SaturnWorld';
 import { AuthButtons } from '../components/AuthButtons';
 import { LOGO_SRC } from '../assets';
+import { COLUMN_MAX } from '../theme';
 
 export function LandingScreen({
   onExplore, onSignedIn, onEmail,
@@ -111,7 +112,7 @@ export function LandingScreen({
         </div>
       </div>
 
-      <div style={{ padding: compact ? '8px 20px 16px' : '12px 20px 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ padding: compact ? '8px 20px 16px' : '12px 20px 24px', display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: COLUMN_MAX, alignSelf: 'center' }}>
         <div style={{ textAlign: 'center', fontFamily: 'var(--font)', fontSize: 12, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(255,255,255,0.85)', textShadow: '0 1px 6px rgba(120,30,10,0.22)' }}>
           Sign in or create an account
         </div>

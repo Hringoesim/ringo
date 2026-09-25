@@ -64,6 +64,11 @@ export const SHADOW_RAISED = '0 2px 6px rgba(52,28,84,0.07), 0 16px 34px -18px r
 export const SHADOW_HERO = '0 18px 40px -20px rgba(134,82,224,0.5)';
 
 // One corner-radius scale — every surface picks from these, not ad-hoc values.
+// Widest the app's column grows. The app is designed for a phone; on an iPad
+// every screen and the tab bar sit in a centred column this wide instead of
+// stretching edge to edge. At phone widths (375 to 430pt) it never engages.
+export const COLUMN_MAX = 520;
+
 export const RADIUS = { sm: 12, md: 16, lg: 20, xl: 24, pill: 999 } as const;
 
 // The signature spring + the standard iOS ease-out, named once so motion is
