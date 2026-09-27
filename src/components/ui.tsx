@@ -1,6 +1,6 @@
 // ui.tsx — small shared building blocks used across screens.
 import { useState, type CSSProperties, type ReactNode } from 'react';
-import { RC, RADIUS, SHADOW_CARD, TAP, hexA } from '../theme';
+import { RC, RADIUS, TAP, hexA } from '../theme';
 import { hapticSelection } from '../lib/haptics';
 
 export function BackBtn({ onClick }: { onClick?: () => void }) {
@@ -61,15 +61,16 @@ export function TextLink({ onClick, children, color, align = 'center', disabled 
   );
 }
 
-// The segmented toggle (Data / Unlimited, 10 / 20 GB): RADIUS.control outside,
-// a sliding paper pill inside, and 44pt tall buttons.
+// The segmented toggle (Data / Unlimited, 10 / 20 GB): a fully rounded pill,
+// 44pt tall, with a paper pill that slides under the chosen option. Each
+// option fills the whole 44pt height so the tap target is never smaller.
 export function Segmented<T extends string>({ value, options, onChange }: { value: T; options: { id: T; label: string }[]; onChange: (v: T) => void }) {
   const idx = Math.max(0, options.findIndex((o) => o.id === value));
   return (
-    <div role="tablist" style={{ position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${options.length}, 1fr)`, padding: 4, borderRadius: RADIUS.control, background: RC.cream, border: `1px solid ${RC.line}` }}>
-      <div aria-hidden style={{ position: 'absolute', top: 4, bottom: 4, left: 4, width: `calc((100% - 8px) / ${options.length})`, borderRadius: RADIUS.control - 4, background: RC.paper, boxShadow: SHADOW_CARD, transform: `translateX(${idx * 100}%)`, transition: 'transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1)' }} />
+    <div role="tablist" style={{ position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${options.length}, 1fr)`, borderRadius: RADIUS.pill, background: RC.cream, border: `1px solid ${RC.line}` }}>
+      <div aria-hidden className="seg-pill" style={{ position: 'absolute', top: 3, bottom: 3, left: 3, width: `calc((100% - 6px) / ${options.length})`, borderRadius: RADIUS.pill, background: RC.paper, boxShadow: '0 1px 2px rgba(52,28,84,0.06), 0 4px 12px -4px rgba(52,28,84,0.18)', transform: `translateX(${idx * 100}%)` }} />
       {options.map((o) => (
-        <button key={o.id} role="tab" aria-selected={o.id === value} onClick={() => { hapticSelection(); onChange(o.id); }} style={{ position: 'relative', border: 'none', background: 'transparent', cursor: 'pointer', height: TAP, fontFamily: 'var(--font)', fontSize: 14, fontWeight: 700, color: o.id === value ? RC.ink : RC.inkMute, transition: 'color .2s' }}>
+        <button key={o.id} role="tab" aria-selected={o.id === value} onClick={() => { hapticSelection(); onChange(o.id); }} style={{ position: 'relative', border: 'none', background: 'transparent', cursor: 'pointer', height: TAP, borderRadius: RADIUS.pill, fontFamily: 'var(--font)', fontSize: 14, fontWeight: 700, color: o.id === value ? RC.ink : RC.inkMute, transition: 'color .2s' }}>
           {o.label}
         </button>
       ))}

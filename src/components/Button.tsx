@@ -13,6 +13,8 @@ interface RingoButtonProps {
   disabled?: boolean;
   /** Shows a spinner + blocks taps while an action is in flight. */
   loading?: boolean;
+  /** Fully rounded ends (the floating footer on the plans screen). */
+  round?: boolean;
 }
 
 export function RingoButton({
@@ -24,6 +26,7 @@ export function RingoButton({
   icon = null,
   disabled = false,
   loading = false,
+  round = false,
 }: RingoButtonProps) {
   const off = disabled || loading;
   const base: CSSProperties = {
@@ -32,7 +35,7 @@ export function RingoButton({
     fontSize: size === 'lg' ? 15.5 : 14, letterSpacing: -0.1,
     height: size === 'lg' ? 52 : 44,
     padding: '0 22px',
-    borderRadius: RADIUS.control,
+    borderRadius: round ? RADIUS.pill : RADIUS.control,
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
     width: full ? '100%' : 'auto',
     opacity: disabled ? 0.5 : 1, // loading stays full-strength (it's active, just busy)

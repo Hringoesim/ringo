@@ -6,7 +6,7 @@
 // everything else is said once, in small print (owner 2026-09-18: fewer
 // words, a clearer picker).
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { RC, RADIUS, SHADOW_CARD, SHADOW_RAISED } from '../theme';
+import { RC, RADIUS, hexA } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { BackBtn, Segmented } from '../components/ui';
@@ -49,6 +49,27 @@ function badge(p: Plan, plans: Plan[]): string | null {
   if (p.mode === 'subscription' && p.term_months === 12) return 'Best value';
   if (p.recommended && !plans.some((q) => q.mode === 'subscription' && q.term_months === 12)) return 'Popular';
   return null;
+}
+
+// The plans picker's shape (owner 2026-09-27: more modern, more round): cards
+// at 26pt corners lifted by a soft shadow instead of a hairline, the chosen
+// one raised with a warm brand ring and a filled round check; the content
+// sheet overlaps the photo with 28pt corners; the footer floats as a pill.
+const PLAN_RADIUS = 26;
+const SHEET_RADIUS = 28;
+const SHADOW_PLAN = '0 1px 2px rgba(52,28,84,0.05), 0 10px 28px -14px rgba(52,28,84,0.20)';
+const SHADOW_PLAN_ON = '0 2px 6px rgba(52,28,84,0.06), 0 18px 36px -16px rgba(255,87,36,0.34)';
+
+function Check({ on }: { on: boolean }) {
+  return (
+    <span aria-hidden className="plan-check" style={{ width: 26, height: 26, borderRadius: '50%', flexShrink: 0, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? RC.grad : 'transparent', border: on ? 'none' : `2px solid ${RC.lineStrong}`, transform: on ? 'scale(1)' : 'scale(0.92)' }}>
+      {on && (
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+          <path d="M3.5 8.5l3 3 6-7" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )}
+    </span>
+  );
 }
 
 /** What a line costs in one go: Apple's price on the phone, else the catalogue's. */
@@ -144,13 +165,13 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <div style={{ position: 'relative', height: 180, flexShrink: 0, background: skyFor(id) }}>
+      <div style={{ position: 'relative', height: 212, flexShrink: 0, background: skyFor(id) }}>
         <img src={pictureFor(id)} alt="" onError={(e) => { const el = e.currentTarget as HTMLImageElement; const b = bundledPictureFor(id); if (b && !el.src.endsWith(b)) { el.src = b; } else { el.style.display = 'none'; } }} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(20,10,30,0.25) 0%, rgba(20,10,30,0) 35%, rgba(20,10,30,0.7) 100%)' }} />
         <div style={{ position: 'absolute', left: 0, right: 0, top: 0 }}>
           <RingoHeader leading={<BackBtn onClick={onBack} />} />
         </div>
-        <div style={{ position: 'absolute', left: 20, right: 20, bottom: 14 }}>
+        <div style={{ position: 'absolute', left: 20, right: 20, bottom: SHEET_RADIUS + 12 }}>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: '#fff', letterSpacing: -0.8, lineHeight: 1.05, textShadow: '0 2px 12px rgba(0,0,0,0.35)' }}>
             {dest?.flag ? `${dest.flag} ` : ''}{dest?.label || cat?.destination.label || id}
           </div>
@@ -160,7 +181,8 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
         </div>
       </div>
 
-      <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '14px 20px 150px' }}>
+      {/* The content sheet rides up over the photo so the screen reads as layers. */}
+      <div className="no-bar" style={{ flex: 1, overflowY: 'auto', position: 'relative', marginTop: -SHEET_RADIUS, borderRadius: `${SHEET_RADIUS}px ${SHEET_RADIUS}px 0 0`, background: RC.bg, boxShadow: '0 -10px 24px -16px rgba(20,10,30,0.45)', padding: '20px 20px 150px' }}>
         {err && (
           <div style={{ padding: 14, borderRadius: RADIUS.sm, background: RC.errorSoft, fontFamily: 'var(--font)', fontSize: 13.5, color: RC.error, lineHeight: 1.5 }}>
             {err} Check your connection and try again.
@@ -168,7 +190,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
         )}
         {(!cat || loadingPrices) && !err && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {[0, 1, 2].map((i) => <div key={i} style={{ height: 76, borderRadius: RADIUS.card, border: `1px solid ${RC.line}`, background: RC.cream, animation: 'ringoSheen 1.4s ease-in-out infinite' }} />)}
+            {[0, 1, 2].map((i) => <div key={i} style={{ height: 84, borderRadius: PLAN_RADIUS, background: RC.cream, animation: 'ringoSheen 1.4s ease-in-out infinite' }} />)}
           </div>
         )}
         {cat && !loadingPrices && (
@@ -182,18 +204,21 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
             )}
 
             {/* What every card below delivers, said once. */}
-            <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <div style={{ marginTop: 14, display: 'flex', flexWrap: 'nowrap', gap: 6, overflow: 'hidden' }}>
               {(tier === 'data'
                 ? [`${gb} GB${selected?.mode === 'subscription' ? ' a month' : ''}`, 'No daily cap', 'Hotspot']
                 : ['Unlimited data', 'Fair use', 'Hotspot']
               ).map((t) => (
-                <span key={t} style={{ fontFamily: 'var(--font)', fontSize: 12, fontWeight: 700, color: RC.inkStrong, background: RC.gradSoft, borderRadius: 999, padding: '5px 10px' }}>{t}</span>
+                <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0, whiteSpace: 'nowrap', fontFamily: 'var(--font)', fontSize: 12, fontWeight: 700, color: RC.inkStrong, background: hexA(RC.inkStrong, 0.08), borderRadius: RADIUS.pill, padding: '7px 11px 7px 9px' }}>
+                  <svg aria-hidden width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7.5" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  {t}
+                </span>
               ))}
             </div>
 
-            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
               {plans.length === 0 && (
-                <div style={{ padding: 16, borderRadius: RADIUS.sm, background: RC.cream, fontFamily: 'var(--font)', fontSize: 13.5, color: RC.inkMute, lineHeight: 1.5 }}>
+                <div style={{ padding: 18, borderRadius: PLAN_RADIUS, background: RC.cream, fontFamily: 'var(--font)', fontSize: 13.5, color: RC.inkMute, lineHeight: 1.5 }}>
                   {native && products && products.size === 0
                     ? <>The App Store did not answer just now.<div style={{ marginTop: 10 }}><RingoButton size="sm" variant="soft" full={false} onClick={() => { setProducts(null); setReloadKey((k) => k + 1); }}>Try again</RingoButton></div></>
                     : <>Not sold here yet. Try the other size or tier.</>}
@@ -206,31 +231,32 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
                 return (
                   <button
                     key={p.plan}
-                    className="press"
+                    className="plan-card"
                     onClick={() => { hapticSelection(); setPlanId(p.plan); }}
                     aria-pressed={on}
                     style={{
                       textAlign: 'left', cursor: 'pointer', width: '100%',
-                      // The card rule; the chosen card trades 1px of padding
-                      // for a 2px orange border so nothing shifts.
-                      padding: on ? '15px 17px' : '16px 18px', borderRadius: RADIUS.card,
+                      // Same 2px border on every card so choosing one shifts
+                      // nothing: clear on a calm card, brand orange plus a
+                      // soft warm ring on the chosen one.
+                      padding: '20px 20px 20px 18px', borderRadius: PLAN_RADIUS,
                       background: RC.paper,
-                      border: on ? `2px solid ${RC.inkStrong}` : `1px solid ${RC.line}`,
-                      boxShadow: on ? SHADOW_RAISED : SHADOW_CARD,
+                      border: `2px solid ${on ? RC.inkStrong : RC.scheme === 'dark' ? RC.line : 'transparent'}`,
+                      boxShadow: on ? `0 0 0 4px ${hexA(RC.inkStrong, 0.14)}, ${SHADOW_PLAN_ON}` : SHADOW_PLAN,
                       display: 'flex', alignItems: 'center', gap: 14,
-                      transition: 'border-color .18s, box-shadow .18s',
                     }}
                   >
+                    <Check on={on} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                         <span style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 800, color: RC.ink, letterSpacing: -0.4 }}>{termTitle(p)}</span>
-                        {b && <span style={{ fontFamily: 'var(--font)', fontSize: 10.5, fontWeight: 800, letterSpacing: 0.4, textTransform: 'uppercase', color: '#fff', background: RC.grad, borderRadius: 999, padding: '3px 8px' }}>{b}</span>}
+                        {b && <span style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 800, letterSpacing: 0.1, color: '#fff', background: RC.grad, borderRadius: RADIUS.pill, padding: '4px 10px', whiteSpace: 'nowrap' }}>{b}</span>}
                       </div>
-                      <div style={{ marginTop: 3, fontFamily: 'var(--font)', fontSize: 13, color: RC.inkMute }}>{termLine(p, price.total)}</div>
+                      <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 500, color: RC.inkMute }}>{termLine(p, price.total)}</div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color: RC.ink, letterSpacing: -0.6, lineHeight: 1 }}>{price.monthly}</div>
-                      {p.mode === 'subscription' && <div style={{ marginTop: 3, fontFamily: 'var(--font)', fontSize: 11.5, fontWeight: 600, color: RC.inkMute }}>per month</div>}
+                      <div style={{ fontFamily: 'var(--font-display)', fontSize: 25, fontWeight: 800, color: RC.ink, letterSpacing: -0.8, lineHeight: 1 }}>{price.monthly}</div>
+                      {p.mode === 'subscription' && <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 11.5, fontWeight: 500, color: RC.inkMute }}>per month</div>}
                     </div>
                   </button>
                 );
@@ -247,12 +273,16 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
       </div>
 
       {cat && selected && (
-        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '12px 20px max(20px, env(safe-area-inset-bottom, 0px))', background: RC.glass, borderTop: `1px solid ${RC.line}` }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10, fontFamily: 'var(--font)' }}>
-            <span style={{ fontSize: 13, color: RC.inkMute }}>{selected.tier === 'unlimited' ? 'Unlimited' : `${gb} GB`} · {termTitle(selected)}</span>
-            <span style={{ fontSize: 15, fontWeight: 800, color: RC.ink }}>{priceOf(selected, productFor(selected)).total}{selected.mode === 'subscription' ? ' today' : ''}</span>
+        // A floating rounded bar: what is chosen and its total on the left,
+        // a round Continue on the right, clear of the home indicator.
+        <div style={{ position: 'absolute', left: 12, right: 12, bottom: 'max(12px, env(safe-area-inset-bottom, 0px))', padding: 8, paddingLeft: 20, borderRadius: SHEET_RADIUS + 4, background: RC.paper, border: `1px solid ${RC.line}`, boxShadow: '0 2px 8px rgba(52,28,84,0.06), 0 18px 40px -16px rgba(52,28,84,0.30)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ flexShrink: 0, fontFamily: 'var(--font)' }}>
+            <div style={{ fontSize: 12.5, color: RC.inkMute, whiteSpace: 'nowrap' }}>{selected.tier === 'unlimited' ? 'Unlimited' : `${gb} GB`} · {termTitle(selected)}</div>
+            <div style={{ marginTop: 2, fontSize: 17, fontWeight: 800, color: RC.ink, letterSpacing: -0.3, whiteSpace: 'nowrap' }}>{priceOf(selected, productFor(selected)).total}{selected.mode === 'subscription' ? ' today' : ''}</div>
           </div>
-          <RingoButton onClick={continueTap}>Continue</RingoButton>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <RingoButton round onClick={continueTap}>Continue</RingoButton>
+          </div>
         </div>
       )}
     </div>
