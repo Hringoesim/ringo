@@ -17,12 +17,19 @@
 // `?hero=a|b|c` picks one so the owner can compare. The sky's colour stops
 // are anchored to the measured logo and globe, so the dark sits behind the
 // logo on every screen height, compact included.
+//
+// The night part of the sky carries stars and a shooting star (NightSky) and
+// the globe has a plane, cloud wisps and signal pulses on its near face
+// (GlobeLife, inside SaturnWorld). Everything on the screen pauses while it
+// is out of view, and the status bar text turns white over the plum sky.
 import { useEffect, useState, useLayoutEffect, useRef, type CSSProperties } from 'react';
 import { SaturnWorld } from '../components/SaturnWorld';
+import { NightSky, type SkyGeometry } from '../components/NightSky';
 import { AuthButtons } from '../components/AuthButtons';
 import { TextLink } from '../components/ui';
 import { LOGO_SRC } from '../assets';
 import { COLUMN_MAX } from '../theme';
+import { requestLightStatusBar } from '../lib/statusBar';
 
 type Hero = 'a' | 'b' | 'c';
 const SHIPPED: Hero = 'a';
@@ -40,7 +47,11 @@ function heroVariant(): Hero {
 const PLUM = '#1A0F2E';
 const SUNSET = 'linear-gradient(180deg, #FFE3B8 0%, #FFB877 17%, #FF8A5B 35%, #F2585F 55%, #D33C8E 74%, #9B57DC 91%, #7A44C4 100%)';
 
-interface Anchors { logo: number; globe: number; height: number }
+interface Anchors {
+  logo: number; globe: number; height: number;
+  /** for the stars: the sky's width, the logo's box and the globe's centre */
+  width: number; logoBox: SkyGeometry['logo']; globeX: number;
+}
 
 // Colour stops must never run backwards, whatever the measured anchors.
 function stops(list: Array<[string, number]>): string {
@@ -80,7 +91,10 @@ export function LandingScreen({
   const [hero] = useState<Hero>(heroVariant);
   const [globe, setGlobe] = useState(220);
   const [compact, setCompact] = useState(false);
-  const [anchors, setAnchors] = useState<Anchors>({ logo: 160, globe: 300, height: 932 });
+  const [anchors, setAnchors] = useState<Anchors>({
+    logo: 160, globe: 300, height: 932, width: 430, logoBox: { left: 144, right: 287, top: 85, bottom: 149 }, globeX: 215,
+  });
+  const [paused, setPaused] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLImageElement>(null);
@@ -116,18 +130,63 @@ export function LandingScreen({
     const root = rootRef.current;
     if (!root) return;
     const measure = () => {
-      const top = root.getBoundingClientRect().top;
+      const box = root.getBoundingClientRect();
+      const top = box.top;
       const logo = logoRef.current?.getBoundingClientRect();
       const g = globeRef.current?.getBoundingClientRect();
       if (!logo || !g) return;
-      const next = { logo: logo.bottom - top, globe: g.top + g.height / 2 - top, height: root.clientHeight };
-      setAnchors((p) => (Math.abs(p.logo - next.logo) < 1 && Math.abs(p.globe - next.globe) < 1 && p.height === next.height ? p : next));
+      const next: Anchors = {
+        logo: logo.bottom - top, globe: g.top + g.height / 2 - top, height: root.clientHeight,
+        width: root.clientWidth, globeX: g.left + g.width / 2 - box.left,
+        logoBox: {
+          left: Math.floor(logo.left - box.left), right: Math.ceil(logo.right - box.left),
+          top: Math.floor(logo.top - top), bottom: Math.ceil(logo.bottom - top),
+        },
+      };
+      setAnchors((p) => (
+        Math.abs(p.logo - next.logo) < 1 && Math.abs(p.globe - next.globe) < 1 && p.height === next.height
+        && p.width === next.width && Math.abs(p.globeX - next.globeX) < 1
+        && p.logoBox.left === next.logoBox.left && p.logoBox.top === next.logoBox.top
+        && p.logoBox.right === next.logoBox.right && p.logoBox.bottom === next.logoBox.bottom ? p : next));
     };
     measure();
+    // The logo can move without the screen resizing (the headline reflowing
+    // once the web font lands), and the stars must keep clear of it, so watch
+    // the hero's blocks too and measure again when the fonts are ready.
     const ro = new ResizeObserver(measure);
     ro.observe(root);
-    return () => ro.disconnect();
+    const hero = heroRef.current;
+    if (hero) { ro.observe(hero); for (const child of Array.from(hero.children)) ro.observe(child); }
+    let live = true;
+    void document.fonts?.ready.then(() => { if (live) measure(); });
+    return () => { live = false; ro.disconnect(); };
   }, [globe, compact]);
+
+  // The clock and battery in white over the plum sky (they were dark and
+  // nearly invisible there); every other screen gets the theme's setting back.
+  useEffect(() => {
+    if (hero === 'c') return;
+    requestLightStatusBar(true);
+    return () => requestLightStatusBar(false);
+  }, [hero]);
+
+  // Hold every animation on the screen still while it is out of view: the app
+  // in the background, or the welcome screen covered or scrolled away.
+  useEffect(() => {
+    const root = rootRef.current;
+    let hidden = document.visibilityState === 'hidden';
+    let offscreen = false;
+    const apply = () => setPaused(hidden || offscreen);
+    const onVis = () => { hidden = document.visibilityState === 'hidden'; apply(); };
+    document.addEventListener('visibilitychange', onVis);
+    let io: IntersectionObserver | undefined;
+    if (root && typeof IntersectionObserver !== 'undefined') {
+      io = new IntersectionObserver((entries) => { offscreen = !entries.some((e) => e.isIntersecting); apply(); });
+      io.observe(root);
+    }
+    apply();
+    return () => { document.removeEventListener('visibilitychange', onVis); io?.disconnect(); };
+  }, []);
 
   useEffect(() => {
     const compute = () => {
@@ -155,11 +214,18 @@ export function LandingScreen({
   return (
     <div
       ref={rootRef}
+      data-sky-paused={paused ? '' : undefined}
       style={{
         flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative',
         background: background(hero, anchors, globe),
       }}
     >
+      {hero === 'a' && (
+        <NightSky
+          geometry={{ width: anchors.width, logo: anchors.logoBox, globeX: anchors.globeX, globeY: anchors.globe, globe }}
+        />
+      )}
+
       {hero === 'b' && (
         <>
           {/* The plum band: solid under the logo, fading out across the globe's middle. */}
@@ -222,7 +288,7 @@ export function LandingScreen({
           />
           <div style={{ animation: 'ringoGlobeIn 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) both' }}>
             <div style={{ animation: 'ringoGlobeFloat 6s ease-in-out infinite' }}>
-              <SaturnWorld size={globe} satellite />
+              <SaturnWorld size={globe} satellite life />
             </div>
           </div>
         </div>

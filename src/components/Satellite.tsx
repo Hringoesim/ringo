@@ -11,7 +11,8 @@
 // The ellipse comes from two eased sways (horizontal and vertical, a quarter
 // period apart), tilted as one. Reduced motion holds the satellite still on
 // the near side, a little right of centre.
-import { useEffect, useState, type CSSProperties } from 'react';
+import { type CSSProperties } from 'react';
+import { useReducedMotion } from '../lib/useReducedMotion';
 
 export const ORBIT_SECONDS = 12;
 const TILT = -14; // degrees
@@ -19,19 +20,6 @@ const RX = 0.52; // orbit half width, share of the globe size
 const RY = 0.17; // orbit half height before the tilt
 const LIFT = 0.28; // orbit centre sits this far above the globe centre
 const STILL = 0.78; // reduced motion: where on the orbit to rest, in half turns
-
-function useReducedMotion(): boolean {
-  const q = '(prefers-reduced-motion: reduce)';
-  const [reduce, setReduce] = useState(() => typeof matchMedia !== 'undefined' && matchMedia(q).matches);
-  useEffect(() => {
-    if (typeof matchMedia === 'undefined') return;
-    const m = matchMedia(q);
-    const on = () => setReduce(m.matches);
-    m.addEventListener?.('change', on);
-    return () => m.removeEventListener?.('change', on);
-  }, []);
-  return reduce;
-}
 
 // Flat illustration in the brand palette: an orange body, violet panels,
 // a plum strut and a white dish.

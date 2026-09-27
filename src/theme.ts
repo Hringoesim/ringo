@@ -92,6 +92,19 @@ export function cardSurface(): CSSProperties {
 export const EASE_SPRING = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
 export const EASE_OUT = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
+// The site's brand swatches (its --or, --pk, --pu, --ink and the amber end of
+// --grad), named once for illustrations that sit outside the live theme: the
+// welcome sky, the satellite, the plane and the signal pulses on the globe.
+export const BRAND = {
+  orange: '#FF5724',
+  amber: '#FFB83D',
+  pink: '#FF42A1',
+  violet: '#8652E0',
+  lilac: '#C9B3F5',
+  plum: '#1A0F2E',
+  starlight: '#FFF6EC',
+} as const;
+
 const DARK: Palette = {
   scheme: 'dark',
   bg: '#0A0810',

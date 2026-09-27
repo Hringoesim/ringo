@@ -8,6 +8,7 @@ import { Capacitor } from '@capacitor/core';
 import { RingoDevice } from './components/Device';
 import { App } from './App';
 import { RC, applyTheme, RADIUS, type Scheme } from './theme';
+import { syncStatusBar } from './lib/statusBar';
 
 // True when running as an installed app (native shell or standalone PWA).
 // `?shot=1` forces it, so App Store screenshots can be captured from a
@@ -48,9 +49,10 @@ export function Host() {
     }
     // Match the native status bar to the theme.
     if (Capacitor.isNativePlatform()) {
+      // The text colour also honours the welcome screen's light request.
+      syncStatusBar();
       void import('@capacitor/status-bar')
-        .then(({ StatusBar, Style }) => {
-          StatusBar.setStyle({ style: next === 'dark' ? Style.Dark : Style.Light });
+        .then(({ StatusBar }) => {
           StatusBar.setBackgroundColor?.({ color: next === 'dark' ? '#0A0810' : '#FFF6EF' });
         })
         .catch(() => {});

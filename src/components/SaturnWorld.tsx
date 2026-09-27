@@ -3,12 +3,15 @@
 // with the globe). No halo — just the globe filling the box.
 // With `satellite` a small satellite circles it: its orbit is drawn under the planet and over
 // it, so the far side of the orbit passes behind the globe.
+// With `life` a plane, cloud wisps and signal pulses move over the near face
+// (GlobeLife), clipped to the planet so nothing shows past the horizon.
 import { lazy, Suspense } from 'react';
 import { Orbit } from './Satellite';
+import { GlobeLife } from './GlobeLife';
 
 const RingoGlobe = lazy(() => import('./Globe').then((m) => ({ default: m.RingoGlobe })));
 
-export function SaturnWorld({ size = 300, satellite = false }: { size?: number; satellite?: boolean }) {
+export function SaturnWorld({ size = 300, satellite = false, life = false }: { size?: number; satellite?: boolean; life?: boolean }) {
   const planet = size; // globe fills the box — NO ring/halo/shadow around it
   return (
     <div style={{ width: size, height: size, position: 'relative' }}>
@@ -31,6 +34,7 @@ export function SaturnWorld({ size = 300, satellite = false }: { size?: number; 
           <RingoGlobe size={planet} />
         </Suspense>
       </div>
+      {life && <GlobeLife size={size} />}
       {satellite && <Orbit size={size} side="front" />}
     </div>
   );
