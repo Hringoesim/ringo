@@ -174,7 +174,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
 
         {stage === 'email' && renewing && (
           <div style={{ marginTop: 18, padding: '12px 14px', borderRadius: RADIUS.sm, background: RC.cream, fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute, lineHeight: 1.55 }}>
-            <span style={{ fontWeight: 700, color: RC.ink }}>Renews {price.total} every {periodWord(p)}</span> through your Apple ID until you cancel in Settings › Apple ID › Subscriptions, at least 24 hours before a renewal. No minimum term: cancel any time and keep the period you paid for. Charged when you confirm.
+            <span style={{ fontWeight: 700, color: RC.ink }}>Renews {price.total} every {periodWord(p)} through your Apple ID until you cancel in Settings.</span> Cancel in Settings › Apple ID › Subscriptions at least 24 hours before a renewal. No minimum term: cancel any time and keep the {periodWord(p)} you paid for. Charged when you confirm.
           </div>
         )}
         {stage === 'email' && (

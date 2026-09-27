@@ -5,8 +5,9 @@
 // weeks, 10 GB", "30 days, 20 GB", "7 days, Unlimited"), cheapest first and
 // chosen, with a Data / Unlimited switch only where both are sold. The
 // duration comes from the term code in the product id (lib/terms.ts), in
-// the website's words. Global's cards show its term, the price per month
-// (the year divided by 12) and the year, and only there is renewal stated.
+// the website's words. Global is a monthly App Store subscription (owner
+// 2026-09-27): its cards read "Monthly, 10 GB a month" at the month's price,
+// and only there is renewal stated.
 // Nothing here decides a price.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { RC, RADIUS, hexA } from '../theme';
@@ -248,7 +249,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
             {renews && (
               <div style={{ marginTop: 12, fontFamily: 'var(--font)', fontSize: 11.5, color: RC.inkMute, lineHeight: 1.5 }}>
                 {selected && selected.mode === 'subscription'
-                  ? `Charged ${priceOf(selected, productFor(selected)).total} today for the ${periodWord(selected)}. Renews every ${periodWord(selected)} through your Apple ID until cancelled in Settings › Apple ID › Subscriptions.`
+                  ? `Renews ${priceOf(selected, productFor(selected)).total} every ${periodWord(selected)} through your Apple ID until you cancel in Settings.`
                   : 'Subscriptions renew through your Apple ID until cancelled in Settings › Apple ID › Subscriptions.'}
               </div>
             )}

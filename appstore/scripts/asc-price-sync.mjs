@@ -103,9 +103,13 @@ async function readSite() {
     };
     for (const p of c.plans || []) {
       const sub = p.mode === 'subscription';
-      // A renewing plan is one Apple subscription charged per TERM; the site
-      // may bill its term monthly, so the comparable amount is the term total.
-      const cents = sub ? (p.billed_monthly ? p.monthly_amount * p.term_months : p.billed_upfront_amount) : p.billed_upfront_amount;
+      // A renewing plan is one Apple subscription charged per Apple period.
+      // A ONE_MONTH product (Global since 2026-09-27) is charged the site's
+      // monthly amount; a term-priced one the term total (the site may bill
+      // that term monthly, so the comparable amount is monthly x months).
+      const cents = !sub ? p.billed_upfront_amount
+        : p.apple_period === 'ONE_MONTH' ? p.monthly_amount
+          : (p.billed_monthly ? p.monthly_amount * p.term_months : p.billed_upfront_amount);
       add(p.apple_product_id, sub ? 'sub' : 'plan', cents, { plan: p.plan, tier: p.tier, gb: p.data_gb, days: p.days, months: p.term_months });
     }
     for (const t of c.top_ups || c.topups || []) add(t.apple_product_id, 'topup', t.amount, { plan: t.plan, gb: t.data_gb });

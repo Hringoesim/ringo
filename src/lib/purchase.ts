@@ -14,9 +14,9 @@ export function appleMoney(n: number, currency: string): string {
 // What a line costs, in Apple's words. On the phone every price is the App
 // Store's (currency and amount alike); the catalogue's figure is only the
 // browser preview's stand-in. `total` is what one payment takes: the trip's
-// price, or a subscription's whole term (Apple bills an Annual as one year,
-// so its month is the year divided by 12, never the catalogue's month shown
-// as the year). `monthly` is that total per month of the term.
+// price, or a subscription's Apple period (Global is one month since
+// 2026-09-27, so its total and its month are the same; a yearly product's
+// month would be the year divided by 12). `monthly` is that total per month.
 export function priceOf(plan: Plan, product: IapProduct | null): { total: string; monthly: string; currency: string } {
   const months = subMonths(plan);
   if (product) {

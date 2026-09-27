@@ -1,19 +1,22 @@
 // terms.ts — how long a plan lasts and what it is called, read from the
 // term code in its App Store product id (com.ringoesim.app.plan.rl_14.…,
-// com.ringoesim.app.sub.rl_annual.…), never from term_months alone: since
+// com.ringoesim.app.sub.global_1m.…), never from term_months alone: since
 // 2026-09-26 every region, country and trip is one payment with term_months
 // 1, so a 2 weeks and a 30 days look the same there. The names are the
 // website's (api/esim-plans.js TERM_LABEL), so the app and ringoesim.com say
-// the same thing for the same plan.
+// the same thing for the same plan. Global is sold in the app as a monthly
+// App Store subscription (owner 2026-09-27): its product carries the term
+// code global_1m, so it reads "Monthly" and renews every month, at the site's
+// monthly price, even though the site bills the same plan over 12 months.
 import type { Plan } from '../api/light';
 
 const NAME: Record<string, string> = {
   rl_14: '2 weeks', rl_30: '30 days', ul_3: '3 days', ul_7: '7 days', ul_30: '30 days',
   rl_1m: 'Monthly', ul_1m: 'Monthly', rl_20: '2 months', ul_20: '2 months', rl_6: '6 months', ul_6: '6 months',
-  rl_annual: 'Annual', ul_annual: 'Annual',
+  rl_annual: 'Annual', ul_annual: 'Annual', global_1m: 'Monthly',
 };
-/** How many months one renewal of a subscription covers (Apple bills the whole term at once). */
-const SUB_MONTHS: Record<string, number> = { rl_1m: 1, ul_1m: 1, rl_20: 2, ul_20: 2, rl_6: 6, ul_6: 6, rl_annual: 12, ul_annual: 12 };
+/** How many months one renewal of a subscription covers (Apple bills its whole period at once; Global's is one month). */
+const SUB_MONTHS: Record<string, number> = { rl_1m: 1, ul_1m: 1, global_1m: 1, rl_20: 2, ul_20: 2, rl_6: 6, ul_6: 6, rl_annual: 12, ul_annual: 12 };
 
 /** The term code of a line: from its product id, else the catalogue's plan id. */
 export function termCode(p: Plan): string {
