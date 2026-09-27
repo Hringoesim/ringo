@@ -22,7 +22,7 @@ const FAQ: { q: string; a: string }[] = [
   { q: 'Do I keep my own number?', a: 'Yes. Your own SIM stays in the phone for calls and texts; Ringo carries the data. In Settings › Mobile Data choose Ringo for data and turn Data Roaming on for it.' },
   { q: 'What if I run out of data?', a: 'Add 10 or 20 GB from My eSIM; it lands on the same eSIM within a minute. Unlimited plans follow the fair use policy in the Terms.' },
   { q: 'How do I pay, and how do I cancel a renewing plan?', a: 'Every plan is bought through the App Store with your Apple ID. A renewing plan renews automatically until you cancel it in Settings › Apple ID › Subscriptions, at least 24 hours before the period ends. One-payment plans never renew.' },
-  { q: 'Can I get a refund?', a: 'Before the eSIM is installed and used, yes, within 14 days. Once it is installed and used, plans are non-refundable; see the Terms. Purchases are billed by Apple, so refund requests go through reportaproblem.apple.com.' },
+  { q: 'Can I get a refund?', a: 'Your eSIM is issued as soon as you pay, and once it is issued we do not refund it, unless we fail to deliver a working eSIM. If it does not work because of us, contact us and we will put it right. Purchases in this app are made through the App Store, and Apple handles their refunds under its own policy: ask at reportaproblem.apple.com. See the Terms.' },
 ];
 
 /** One photograph's attribution; a composite names each of its parts. */

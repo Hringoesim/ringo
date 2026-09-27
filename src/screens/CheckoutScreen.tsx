@@ -192,6 +192,17 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
       </div>
 
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '12px 20px max(20px, env(safe-area-inset-bottom, 0px))', background: RC.glass, borderTop: `1px solid ${RC.line}` }}>
+        {/* The no-refund consent, directly above the buy button (owner
+            2026-09-27: no refund once the eSIM is issued). UK Consumer
+            Contracts Regulations 2013 reg 37: the right to cancel digital
+            content ends only on an express request for immediate supply and
+            an acknowledgement that it is lost. Apple decides App Store
+            refunds itself, so this neither promises nor denies one. */}
+        {stage === 'email' && (
+          <div data-refund-consent style={{ marginBottom: 10, fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute, lineHeight: 1.5, textAlign: 'center' }}>
+            By buying you ask us to issue your eSIM straight away and accept that you lose your right to cancel once it is issued. Refunds for App Store purchases are handled by Apple.
+          </div>
+        )}
         {stage === 'email' && <RingoButton onClick={() => void buy()}>{renewing ? `Subscribe for ${price.total}` : `Buy for ${price.total}`}</RingoButton>}
         {(stage === 'buying' || stage === 'recording') && <RingoButton loading>One moment…</RingoButton>}
         {stage === 'issuing' && <RingoButton variant="soft" onClick={onReady}>Go to My eSIM</RingoButton>}
