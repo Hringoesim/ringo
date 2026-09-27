@@ -16,7 +16,11 @@ const config: CapacitorConfig = {
       // a branded screen. Host also hides it on a hard timeout so a JS failure
       // cannot strand the user here.
       launchAutoHide: false,
-      backgroundColor: '#FFF6EF',
+      // iOS: the plugin re-shows LaunchScreen.storyboard and paints this colour
+      // behind it, so it must be the storyboard's plum (#1A0F2E, the welcome
+      // sky) or the hand-over flashes cream. Android draws its splash from
+      // Theme.SplashScreen (ringoSplashBackground) and never reads this.
+      backgroundColor: '#1A0F2E',
       androidScaleType: 'CENTER_CROP',
       showSpinner: false,
       splashFullScreen: false,
