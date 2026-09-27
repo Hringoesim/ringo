@@ -21,7 +21,8 @@ import { iapAvailable, purchase } from '../lib/iap';
 import { openInSheet } from '../lib/browser';
 import { haptic, hapticNotify } from '../lib/haptics';
 import { priceOf, reportTransaction } from '../lib/purchase';
-import { termTitle, type Selection } from './DestinationScreen';
+import { type Selection } from './DestinationScreen';
+import { planName, periodWord } from '../lib/terms';
 
 type Stage = 'email' | 'buying' | 'recording' | 'issuing' | 'ready' | 'pending' | 'failed';
 
@@ -31,10 +32,6 @@ const EMAIL_KEY = 'ringo_last_email';
 // An inline link inside the small print: padded to a 44pt hit area, and the
 // padding taken back with a negative margin so the line keeps its height.
 const INLINE_LINK: React.CSSProperties = { border: 'none', background: 'transparent', padding: '14px 0', margin: '-14px 0', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', lineHeight: 'inherit', fontWeight: 700, color: RC.inkStrong, verticalAlign: 'baseline' };
-
-function periodWord(months: number): string {
-  return months === 12 ? 'year' : months === 1 ? 'month' : `${months} months`;
-}
 
 export function CheckoutScreen({ selection, onBack, onReady }: { selection: Selection; onBack: () => void; onReady: () => void }) {
   const [email, setEmail] = useState(() => { try { return localStorage.getItem(EMAIL_KEY) || account.get()?.email || ''; } catch { return ''; } });
@@ -129,7 +126,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
             <div>
               <div style={{ fontFamily: 'var(--font)', fontSize: 16, fontWeight: 800, color: RC.ink, letterSpacing: -0.3 }}>{selection.destinationLabel}</div>
               <div style={{ marginTop: 2, fontFamily: 'var(--font)', fontSize: 13, color: RC.inkMute }}>
-                {p.tier === 'unlimited' ? 'Unlimited data' : `${selection.data_gb} GB${renewing ? ' a month' : ''}`} · {termTitle(selection.plan)}
+                {planName(p)}{renewing ? '' : ', one payment'}
               </div>
             </div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800, color: RC.ink, letterSpacing: -0.5 }}>{price.total}</div>
@@ -177,7 +174,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
 
         {stage === 'email' && renewing && (
           <div style={{ marginTop: 18, padding: '12px 14px', borderRadius: RADIUS.sm, background: RC.cream, fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute, lineHeight: 1.55 }}>
-            <span style={{ fontWeight: 700, color: RC.ink }}>Renews {price.total} every {periodWord(p.term_months)}</span> through your Apple ID until you cancel in Settings › Apple ID › Subscriptions, at least 24 hours before a renewal. No minimum term: cancel any time and keep the period you paid for. Charged when you confirm.
+            <span style={{ fontWeight: 700, color: RC.ink }}>Renews {price.total} every {periodWord(p)}</span> through your Apple ID until you cancel in Settings › Apple ID › Subscriptions, at least 24 hours before a renewal. No minimum term: cancel any time and keep the period you paid for. Charged when you confirm.
           </div>
         )}
         {stage === 'email' && (

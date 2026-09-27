@@ -1,15 +1,19 @@
 // DestinationScreen — one destination's plans, straight from the site's
-// catalogue endpoint: data plans in 10 / 20 GB by term (30 days in one
-// payment, monthly, 2, 6 and 12 months where sold) and the Unlimited tier
-// by duration. The buyer picks a card and continues to pay; nothing here
-// decides a price. Cards carry a term, one short line and the price;
-// everything else is said once, in small print (owner 2026-09-18: fewer
-// words, a clearer picker).
+// catalogue endpoint. Since 2026-09-26 (owner rule) Global is the only
+// subscription; every region, country and trip is one payment. So the plans
+// are ONE list of cards, each naming its duration and data together ("2
+// weeks, 10 GB", "30 days, 20 GB", "7 days, Unlimited"), cheapest first and
+// chosen, with a Data / Unlimited switch only where both are sold. The
+// duration comes from the term code in the product id (lib/terms.ts), in
+// the website's words. Global's cards show its term, the price per month
+// (the year divided by 12) and the year, and only there is renewal stated.
+// Nothing here decides a price.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { RC, RADIUS, hexA } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { BackBtn, Segmented } from '../components/ui';
+import { termTitle, planName, periodWord, lineKey, subMonths } from '../lib/terms';
 import { pictureFor, skyFor , bundledPictureFor} from '../data/destinations';
 import { useDestinations, destinationFrom } from '../store/destinations';
 import { light, type Catalog, type Plan } from '../api/light';
@@ -30,25 +34,13 @@ export interface Selection {
 
 type Tier = 'data' | 'unlimited';
 
-// Card copy: the term as a title, one short line, the price. Renewal is
-// stated once under the cards and in full on the purchase screen. The same
-// term name is used here, in the footer and at checkout.
-// eslint-disable-next-line react-refresh/only-export-components
-export function termTitle(p: Plan): string {
-  if (p.mode === 'payment') return `${p.days} days`;
-  if (p.term_months === 1) return 'Monthly';
-  if (p.term_months === 12) return '1 year';
-  return `${p.term_months} months`;
-}
+// Card copy: duration and data as the title, one short line, the price. A
+// one-off says it is one payment; a subscription gives its term's total and
+// that it renews, and its price is per month.
 function termLine(p: Plan, total: string): string {
-  if (p.mode === 'payment') return 'One payment';
-  if (p.term_months === 1) return 'Billed monthly';
-  return `${total} per ${p.term_months === 12 ? 'year' : `${p.term_months} months`}`;
-}
-function badge(p: Plan, plans: Plan[]): string | null {
-  if (p.mode === 'subscription' && p.term_months === 12) return 'Best value';
-  if (p.recommended && !plans.some((q) => q.mode === 'subscription' && q.term_months === 12)) return 'Popular';
-  return null;
+  if (p.mode === 'payment') return 'One payment, no renewal';
+  const per = periodWord(p);
+  return per === 'month' ? 'Renews monthly' : `${total} per ${per}, renews`;
 }
 
 // The plans picker's shape (owner 2026-09-27: more modern, more round): cards
@@ -72,8 +64,9 @@ function Check({ on }: { on: boolean }) {
   );
 }
 
-/** What a line costs in one go: Apple's price on the phone, else the catalogue's. */
-function upfront(p: Plan, product: IapProduct | null): number {
+/** What a card's big figure is, as a number to sort by: a one-off's price, a subscription's month. Apple's on the phone, else the catalogue's. */
+function shownCost(p: Plan, product: IapProduct | null): number {
+  if (p.mode === 'subscription') return product ? product.price / subMonths(p) : p.monthly_amount;
   return product ? product.price : p.billed_upfront_amount;
 }
 
@@ -83,7 +76,6 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
   const [products, setProducts] = useState<Map<string, IapProduct> | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [tier, setTier] = useState<Tier>('data');
-  const [gb, setGb] = useState<number | null>(null);
   const [planId, setPlanId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -93,7 +85,6 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
     light.catalog(id).then(async (c) => {
       if (!alive) return;
       setCat(c);
-      setGb(c.default_data_gb);
       // Not c.default_plan: the screen opens on the cheapest line (below).
       setPlanId(null);
       // Apple's products for every line here; a line Apple does not sell is
@@ -126,7 +117,6 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
       const map = await loadProducts(ids, { fresh: true });
       if (!alive) return;
       setCat(c);
-      setGb((g) => (g !== null && c.sizes.includes(g) ? g : c.default_data_gb));
       if (map.size || !iapAvailable()) setProducts(map);
       setErr(null);
       rememberAppleLines([id, c.destination.id], c.plans);
@@ -136,29 +126,30 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
 
   const native = iapAvailable();
   const productFor = (p: Plan): IapProduct | null => (p.apple_product_id && products?.get(p.apple_product_id)) || null;
+  // One list for the tier shown, cheapest first (owner 2026-09-25: the first
+  // price seen is the cheapest); a tie goes to the shorter, then the smaller.
   const plans = useMemo(() => {
     if (!cat) return [];
-    return cat.plans.filter((p) => p.tier === tier && (tier === 'unlimited' || p.data_gb === gb) && (!native || (products && p.apple_product_id && products.has(p.apple_product_id))));
-  }, [cat, tier, gb, native, products]);
+    const get = (p: Plan) => (p.apple_product_id && products?.get(p.apple_product_id)) || null;
+    return cat.plans
+      .filter((p) => p.tier === tier && (!native || (products && p.apple_product_id && products.has(p.apple_product_id))))
+      .sort((a, b) => (shownCost(a, get(a)) - shownCost(b, get(b))) || ((a.days || 30) - (b.days || 30)) || ((a.data_gb ?? 0) - (b.data_gb ?? 0)));
+  }, [cat, tier, native, products]);
 
+  // The cheapest is chosen (owner 2026-09-25), and a choice still sold is kept.
   useEffect(() => {
     if (!plans.length) return;
-    // Cheapest first and selected (owner 2026-09-25): the cheapest one-payment
-    // line of this tier, or Monthly when there is none. Never the 1 year.
-    if (plans.some((p) => p.plan === planId)) return;
-    const cost = (p: Plan) => upfront(p, (p.apple_product_id && products?.get(p.apple_product_id)) || null);
-    const once = plans.filter((p) => p.mode === 'payment').sort((a, b) => cost(a) - cost(b));
-    setPlanId((once[0] || plans.find((p) => p.mode === 'subscription' && p.term_months === 1) || plans[0]).plan);
-  }, [plans, planId, products]);
+    if (plans.some((p) => lineKey(p) === planId)) return;
+    setPlanId(lineKey(plans[0]));
+  }, [plans, planId]);
 
-  const selected = plans.find((p) => p.plan === planId) || null;
-  const sizes = cat?.sizes || [];
+  const selected = plans.find((p) => lineKey(p) === planId) || null;
   const hasUnlimited = Boolean(cat?.plans.some((p) => p.tier === 'unlimited'));
 
   const continueTap = () => {
     if (!cat || !selected) return;
     haptic('medium');
-    onContinue({ destination: id, destinationLabel: cat.destination.id === id ? cat.destination.label : `${dest?.label || id} (${cat.destination.label} plan)`, plan: selected, data_gb: selected.tier === 'data' ? gb : null, product: productFor(selected) });
+    onContinue({ destination: id, destinationLabel: cat.destination.id === id ? cat.destination.label : `${dest?.label || id} (${cat.destination.label} plan)`, plan: selected, data_gb: selected.tier === 'data' ? selected.data_gb : null, product: productFor(selected) });
   };
   const loadingPrices = native && cat && !products;
   const renews = plans.some((p) => p.mode === 'subscription');
@@ -197,16 +188,10 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
           <>
             {hasUnlimited && <Segmented<Tier> value={tier} options={[{ id: 'data', label: 'Data' }, { id: 'unlimited', label: 'Unlimited' }]} onChange={setTier} />}
 
-            {tier === 'data' && sizes.length > 1 && (
-              <div style={{ marginTop: hasUnlimited ? 10 : 0 }}>
-                <Segmented<string> value={String(gb)} options={sizes.map((s) => ({ id: String(s), label: `${s} GB` }))} onChange={(v) => setGb(Number(v))} />
-              </div>
-            )}
-
             {/* What every card below delivers, said once. */}
-            <div style={{ marginTop: 14, display: 'flex', flexWrap: 'nowrap', gap: 6, overflow: 'hidden' }}>
+            <div style={{ marginTop: hasUnlimited ? 14 : 0, display: 'flex', flexWrap: 'nowrap', gap: 6, overflow: 'hidden' }}>
               {(tier === 'data'
-                ? [`${gb} GB${selected?.mode === 'subscription' ? ' a month' : ''}`, 'No daily cap', 'Hotspot']
+                ? ['Full speed', 'No daily cap', 'Hotspot']
                 : ['Unlimited data', 'Fair use', 'Hotspot']
               ).map((t) => (
                 <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0, whiteSpace: 'nowrap', fontFamily: 'var(--font)', fontSize: 12, fontWeight: 700, color: RC.inkStrong, background: hexA(RC.inkStrong, 0.08), borderRadius: RADIUS.pill, padding: '7px 11px 7px 9px' }}>
@@ -221,18 +206,18 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
                 <div style={{ padding: 18, borderRadius: PLAN_RADIUS, background: RC.cream, fontFamily: 'var(--font)', fontSize: 13.5, color: RC.inkMute, lineHeight: 1.5 }}>
                   {native && products && products.size === 0
                     ? <>The App Store did not answer just now.<div style={{ marginTop: 10 }}><RingoButton size="sm" variant="soft" full={false} onClick={() => { setProducts(null); setReloadKey((k) => k + 1); }}>Try again</RingoButton></div></>
-                    : <>Not sold here yet. Try the other size or tier.</>}
+                    : <>Not sold here yet.{hasUnlimited ? ' Try the other tier.' : ''}</>}
                 </div>
               )}
               {plans.map((p) => {
-                const on = p.plan === planId;
+                const key = lineKey(p);
+                const on = key === planId;
                 const price = priceOf(p, productFor(p));
-                const b = badge(p, plans);
                 return (
                   <button
-                    key={p.plan}
+                    key={key}
                     className="plan-card"
-                    onClick={() => { hapticSelection(); setPlanId(p.plan); }}
+                    onClick={() => { hapticSelection(); setPlanId(key); }}
                     aria-pressed={on}
                     style={{
                       textAlign: 'left', cursor: 'pointer', width: '100%',
@@ -248,15 +233,12 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
                   >
                     <Check on={on} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                        <span style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 800, color: RC.ink, letterSpacing: -0.4 }}>{termTitle(p)}</span>
-                        {b && <span style={{ fontFamily: 'var(--font)', fontSize: 11, fontWeight: 800, letterSpacing: 0.1, color: '#fff', background: RC.grad, borderRadius: RADIUS.pill, padding: '4px 10px', whiteSpace: 'nowrap' }}>{b}</span>}
-                      </div>
+                      <div style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 800, color: RC.ink, letterSpacing: -0.4 }}>{planName(p)}</div>
                       <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 500, color: RC.inkMute }}>{termLine(p, price.total)}</div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontFamily: 'var(--font-display)', fontSize: 25, fontWeight: 800, color: RC.ink, letterSpacing: -0.8, lineHeight: 1 }}>{price.monthly}</div>
-                      {p.mode === 'subscription' && <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 11.5, fontWeight: 500, color: RC.inkMute }}>per month</div>}
+                      <div style={{ fontFamily: 'var(--font-display)', fontSize: 25, fontWeight: 800, color: RC.ink, letterSpacing: -0.8, lineHeight: 1 }}>{p.mode === 'subscription' ? price.monthly : price.total}</div>
+                      <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 11.5, fontWeight: 500, color: RC.inkMute }}>{p.mode === 'subscription' ? 'a month' : `for ${termTitle(p)}`}</div>
                     </div>
                   </button>
                 );
@@ -265,7 +247,9 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
 
             {renews && (
               <div style={{ marginTop: 12, fontFamily: 'var(--font)', fontSize: 11.5, color: RC.inkMute, lineHeight: 1.5 }}>
-                Monthly and multi-month plans renew through your Apple ID until cancelled in Settings › Apple ID › Subscriptions.
+                {selected && selected.mode === 'subscription'
+                  ? `Charged ${priceOf(selected, productFor(selected)).total} today for the ${periodWord(selected)}. Renews every ${periodWord(selected)} through your Apple ID until cancelled in Settings › Apple ID › Subscriptions.`
+                  : 'Subscriptions renew through your Apple ID until cancelled in Settings › Apple ID › Subscriptions.'}
               </div>
             )}
           </>
@@ -277,7 +261,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
         // a round Continue on the right, clear of the home indicator.
         <div style={{ position: 'absolute', left: 12, right: 12, bottom: 'max(12px, env(safe-area-inset-bottom, 0px))', padding: 8, paddingLeft: 20, borderRadius: SHEET_RADIUS + 4, background: RC.paper, border: `1px solid ${RC.line}`, boxShadow: '0 2px 8px rgba(52,28,84,0.06), 0 18px 40px -16px rgba(52,28,84,0.30)', display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ flexShrink: 0, fontFamily: 'var(--font)' }}>
-            <div style={{ fontSize: 12.5, color: RC.inkMute, whiteSpace: 'nowrap' }}>{selected.tier === 'unlimited' ? 'Unlimited' : `${gb} GB`} · {termTitle(selected)}</div>
+            <div style={{ fontSize: 12.5, color: RC.inkMute, whiteSpace: 'nowrap' }}>{planName(selected)}</div>
             <div style={{ marginTop: 2, fontSize: 17, fontWeight: 800, color: RC.ink, letterSpacing: -0.3, whiteSpace: 'nowrap' }}>{priceOf(selected, productFor(selected)).total}{selected.mode === 'subscription' ? ' today' : ''}</div>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>

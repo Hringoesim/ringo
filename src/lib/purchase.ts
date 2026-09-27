@@ -4,6 +4,7 @@
 import { light, money, type Plan , ApiError } from '../api/light';
 import { account, pendingPurchase } from '../store/account';
 import { finish, type IapProduct, type IapTransaction } from './iap';
+import { subMonths } from './terms';
 
 /** An amount in Apple's currency, formatted for this phone. */
 export function appleMoney(n: number, currency: string): string {
@@ -11,14 +12,18 @@ export function appleMoney(n: number, currency: string): string {
 }
 
 // What a line costs, in Apple's words. On the phone every price is the App
-// Store's (currency and amount alike); the catalogue's EUR figure is only
-// the browser preview's stand-in.
+// Store's (currency and amount alike); the catalogue's figure is only the
+// browser preview's stand-in. `total` is what one payment takes: the trip's
+// price, or a subscription's whole term (Apple bills an Annual as one year,
+// so its month is the year divided by 12, never the catalogue's month shown
+// as the year). `monthly` is that total per month of the term.
 export function priceOf(plan: Plan, product: IapProduct | null): { total: string; monthly: string; currency: string } {
+  const months = subMonths(plan);
   if (product) {
-    const per = plan.mode === 'subscription' && plan.term_months > 1 ? product.price / plan.term_months : product.price;
-    return { total: product.displayPrice, monthly: appleMoney(per, product.currency), currency: product.currency };
+    return { total: product.displayPrice, monthly: appleMoney(product.price / months, product.currency), currency: product.currency };
   }
-  return { total: money(plan.billed_upfront_amount, plan.currency), monthly: money(plan.monthly_amount, plan.currency), currency: plan.currency.toUpperCase() };
+  const total = plan.mode === 'subscription' ? plan.monthly_amount * months : plan.billed_upfront_amount;
+  return { total: money(total, plan.currency), monthly: money(plan.mode === 'subscription' ? plan.monthly_amount : total, plan.currency), currency: plan.currency.toUpperCase() };
 }
 
 /** Report a paid transaction to the site and, once it is recorded, finish it. Shared with the relaunch path in App.tsx. */
