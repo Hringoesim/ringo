@@ -19,9 +19,9 @@
 // logo on every screen height, compact included.
 //
 // The night part of the sky carries stars and a shooting star (NightSky) and
-// the globe has its plane with a chemtrail and signal pulses on its near face
-// (GlobeLife, inside SaturnWorld). Everything on the screen pauses while it
-// is out of view, and the status bar text turns white over the plum sky.
+// the globe has its plane with a chemtrail (no signal pulses, owner
+// 2026-09-27: "we dont want the signal pulse"). Everything on the screen
+// pauses while it is out of view, and the status bar text turns white over the plum sky.
 import { useEffect, useState, useLayoutEffect, useRef, type CSSProperties } from 'react';
 import { SaturnWorld } from '../components/SaturnWorld';
 import { NightSky, type SkyGeometry } from '../components/NightSky';
@@ -288,7 +288,7 @@ export function LandingScreen({
           />
           <div style={{ animation: 'ringoGlobeIn 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) both' }}>
             <div style={{ animation: 'ringoGlobeFloat 6s ease-in-out infinite' }}>
-              <SaturnWorld size={globe} satellite life />
+              <SaturnWorld size={globe} satellite />
             </div>
           </div>
         </div>
