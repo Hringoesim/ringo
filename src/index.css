@@ -275,9 +275,9 @@ textarea,
   50%, 100% { opacity: 0; }
 }
 
-/* Welcome sky (components/NightSky.tsx) and the life on the globe
-   (components/GlobeLife.tsx; the plane's own keyframes are built there from
-   its route). Transform and opacity only, so it all stays on the compositor. */
+/* Welcome sky (components/NightSky.tsx) and the signal pulses on the globe
+   (components/GlobeLife.tsx). Transform and opacity only, so it all stays on
+   the compositor. */
 @keyframes ringoTwinkle {
   from { opacity: var(--o); }
   to { opacity: calc(var(--o) * 0.22); }
@@ -299,17 +299,9 @@ textarea,
   69.1% { transform: translate(calc(var(--x0) + var(--dx) * 0.8), calc(var(--y0) + var(--dy) * 0.8)); opacity: 0; }
   69.11%, 100% { transform: translate(var(--x0), var(--y0)); opacity: 0; }
 }
-@keyframes ringoCloud {
-  from { transform: translateX(calc(var(--gs) * -0.3)); }
-  to { transform: translateX(calc(var(--gs) * 1.05)); }
-}
 @keyframes ringoPulse {
   0% { transform: scale(0.3); opacity: 0.95; }
   40%, 100% { transform: scale(1.9); opacity: 0; }
-}
-@keyframes ringoTrail {
-  0% { opacity: 0.9; }
-  28%, 100% { opacity: 0; }
 }
 /* The welcome screen out of view (app in the background, screen covered):
    every animation on it holds still. */

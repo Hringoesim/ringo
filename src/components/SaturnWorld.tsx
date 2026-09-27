@@ -3,8 +3,8 @@
 // with the globe). No halo — just the globe filling the box.
 // With `satellite` a small satellite circles it: its orbit is drawn under the planet and over
 // it, so the far side of the orbit passes behind the globe.
-// With `life` a plane, cloud wisps and signal pulses move over the near face
-// (GlobeLife), clipped to the planet so nothing shows past the horizon.
+// With `life` signal pulses pop on the near face (GlobeLife), clipped to the
+// planet so nothing shows past the horizon.
 import { lazy, Suspense } from 'react';
 import { Orbit } from './Satellite';
 import { GlobeLife } from './GlobeLife';

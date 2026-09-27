@@ -2,8 +2,9 @@
 // great-circle world tour; the camera follows it so countries scroll beneath.
 // Real coastlines (Natural Earth 110m — light enough to stay smooth on-device)
 // via a d3-geo orthographic projection on a 2D canvas, sun-lit land + ocean,
-// drifting ambient clouds, 3D monument icons standing on their real cities,
-// and the 3D plane sprite flying the tour clean (no cloud, no trail).
+// 3D monument icons standing on their real cities, and the 3D plane sprite
+// flying the tour with a fading chemtrail. No clouds (owner 2026-09-27: "no
+// need for clouds when you have a plane").
 import { useEffect, useRef } from 'react';
 import {
   geoOrthographic,
@@ -221,17 +222,6 @@ const RANGES: { lng: number; lat: number; s: number }[] = [
   { lng: 29, lat: -29.5, s: 0.6 }, // Drakensberg
 ];
 
-const CLOUDS: { lng: number; lat: number; r: number }[] = [
-  { lng: -30, lat: 22, r: 0.30 }, { lng: -62, lat: -12, r: 0.34 },
-  { lng: 18, lat: 6, r: 0.26 }, { lng: 58, lat: 32, r: 0.30 },
-  { lng: 102, lat: -18, r: 0.36 }, { lng: 140, lat: 12, r: 0.28 },
-  { lng: 172, lat: -34, r: 0.30 }, { lng: -122, lat: 42, r: 0.32 },
-  { lng: -92, lat: -30, r: 0.26 }, { lng: 2, lat: 52, r: 0.24 },
-  { lng: 46, lat: -42, r: 0.28 }, { lng: -150, lat: 8, r: 0.34 },
-  { lng: 122, lat: 46, r: 0.26 }, { lng: -18, lat: -26, r: 0.30 },
-  { lng: 82, lat: 22, r: 0.24 }, { lng: 158, lat: 28, r: 0.28 },
-];
-
 export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
 
@@ -250,7 +240,6 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
 
     const projection = geoOrthographic().scale(R * ZOOM).translate([cx, cy]).clipAngle(90);
     const path = geoPath(projection, ctx);
-    const cloudProjection = geoOrthographic().scale(R * ZOOM).translate([cx, cy]).clipAngle(90);
 
     const reduce = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     let raf = 0;
@@ -277,7 +266,6 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     let lambda = -TOUR[0][0];
     let phi = -TOUR[0][1];
     let heading = NaN;
-    let cloudOffset = 0;
     const trail: [number, number][] = []; // chemtrail — recent path points
     let lastTs = performance.now();
     let lastDraw = 0;
@@ -441,33 +429,6 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.restore();
     };
 
-    const drawClouds = () => {
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(cx, cy, R, 0, Math.PI * 2);
-      ctx.clip();
-      const centre: [number, number] = [-(lambda + cloudOffset), -phi];
-      const limit = VIS - 0.02;
-      for (const c of CLOUDS) {
-        const d = geoDistance([c.lng, c.lat], centre);
-        if (d >= limit) continue;
-        const pt = cloudProjection([c.lng, c.lat]);
-        if (!pt) continue;
-        const edge = 1 - d / limit;
-        const alpha = 0.42 * Math.min(1, edge * 1.7);
-        const rad = c.r * R * (0.55 + 0.45 * edge);
-        const gr = ctx.createRadialGradient(pt[0], pt[1], 0, pt[0], pt[1], rad);
-        gr.addColorStop(0, `rgba(255,255,255,${alpha})`);
-        gr.addColorStop(0.55, `rgba(255,255,255,${alpha * 0.45})`);
-        gr.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.fillStyle = gr;
-        ctx.beginPath();
-        ctx.arc(pt[0], pt[1], rad, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.restore();
-    };
-
     // Monuments stand upright on their cities, growing as they face the camera.
     // A collision pass guarantees no two sprites ever overlap: the one nearer
     // the centre wins, the loser is skipped this frame.
@@ -508,8 +469,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.restore();
     };
 
-    // The plane sprite, nose-first along the route. No cloud, no trail — it
-    // flies clean (user call).
+    // The plane sprite, nose-first along the route, with its chemtrail.
     const drawPlane = () => {
       const p = projection([planeLng, planeLat]);
       if (!p) return;
@@ -562,7 +522,6 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, size, size);
       projection.scale(R * ZOOM).rotate([lambda, phi, 0]);
-      cloudProjection.scale(R * ZOOM).rotate([lambda + cloudOffset, phi, 0]);
 
       ctx.save();
       ctx.beginPath();
@@ -604,7 +563,6 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       ctx.restore();
 
       drawTerrain();
-      if (flying) drawClouds();
 
       // Lighting BEFORE the monuments: the night-side shading must never dim
       // the landmark/animal accents — they ride above it at full brightness.
@@ -636,7 +594,6 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     const tick = (now: number) => {
       const dt = Math.min(0.1, (now - lastTs) / 1000);
       lastTs = now;
-      cloudOffset += 0.9 * dt;
 
       if (flying) {
         let A = TOUR[seg];

@@ -19,7 +19,7 @@
 // logo on every screen height, compact included.
 //
 // The night part of the sky carries stars and a shooting star (NightSky) and
-// the globe has a plane, cloud wisps and signal pulses on its near face
+// the globe has its plane with a chemtrail and signal pulses on its near face
 // (GlobeLife, inside SaturnWorld). Everything on the screen pauses while it
 // is out of view, and the status bar text turns white over the plum sky.
 import { useEffect, useState, useLayoutEffect, useRef, type CSSProperties } from 'react';
