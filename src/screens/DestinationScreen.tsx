@@ -5,7 +5,7 @@
 // decides a price. Cards carry a term, one short line and the price;
 // everything else is said once, in small print (owner 2026-09-18: fewer
 // words, a clearer picker).
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { RC, RADIUS, SHADOW_CARD, SHADOW_RAISED } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
@@ -15,6 +15,7 @@ import { useDestinations, destinationFrom } from '../store/destinations';
 import { light, type Catalog, type Plan } from '../api/light';
 import { loadProducts, iapAvailable, type IapProduct } from '../lib/iap';
 import { rememberAppleLines } from '../store/summary';
+import { useLiveTick } from '../store/live';
 import { priceOf } from '../lib/purchase';
 import { haptic, hapticSelection } from '../lib/haptics';
 
@@ -88,6 +89,29 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
     }).catch((e: Error) => { if (alive) setErr(e.message || 'Could not load the plans.'); });
     return () => { alive = false; };
   }, [id, reloadKey]);
+
+  // Back in the foreground: the plans and prices again, from the site and
+  // from the App Store, swapped in place. The screen keeps what was chosen
+  // when it is still sold; a line gone after a reprice falls back to the
+  // cheapest (the effect below). An answer that fails keeps the last one.
+  const tick = useLiveTick();
+  const openedAt = useRef(tick);
+  useEffect(() => {
+    if (tick === openedAt.current) return;
+    let alive = true;
+    light.catalog(id).then(async (c) => {
+      if (!alive) return;
+      const ids = c.plans.map((p) => p.apple_product_id).filter((x): x is string => Boolean(x));
+      const map = await loadProducts(ids, { fresh: true });
+      if (!alive) return;
+      setCat(c);
+      setGb((g) => (g !== null && c.sizes.includes(g) ? g : c.default_data_gb));
+      if (map.size || !iapAvailable()) setProducts(map);
+      setErr(null);
+      rememberAppleLines([id, c.destination.id], c.plans);
+    }).catch(() => { /* the last answer stands */ });
+    return () => { alive = false; };
+  }, [tick, id]);
 
   const native = iapAvailable();
   const productFor = (p: Plan): IapProduct | null => (p.apple_product_id && products?.get(p.apple_product_id)) || null;

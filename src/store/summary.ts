@@ -1,5 +1,8 @@
-// summary.ts — the store's from-prices, fetched once per launch and shared by
-// every card. The currency (EUR or USD) is decided by the site from the IP.
+// summary.ts — the store's from-prices, fetched at launch and again every
+// time the app returns to the foreground (store/live.ts), shared by every
+// card. The currency (EUR or USD) is decided by the site from the IP. The
+// last answer is kept in memory only, to paint the cards at once while the
+// fresh one loads; a reprice on the site shows at the next return.
 //
 // On the phone the plan screen shows Apple's price, and Apple's price tiers
 // can differ from the site's by a few dollars, so a card's "From" is Apple's
@@ -12,26 +15,44 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { light, type Plan, type Summary } from '../api/light';
 import { iapAvailable, loadProducts } from '../lib/iap';
 import { appleMoney } from '../lib/purchase';
+import { live } from './live';
 
-let cache: Summary | null = null;
+let current: Summary | null = null;
+let loadedTick = -1;
+const summaryListeners = new Set<() => void>();
+
+/** Asks the site for the from-prices unless this live tick already did. */
+export function refreshSummary(): void {
+  const t = live.get();
+  if (loadedTick === t) return;
+  loadedTick = t;
+  light.summary().then((v) => {
+    current = v;
+    summaryListeners.forEach((l) => l());
+  }).catch(() => { if (loadedTick === t) loadedTick = -1; });
+}
 
 export function useSummary(): Summary | null {
-  const [s, setS] = useState<Summary | null>(cache);
-  useEffect(() => {
-    let alive = true;
-    light.summary().then((v) => { cache = v; if (alive) setS(v); }).catch(() => {});
-    return () => { alive = false; };
-  }, []);
+  const s = useSyncExternalStore((l) => { summaryListeners.add(l); return () => summaryListeners.delete(l); }, () => current, () => current);
+  const t = useSyncExternalStore(live.subscribe, live.get, live.get);
+  useEffect(() => { refreshSummary(); }, [t]);
   return s;
 }
 
 /** An App Store product sold for a destination, and what divides its price into the monthly figure (as priceOf does). */
 type AppleLine = [productId: string, perMonths: number];
-const LINES_KEY = 'ringo_apple_lines_v1';
-let lines: Record<string, AppleLine[]> = (() => {
-  try { const raw = localStorage.getItem(LINES_KEY); const v: unknown = raw ? JSON.parse(raw) : {}; return v && typeof v === 'object' ? (v as Record<string, AppleLine[]>) : {}; } catch { return {}; }
-})();
+// In memory only, and forgotten at every return to the app: a destination
+// repriced on the site sells new products, and lines kept from before would
+// price its card with a product it no longer sells. The copy an older build
+// kept on the phone is removed.
+try { localStorage.removeItem('ringo_apple_lines_v1'); } catch { /* ignore */ }
+let lines: Record<string, AppleLine[]> = {};
 const lineListeners = new Set<() => void>();
+live.subscribe(() => {
+  if (!Object.keys(lines).length) return;
+  lines = {};
+  lineListeners.forEach((l) => l());
+});
 
 /** Called when a destination's catalogue is open: its App Store lines, under every id it answers to. */
 export function rememberAppleLines(ids: string[], plans: Plan[]): void {
@@ -42,7 +63,6 @@ export function rememberAppleLines(ids: string[], plans: Plan[]): void {
   const same = ids.every((id) => JSON.stringify(lines[id]) === JSON.stringify(list));
   if (same) return;
   lines = { ...lines, ...Object.fromEntries(ids.map((id) => [id, list])) };
-  try { localStorage.setItem(LINES_KEY, JSON.stringify(lines)); } catch { /* ignore */ }
   lineListeners.forEach((l) => l());
 }
 
@@ -63,13 +83,14 @@ export function useAppleFrom(summary: Summary | null): Record<string, string> {
     if (!iapAvailable()) return;
     let alive = true;
     // The summary's lines for every destination, plus the lines of any
-    // destination opened; one batched StoreKit request (loadProducts caches).
+    // destination opened; one batched StoreKit request, asked afresh so a
+    // price changed in App Store Connect shows too.
     const known: Record<string, AppleLine[]> = {};
     for (const [dest, ids] of Object.entries(fromLines ?? {})) known[dest] = ids.map((id): AppleLine => [id, perMonths(id)]);
     for (const [dest, list] of Object.entries(remembered)) known[dest] = [...(known[dest] ?? []), ...list];
     const ids = [...new Set(Object.values(known).flatMap((l) => l.map(([id]) => id)))];
     if (!ids.length) return;
-    void loadProducts(ids).then((products) => {
+    void loadProducts(ids, { fresh: true }).then((products) => {
       if (!alive) return;
       const out: Record<string, string> = {};
       for (const [dest, list] of Object.entries(known)) {

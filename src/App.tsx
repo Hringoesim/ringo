@@ -13,6 +13,7 @@ import { ScreenHost, type NavDir } from './components/ScreenHost';
 import { haptic } from './lib/haptics';
 import { account, pendingPurchase } from './store/account';
 import { useDestinations } from './store/destinations';
+import { startLive } from './store/live';
 import { unfinished, onTransaction, finish, loadProducts, iapAvailable, setStoreStatus, type IapTransaction } from './lib/iap';
 import { reportTransaction } from './lib/purchase';
 import { light } from './api/light';
@@ -51,6 +52,9 @@ export function App() {
   // Google sign-in on would have changed nothing until someone opened the
   // store first.
   useDestinations();
+  // Everything read from the site is asked again whenever the app returns to
+  // the foreground, so what the app sells is what ringoesim.com sells now.
+  useEffect(() => { startLive(); }, []);
   // Each frame carries a unique monotonic id so distinct navigations never
   // share a React key (prevents a screen instance being reused with stale
   // params).

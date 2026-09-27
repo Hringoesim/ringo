@@ -2,7 +2,7 @@
 // it, the install button, top-ups, and the two things support gets asked
 // for: the install email again and reporting a problem. Everything is read
 // from ringoesim.com against the owner's token; the app keeps no copy.
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { RC, RADIUS, cardSurface } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
@@ -14,6 +14,7 @@ import { useAccount, account, pendingPurchase } from '../store/account';
 import { openInSheet } from '../lib/browser';
 import { iapAvailable, loadProducts, purchase, finish, restoreTransactions, manageSubscriptions, type IapProduct } from '../lib/iap';
 import { haptic, hapticNotify } from '../lib/haptics';
+import { useLiveTick } from '../store/live';
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '';
@@ -52,7 +53,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
   const [restoring, setRestoring] = useState(false);
   const [note, setNote] = useState<string | null>(null);
 
-  const load = useCallback(async (quiet = false) => {
+  const load = useCallback(async (quiet = false, freshPrices = false) => {
     if (!acct) { setLoading(false); return; }
     if (!quiet) setLoading(true);
     try {
@@ -61,7 +62,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
       setErr(null);
       // Apple's prices for the top-ups of this destination.
       const ids = (d.top_ups || []).map((t) => t.apple_product_id).filter((x): x is string => Boolean(x));
-      if (ids.length) setTopProducts(await loadProducts(ids));
+      if (ids.length) setTopProducts(await loadProducts(ids, { fresh: freshPrices }));
     } catch (e) {
       const status = (e as { status?: number }).status;
       if (status === 401) { account.forget(); setData(null); }
@@ -72,6 +73,11 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
   }, [acct]);
 
   useEffect(() => { void load(); }, [load]);
+  // Back in the foreground: the eSIM, its data left and its top-ups again,
+  // quietly, so nothing shown is older than the last return to the app.
+  const tick = useLiveTick();
+  const openedAt = useRef(tick);
+  useEffect(() => { if (tick !== openedAt.current) void load(true, true); }, [tick, load]);
 
   // While the eSIM is still being issued, ask again every few seconds.
   useEffect(() => {

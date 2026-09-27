@@ -141,7 +141,11 @@ const TIMEOUT_MS = 20000;
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   let res: Response;
   try {
+    // cache: 'no-store': every answer comes from the site, never from a
+    // copy WKWebView kept (the catalogue says max-age=60 to browsers). What
+    // is sold and for how much must be what the site says right now.
     res = await fetch(`${API}${path}`, {
+      cache: 'no-store',
       ...init,
       signal: AbortSignal.timeout(TIMEOUT_MS),
       headers: { Accept: 'application/json', ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...(init.headers || {}) },
