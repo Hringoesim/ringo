@@ -3,8 +3,8 @@
 import type { ReactNode } from 'react';
 import { RC, GLASS, COLUMN_MAX } from '../theme';
 
-export type TabId = 'store' | 'esim' | 'help';
-type IconKind = 'globe' | 'sim' | 'help';
+export type TabId = 'store' | 'esim' | 'rewards' | 'help';
+type IconKind = 'globe' | 'sim' | 'star' | 'help';
 
 // Wise-style tab icons — friendly, rounded, generous stroke; the ACTIVE state
 // solidifies (filled glyph with details knocked out) the way Wise fills its
@@ -38,6 +38,16 @@ function tabIcon(kind: IconKind) {
             <rect x="8" y="11" width="8" height="6" rx="1.4" {...s} />
           </svg>
         );
+      case 'star':
+        return active ? (
+          <svg width="21" height="21" viewBox="0 0 24 24">
+            <path d="M12 3.2l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.5l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z" fill={color} stroke={color} strokeWidth="1.6" strokeLinejoin="round" />
+          </svg>
+        ) : (
+          <svg width="21" height="21" viewBox="0 0 24 24">
+            <path d="M12 3.2l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.5l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z" {...s} />
+          </svg>
+        );
       case 'help':
         return active ? (
           <svg width="21" height="21" viewBox="0 0 24 24">
@@ -59,6 +69,7 @@ function tabIcon(kind: IconKind) {
 const tabs: { id: TabId; label: string; icon: (c: string, active: boolean) => ReactNode }[] = [
   { id: 'store', label: 'eSIMs', icon: tabIcon('globe') },
   { id: 'esim', label: 'My eSIM', icon: tabIcon('sim') },
+  { id: 'rewards', label: 'Rewards', icon: tabIcon('star') },
   { id: 'help', label: 'Help', icon: tabIcon('help') },
 ];
 
@@ -85,14 +96,14 @@ export function RingoTabBar({
         style={{
           ...GLASS, borderRadius: 30, pointerEvents: 'auto', overflow: 'hidden',
           position: 'relative', paddingTop: 9, paddingBottom: 9,
-          display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
+          display: 'grid', gridTemplateColumns: `repeat(${tabs.length}, 1fr)`,
         }}
       >
         {/* One gradient pill that MORPHS between tabs (slides), not a per-icon fade. */}
         {activeIndex >= 0 && (
           <div
             style={{
-              position: 'absolute', top: 7, left: 0, width: '33.333%', height: 34,
+              position: 'absolute', top: 7, left: 0, width: `${100 / tabs.length}%`, height: 34,
               display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
               transform: `translateX(${activeIndex * 100}%)`,
               transition: 'transform 0.4s cubic-bezier(0.34, 1.4, 0.64, 1)',

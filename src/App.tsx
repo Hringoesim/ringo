@@ -29,7 +29,7 @@ import { ReportScreen } from './screens/ReportScreen';
 import { HelpScreen } from './screens/HelpScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 
-const TABBED = new Set<string>(['store', 'esim', 'help']);
+const TABBED = new Set<string>(['store', 'esim', 'rewards', 'help']);
 const SEEN_KEY = 'ringo_seen_landing';
 
 interface Frame {
@@ -245,6 +245,9 @@ export function App() {
       break;
     case 'help':
       body = <HelpScreen onLogin={() => push('login')} onProfile={() => push('profile')} />;
+      break;
+    case 'rewards':
+      body = <ProfileScreen asTab onBack={pop} onBrowse={() => goTab('store')} onLogin={() => push('login')} />;
       break;
     case 'profile':
       body = <ProfileScreen onBack={pop} onBrowse={() => goTab('store')} onLogin={() => push('login')} />;

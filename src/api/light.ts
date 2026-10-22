@@ -10,6 +10,8 @@
 //   GET  esim-subscription?user&t[&usage=1][&install=apple:…]
 //   POST esim-subscription                 resend_install | report_problem
 //   POST app-login                         email -> code by email -> { user_id, t }
+//   GET  app-profile?user&t                badges + Ringo status (the loyalty ladder)
+//   GET  app-usage?user&t                  data used per eSIM and per day
 import { log } from '../lib/log';
 
 export const SITE = 'https://ringoesim.com';
@@ -81,6 +83,27 @@ export interface Profile {
   badges: TravelBadge[];
   stats: { destinations: number; plans: number; countries_reachable: number; paid_months: number };
   loyalty: { paid_months: number; tier: LoyaltyTier & { next: { id: string; name: string; min: number; to_go: number } | null }; tiers: LoyaltyTier[] };
+}
+
+export interface UsageEsim {
+  id: string;
+  destination: string;
+  label: string;
+  flag: string | null;
+  unlimited: boolean;
+  status: string;
+  bought_at: string | null;
+  ends_at: string | null;
+  allowance_mb: number | null;
+  remaining_mb: number | null;
+  used_mb: number | null;
+  checked_at: string | null;
+}
+export interface Usage {
+  esims: UsageEsim[];
+  /** the last 30 days with data, oldest first */
+  daily: { day: string; used_mb: number }[];
+  totals: { used_mb: number; days_online: number };
 }
 
 export interface Summary {
@@ -219,6 +242,10 @@ export const light = {
   /** The profile: who is logged in and the badges of where their eSIMs have taken them. */
   profile: (userId: string, t: string) =>
     request<Profile>(`/app-profile?${new URLSearchParams({ user: userId, t }).toString()}`),
+
+  /** Data used per eSIM and per day, from the figures the site already stored. */
+  usage: (userId: string, t: string) =>
+    request<Usage>(`/app-usage?${new URLSearchParams({ user: userId, t }).toString()}`),
 
   loginVerify: (email: string, code: string) =>
     request<{ ok: boolean; user_id: string; t: string; email: string }>('/app-login', { method: 'POST', body: JSON.stringify({ email, code }) }),

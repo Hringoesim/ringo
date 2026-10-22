@@ -9,7 +9,8 @@ import { RingoButton } from '../components/Button';
 import { RingoCard } from '../components/Card';
 import { BackBtn, IconButton, SectionTitle, TextLink } from '../components/ui';
 import { destinationById, pictureFor } from '../data/destinations';
-import { light, money, SITE, type SubscriptionRead, type TopUp } from '../api/light';
+import { light, money, SITE, type SubscriptionRead, type TopUp, type Usage } from '../api/light';
+import { UsageSection } from '../components/UsageCard';
 import { useAccount, account, pendingPurchase } from '../store/account';
 import { openInSheet } from '../lib/browser';
 import { iapAvailable, loadProducts, purchase, finish, restoreTransactions, manageSubscriptions, type IapProduct } from '../lib/iap';
@@ -52,11 +53,14 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
   const [topProducts, setTopProducts] = useState<Map<string, IapProduct>>(new Map());
   const [restoring, setRestoring] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [usageAll, setUsageAll] = useState<Usage | null>(null);
 
   const load = useCallback(async (quiet = false, freshPrices = false) => {
     if (!acct) { setLoading(false); return; }
     if (!quiet) setLoading(true);
     try {
+      // Usage history rides alongside; a failure there never blanks the plan.
+      void light.usage(acct.userId, acct.t).then(setUsageAll).catch(() => {});
       const d = await light.subscription(acct.userId, acct.t, { usage: true, install: acct.purchaseRef });
       setData(d);
       setErr(null);
@@ -248,6 +252,10 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
                   </RingoCard>
                 )}
               </div>
+            )}
+
+            {sub.esim_attached && usageAll && (
+              <UsageSection usage={usageAll} currentId={null} liveRemaining={usage?.data_remaining_mb ?? null} />
             )}
 
             {sub.esim_attached && data?.top_ups && data.top_ups.length > 0 && (
