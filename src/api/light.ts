@@ -57,6 +57,8 @@ export interface Catalog {
   plans: Plan[];
   from_amount: number;
   top_ups: TopUp[];
+  /** Global's meter (the website tops it up at 90%); its presence makes the plan read as unlimited. */
+  meter_topups?: { at_percent: number; data_gb: number; annual: number; monthly: number; currency: Currency } | null;
   /** switches for the app, see store/flags.ts */
   app_flags?: { google_signin?: boolean };
   /** every destination the site sells */

@@ -8,6 +8,11 @@
 // the website's words. Global is a monthly App Store subscription (owner
 // 2026-09-27): its cards read "Monthly, 10 GB a month" at the month's price,
 // and only there is renewal stated.
+// Global reads as the website sells it (owner 2026-10-23: "change global to
+// be the one we have on the website now"): one plan, unlimited at full
+// speed, a monthly price, no size to pick. The site tops a card buyer up
+// automatically at 90%; an App Store buyer has no card on file, so the app
+// says the top-up is one tap on My eSIM.
 // Nothing here decides a price.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { RC, RADIUS, hexA } from '../theme';
@@ -129,9 +134,16 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
   const productFor = (p: Plan): IapProduct | null => (p.apple_product_id && products?.get(p.apple_product_id)) || null;
   // One list for the tier shown, cheapest first (owner 2026-09-25: the first
   // price seen is the cheapest); a tie goes to the shorter, then the smaller.
+  const unlimitedGlobal = Boolean(cat && cat.destination.id === 'global' && cat.meter_topups);
   const plans = useMemo(() => {
     if (!cat) return [];
     const get = (p: Plan) => (p.apple_product_id && products?.get(p.apple_product_id)) || null;
+    const sold = (p: Plan) => !native || Boolean(products && p.apple_product_id && products.has(p.apple_product_id));
+    // Global: the one monthly plan the website sells, its smallest allowance.
+    if (cat.destination.id === 'global' && cat.meter_topups) {
+      const one = cat.plans.filter((p) => p.mode === 'subscription' && sold(p)).sort((a, b) => (a.data_gb ?? 0) - (b.data_gb ?? 0))[0];
+      return one ? [one] : [];
+    }
     return cat.plans
       .filter((p) => p.tier === tier && (!native || (products && p.apple_product_id && products.has(p.apple_product_id))))
       .sort((a, b) => (shownCost(a, get(a)) - shownCost(b, get(b))) || ((a.days || 30) - (b.days || 30)) || ((a.data_gb ?? 0) - (b.data_gb ?? 0)));
@@ -145,7 +157,8 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
   }, [plans, planId]);
 
   const selected = plans.find((p) => lineKey(p) === planId) || null;
-  const hasUnlimited = Boolean(cat?.plans.some((p) => p.tier === 'unlimited'));
+  const hasUnlimited = !unlimitedGlobal && Boolean(cat?.plans.some((p) => p.tier === 'unlimited'));
+  const cardName = (p: Plan) => (unlimitedGlobal ? 'Unlimited' : planName(p));
 
   const continueTap = () => {
     if (!cat || !selected) return;
@@ -189,8 +202,20 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
           <>
             {hasUnlimited && <Segmented<Tier> value={tier} options={[{ id: 'data', label: 'Data' }, { id: 'unlimited', label: 'Unlimited' }]} onChange={setTier} />}
 
+            {/* Global: the website's lines, ticked. */}
+            {unlimitedGlobal && (
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 8 }}>
+                {['Unlimited data, no throttling, full speed', 'One plan, renews until you cancel', 'One price, no roaming bills', 'Data only, next to your own SIM and number'].map((t) => (
+                  <li key={t} style={{ display: 'flex', gap: 9, alignItems: 'flex-start', fontFamily: 'var(--font)', fontSize: 14.5, color: RC.ink, lineHeight: 1.45 }}>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden style={{ marginTop: 2, flexShrink: 0 }}><path d="M3 8.5l3.2 3L13 4.5" stroke="hsl(142,60%,42%)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                    <span>{t}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
             {/* What every card below delivers, said once. */}
-            <div style={{ marginTop: hasUnlimited ? 14 : 0, display: 'flex', flexWrap: 'nowrap', gap: 6, overflow: 'hidden' }}>
+            {!unlimitedGlobal && <div style={{ marginTop: hasUnlimited ? 14 : 0, display: 'flex', flexWrap: 'nowrap', gap: 6, overflow: 'hidden' }}>
               {(tier === 'data'
                 ? ['Full speed', 'No daily cap', 'Hotspot']
                 : ['Unlimited data', 'Fair use', 'Hotspot']
@@ -200,7 +225,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
                   {t}
                 </span>
               ))}
-            </div>
+            </div>}
 
             <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
               {plans.length === 0 && (
@@ -234,7 +259,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
                   >
                     <Check on={on} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 800, color: RC.ink, letterSpacing: -0.4 }}>{planName(p)}</div>
+                      <div style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 800, color: RC.ink, letterSpacing: -0.4 }}>{cardName(p)}</div>
                       <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 500, color: RC.inkMute }}>{termLine(p, price.total)}</div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -245,6 +270,12 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
                 );
               })}
             </div>
+
+            {unlimitedGlobal && (
+              <div style={{ marginTop: 12, fontFamily: 'var(--font)', fontSize: 12.5, color: RC.inkMute, lineHeight: 1.5 }}>
+                When you use a lot, add an allowance top-up from My eSIM in one tap.
+              </div>
+            )}
 
             {renews && (
               <div style={{ marginTop: 12, fontFamily: 'var(--font)', fontSize: 11.5, color: RC.inkMute, lineHeight: 1.5 }}>
@@ -262,7 +293,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
         // a round Continue on the right, clear of the home indicator.
         <div style={{ position: 'absolute', left: 12, right: 12, bottom: 'max(12px, env(safe-area-inset-bottom, 0px))', padding: 8, paddingLeft: 20, borderRadius: SHEET_RADIUS + 4, background: RC.paper, border: `1px solid ${RC.line}`, boxShadow: '0 2px 8px rgba(52,28,84,0.06), 0 18px 40px -16px rgba(52,28,84,0.30)', display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ flexShrink: 0, fontFamily: 'var(--font)' }}>
-            <div style={{ fontSize: 12.5, color: RC.inkMute, whiteSpace: 'nowrap' }}>{planName(selected)}</div>
+            <div style={{ fontSize: 12.5, color: RC.inkMute, whiteSpace: 'nowrap' }}>{cardName(selected)}</div>
             <div style={{ marginTop: 2, fontSize: 17, fontWeight: 800, color: RC.ink, letterSpacing: -0.3, whiteSpace: 'nowrap' }}>{priceOf(selected, productFor(selected)).total}{selected.mode === 'subscription' ? ' today' : ''}</div>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>

@@ -126,7 +126,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
             <div>
               <div style={{ fontFamily: 'var(--font)', fontSize: 16, fontWeight: 800, color: RC.ink, letterSpacing: -0.3 }}>{selection.destinationLabel}</div>
               <div style={{ marginTop: 2, fontFamily: 'var(--font)', fontSize: 13, color: RC.inkMute }}>
-                {planName(p)}{renewing ? '' : ', one payment'}
+                {selection.destination === 'global' && renewing ? 'Unlimited, renews monthly' : planName(p)}{renewing ? '' : ', one payment'}
               </div>
             </div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800, color: RC.ink, letterSpacing: -0.5 }}>{price.total}</div>

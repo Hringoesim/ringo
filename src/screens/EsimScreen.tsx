@@ -121,7 +121,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
         await finish(out.transactionId);
         pendingPurchase.clear(t.apple_product_id, ctx.startedAt);
         hapticNotify('success');
-        setNote(r.environment === 'Sandbox' ? 'Sandbox top-up recorded.' : `${t.data_gb} GB added to your eSIM.`);
+        setNote(r.environment === 'Sandbox' ? 'Sandbox top-up recorded.' : 'Allowance top-up added to your eSIM.');
         setTimeout(() => setNote(null), 5000);
         void load(true);
       } else if (out.state === 'pending') {
@@ -265,7 +265,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
                   {data.top_ups.map((t, i) => (
                     <button key={t.plan} className="press" onClick={() => void topUp(t)} disabled={topping != null || (iapAvailable() && !(t.apple_product_id && topProducts.has(t.apple_product_id)))} style={{ width: '100%', textAlign: 'left', cursor: 'pointer', border: 'none', background: 'transparent', padding: '14px 16px', borderBottom: i === data.top_ups!.length - 1 ? 'none' : `1px solid ${RC.line}`, display: 'flex', alignItems: 'center', gap: 12 }}>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontFamily: 'var(--font)', fontSize: 14.5, fontWeight: 700, color: RC.ink }}>Add {t.data_gb} GB</div>
+                        <div style={{ fontFamily: 'var(--font)', fontSize: 14.5, fontWeight: 700, color: RC.ink }}>Allowance top-up</div>
                         <div style={{ fontFamily: 'var(--font)', fontSize: 12.5, color: RC.inkMute }}>Lands on this eSIM, valid {t.validity_days} days</div>
                       </div>
                       <div style={{ fontFamily: 'var(--font)', fontSize: 15, fontWeight: 800, color: RC.inkStrong }}>{topping === t.plan ? '…' : (t.apple_product_id && topProducts.get(t.apple_product_id)?.displayPrice) || (iapAvailable() ? '…' : money(t.amount, t.currency))}</div>
