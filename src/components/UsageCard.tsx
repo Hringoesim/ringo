@@ -6,7 +6,6 @@
 // disagree on screen.
 import { RC, RADIUS } from '../theme';
 import { RingoCard } from './Card';
-import { SectionTitle } from './ui';
 import type { Usage, UsageEsim } from '../api/light';
 
 function fmtData(mb: number | null | undefined): string {
@@ -31,6 +30,10 @@ function lastDays(daily: Usage['daily'], n = 30): { day: string; mb: number }[] 
     out.push({ day: key, mb: by.get(key) || 0 });
   }
   return out;
+}
+
+function Heading({ children }: { children: string }) {
+  return <h2 style={{ margin: '8px 0 0', fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color: RC.ink, letterSpacing: -0.6 }}>{children}</h2>;
 }
 
 function Meter({ esim, liveRemaining }: { esim: UsageEsim; liveRemaining: number | null }) {
@@ -117,12 +120,12 @@ export function UsageSection({ usage, currentId, liveRemaining }: { usage: Usage
   if (!current && !usage.daily.length) return null;
   return (
     <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
-      <SectionTitle style={{ paddingBottom: 0 }}>Usage</SectionTitle>
+      <Heading>Your data</Heading>
       {current && <Meter esim={current} liveRemaining={current.id === usage.esims[0]?.id ? liveRemaining : null} />}
       <DailyChart daily={usage.daily} />
       {usage.esims.length > 1 && (
         <>
-          <SectionTitle style={{ paddingBottom: 0, marginTop: 8 }}>{`All your eSIMs · ${fmtData(usage.totals.used_mb)} used`}</SectionTitle>
+          <Heading>{`Every eSIM, ${fmtData(usage.totals.used_mb)} used`}</Heading>
           <History esims={usage.esims} />
         </>
       )}

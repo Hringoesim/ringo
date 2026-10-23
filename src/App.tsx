@@ -27,7 +27,7 @@ import { InstallScreen } from './screens/InstallScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { ReportScreen } from './screens/ReportScreen';
 import { HelpScreen } from './screens/HelpScreen';
-import { ProfileScreen } from './screens/ProfileScreen';
+import { RewardsScreen } from './screens/RewardsScreen';
 
 const TABBED = new Set<string>(['store', 'esim', 'rewards', 'help']);
 const SEEN_KEY = 'ringo_seen_landing';
@@ -247,10 +247,10 @@ export function App() {
       body = <HelpScreen onLogin={() => push('login')} onProfile={() => push('profile')} />;
       break;
     case 'rewards':
-      body = <ProfileScreen asTab onBack={pop} onBrowse={() => goTab('store')} onLogin={() => push('login')} />;
+      body = <RewardsScreen onBrowse={() => goTab('store')} onLogin={() => push('login')} />;
       break;
     case 'profile':
-      body = <ProfileScreen onBack={pop} onBrowse={() => goTab('store')} onLogin={() => push('login')} />;
+      body = <RewardsScreen onBack={pop} onBrowse={() => goTab('store')} onLogin={() => push('login')} />;
       break;
     default:
       body = <div style={{ padding: 40 }}>Unknown screen: {current.name}</div>;

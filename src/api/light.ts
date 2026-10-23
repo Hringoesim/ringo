@@ -77,11 +77,14 @@ export interface TravelBadge {
   active: boolean;
 }
 export interface LoyaltyTier { id: string; name: string; min: number; perk: string }
+export interface RewardLevel { id: string; name: string; min: number; discount_pct: number; free_esims_per_year: number; perks: string[] }
 export interface Profile {
   email: string;
   member_since: string | null;
   badges: TravelBadge[];
   stats: { destinations: number; plans: number; countries_reachable: number; paid_months: number };
+  /** Ringo Rewards, by destinations booked (absent on an older site). */
+  rewards?: { destinations: number; level: RewardLevel | null; next: { id: string; name: string; min: number; to_go: number } | null; levels: RewardLevel[] };
   loyalty: { paid_months: number; tier: LoyaltyTier & { next: { id: string; name: string; min: number; to_go: number } | null }; tiers: LoyaltyTier[] };
 }
 
