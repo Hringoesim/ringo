@@ -40,7 +40,7 @@ export type PurchaseOutcome = ({ state: 'purchased' } & IapTransaction) | { stat
 
 interface StoreKitPlugin {
   getProducts(o: { productIds: string[] }): Promise<{ products: IapProduct[] }>;
-  purchase(o: { productId: string; appAccountToken?: string }): Promise<PurchaseOutcome>;
+  purchase(o: { productId: string; appAccountToken?: string; offer?: SignedOffer }): Promise<PurchaseOutcome>;
   finish(o: { transactionId: string }): Promise<{ finished: boolean }>;
   unfinished(): Promise<{ transactions: IapTransaction[] }>;
   restore(): Promise<{ transactions: IapTransaction[] }>;
@@ -84,8 +84,11 @@ export async function loadProducts(ids: string[], { fresh = false }: { fresh?: b
   return out;
 }
 
-export async function purchase(productId: string, appAccountToken?: string): Promise<PurchaseOutcome> {
-  return Native.purchase({ productId, ...(appAccountToken ? { appAccountToken } : {}) });
+/** A promotional offer signed by ringoesim.com (Ringo Rewards: Global's kept-month price). */
+export interface SignedOffer { offerId: string; keyId: string; nonce: string; timestamp: number; signature: string }
+
+export async function purchase(productId: string, appAccountToken?: string, offer?: SignedOffer | null): Promise<PurchaseOutcome> {
+  return Native.purchase({ productId, ...(appAccountToken ? { appAccountToken } : {}), ...(offer ? { offer } : {}) });
 }
 
 export async function finish(transactionId: string): Promise<void> {

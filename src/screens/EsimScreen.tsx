@@ -13,7 +13,7 @@ import { light, money, SITE, type SubscriptionRead, type TopUp, type Usage } fro
 import { UsageSection } from '../components/UsageCard';
 import { useAccount, account, pendingPurchase } from '../store/account';
 import { openInSheet } from '../lib/browser';
-import { iapAvailable, loadProducts, purchase, finish, restoreTransactions, manageSubscriptions, type IapProduct } from '../lib/iap';
+import { iapAvailable, loadProducts, purchase, finish, restoreTransactions, manageSubscriptions, type IapProduct, type SignedOffer } from '../lib/iap';
 import { haptic, hapticNotify } from '../lib/haptics';
 import { useLiveTick } from '../store/live';
 
@@ -54,6 +54,9 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
   const [restoring, setRestoring] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [usageAll, setUsageAll] = useState<Usage | null>(null);
+  // Ringo Rewards: Global's cheaper month, offered once the site has signed it.
+  const [globalOffer, setGlobalOffer] = useState<{ pct: number; productId: string; offer: SignedOffer } | null>(null);
+  const [applying, setApplying] = useState(false);
 
   const load = useCallback(async (quiet = false, freshPrices = false) => {
     if (!acct) { setLoading(false); return; }
@@ -64,6 +67,12 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
       const d = await light.subscription(acct.userId, acct.t, { usage: true, install: acct.purchaseRef });
       setData(d);
       setErr(null);
+      const rg = d.rewards_global;
+      if (rg?.product_id && iapAvailable()) {
+        light.rewardsOffer(acct.userId, acct.t, rg.product_id)
+          .then((o) => setGlobalOffer(o.available && o.offer ? { pct: o.pct || rg.pct, productId: rg.product_id!, offer: o.offer } : null))
+          .catch(() => setGlobalOffer(null));
+      } else setGlobalOffer(null);
       // Apple's prices for the top-ups of this destination.
       const ids = (d.top_ups || []).map((t) => t.apple_product_id).filter((x): x is string => Boolean(x));
       if (ids.length) setTopProducts(await loadProducts(ids, { fresh: freshPrices }));
@@ -133,6 +142,28 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
       setErr((e as Error).message || 'Could not complete the top-up.');
     } finally {
       setTopping(null);
+    }
+  };
+
+  // The cheaper Global month: Apple's sheet confirms it, and it applies from
+  // the next renewal of the same subscription.
+  const applyGlobalOffer = async () => {
+    if (!acct || !globalOffer) return;
+    setApplying(true);
+    haptic('medium');
+    try {
+      const out = await purchase(globalOffer.productId, acct.userId, globalOffer.offer);
+      if (out.state === 'purchased') {
+        await finish(out.transactionId);
+        hapticNotify('success');
+        setNote(`Done. Your Global month is ${globalOffer.pct}% cheaper from your next renewal.`);
+        setGlobalOffer(null);
+        setTimeout(() => setNote(null), 6000);
+      }
+    } catch (e) {
+      setErr((e as Error).message || 'Could not apply your Rewards price.');
+    } finally {
+      setApplying(false);
     }
   };
 
@@ -251,6 +282,14 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
                     </div>
                   </RingoCard>
                 )}
+              </div>
+            )}
+
+            {sub.esim_attached && globalOffer && (
+              <div className="rise" style={{ marginTop: 14, ...cardSurface(), padding: 16 }}>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 800, color: RC.ink, letterSpacing: -0.4 }}>Your Global month just got {globalOffer.pct}% cheaper</div>
+                <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 13.5, color: RC.inkMute, lineHeight: 1.5 }}>A Ringo Rewards thank you for staying with Global. It applies from your next renewal.</div>
+                <div style={{ marginTop: 12 }}><RingoButton size="sm" onClick={() => void applyGlobalOffer()}>{applying ? 'Applying…' : 'Apply my lower price'}</RingoButton></div>
               </div>
             )}
 

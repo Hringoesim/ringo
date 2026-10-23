@@ -118,6 +118,16 @@ public class StoreKitPlugin: CAPPlugin, CAPBridgedPlugin {
                 }
                 var options: Set<Product.PurchaseOption> = []
                 if let token = token { options.insert(.appAccountToken(token)) }
+                // A Ringo Rewards promotional offer (Global's kept-month price),
+                // signed by ringoesim.com for this account only.
+                if let offer = call.getObject("offer"),
+                   let offerID = offer["offerId"] as? String,
+                   let keyID = offer["keyId"] as? String,
+                   let nonceStr = offer["nonce"] as? String, let nonce = UUID(uuidString: nonceStr),
+                   let sigStr = offer["signature"] as? String, let signature = Data(base64Encoded: sigStr),
+                   let timestamp = (offer["timestamp"] as? NSNumber)?.intValue {
+                    options.insert(.promotionalOffer(offerID: offerID, keyID: keyID, nonce: nonce, signature: signature, timestamp: timestamp))
+                }
                 let result = try await product.purchase(options: options)
                 switch result {
                 case .success(let verification):

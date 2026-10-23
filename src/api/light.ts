@@ -153,6 +153,8 @@ export interface SubscriptionRead {
   top_ups?: TopUp[];
   usage?: { data_remaining_mb: number | null; unlimited: boolean; package_status: string | null; expires_at: string | null } | { unavailable: true };
   install?: { apple_url: string; lpa: string };
+  /** Ringo Rewards: Global kept long enough to earn a cheaper month. */
+  rewards_global?: { pct: number; months: number; product_id: string | null };
 }
 
 export class ApiError extends Error {
@@ -252,6 +254,13 @@ export const light = {
   /** The profile: who is logged in and the badges of where their eSIMs have taken them. */
   profile: (userId: string, t: string) =>
     request<Profile>(`/app-profile?${new URLSearchParams({ user: userId, t }).toString()}`),
+
+  /** Apple's promotional offer for Global's kept-month price, signed for this account. */
+  rewardsOffer: (userId: string, t: string, productId: string) =>
+    request<{ available: boolean; reason?: string; pct?: number; offer?: { offerId: string; keyId: string; nonce: string; timestamp: number; signature: string } }>(
+      `/app-offer?${new URLSearchParams({ user: userId, t }).toString()}`,
+      { method: 'POST', body: JSON.stringify({ productId }) },
+    ),
 
   /** Data used per eSIM and per day, from the figures the site already stored. */
   usage: (userId: string, t: string) =>
