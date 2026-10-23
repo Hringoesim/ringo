@@ -127,6 +127,23 @@ function Levels({ rewards }: { rewards: NonNullable<Profile['rewards']> }) {
   );
 }
 
+// Global's own reward: the month gets cheaper the longer it is kept.
+function GlobalTenure({ rewards }: { rewards: NonNullable<Profile['rewards']> }) {
+  const months = rewards.global_months || 0;
+  return (
+    <>
+      <Heading title="Global gets cheaper" line={months ? `You have kept Global ${months} ${months === 1 ? 'month' : 'months'}.` : 'The longer you keep Global, the less each month costs.'} />
+      <RingoCard>
+        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 8 }}>
+          {(rewards.global_tenure || []).map((t) => (
+            <Tick key={t.months}><b>{t.pct}% off</b> every month after {t.months} paid months{months >= t.months ? ', yours now' : ''}</Tick>
+          ))}
+        </ul>
+      </RingoCard>
+    </>
+  );
+}
+
 export function RewardsScreen({ onBack, onBrowse, onLogin }: { onBack?: () => void; onBrowse: () => void; onLogin: () => void }) {
   const acct = useAccount();
   const tick = useLiveTick();
@@ -170,8 +187,9 @@ export function RewardsScreen({ onBack, onBrowse, onLogin }: { onBack?: () => vo
 
               {rewards && (
                 <>
-                  <Heading title="Your rewards" line="Every destination you book counts, and your level never goes down." />
+                  <Heading title="Your rewards" line="Every destination you book counts, and every 3 months of Global counts as one more. Your level never goes down." />
                   <Levels rewards={rewards} />
+                  {rewards.global_tenure && rewards.global_tenure.length > 0 && <GlobalTenure rewards={rewards} />}
                 </>
               )}
 
