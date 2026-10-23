@@ -22,6 +22,7 @@ import { BackBtn, Segmented } from '../components/ui';
 import { termTitle, planName, periodWord, lineKey, subMonths } from '../lib/terms';
 import { pictureFor, skyFor , bundledPictureFor} from '../data/destinations';
 import { useDestinations, destinationFrom } from '../store/destinations';
+import { useAccount } from '../store/account';
 import { light, type Catalog, type Plan } from '../api/light';
 import { loadProducts, iapAvailable, type IapProduct } from '../lib/iap';
 import { rememberAppleLines } from '../store/summary';
@@ -78,6 +79,9 @@ function shownCost(p: Plan, product: IapProduct | null): number {
 
 export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBack: () => void; onContinue: (s: Selection) => void }) {
   const dest = destinationFrom(useDestinations(), id);
+  const acct = useAccount();
+  const member = acct ? { userId: acct.userId, t: acct.t } : null;
+  const memberKey = acct ? acct.userId : '';
   const [cat, setCat] = useState<Catalog | null>(null);
   const [products, setProducts] = useState<Map<string, IapProduct> | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -88,7 +92,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
   useEffect(() => {
     let alive = true;
     setCat(null); setProducts(null); setErr(null);
-    light.catalog(id).then(async (c) => {
+    light.catalog(id, member).then(async (c) => {
       if (!alive) return;
       setCat(c);
       // Not c.default_plan: the screen opens on the cheapest line (below).
@@ -106,7 +110,8 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
       rememberAppleLines([id, c.destination.id], c.plans);
     }).catch((e: Error) => { if (alive) setErr(e.message || 'Could not load the plans.'); });
     return () => { alive = false; };
-  }, [id, reloadKey]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `member` follows memberKey
+  }, [id, reloadKey, memberKey]);
 
   // Back in the foreground: the plans and prices again, from the site and
   // from the App Store, swapped in place. The screen keeps what was chosen
@@ -117,7 +122,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
   useEffect(() => {
     if (tick === openedAt.current) return;
     let alive = true;
-    light.catalog(id).then(async (c) => {
+    light.catalog(id, member).then(async (c) => {
       if (!alive) return;
       const ids = c.plans.map((p) => p.apple_product_id).filter((x): x is string => Boolean(x));
       const map = await loadProducts(ids, { fresh: true });
@@ -128,7 +133,8 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
       rememberAppleLines([id, c.destination.id], c.plans);
     }).catch(() => { /* the last answer stands */ });
     return () => { alive = false; };
-  }, [tick, id]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `member` follows memberKey
+  }, [tick, id, memberKey]);
 
   const native = iapAvailable();
   const productFor = (p: Plan): IapProduct | null => (p.apple_product_id && products?.get(p.apple_product_id)) || null;
@@ -261,6 +267,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 800, color: RC.ink, letterSpacing: -0.4 }}>{cardName(p)}</div>
                       <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 500, color: RC.inkMute }}>{termLine(p, price.total)}</div>
+                      {p.member_pct ? <div style={{ marginTop: 3, fontFamily: 'var(--font)', fontSize: 12.5, fontWeight: 700, color: RC.inkStrong }}>Your Rewards price</div> : null}
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
                       <div style={{ fontFamily: 'var(--font-display)', fontSize: 25, fontWeight: 800, color: RC.ink, letterSpacing: -0.8, lineHeight: 1 }}>{p.mode === 'subscription' ? price.monthly : price.total}</div>

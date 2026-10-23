@@ -5,7 +5,7 @@
 // (EUR 22.99 on the site was EUR 29.99 in the app).
 // Usage: node asc-eur-base.mjs [--dry] [--only <productId>]
 import { asc } from './asc.mjs';
-const SITE = '/Users/hippolytevanmarcke/new website Ringo april 2026/NEW-website-app-api';
+const SITE = process.env.RINGO_SITE || '/Users/hippolytevanmarcke/new website Ringo april 2026/NEW-website-app-api';
 const { appleCatalog } = await import(`${SITE}/api/_apple-products.js`);
 const { convert } = await import(`${SITE}/api/_light-currency.js`);   // the site's own USD figure (EUR x 1.15 on the .99 grid), kept for the US storefront
 const DRY = process.argv.includes('--dry');

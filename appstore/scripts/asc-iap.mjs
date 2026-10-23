@@ -3,7 +3,7 @@
 import { asc } from './asc.mjs';
 import { readFileSync, statSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-const SITE = '/Users/hippolytevanmarcke/new website Ringo april 2026/NEW-website-app-api';
+const SITE = process.env.RINGO_SITE || '/Users/hippolytevanmarcke/new website Ringo april 2026/NEW-website-app-api';
 const { appleCatalog } = await import(`${SITE}/api/_apple-products.js`);
 const { convert } = await import(`${SITE}/api/_light-currency.js`);
 const APP = '6787133742';
