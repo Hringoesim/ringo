@@ -85,9 +85,14 @@ for (const p of catalog) {
     // 1. the product
     let obj = kind === 'sub' ? existingSub.get(p.productId) : existingIap.get(p.productId);
     if (!obj) {
-      const r = kind === 'sub'
-        ? await asc('POST', '/v1/subscriptions', { data: { type: 'subscriptions', attributes: { name: `${p.name} $${money(usd)}`, productId: p.productId, subscriptionPeriod: p.period, groupLevel: GROUP_LEVEL[p.period] || 3, reviewNote: reviewNote(p), familySharable: false }, relationships: { group: { data: { type: 'subscriptionGroups', id: groupFor(p) } } } } })
-        : await asc('POST', '/v2/inAppPurchases', { data: { type: 'inAppPurchases', attributes: { name: `${p.name} $${money(usd)}`, productId: p.productId, inAppPurchaseType: 'CONSUMABLE', reviewNote: reviewNote(p) }, relationships: { app: { data: { type: 'apps', id: APP } } } } });
+      // The reference name must be unique in the app, deleted products
+      // included; when another product holds it, the product id's tail makes
+      // it unique (Rewards member prices share a size and price with older ones).
+      const create = (refName) => (kind === 'sub'
+        ? asc('POST', '/v1/subscriptions', { data: { type: 'subscriptions', attributes: { name: refName, productId: p.productId, subscriptionPeriod: p.period, groupLevel: GROUP_LEVEL[p.period] || 3, reviewNote: reviewNote(p), familySharable: false }, relationships: { group: { data: { type: 'subscriptionGroups', id: groupFor(p) } } } } })
+        : asc('POST', '/v2/inAppPurchases', { data: { type: 'inAppPurchases', attributes: { name: refName, productId: p.productId, inAppPurchaseType: 'CONSUMABLE', reviewNote: reviewNote(p) }, relationships: { app: { data: { type: 'apps', id: APP } } } } }));
+      let r = await create(`${p.name} $${money(usd)}`);
+      if (r.status === 409 && JSON.stringify(r.json).includes('This name is already being used')) r = await create(`${p.name} $${money(usd)} ${p.productId.split('.').slice(-3).join('.')}`.slice(0, 64));
       if (r.status !== 201) throw new Error(`create ${r.status} ${JSON.stringify(r.json).slice(0, 300)}`);
       obj = r.json.data; summary.created++;
       log('created');
