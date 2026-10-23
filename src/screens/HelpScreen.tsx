@@ -15,6 +15,8 @@ import { manageSubscriptions, iapAvailable, useStoreStatus } from '../lib/iap';
 import { PICTURE_CREDITS, BUNDLED_PICTURE_CREDITS, type PictureCredit } from '../data/pictureCredits';
 import { useDestinations, destinationFrom } from '../store/destinations';
 import { hapticSelection } from '../lib/haptics';
+import { PushSwitches } from '../components/PushControls';
+import { pushAvailable } from '../lib/push';
 
 const FAQ: { q: string; a: string }[] = [
   { q: 'Does my phone support eSIM?', a: 'Every iPhone from the XS and XR onwards does, as long as it is not carrier-locked. Check in Settings › General › About: if you see “Available SIM” or “Digital SIM”, you are set.' },
@@ -73,11 +75,20 @@ export function HelpScreen({ onLogin, onProfile }: { onLogin: () => void; onProf
         <div style={{ marginTop: 22 }}>
           <SectionTitle>Guides and contact</SectionTitle>
           <RingoCard style={{ padding: 0 }}>
-            <LinkRow label="Setup guide" sub="Install and switch on, step by step" onClick={() => void openInSheet(`${SITE}/esim-setup.html`)} />
-            <LinkRow label="Contact Ringo" sub="Your message is confirmed within a minute, answered by a person the same day" onClick={() => void openInSheet(`${SITE}/contact?app=1`)} />
-            <LinkRow label="Manage subscriptions" sub={`Your Apple ID subscriptions${iapAvailable() ? ` · ${storeStatus.error ? `App Store: ${storeStatus.error}` : storeStatus.checked ? (storeStatus.available > 0 ? 'App Store connected' : 'App Store: no products available') : 'checking the App Store'}` : ''}`} onClick={() => void manageSubscriptions()} last />
+            <LinkRow label="Setup guide" onClick={() => void openInSheet(`${SITE}/esim-setup.html`)} />
+            <LinkRow label="Contact Ringo" onClick={() => void openInSheet(`${SITE}/contact?app=1`)} />
+            <LinkRow label="Manage subscriptions" sub={iapAvailable() && (storeStatus.error || (storeStatus.checked && storeStatus.available === 0)) ? (storeStatus.error ? `App Store: ${storeStatus.error}` : 'App Store: no products available') : undefined} onClick={() => void manageSubscriptions()} last />
           </RingoCard>
         </div>
+
+        {pushAvailable() && (
+          <div style={{ marginTop: 22 }}>
+            <SectionTitle>Notifications</SectionTitle>
+            <RingoCard style={{ padding: 0 }}>
+              <PushSwitches />
+            </RingoCard>
+          </div>
+        )}
 
         <div style={{ marginTop: 22 }}>
           <SectionTitle>Legal</SectionTitle>
@@ -95,8 +106,8 @@ export function HelpScreen({ onLogin, onProfile }: { onLogin: () => void; onProf
                 <div style={{ padding: '14px 16px', borderBottom: `1px solid ${RC.line}`, fontFamily: 'var(--font)', fontSize: 13.5, color: RC.inkMute }}>
                   Signed in as <span style={{ color: RC.ink, fontWeight: 600 }}>{acct.email || 'this account'}</span>
                 </div>
-                <LinkRow label="My profile" sub="Your travel badges, one per destination" onClick={() => { hapticSelection(); onProfile(); }} />
-                <LinkRow label="Sign out" sub="Removes your eSIM details from this phone only" onClick={() => { hapticSelection(); account.forget(); }} />
+                <LinkRow label="My profile" onClick={() => { hapticSelection(); onProfile(); }} />
+                <LinkRow label="Sign out" onClick={() => { hapticSelection(); account.forget(); }} />
                 {deleting === 'confirm' ? (
                   <div style={{ padding: '14px 16px', fontFamily: 'var(--font)', fontSize: 13.5, color: RC.ink, lineHeight: 1.5 }}>
                     <div style={{ fontWeight: 700 }}>Delete your account?</div>
@@ -107,13 +118,13 @@ export function HelpScreen({ onLogin, onProfile }: { onLogin: () => void; onProf
                     </div>
                   </div>
                 ) : (
-                  <LinkRow label={deleting === 'busy' ? 'Deleting…' : deleting === 'failed' ? 'Could not delete, try again' : 'Delete my account'} sub="Removes your email and details from Ringo" onClick={() => { hapticSelection(); if (deleting !== 'busy') setDeleting('confirm'); }} last />
+                  <LinkRow label={deleting === 'busy' ? 'Deleting…' : deleting === 'failed' ? 'Could not delete, try again' : 'Delete my account'} onClick={() => { hapticSelection(); if (deleting !== 'busy') setDeleting('confirm'); }} last />
                 )}
               </>
             ) : deleting === 'done' ? (
               <div style={{ padding: '14px 16px', fontFamily: 'var(--font)', fontSize: 13.5, color: RC.success, fontWeight: 600 }}>Your account has been deleted.</div>
             ) : (
-              <LinkRow label="Sign in" sub="With Apple or your email" onClick={onLogin} last />
+              <LinkRow label="Sign in" onClick={onLogin} last />
             )}
           </RingoCard>
         </div>
@@ -121,7 +132,7 @@ export function HelpScreen({ onLogin, onProfile }: { onLogin: () => void; onProf
         <div style={{ marginTop: 22 }}>
           <SectionTitle>Photo credits</SectionTitle>
           <RingoCard style={{ padding: 0 }}>
-            <LinkRow label={credits ? 'Hide the list' : 'Destination photographs'} sub="Wikimedia Commons and NASA, with their licences" onClick={() => { hapticSelection(); setCredits((c) => !c); }} last={!credits} />
+            <LinkRow label={credits ? 'Hide the list' : 'Destination photographs'} onClick={() => { hapticSelection(); setCredits((c) => !c); }} last={!credits} />
             {credits && (
               <div style={{ padding: '4px 16px 14px', fontFamily: 'var(--font)', fontSize: 11.5, color: RC.inkMute, lineHeight: 1.6 }}>
                 {destinations.map((d) => { const c = PICTURE_CREDITS[d.id]; return c ? <div key={d.id}><span style={{ color: RC.ink, fontWeight: 600 }}>{d.label}:</span> {creditLine(c)}</div> : null; })}

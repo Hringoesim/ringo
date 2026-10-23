@@ -9,6 +9,8 @@
 // what App Review requires stated before the buy button: the price and
 // period, that it renews until cancelled, where to cancel, and the links to
 // the Terms of Use and the Privacy Policy.
+import { PlaceMosaic } from '../components/PlaceMosaic';
+import { hasMosaic } from '../data/destinations';
 import { useEffect, useRef, useState } from 'react';
 import { RC, RADIUS, cardSurface } from '../theme';
 import { RingoHeader } from '../components/Header';
@@ -20,6 +22,7 @@ import { account, pendingPurchase } from '../store/account';
 import { iapAvailable, purchase } from '../lib/iap';
 import { openInSheet } from '../lib/browser';
 import { haptic, hapticNotify } from '../lib/haptics';
+import { PushPrompt } from '../components/PushControls';
 import { priceOf, reportTransaction } from '../lib/purchase';
 import { type Selection } from './DestinationScreen';
 import { planName, periodWord } from '../lib/terms';
@@ -120,7 +123,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '0 20px 190px' }}>
         <div style={{ ...cardSurface(), overflow: 'hidden' }}>
           <div style={{ position: 'relative', height: 110, background: skyFor(selection.destination) }}>
-            <img src={pictureFor(selection.destination)} alt="" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            {hasMosaic(selection.destination) ? <PlaceMosaic id={selection.destination} /> : <img src={pictureFor(selection.destination)} alt="" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
           </div>
           <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <div>
@@ -159,9 +162,10 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
             <div style={{ marginTop: 14, fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, color: RC.ink, letterSpacing: -0.6 }}>Your eSIM is ready.</div>
             <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
               {relayEmail
-                ? 'Install it now, or later from My eSIM. Your eSIM lives in the app, so nothing is waiting in an inbox.'
-                : `Install it now, or later from My eSIM. A copy went to ${email.trim().toLowerCase()}.`}
+                ? 'Install it now, or later from My eSIM.'
+                : 'Install it now, or later from My eSIM.'}
             </div>
+            <PushPrompt />
           </div>
         )}
 

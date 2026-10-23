@@ -5,6 +5,8 @@
 // The photographs are the site's (ringoesim.com/img/data-esims), so the
 // app and the site show the same picture for the same place; the list
 // itself comes from the live catalogue.
+import { PlaceMosaic } from '../components/PlaceMosaic';
+import { hasMosaic } from '../data/destinations';
 import { useMemo, useState } from 'react';
 import { RC, RADIUS, TAP, cardSurface } from '../theme';
 import { LOGO_SRC } from '../assets';
@@ -32,7 +34,7 @@ const REGION_ORDER = ['Europe', 'North America', 'Latin America', 'Caribbean', '
 export function Picture({ d, big = false, compact = false }: { d: Destination; big?: boolean; compact?: boolean }) {
   return (
     <div style={{ position: 'relative', aspectRatio: '16 / 9', background: skyFor(d.id), overflow: 'hidden' }}>
-      <img src={pictureFor(d.id)} alt="" loading={big ? 'eager' : 'lazy'} decoding="async" onError={(e) => { const el = e.currentTarget as HTMLImageElement; const b = bundledPictureFor(d.id); if (b && !el.src.endsWith(b)) { el.src = b; } else { el.style.display = 'none'; } }} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+      {hasMosaic(d.id) ? <PlaceMosaic id={d.id} /> : <img src={pictureFor(d.id)} alt="" loading={big ? 'eager' : 'lazy'} decoding="async" onError={(e) => { const el = e.currentTarget as HTMLImageElement; const b = bundledPictureFor(d.id); if (b && !el.src.endsWith(b)) { el.src = b; } else { el.style.display = 'none'; } }} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
       <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(26,15,46,0) 45%, rgba(26,15,46,0.72) 100%)' }} />
       <div style={{ position: 'absolute', left: compact ? 12 : 16, right: compact ? 12 : 16, bottom: compact ? 10 : 12, display: 'flex', alignItems: 'center', gap: compact ? 7 : 10, minWidth: 0 }}>
         {d.flag && <span aria-hidden style={{ fontSize: big ? 26 : compact ? 16 : 20, lineHeight: 1 }}>{d.flag}</span>}
@@ -79,7 +81,6 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn }: { onOpen: (
     for (const list of by.values()) list.sort((a, b) => a.label.localeCompare(b.label));
     return [...by.entries()].sort((a, b) => (REGION_ORDER.indexOf(a[0]) + 1 || 99) - (REGION_ORDER.indexOf(b[0]) + 1 || 99));
   }, [all, query]);
-  const total = all.filter((d) => d.kind === 'country').length;
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -92,9 +93,6 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn }: { onOpen: (
         </div>
         <div style={{ marginTop: 18, fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 800, color: RC.ink, letterSpacing: -0.9, lineHeight: 1.08, textWrap: 'balance' }}>
           Where are you going?
-        </div>
-        <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14.5, color: RC.inkMute, lineHeight: 1.45 }}>
-          {total > 60 ? `${total} countries and every region.` : 'Every country and every region.'} Install in a tap, connected when you land.
         </div>
 
         <div style={{ marginTop: 16, position: 'relative' }}>

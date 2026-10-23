@@ -16,6 +16,7 @@ import { useAccount } from '../store/account';
 import { useLiveTick } from '../store/live';
 import { RingoAvatar, AvatarPhotoControls } from '../components/Avatar';
 import { BadgeGrid, BadgeEmpty, BadgeSkeleton } from '../components/profile/BadgeGrid';
+import { TravelMap } from '../components/profile/TravelMap';
 import { monthYear, levelColor } from '../components/profile/format';
 
 const PHOTO = (id: string) => `${import.meta.env.BASE_URL}img/rewards/${id}.jpg`;
@@ -50,12 +51,15 @@ function Tick({ children }: { children: ReactNode }) {
   );
 }
 
-function Member({ userId, email, since, level }: { userId: string; email: string; since: string | null; level: RewardLevel | null }) {
+// A Pioneer keeps the title for good (owner 2026-10-23: "he gets permanent
+// pioneer status"); it sits beside the Rewards level, never instead of it.
+function Member({ userId, email, since, level, pioneer }: { userId: string; email: string; since: string | null; level: RewardLevel | null; pioneer?: Profile['pioneer'] }) {
   const month = monthYear(since);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
       <RingoAvatar seed={email || userId} userId={userId} level={level?.id ?? null} size={80} />
       <div style={{ flex: 1, minWidth: 0 }}>
+        {pioneer && <div style={{ marginBottom: 2, fontFamily: 'var(--font)', fontSize: 14, fontWeight: 800, color: RC.inkStrong }}>Ringo {pioneer.tier}</div>}
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800, color: RC.ink, letterSpacing: -0.4 }}>{level ? `${level.name} member` : 'Ringo member'}</div>
         <div title={email} style={{ marginTop: 2, fontFamily: 'var(--font)', fontSize: 13.5, color: RC.inkMute, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{email}{month ? ` · since ${month}` : ''}</div>
         <div style={{ marginTop: 6 }}><AvatarPhotoControls userId={userId} /></div>
@@ -95,7 +99,7 @@ function lower(s: string): string { return s.charAt(0).toLowerCase() + s.slice(1
 
 const cardStyle = { background: RC.paper, borderRadius: 24, border: `1.5px solid ${RC.line}`, boxShadow: SHADOW_CARD } as const;
 
-function Levels({ rewards }: { rewards: NonNullable<Profile['rewards']> }) {
+export function Levels({ rewards }: { rewards: NonNullable<Profile['rewards']> }) {
   // Opens on the member's own level rather than always on Bronze.
   const row = useRef<HTMLDivElement>(null);
   const current = rewards.level?.id;
@@ -174,27 +178,33 @@ export function RewardsScreen({ onBack, onBrowse, onLogin }: { onBack?: () => vo
                   <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, letterSpacing: -0.8 }}>Ringo Rewards</div>
                 </LevelPhoto>
                 <div style={{ padding: 16 }}>
-                  <div style={{ fontFamily: 'var(--font)', fontSize: 15, color: RC.ink, lineHeight: 1.5 }}>Every new destination moves you up, from Bronze to Aurora. Up to 15% off every plan, and a free eSIM every year at the top.</div>
+                  <div style={{ fontFamily: 'var(--font)', fontSize: 15, color: RC.ink, lineHeight: 1.5 }}>Every trip moves you up. Up to 15% off plans.</div>
                   <div style={{ marginTop: 14 }}><RingoButton onClick={onLogin}>Sign in</RingoButton></div>
                 </div>
               </div>
             </>
           ) : (
             <>
-              <Member userId={acct.userId} email={profile?.email || acct.email || ''} since={profile?.member_since ?? null} level={rewards?.level ?? null} />
+              <Member userId={acct.userId} email={profile?.email || acct.email || ''} since={profile?.member_since ?? null} level={rewards?.level ?? null} pioneer={profile?.pioneer ?? null} />
               {err && !profile && <RingoCard><div role="alert" style={{ fontFamily: 'var(--font)', fontSize: 13.5, color: RC.error, fontWeight: 600 }}>{err}</div></RingoCard>}
+              {/* Where they have travelled comes first (owner 2026-10-23). */}
+              <Heading title="Where you've been" line={badges.length ? destinations(badges.length) : undefined} />
+              {err && !profile ? null : !profile ? <BadgeSkeleton /> : badges.length === 0 ? <BadgeEmpty onBrowse={onBrowse} /> : (
+                <>
+                  <TravelMap badges={badges} />
+                  <BadgeGrid badges={badges} />
+                </>
+              )}
+
               {rewards ? <Current rewards={rewards} /> : !err && <div aria-hidden style={{ height: 260, borderRadius: 24, background: RC.cream }} />}
 
               {rewards && (
                 <>
-                  <Heading title="Your rewards" line="Every destination you book counts, and every 3 months of Global counts as one more. Your level never goes down." />
+                  <Heading title="Your rewards" />
                   <Levels rewards={rewards} />
                   {rewards.global_tenure && rewards.global_tenure.length > 0 && <GlobalTenure rewards={rewards} />}
                 </>
               )}
-
-              <Heading title="Where you've been" line={badges.length ? `${destinations(badges.length)} so far.` : undefined} />
-              {err && !profile ? null : !profile ? <BadgeSkeleton /> : badges.length === 0 ? <BadgeEmpty onBrowse={onBrowse} /> : <BadgeGrid badges={badges} />}
               {badges.length > 0 && <RingoButton variant="soft" onClick={onBrowse}>Book your next destination</RingoButton>}
             </>
           )}

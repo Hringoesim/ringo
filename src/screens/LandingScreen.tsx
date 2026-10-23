@@ -26,7 +26,6 @@ import { useEffect, useState, useLayoutEffect, useRef, type CSSProperties } from
 import { SaturnWorld } from '../components/SaturnWorld';
 import { NightSky, type SkyGeometry } from '../components/NightSky';
 import { AuthButtons } from '../components/AuthButtons';
-import { TextLink } from '../components/ui';
 import { LOGO_SRC } from '../assets';
 import { COLUMN_MAX } from '../theme';
 import { requestLightStatusBar } from '../lib/statusBar';
@@ -86,8 +85,10 @@ function background(hero: Hero, a: Anchors, globe: number): string {
 }
 
 export function LandingScreen({
-  onExplore, onSignedIn, onEmail,
-}: { onExplore: () => void; onSignedIn: () => void; onEmail: () => void }) {
+  onSignedIn, onEmail,
+}: { onSignedIn: () => void; onEmail: () => void }) {
+  // Sign-in is the way in (owner 2026-10-23: "make them sign in, like all
+  // apps do"); Restore purchases lives under My eSIM once signed in.
   const [hero] = useState<Hero>(heroVariant);
   const [globe, setGlobe] = useState(220);
   const [compact, setCompact] = useState(false);
@@ -309,7 +310,7 @@ export function LandingScreen({
             lineHeight: 1.45, maxWidth: 300, position: 'relative',
           }}
         >
-          eSIMs for 196 countries and every region. Install in a tap, connected when you land.
+          196 countries, one app.
         </div>
       </div>
 
@@ -318,13 +319,6 @@ export function LandingScreen({
           Sign in or create an account
         </div>
         <AuthButtons onSignedIn={onSignedIn} onEmail={onEmail} onDark />
-        <TextLink
-          onClick={onExplore}
-          color="#FFFFFF"
-          style={{ margin: '-4px 0 -10px', fontWeight: 700, textShadow: '0 1px 6px rgba(40,10,50,0.3)' }}
-        >
-          Browse plans first
-        </TextLink>
       </div>
       {/* On tall screens a share of the height sits under the buttons, so the
           sign-in block starts near 60% of the screen instead of the bottom.

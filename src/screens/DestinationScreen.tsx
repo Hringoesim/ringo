@@ -14,6 +14,8 @@
 // automatically at 90%; an App Store buyer has no card on file, so the app
 // says the top-up is one tap on My eSIM.
 // Nothing here decides a price.
+import { PlaceMosaic } from '../components/PlaceMosaic';
+import { hasMosaic } from '../data/destinations';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { RC, RADIUS, hexA } from '../theme';
 import { RingoHeader } from '../components/Header';
@@ -177,7 +179,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{ position: 'relative', height: 212, flexShrink: 0, background: skyFor(id) }}>
-        <img src={pictureFor(id)} alt="" onError={(e) => { const el = e.currentTarget as HTMLImageElement; const b = bundledPictureFor(id); if (b && !el.src.endsWith(b)) { el.src = b; } else { el.style.display = 'none'; } }} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        {hasMosaic(id) ? <PlaceMosaic id={id} /> : <img src={pictureFor(id)} alt="" onError={(e) => { const el = e.currentTarget as HTMLImageElement; const b = bundledPictureFor(id); if (b && !el.src.endsWith(b)) { el.src = b; } else { el.style.display = 'none'; } }} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
         <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(20,10,30,0.25) 0%, rgba(20,10,30,0) 35%, rgba(20,10,30,0.7) 100%)' }} />
         <div style={{ position: 'absolute', left: 0, right: 0, top: 0 }}>
           <RingoHeader leading={<BackBtn onClick={onBack} />} />

@@ -2,6 +2,8 @@
 // it, the install button, top-ups, and the two things support gets asked
 // for: the install email again and reporting a problem. Everything is read
 // from ringoesim.com against the owner's token; the app keeps no copy.
+import { PlaceMosaic } from '../components/PlaceMosaic';
+import { hasMosaic } from '../data/destinations';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RC, RADIUS, cardSurface } from '../theme';
 import { RingoHeader } from '../components/Header';
@@ -204,7 +206,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
         {header}
         <Empty
           title="No eSIM on this phone yet."
-          sub="Buy a plan and it appears here, ready to install. Bought before? Sign in, or restore your App Store purchases."
+          sub="Buy a plan and it appears here."
           primary={{ label: 'Sign in', onClick: onLogin }}
           secondary={{ label: restoring ? 'Restoring…' : 'Restore purchases', onClick: () => void restore() }}
           tertiary={{ label: 'Browse plans', onClick: onStore }}
@@ -241,7 +243,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
           <>
             <div style={{ ...cardSurface(), overflow: 'hidden' }}>
               <div style={{ position: 'relative', height: 120, background: RC.cream2 }}>
-                {data?.destination && <img src={pictureFor(data.destination.id)} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
+                {data?.destination && (hasMosaic(data.destination.id) ? <PlaceMosaic id={data.destination.id} /> : <img src={pictureFor(data.destination.id)} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />)}
                 <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(20,10,30,0) 40%, rgba(20,10,30,0.7) 100%)' }} />
                 <div style={{ position: 'absolute', left: 16, bottom: 12, fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: -0.5, textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>
                   {dest?.flag ? `${dest.flag} ` : ''}{data?.destination?.label || sub.plan_label}
@@ -319,10 +321,10 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
                 <SectionTitle>Help</SectionTitle>
                 <RingoCard style={{ padding: 0 }}>
                   {data?.install && <LinkRow label={resent || 'Send the install email again'} onClick={() => void resend()} />}
-                  <LinkRow label="Setup guide" sub="Step by step, with screenshots" onClick={() => void openInSheet(`${SITE}/esim-setup.html`)} />
-                  <LinkRow label="Report a problem" sub="We open a case with the network and write back" onClick={onReport} />
-                  {(sub.cycles_total > 1 || /_1m$/.test(String(sub.plan))) && <LinkRow label="Manage subscription" sub="Change or cancel in your Apple ID settings" onClick={() => void manageSubscriptions()} />}
-                  <LinkRow label={restoring ? 'Restoring…' : 'Restore purchases'} sub="Bought with this Apple ID on another phone" onClick={() => void restore()} last />
+                  <LinkRow label="Setup guide" onClick={() => void openInSheet(`${SITE}/esim-setup.html`)} />
+                  <LinkRow label="Report a problem" onClick={onReport} />
+                  {(sub.cycles_total > 1 || /_1m$/.test(String(sub.plan))) && <LinkRow label="Manage subscription" onClick={() => void manageSubscriptions()} />}
+                  <LinkRow label={restoring ? 'Restoring…' : 'Restore purchases'} onClick={() => void restore()} last />
                 </RingoCard>
               </div>
             )}

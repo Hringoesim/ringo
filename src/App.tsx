@@ -28,9 +28,11 @@ import { LoginScreen } from './screens/LoginScreen';
 import { ReportScreen } from './screens/ReportScreen';
 import { HelpScreen } from './screens/HelpScreen';
 import { RewardsScreen } from './screens/RewardsScreen';
+import { startPush } from './lib/push';
+import { WelcomeScreen } from './screens/WelcomeScreen';
+import { welcomeDue } from './lib/welcome';
 
 const TABBED = new Set<string>(['store', 'esim', 'rewards', 'help']);
-const SEEN_KEY = 'ringo_seen_landing';
 
 interface Frame {
   id: number;
@@ -55,6 +57,19 @@ export function App() {
   // Everything read from the site is asked again whenever the app returns to
   // the foreground, so what the app sells is what ringoesim.com sells now.
   useEffect(() => { startLive(); }, []);
+  // Signing out (or deleting the account, or a token the site no longer
+  // accepts) goes back to the sign-in screen.
+  useEffect(() => account.subscribe(() => {
+    if (!account.get()) { navDirRef.current = 'fade'; setStack([mkFrame('landing', {})]); }
+  }), []);
+  // Push: listens for this phone's token and for taps, never asks at launch
+  // (src/lib/push.ts). A tapped push opens the tab its path names.
+  useEffect(() => startPush((path) => {
+    const tab = path.replace(/^\/+/, '').split(/[/?#]/)[0];
+    if (tab === 'store' || tab === 'esim' || tab === 'rewards' || tab === 'help') goTab(tab);
+  // goTab only sets state, so the first one is as good as any.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), []);
   // Each frame carries a unique monotonic id so distinct navigations never
   // share a React key (prevents a screen instance being reused with stale
   // params).
@@ -75,12 +90,13 @@ export function App() {
       if (name === 'install') return [{ id: 0, name: 'esim', params: {} }, { id: 1, name: 'install', params: { label: arg || 'Europe', install: { lpa: 'LPA:1$consumer.e-sim.global$RINGO-SAMPLE-0000', apple_url: 'https://esimsetup.apple.com/esim_qrcode_provisioning?carddata=LPA%3A1%24consumer.e-sim.global%24RINGO-SAMPLE-0000' } } }];
       return [{ id: 0, name, params: {} }];
     }
-    // The welcome screen (sign in or create an account) opens every cold
-    // start until there is an account; "Browse plans first" skips it for the
-    // rest of the session only (owner 2026-09-18: sign-in must be seen).
-    let skip = false;
-    try { skip = Boolean(account.get()) || sessionStorage.getItem(SEEN_KEY) === '1'; } catch { /* ignore */ }
-    return [{ id: 0, name: skip ? 'store' : 'landing', params: {} }];
+    // No account, no way past the sign-in screen (owner 2026-10-23: "make
+    // them sign in, like all apps do"; 2026-09-18: sign-in must be seen).
+    const acct = account.get();
+    if (!acct) return [{ id: 0, name: 'landing', params: {} }];
+    // A member who has not had the Rewards welcome on this phone gets it first.
+    if (welcomeDue(acct.userId)) return [{ id: 0, name: 'welcome', params: {} }];
+    return [{ id: 0, name: 'store', params: {} }];
   });
   const current = stack[stack.length - 1];
 
@@ -104,9 +120,11 @@ export function App() {
     haptic('light');
     setStack([mkFrame(name, {})]);
   };
-  const leaveLanding = (to: TabId) => {
-    try { sessionStorage.setItem(SEEN_KEY, '1'); } catch { /* ignore */ }
-    goTab(to);
+  // Signed in or signed up: the Rewards welcome (and the notification ask)
+  // comes first, once per account on this phone.
+  const signedIn = () => {
+    if (welcomeDue(account.get()?.userId)) { navDirRef.current = 'fade'; setStack([mkFrame('welcome', {})]); return; }
+    goTab('esim');
   };
 
   // One line in the device log at launch saying whether the App Store
@@ -199,7 +217,7 @@ export function App() {
   let body: ReactNode = null;
   switch (current.name) {
     case 'landing':
-      body = <LandingScreen onExplore={() => leaveLanding('store')} onSignedIn={() => leaveLanding('esim')} onEmail={() => { leaveLanding('store'); push('login', { email: true }); }} />;
+      body = <LandingScreen onSignedIn={signedIn} onEmail={() => push('login', { email: true })} />;
       break;
     case 'store':
       body = <StoreScreen onOpen={(id) => push('destination', { destination: id })} onMyEsim={() => goTab('esim')} onLogin={() => push('login')} loggedIn={Boolean(account.get())} />;
@@ -238,7 +256,10 @@ export function App() {
       body = <InstallScreen install={current.params.install!} label={current.params.label || 'Ringo'} onBack={pop} />;
       break;
     case 'login':
-      body = <LoginScreen onBack={pop} onDone={() => goTab('esim')} startWithEmail={Boolean(current.params.email)} />;
+      body = <LoginScreen onBack={pop} onDone={signedIn} startWithEmail={Boolean(current.params.email)} />;
+      break;
+    case 'welcome':
+      body = <WelcomeScreen onDone={() => goTab('esim')} />;
       break;
     case 'report':
       body = <ReportScreen onBack={pop} />;

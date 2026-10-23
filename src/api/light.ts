@@ -12,6 +12,7 @@
 //   POST app-login                         email -> code by email -> { user_id, t }
 //   GET  app-profile?user&t                badges + Ringo status (the loyalty ladder)
 //   GET  app-usage?user&t                  data used per eSIM and per day
+//   POST app-push-register?user&t          this phone's APNs token and the two push switches
 import { log } from '../lib/log';
 
 export const SITE = 'https://ringoesim.com';
@@ -90,6 +91,8 @@ export interface Profile {
   stats: { destinations: number; plans: number; countries_reachable: number; paid_months: number };
   /** Ringo Rewards, by destinations booked (absent on an older site). */
   rewards?: { destinations: number; booked?: number; global_months?: number; global_pct?: number; global_tenure?: { months: number; pct: number }[]; level: RewardLevel | null; next: { id: string; name: string; min: number; to_go: number } | null; levels: RewardLevel[] };
+  /** Ringo Pioneer (absent or null when not one): how they became one and the rung's name. Never the Pioneer number. */
+  pioneer?: { kind: 'backer' | 'promoter' | 'global'; tier: string; credit_eur?: number } | null;
   loyalty: { paid_months: number; tier: LoyaltyTier & { next: { id: string; name: string; min: number; to_go: number } | null }; tiers: LoyaltyTier[] };
 }
 
@@ -265,6 +268,13 @@ export const light = {
   /** Data used per eSIM and per day, from the figures the site already stored. */
   usage: (userId: string, t: string) =>
     request<Usage>(`/app-usage?${new URLSearchParams({ user: userId, t }).toString()}`),
+
+  /** This phone's push token and the member's switches; the site is the sender. */
+  pushRegister: (userId: string, t: string, body: { token: string; environment: 'production' | 'sandbox'; service_ok: boolean; offers_ok: boolean; app_version?: string }) =>
+    request<{ ok: boolean; service_ok: boolean; offers_ok: boolean }>(
+      `/app-push-register?${new URLSearchParams({ user: userId, t }).toString()}`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
 
   loginVerify: (email: string, code: string) =>
     request<{ ok: boolean; user_id: string; t: string; email: string }>('/app-login', { method: 'POST', body: JSON.stringify({ email, code }) }),

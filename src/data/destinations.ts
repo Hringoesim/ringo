@@ -91,6 +91,9 @@ export function destinationById(id: string | null | undefined): Destination | nu
  * as the offline stand-in.
  */
 export const SITE_PICTURES = 'https://ringoesim.com/img/data-esims';
+/** Places the site tells as a mosaic rather than one photograph (components/PlaceMosaic.tsx). */
+export const MOSAIC_IDS = ['global'] as const;
+export const hasMosaic = (id: string): boolean => (MOSAIC_IDS as readonly string[]).includes(id);
 export function pictureFor(id: string): string {
   return `${SITE_PICTURES}/${id}.jpg`;
 }
