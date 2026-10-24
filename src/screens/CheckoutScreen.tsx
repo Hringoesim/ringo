@@ -202,10 +202,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
 
   const renewBox = stage === 'email' && renewing && (
     <div style={{ padding: '14px 16px', borderRadius: RADIUS.sm, background: RC.cream, border: `1px solid ${RC.line}` }}>
-      <div style={{ ...TYPE.small, fontWeight: 700, color: RC.ink }}>Renews at {price.total} every {periodWord(p)} until you turn renewal off.</div>
-      <div style={{ marginTop: 6, ...TYPE.caption, color: RC.inkMute }}>
-        Turn renewal off any time under My eSIM. No minimum term: you keep the {periodWord(p)} you paid for.
-      </div>
+      <div style={{ ...TYPE.small, fontWeight: 700, color: RC.ink }}>Renews every {periodWord(p)}. Turn it off any time in My eSIM.</div>
     </div>
   );
 
@@ -215,7 +212,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
       <button type="button" onClick={() => void openInSheet(`${SITE}/terms?app=1`)} style={inlineLink()}>Terms of Use</button>
       {' '}and the{' '}
       <button type="button" onClick={() => void openInSheet(`${SITE}/privacy?app=1`)} style={inlineLink()}>Privacy Policy</button>
-      . Prices include VAT.
+      .
     </div>
   );
 
@@ -236,17 +233,11 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
     </>
   );
 
-  // The no-refund consent sits directly above the buy button (owner
-  // 2026-09-27: no refund once the eSIM is issued). UK Consumer Contracts
-  // Regulations 2013 reg 37: the right to cancel digital content ends only
-  // on an express request for immediate supply and an acknowledgement that
-  // it is lost. Apple decides App Store refunds itself, so this neither
-  // promises nor denies one.
-  const consent = stage === 'email' && (
-    <div data-refund-consent style={{ ...TYPE.caption, color: RC.inkMute, textAlign: l.isWide ? 'left' : 'center' }}>
-      By buying you ask us to issue your eSIM straight away and accept that you lose your right to cancel once it is issued. Payments are processed by Stripe.
-    </div>
-  );
+  // Above the button: the Terms agreement only (owner 2026-10-24, "hide the
+  // disclaimer within the terms of use"). The right to cancel ending once
+  // the eSIM is issued lives in the Terms (section 6), as on the website,
+  // where Stripe's Pay button carries the same agreement.
+  const consent = terms;
 
   const action: ReactNode = (
     <>
@@ -273,7 +264,6 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
               {renewBox}
               {consent}
               {action}
-              {terms}
             </div>
           </div>
         </div>
@@ -291,7 +281,6 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
           {form}
           {status}
           {renewBox}
-          {terms}
         </div>
       </div>
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: `12px ${l.gutter}px max(20px, env(safe-area-inset-bottom, 0px))`, background: RC.glass, backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)', borderTop: `1px solid ${RC.line}`, display: 'flex', flexDirection: 'column', gap: 10 }}>
