@@ -25,11 +25,11 @@
 // Nothing here decides a price.
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { PlaceMosaic } from '../components/PlaceMosaic';
-import { RC, RADIUS, TYPE, typeFor, hexA, cardSurface, SHADOW_CARD, SKINS, ON_DARK, PHOTO_OVERLAY, PHOTO_TEXT_SHADOW } from '../theme';
+import { RC, RADIUS, TYPE, typeFor, cardSurface, SHADOW_CARD, SKINS, ON_DARK, PHOTO_OVERLAY, PHOTO_TEXT_SHADOW } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
-import { BackBtn, Segmented, TickList, ErrorBox } from '../components/ui';
-import { termTitle, planName, periodWord, lineKey, subMonths } from '../lib/terms';
+import { BackBtn, TickList, ErrorBox } from '../components/ui';
+import { termTitle, planName, periodWord, lineKey } from '../lib/terms';
 import { hasMosaic, pictureFor, skyFor, bundledPictureFor, type Destination } from '../data/destinations';
 import { useDestinations, destinationFrom } from '../store/destinations';
 import { useAccount } from '../store/account';
@@ -39,6 +39,7 @@ import { rememberAppleLines } from '../store/summary';
 import { useLiveTick } from '../store/live';
 import { priceOf } from '../lib/purchase';
 import { haptic, hapticSelection } from '../lib/haptics';
+import { defaultArm, logAb } from '../lib/abtest';
 import { useLayout, contentColumn, type Layout } from '../lib/layout';
 import { requestLightStatusBar } from '../lib/statusBar';
 
@@ -51,7 +52,6 @@ export interface Selection {
   product: IapProduct | null;
 }
 
-type Tier = 'data' | 'unlimited';
 /** Which list is shown: the trip plans, or one family of App Store only day passes. */
 type Group = 'trip' | 'day' | 'power' | 'super';
 const DAY_GROUPS: { id: Exclude<Group, 'trip'>; label: string; line: string }[] = [
@@ -66,32 +66,8 @@ const GLOBAL_TICKS = ['Unlimited data at full speed', 'One plan, renews until yo
 const DATA_TICKS = ['Full speed, no daily cap', 'Hotspot included', 'Data only, next to your own SIM'];
 const UNLIMITED_TICKS = ['Unlimited data', 'Hotspot included', 'Data only, next to your own SIM'];
 
-// One short line under a card's name. A one-off says it is one payment; a
-// subscription says it renews.
-function termLine(p: Plan, total: string): string {
-  if (p.app_only) return DAY_GROUPS.find((g) => g.id === p.group)?.line ?? 'One payment, no renewal';
-  if (p.mode === 'payment') return 'One payment, no renewal';
-  const per = periodWord(p);
-  return per === 'month' ? 'Renews monthly' : `${total} every ${per}, renews`;
-}
 
-/** What a card's big figure is, as a number to sort by: a one-off's price, a subscription's month. Apple's on the phone, else the catalogue's. */
-function shownCost(p: Plan, product: IapProduct | null): number {
-  if (p.mode === 'subscription') return product ? product.price / subMonths(p) : p.monthly_amount;
-  return product ? product.price : p.billed_upfront_amount;
-}
 
-function Check({ on, shade }: { on: boolean; shade?: string }) {
-  return (
-    <span aria-hidden style={{ width: 26, height: 26, borderRadius: '50%', flexShrink: 0, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? (shade || RC.gradCta) : 'transparent', border: on ? 'none' : `2px solid ${RC.lineStrong}`, transition: 'transform .2s', transform: on ? 'scale(1)' : 'scale(0.92)' }}>
-      {on && (
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-          <path d="M3.5 8.5l3 3 6-7" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      )}
-    </span>
-  );
-}
 
 /** The destination's photograph (the Global mosaic for Global), filling its positioned parent. */
 function Photo({ id, eager = true }: { id: string; eager?: boolean }) {
@@ -125,36 +101,32 @@ function PhotoTitle({ l, dest, name, coverage }: { l: Layout; dest: Destination 
   );
 }
 
-/** A light plan card: duration and data, one line, the price. */
+const isUnlimitedPlan = (p: Plan) => p.tier === 'unlimited' && !p.app_only;
+
+/** A data plan card, the Saily way: the data large, its length under it, the price on the right. */
 function PlanCard({ p, on, price, onPick }: { p: Plan; on: boolean; price: { total: string; monthly: string }; onPick: () => void }) {
   const sub = p.mode === 'subscription';
-  // A day pass wears its family's shade; trip plans keep the brand orange.
-  const shade = p.app_only && p.group ? SHADES[p.group as Group]?.solid : undefined;
+  const unlimited = isUnlimitedPlan(p);
+  // A data card names its data and length; an unlimited card its length and the day's amount.
+  const title = p.app_only ? termTitle(p) : unlimited ? 'Unlimited' : p.data_gb ? `${p.data_gb} GB` : planName(p);
+  const length = p.app_only ? `${p.daily_gb} GB a day at full speed${p.after_speed ? `, then ${p.after_speed}` : ''}` : sub ? `Every ${periodWord(p)}` : termTitle(p);
+  // True claim only: the 2-week plan is what most people buy (236 of 316 sales, 2026-10-24).
+  const popular = !p.app_only && p.plan === 'rl_14';
   return (
-    <button
-      type="button"
-      className="press"
-      onClick={onPick}
-      aria-pressed={on}
-      style={{
-        textAlign: 'left', cursor: 'pointer', width: '100%', font: 'inherit',
-        padding: '18px 18px 18px 16px', borderRadius: RADIUS.card,
-        background: RC.paper,
-        // The same 2px border on every card so choosing one shifts nothing.
-        border: `2px solid ${on ? (shade || RC.inkStrong) : RC.line}`,
-        boxShadow: on ? `0 0 0 4px ${hexA(shade || '#FF5724', 0.16)}, ${SHADOW_CARD}` : SHADOW_CARD,
-        display: 'flex', alignItems: 'center', gap: 14,
-      }}
-    >
-      <Check on={on} shade={shade} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ ...TYPE.h2, color: RC.ink }}>{p.app_only ? termTitle(p) : planName(p)}</div>
-        <div style={{ marginTop: 4, ...TYPE.small, color: RC.ink2 }}>{termLine(p, price.total)}</div>
-        {p.member_pct ? <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 15, fontWeight: 700, color: RC.purpleInk }}>Your Rewards price</div> : null}
-      </div>
-      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-        <div style={{ ...TYPE.price, fontSize: 26, color: RC.ink, fontVariantNumeric: 'tabular-nums' }}>{sub ? price.monthly : price.total}</div>
-        <div style={{ marginTop: 4, ...TYPE.caption, color: RC.inkMute }}>{sub ? 'a month' : `for ${termTitle(p)}`}</div>
+    <button type="button" className="press" onClick={onPick} aria-pressed={on}
+      style={{ textAlign: 'left', cursor: 'pointer', width: '100%', font: 'inherit', padding: 0, borderRadius: RADIUS.card, position: 'relative', overflow: 'hidden', ...(on ? ringOn(unlimited || Boolean(p.app_only)) : ringOff) }}>
+      {p.best_margin && <div style={{ background: p.app_only ? SUNSET : ORANGE, color: '#FFFFFF', textAlign: 'center', padding: '6px 0', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600 }}>Recommended</div>}
+      <div style={{ display: 'flex', gap: 14, padding: '16px 18px 16px 16px' }}>
+        <Radio on={on} shade={unlimited || p.app_only ? '#FF42A1' : ORANGE} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+            <span style={{ fontFamily: 'var(--font)', fontSize: 18, fontWeight: 600, color: RC.ink }}>{title}</span>
+            <span style={{ fontFamily: 'var(--font)', fontSize: 18, fontWeight: 600, color: RC.ink, fontVariantNumeric: 'tabular-nums' }}>{sub ? price.monthly : price.total}</span>
+          </div>
+          <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 15, color: RC.ink2 }}>{length}</div>
+          {popular && <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: ORANGE }}>Most popular</div>}
+          {p.member_pct ? <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.purpleInk }}>Your Rewards price</div> : null}
+        </div>
       </div>
     </button>
   );
@@ -166,12 +138,6 @@ function PlanCard({ p, on, price, onPick }: { p: Plan; on: boolean; price: { tot
  * orange, Day plans sunny amber, Power user pink, Super user purple. Text on
  * each solid shade is white, except dark ink on amber, every pair over 4.5:1.
  */
-const SHADES: Record<Group, { solid: string; ink: string; on: string; sub: string; label: string }> = {
-  trip: { solid: '#C9431A', ink: '#B23A14', on: '#FFFFFF', sub: 'Your whole trip', label: 'Trip plans' },
-  day: { solid: '#F2B01E', ink: '#8A5A00', on: '#1A0F2E', sub: '1 GB a day', label: 'Day plans' },
-  power: { solid: '#D6247A', ink: '#B01C63', on: '#FFFFFF', sub: '3 GB a day', label: 'Power user' },
-  super: { solid: '#6B3FD1', ink: '#5A33B5', on: '#FFFFFF', sub: '10 GB a day', label: 'Super user' },
-};
 
 // The plan family icons, the website's way (owner 2026-10-24: "icon and icon
 // colours do not match the website ... need an upgrade to feel modern"): a
@@ -179,69 +145,72 @@ const SHADES: Record<Group, { solid: string; ink: string; on: string; sub: strin
 // from the site's own tokens (orange #f26122, pink #ff42a1, purple #8652e0,
 // yellow #ffcc33). Trip a plane, Day a rising sun, Power a bolt, Super a
 // hotspot signal (van travel, sharing the connection with friends).
-const ICON_GRADS: Record<Group, string> = {
-  trip: 'linear-gradient(135deg, hsl(8,95%,55%), hsl(24,100%,58%))',
-  day: 'linear-gradient(135deg, #f26122, #ffb21e)',
-  power: 'linear-gradient(135deg, #ff42a1, #f26122)',
-  super: 'linear-gradient(135deg, #8652e0, #ff42a1)',
-};
 
-function GroupGlyph({ id }: { id: Group }) {
-  const f = { fill: '#FFFFFF' };
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden>
-      {id === 'trip' && <path {...f} d="M21.2 14.6v-1.8l-7.6-4.6V3.6c0-.9-.7-1.6-1.6-1.6s-1.6.7-1.6 1.6v4.6l-7.6 4.6v1.8l7.6-2.3v4.9l-2.2 1.6V20l3.8-1.1 3.8 1.1v-1.2l-2.2-1.6v-4.9z" />}
-      {id === 'day' && (<><path {...f} d="M12 9.2a5.6 5.6 0 0 1 5.6 5.6H6.4A5.6 5.6 0 0 1 12 9.2z" /><rect {...f} x="3" y="16.4" width="18" height="2" rx="1" /><rect {...f} x="7" y="19.8" width="10" height="1.8" rx=".9" /><path d="M12 3.4v2.4M5.1 6.6l1.6 1.6M18.9 6.6l-1.6 1.6M2.6 12.6h2.2M19.2 12.6h2.2" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" /></>)}
-      {id === 'power' && <path {...f} d="M13.4 2.2c.4-.6-.3-1.3-.9-.9L4.6 12.2c-.4.5 0 1.3.6 1.3h5.3l-1.9 8.2c-.2.7.7 1.1 1.1.5l9.6-11.6c.4-.5 0-1.2-.6-1.2h-5.6l.3-7.2z" />}
-      {id === 'super' && (<><circle {...f} cx="12" cy="17.6" r="2.2" /><path d="M8 13.6a5.6 5.6 0 0 1 8 0M4.8 10.4a10.2 10.2 0 0 1 14.4 0M1.9 7.3a14.4 14.4 0 0 1 20.2 0" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" fill="none" /></>)}
-    </svg>
-  );
-}
+/**
+ * The families that earn the most per sale wear the website's gradient
+ * (owner 2026-10-24: "use the gradient to the plans that give us the most
+ * margin"): Super user, then Power user (a 7-day Super user in Europe keeps
+ * about EUR 41, Power about EUR 14, the 2-week trip about EUR 12). The site's
+ * sunset stops (hsl 285 / 330 / 8), taken deeper so white text clears 4.5:1.
+ */
+/** The plan most people pick (2 weeks: 236 of the last 316 sales, 2026-10-24). */
+// Option 1 + 2 (owner 2026-10-24): plum for what is chosen, the website's
+// orange button gradient on Continue, the full sunset on the highlight band.
+const SUNSET = 'linear-gradient(110deg, #F26122, #FF42A1 55%, #8652E0)';
+// One accent on this screen, the website's deep plum (owner 2026-10-24, from a
+// swatch of the site's dark sections). White on it reads at 14:1.
+// The Airalo way (owner 2026-10-24): cream page, white cards, black for
+// what is chosen, black line icons; colour only on Continue.
+// Owner 2026-10-24: never a black contour, cream behind everything, the
+// orange for the data plans and the gradient for Unlimited, all subtle.
+const CREAM = '#FFFAF7';
+const ORANGE = '#F26122';
+const LINE = 'rgba(26,15,46,0.08)';
+/** The accent of a family: solid orange for the data plans, the sunset for Unlimited. */
+const accentOf = (unlimited: boolean) => (unlimited ? SUNSET : ORANGE);
+/** A thin accent ring on a cream face (a gradient needs the two-layer border trick). */
+const ringOn = (unlimited: boolean, width = 1.5) => ({
+  border: `${width}px solid transparent`,
+  background: `linear-gradient(${CREAM}, ${CREAM}) padding-box, ${accentOf(unlimited)} border-box`,
+  boxShadow: `0 10px 24px -18px ${unlimited ? 'rgba(255,66,161,0.55)' : 'rgba(242,97,34,0.55)'}`,
+});
+const ringOff = { border: `1.5px solid ${LINE}`, background: CREAM, boxShadow: '0 6px 18px -16px rgba(26,15,46,0.25)' };
 
-function GroupIcon({ id, size = 38 }: { id: Group; size?: number }) {
-  return (
-    <span aria-hidden style={{ width: size, height: size, borderRadius: Math.round(size * 0.32), flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ICON_GRADS[id], boxShadow: '0 6px 14px -6px rgba(26,15,46,0.45), inset 0 1px 0 rgba(255,255,255,0.28)' }}>
-      <GroupGlyph id={id} />
-    </span>
-  );
-}
 
-function GroupPicker({ value, options, onChange }: { value: Group; options: { id: Group; label: string }[]; onChange: (g: Group) => void }) {
-  const cols = options.length >= 4 ? 2 : options.length;
+// Every icon its own colour (owner 2026-10-24), from the website's sunset:
+// the plane orange, Unlimited purple; the tiers Day yellow, Super pink, Ultra
+// indigo. Each glyph on a soft tint of its colour, chosen or not.
+
+
+
+
+/** Data or Unlimited, each said in one line so a buyer knows what is what. */
+function PlanTabs({ value, onChange }: { value: 'data' | 'unl'; onChange: (t: 'data' | 'unl') => void }) {
+  const tabs: { id: 'data' | 'unl'; label: string; line: string }[] = [
+    { id: 'data', label: 'Data', line: 'A set amount for your whole trip' },
+    { id: 'unl', label: 'Unlimited', line: 'Full speed every day, never cut off' },
+  ];
   return (
-    <div role="tablist" aria-label="Plan family" style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: 10 }}>
-      {options.map((o) => {
-        const on = o.id === value;
-        const sh = SHADES[o.id];
+    <div role="tablist" aria-label="Plan type" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+      {tabs.map((t) => {
+        const on = t.id === value;
         return (
-          <button
-            key={o.id}
-            type="button"
-            role="tab"
-            aria-selected={on}
-            onClick={() => { if (!on) { hapticSelection(); onChange(o.id); } }}
-            className="press"
-            style={{
-              border: `1.5px solid ${on ? sh.solid : hexA(sh.solid, 0.38)}`, cursor: 'pointer', minHeight: 64, padding: '10px 12px',
-              borderRadius: 18, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10,
-              background: on ? sh.solid : hexA(sh.solid, 0.10),
-              boxShadow: on ? `0 10px 22px -10px ${hexA(sh.solid, 0.75)}` : 'none',
-              transition: 'background .2s, box-shadow .2s, border-color .2s',
-            }}
-          >
-            <span style={{ borderRadius: 13, padding: on ? 2 : 0, background: on ? hexA(sh.on, 0.35) : 'transparent', display: 'flex' }}>
-              <GroupIcon id={o.id} />
-            </span>
-            <span style={{ minWidth: 0 }}>
-              <span style={{ display: 'block', fontFamily: 'var(--font)', fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', lineHeight: 1.2, color: on ? sh.on : RC.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sh.label}</span>
-              <span style={{ display: 'block', marginTop: 2, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, lineHeight: 1.2, color: on ? hexA(sh.on, 0.9) : sh.ink }}>{sh.sub}</span>
-            </span>
+          <button key={t.id} type="button" role="tab" aria-selected={on} className="press" onClick={() => { if (!on) onChange(t.id); }}
+            style={{ cursor: 'pointer', textAlign: 'left', padding: '12px 14px', borderRadius: 18, ...(on ? ringOn(t.id === 'unl') : ringOff) }}>
+            <span style={{ display: 'block', fontFamily: 'var(--font)', fontSize: 17, fontWeight: 600, color: RC.ink }}>{t.label}</span>
+            <span style={{ display: 'block', marginTop: 2, fontFamily: 'var(--font)', fontSize: 13, color: RC.ink2, lineHeight: 1.35 }}>{t.line}</span>
           </button>
         );
       })}
     </div>
   );
 }
+
+/** A plain radio circle; the chosen one fills with its accent. */
+function Radio({ on, shade }: { on: boolean; shade: string }) {
+  return <span aria-hidden style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, boxSizing: 'border-box', marginTop: 3, border: on ? `6px solid ${shade}` : '1.5px solid rgba(26,15,46,0.3)' }} />;
+}
+
 
 /** Global on the site's dark plan card: Unlimited, the month's price, the ticks. */
 function GlobalCard({ l, p, price }: { l: Layout; p: Plan; price: { total: string; monthly: string } }) {
@@ -272,8 +241,14 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
   const [cat, setCat] = useState<Catalog | null>(null);
   const [products, setProducts] = useState<Map<string, IapProduct> | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [tier, setTier] = useState<Tier>('data');
   const [group, setGroup] = useState<Group>('trip');
+  // The Saily way (owner 2026-10-24: "look at how apps do this and do the
+  // same"): one list, Unlimited as one card with its days and daily amount.
+  const [unlGb, setUnlGb] = useState<number | null>(null);
+  // Screen 1, the tabs (owner 2026-10-24, after the choice research): Data or
+  // Unlimited first, each explained in one line, then that tab's plans.
+  const [tab, setTab] = useState<'data' | 'unl'>('data');
+  const arm = useMemo(() => defaultArm(), []);
   const [planId, setPlanId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -294,7 +269,6 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
       setPlanId(null);
       setGroup('trip');
       // A destination sold only as Unlimited opens on Unlimited.
-      setTier((t) => (c.plans.some((p) => p.tier === t) ? t : (c.plans[0]?.tier ?? 'data')));
       // Apple's products for every line here; a line Apple does not sell is
       // not offered. An empty answer is asked again before it is believed.
       const ids = [...c.plans, ...(c.app_plans ?? [])].map((p) => p.apple_product_id).filter((x): x is string => Boolean(x));
@@ -339,32 +313,49 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
   const unlimitedGlobal = Boolean(cat && cat.destination.id === 'global' && cat.meter_topups);
   // One list for the tier shown, cheapest first (owner 2026-09-25: the first
   // price seen is the cheapest); a tie goes to the shorter, then the smaller.
+  const isUnlimitedLine = (p: Plan) => Boolean(p.app_only) || p.tier === 'unlimited';
+  // Every one-off line on sale here, data and unlimited, keyed by its length.
+  const allLines = useMemo(() => {
+    if (!cat) return [] as Plan[];
+    const sold = (p: Plan) => !native || Boolean(products && p.apple_product_id && products.has(p.apple_product_id));
+    return [...cat.plans, ...(cat.app_plans ?? [])].filter(sold);
+  }, [cat, native, products]);
   const plans = useMemo(() => {
     if (!cat) return [];
-    const get = (p: Plan) => (p.apple_product_id && products?.get(p.apple_product_id)) || null;
     const sold = (p: Plan) => !native || Boolean(products && p.apple_product_id && products.has(p.apple_product_id));
-    // A family of day passes: its lines, cheapest first.
-    if (group !== 'trip') {
-      return (cat.app_plans ?? [])
-        .filter((p) => p.group === group && sold(p))
-        .sort((a, b) => (shownCost(a, get(a)) - shownCost(b, get(b))) || (a.days - b.days));
-    }
     // Global: the one monthly plan the website sells.
     if (cat.destination.id === 'global' && cat.meter_topups) {
       const one = cat.plans.filter((p) => p.mode === 'subscription' && sold(p)).sort((a, b) => (a.data_gb ?? 0) - (b.data_gb ?? 0))[0];
       return one ? [one] : [];
     }
-    return cat.plans
-      .filter((p) => p.tier === tier && sold(p))
-      .sort((a, b) => (shownCost(a, get(a)) - shownCost(b, get(b))) || ((a.days || 30) - (b.days || 30)) || ((a.data_gb ?? 0) - (b.data_gb ?? 0)));
-  }, [cat, tier, group, native, products]);
+    // Fixed data smallest first, then the unlimited lines (shown as one card).
+    return [...allLines].sort((a, b) => (Number(Boolean(a.app_only)) - Number(Boolean(b.app_only))) || ((a.data_gb ?? 0) - (b.data_gb ?? 0)) || (a.days - b.days) || ((a.daily_gb ?? 0) - (b.daily_gb ?? 0)));
+  }, [cat, allLines, native, products]);
+  const dataLines = plans.filter((p) => !p.app_only);
+  const unlLines = plans.filter((p) => p.app_only);
+  // The Unlimited tab: the full-speed amount a day, then one card per length.
+  const tierOptions = [...new Set(unlLines.map((p) => p.daily_gb ?? 0))].sort((a, b) => a - b);
+  const tierGb = unlGb != null && tierOptions.includes(unlGb) ? unlGb : (tierOptions[0] ?? null);
+  const tierLines = unlLines.filter((p) => (p.daily_gb ?? 0) === tierGb).sort((a, b) => a.days - b.days);
+  const shownTab: 'data' | 'unl' = tab === 'unl' && unlLines.length ? 'unl' : dataLines.length ? 'data' : 'unl';
+  // The Recommended line leads its tab (in both arms), so the plan that keeps
+  // Ringo the most is the first thing seen; the rest keep their order.
+  const leadFirst = (list: Plan[]) => [...list.filter((p) => p.best_margin), ...list.filter((p) => !p.best_margin)];
+  const tabLines = leadFirst(shownTab === 'data' ? dataLines : tierLines);
+  // The test's default: the cheapest line, or the one that keeps Ringo the most.
+  const defaultOf = (list: Plan[]) => (arm === 'recommended' ? list.find((p) => p.best_margin) : undefined) ?? list[0];
 
-  // The cheapest is chosen (owner 2026-09-25), and a choice still sold is kept.
+  // The chosen line stays while it is in the tab shown; otherwise the test's
+  // default for that tab (owner 2026-10-24 replaced "cheapest first" with this test).
   useEffect(() => {
-    if (!plans.length) return;
-    if (plans.some((p) => lineKey(p) === planId)) return;
-    setPlanId(lineKey(plans[0]));
-  }, [plans, planId]);
+    const list = unlimitedGlobal ? plans : tabLines;
+    if (!list.length) return;
+    if (list.some((p) => lineKey(p) === planId)) return;
+    setPlanId(lineKey(defaultOf(list)));
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- defaultOf follows arm
+  }, [plans, tabLines, planId, unlimitedGlobal]);
+  // One view per screen for the test.
+  useEffect(() => { if (cat && !unlimitedGlobal) logAb('view', { destination: id }); }, [cat?.destination.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const selected = plans.find((p) => lineKey(p) === planId) || null;
   // The day families on sale here (a line Apple does not return is not offered).
@@ -379,7 +370,11 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
   }, [group, groups, products]);
   const onTrip = group === 'trip';
   // Continue wears the chosen family's shade, like its tile and cards.
-  const ctaStyle = onTrip ? undefined : { background: SHADES[group].solid, color: SHADES[group].on, boxShadow: `0 12px 26px -12px ${hexA(SHADES[group].solid, 0.8)}` };
+  // Two buttons (owner 2026-10-24): solid orange on the data plans, the
+  // sunset gradient once you are on Unlimited.
+  const ctaStyle = !(selected && isUnlimitedLine(selected))
+    ? { background: ORANGE, color: '#FFFFFF', boxShadow: '0 10px 22px -16px rgba(242,97,34,0.8)' }
+    : { background: SUNSET, color: '#FFFFFF', boxShadow: '0 10px 22px -16px rgba(255,66,161,0.8)' };
   const tiers = new Set(cat?.plans.map((p) => p.tier) ?? []);
   const hasBothTiers = onTrip && !unlimitedGlobal && tiers.has('data') && tiers.has('unlimited');
   const name = dest?.label || cat?.destination.label || id;
@@ -411,18 +406,12 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
     </div>
   );
 
-  const ticks = !(onTrip && unlimitedGlobal) && cat && !loadingPrices && plans.length > 0 && (
-    <TickList items={!onTrip ? DAY_TICKS : tier === 'unlimited' ? UNLIMITED_TICKS : DATA_TICKS} />
+  const ticks = !unlimitedGlobal && cat && !loadingPrices && plans.length > 0 && (
+    <TickList items={selected && selected.app_only ? DAY_TICKS : selected && selected.tier === 'unlimited' ? UNLIMITED_TICKS : DATA_TICKS} />
   );
 
   const planList: ReactNode = cat && !loadingPrices && (
     <div style={{ display: 'flex', flexDirection: 'column', gap: l.cardGap }}>
-      {groups.length > 0 && (
-        <GroupPicker value={group} options={[{ id: 'trip', label: 'Trip plans' }, ...groups.map((g) => ({ id: g.id, label: g.label }))]} onChange={setGroup} />
-      )}
-      {hasBothTiers && (
-        <Segmented<Tier> ariaLabel="Plan type" value={tier} options={[{ id: 'data', label: 'Data' }, { id: 'unlimited', label: 'Unlimited' }]} onChange={setTier} />
-      )}
       {plans.length === 0 && (
         <div style={{ ...cardSurface(), padding: 18 }}>
           {native && products && products.size === 0
@@ -435,10 +424,29 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
             : <div style={{ ...TYPE.body, color: RC.ink }}>Not sold here yet.{hasBothTiers ? ' Try the other plan type.' : ''}</div>}
         </div>
       )}
-      {onTrip && unlimitedGlobal && plans[0] && (
+      {unlimitedGlobal && plans[0] && (
         <GlobalCard l={l} p={plans[0]} price={priceOf(plans[0], productFor(plans[0]))} />
       )}
-      {!(onTrip && unlimitedGlobal) && plans.map((p) => {
+      {!unlimitedGlobal && dataLines.length > 0 && unlLines.length > 0 && (
+        <PlanTabs value={shownTab} onChange={(t) => { hapticSelection(); setTab(t); }} />
+      )}
+      {!unlimitedGlobal && shownTab === 'unl' && tierOptions.length > 1 && (
+        <div>
+          <div style={{ fontFamily: 'var(--font)', fontSize: 14, color: RC.ink2, marginBottom: 8 }}>Full speed each day</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {tierOptions.map((g) => {
+              const sel = g === tierGb;
+              return (
+                <button key={g} type="button" className="press" onClick={() => { hapticSelection(); setUnlGb(g); }}
+                  style={{ flex: 1, cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, padding: '10px 0', borderRadius: 12, color: RC.ink, ...(sel ? ringOn(true) : ringOff) }}>
+                  {g} GB a day
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      {!unlimitedGlobal && tabLines.map((p) => {
         const key = lineKey(p);
         return <PlanCard key={key} p={p} on={key === planId} price={priceOf(p, productFor(p))} onPick={() => { hapticSelection(); setPlanId(key); }} />;
       })}
@@ -447,7 +455,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
 
   const notes = cat && !loadingPrices && (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {onTrip && unlimitedGlobal && <p style={{ margin: 0, ...TYPE.small, color: RC.ink2 }}>Use a lot? Add a top-up from My eSIM in one tap.</p>}
+      {unlimitedGlobal && <p style={{ margin: 0, ...TYPE.small, color: RC.ink2 }}>Use a lot? Add a top-up from My eSIM in one tap.</p>}
       {selected && selected.mode === 'subscription' && selectedPrice && (
         <p style={{ margin: 0, ...TYPE.caption, color: RC.inkMute }}>
           Renews at {selectedPrice.total} every {periodWord(selected)} through your Apple ID until you cancel in Settings, then Apple ID, then Subscriptions.
@@ -494,7 +502,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
   const heroH = l.isCover ? 220 : 248;
   const footer: CSSProperties = {
     position: 'absolute', left: 12, right: 12, bottom: 'max(12px, env(safe-area-inset-bottom, 0px))',
-    padding: 8, paddingLeft: 18, borderRadius: SHEET_RADIUS + 4, background: RC.paper, border: `1.5px solid ${RC.line}`,
+    padding: 8, paddingLeft: 18, borderRadius: SHEET_RADIUS + 4, background: CREAM, border: `1.5px solid ${LINE}`,
     boxShadow: '0 2px 8px rgba(26,15,46,0.06), 0 18px 40px -16px rgba(26,15,46,0.30)', display: 'flex', alignItems: 'center', gap: 12,
   };
   return (

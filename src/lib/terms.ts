@@ -62,11 +62,13 @@ export function sizeOf(p: Plan): string {
 }
 
 /** The App Store only day passes by family ("Power user, 7 days"); the catalogue's label wins. */
-const APP_GROUP_NAME: Record<string, string> = { day: 'Day plan', power: 'Power user', super: 'Super user' };
+// The app's tier names (owner 2026-10-24): Day, Super, Ultra.
+const APP_GROUP_NAME: Record<string, string> = { day: 'Unlimited Day', power: 'Unlimited Super', super: 'Unlimited Ultra' };
 
 /** Duration and data together, the way a card, the footer and checkout name a line: "2 weeks, 10 GB"; Global reads "Unlimited, monthly". */
 export function planName(p: Plan): string {
-  if (p.app_only) return p.label || `${APP_GROUP_NAME[p.group ?? 'day']}, ${termTitle(p)}`;
+  // The tier name, not the catalogue label, so the app reads Day, Super, Ultra everywhere.
+  if (p.app_only) return p.daily_gb ? `${p.daily_gb} GB a day, ${termTitle(p)}` : `${APP_GROUP_NAME[p.group ?? 'day']}, ${termTitle(p)}`;
   if (isGlobalUnlimited(p)) return 'Unlimited, monthly';
   return `${termTitle(p)}, ${sizeOf(p)}`;
 }

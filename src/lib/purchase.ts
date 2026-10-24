@@ -1,6 +1,7 @@
 // purchase.ts — the two pieces of the App Store purchase shared by screens:
 // how a line's price reads (always Apple's on the phone) and how a paid
 // transaction is reported to ringoesim.com and then finished.
+import { logAb } from './abtest';
 import { light, money, type Plan , ApiError } from '../api/light';
 import { account, pendingPurchase } from '../store/account';
 import { finish, type IapProduct, type IapTransaction } from './iap';
@@ -39,6 +40,8 @@ export async function reportTransaction(t: IapTransaction, ctx: { plan: string; 
   // Consumes this purchase's own context, never another destination's
   // waiting on the same product.
   pendingPurchase.clear(t.productId, ctx.startedAt);
+  // The plan-screen default test counts the sale against this phone's arm.
+  logAb('purchase', { destination: ctx.destination, plan: ctx.plan, product: t.productId });
   return r;
 }
 

@@ -41,6 +41,10 @@ export interface Plan {
   /** App Store only day passes (app_plans): the family, the GB a day at full speed, and the flag. */
   group?: 'day' | 'power' | 'super';
   daily_gb?: number;
+  /** The speed once the day's allowance is used ("1 Mbps"), when the supplier states it. */
+  after_speed?: string | null;
+  /** The line in its list that keeps Ringo the most per sale (app catalogue only). */
+  best_margin?: boolean;
   app_only?: boolean;
 }
 
