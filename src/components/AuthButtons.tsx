@@ -12,6 +12,13 @@ const GoogleMark = () => (
   <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.3l7.9 6.1C12.4 13.7 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z"/><path fill="#FBBC05" d="M10.5 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C.9 16.6 0 20.2 0 24s.9 7.4 2.6 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.3 0 11.7-2.1 15.6-5.7l-7.7-6c-2.1 1.4-4.8 2.3-7.9 2.3-6.3 0-11.6-4.2-13.5-9.9l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
 );
 
+// The Apple logo drawn, not the U+F8FF glyph: that private-use character only
+// renders in some system fonts and showed as nothing in the WebView, leaving
+// "Sign in with Apple" without the logo Apple's button guidelines require.
+const AppleMark = () => (
+  <svg width="17" height="20" viewBox="0 0 17 20" aria-hidden="true" style={{ marginTop: -2 }}><path fill="#000" d="M14.04 10.63c-.02-2.2 1.8-3.26 1.88-3.31-1.03-1.5-2.62-1.7-3.19-1.73-1.35-.14-2.65.8-3.34.8-.7 0-1.75-.78-2.88-.76-1.48.02-2.85.86-3.61 2.19-1.54 2.67-.39 6.62 1.11 8.79.73 1.06 1.6 2.25 2.75 2.21 1.1-.05 1.52-.71 2.85-.71 1.33 0 1.71.71 2.88.69 1.19-.02 1.94-1.08 2.66-2.15.84-1.23 1.19-2.42 1.2-2.48-.03-.01-2.3-.88-2.33-3.5zM11.85 4.17c.6-.74 1.01-1.75.9-2.77-.87.04-1.94.59-2.56 1.32-.56.64-1.05 1.68-.92 2.67.97.08 1.97-.49 2.58-1.22z" /></svg>
+);
+
 const MailMark = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3" stroke="#F26122" strokeWidth="2" /><path d="M4 7l8 6 8-6" stroke="#F26122" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
 );
@@ -45,7 +52,7 @@ export function AuthButtons({ onSignedIn, onEmail, onDark = false }: { onSignedI
       {/* Apple's white style: allowed by the Sign in with Apple guidelines, and the owner wants no black button. */}
       {showApple && (
         <button className="press" disabled={busy !== null} onClick={() => void social('apple')} aria-label="Sign in with Apple" style={row({ background: '#fff', color: '#000', border: `1.5px solid ${onDark ? 'transparent' : '#000'}`, fontFamily: '-apple-system, var(--font)', fontSize: 17 })}>
-          <span style={{ fontSize: 20, lineHeight: 1 }}></span>{busy === 'apple' ? 'Opening…' : 'Sign in with Apple'}
+          <AppleMark />{busy === 'apple' ? 'Opening…' : 'Sign in with Apple'}
         </button>
       )}
       {googleSignInAvailable() && (
