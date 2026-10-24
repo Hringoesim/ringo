@@ -82,7 +82,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
     if (!acct) return;
     void light.usage(acct.userId, acct.t).then(setUsageAll).catch(() => {});
     const rg = d.rewards_global;
-    if (rg?.product_id && iapAvailable() && d.subscription?.billing !== 'card') {
+    if (!CARD_PAYMENTS && rg?.product_id && iapAvailable() && d.subscription?.billing !== 'card') {
       light.rewardsOffer(acct.userId, acct.t, rg.product_id)
         .then((o) => setGlobalOffer(o.available && o.offer ? { pct: o.pct || rg.pct, productId: rg.product_id!, offer: o.offer } : null))
         .catch(() => setGlobalOffer(null));
@@ -188,6 +188,8 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
 
   // A top-up by card (owner 2026-10-24): Stripe's page, the amount shown
   // here; the site lands the data on this eSIM once Stripe says paid.
+  const topUpStop = useRef<(() => void) | null>(null);
+  useEffect(() => () => { topUpStop.current?.(); }, []);
   const topUpByCard = async (t: TopUp) => {
     if (!acct || !data?.destination) return;
     const email = acct.email || '';
@@ -196,13 +198,18 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
     setTopping(t.plan);
     haptic('medium');
     try {
-      const pay = await payByCard({ plan: t.plan, destination: data.destination.id, email, currency: t.currency });
+      const pay = await payByCard({ plan: t.plan, destination: data.destination.id, email, currency: t.currency, topUp: true });
+      topUpStop.current = pay.stop;
       const out = await pay.done;
-      if (out.state === 'paid') {
+      topUpStop.current = null;
+      if (out.state === 'paid' || out.state === 'received') {
         hapticNotify('success');
-        setNote('Allowance top-up added to your eSIM.');
-        setTimeout(() => setNote(null), 5000);
+        setNote('Payment received. The data lands on your eSIM within a minute or two.');
+        setTimeout(() => setNote(null), 6000);
         void load(true);
+      } else if (out.state === 'unconfirmed') {
+        setNote('Stripe has not confirmed the payment yet. If it went through, the data lands shortly.');
+        setTimeout(() => setNote(null), 8000);
       }
     } catch (e) {
       setErr((e as Error).message || 'Could not complete the top-up.');

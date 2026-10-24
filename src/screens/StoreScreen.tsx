@@ -202,7 +202,8 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn }: { onOpen: (
   const acct = useAccount();
   const [visited, setVisited] = useState<string[]>([]);
   useEffect(() => {
-    if (!acct) return;
+    // Signed out: the last account's trips go with it.
+    if (!acct) { setVisited([]); return; }
     let alive = true;
     light.profile(acct.userId, acct.t).then((p) => { if (alive) setVisited(p.badges.map((b) => b.destination)); }).catch(() => {});
     return () => { alive = false; };

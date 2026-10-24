@@ -1,73 +1,73 @@
-// cardPay.ts — paying by card (owner 2026-10-24, "card for everything"):
-// Stripe's hosted page in the browser sheet, any card from any country,
-// Apple Pay or Link. The session and the fulfilment are the website's
-// (api/esim-checkout with client 'app', priced from the app's own catalogue
-// line); the app never decides a payment is done, it asks /api/light-status,
-// Stripe's own word, until the payment is paid and the site has the owner.
-import { Capacitor } from '@capacitor/core';
+// cardPay.ts — paying by card (owner 2026-10-24, "card for everything"; and
+// the same day, "our own embedded check out to minimise risk"): Stripe's
+// native payment sheet inside the app (PaymentSheetPlugin.swift), any card,
+// Link or Apple Pay, no browser. ringoesim.com mints the intent at the app's
+// own catalogue line (api/app-pay.js); the app never decides a payment is
+// done, it asks /api/light-status, Stripe's own word, until it is paid.
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import { light } from '../api/light';
 import { account } from '../store/account';
-import { openInSheet } from './browser';
 
-const POLL_MS = 3000;
-// After the sheet shuts unpaid, this many more answers before calling it left.
-const AFTER_CLOSE = 4;
+interface SheetResult { status: 'completed' | 'canceled' | 'failed'; message?: string }
+const Sheet = registerPlugin<{ present(o: { clientSecret: string; publishableKey: string; email?: string; buttonLabel?: string }): Promise<SheetResult> }>('PaymentSheet');
 
-export interface CardOrder { plan: string; destination: string; data_gb?: number | null; email: string; currency?: string }
-export type CardOutcome = { state: 'paid'; session: string; userId: string; t: string } | { state: 'left' };
+const POLL_MS = 2500;
+// Paid, the account a few seconds behind: how long to keep asking before
+// saying "on its way" (the eSIM still lands under My eSIM and by email).
+const OWNER_WAIT_MS = 90_000;
+
+export interface CardOrder { plan: string; destination: string; data_gb?: number | null; email: string; currency?: string; topUp?: boolean }
+export type CardOutcome =
+  | { state: 'paid'; session: string; userId: string; t: string }
+  /** Stripe says paid; the account is not named yet (or a top-up, which has none to name). */
+  | { state: 'received'; session: string }
+  /** The sheet confirmed but Stripe has not said paid yet (a slow bank): never told it is paid. */
+  | { state: 'unconfirmed'; session: string }
+  | { state: 'left' };
 
 export interface CardPayment {
-  /** Settles once Stripe says paid and the site names the owner, or once the buyer left. */
+  /** Settles once Stripe says paid (and, for a plan, the site names the owner), or once the buyer left. */
   done: Promise<CardOutcome>;
-  /** Stop waiting (the screen went away, or Cancel). */
+  /** Stop waiting (the screen went away). */
   stop: () => void;
 }
 
-/** Mint the session, open Stripe's page, and wait. Throws if the session cannot be started. */
+const wait = (ms: number) => new Promise((r) => window.setTimeout(r, ms));
+
+/** Mint the intent, show the sheet, and wait for Stripe's word. Throws with a message the buyer can read. */
 export async function payByCard(order: CardOrder): Promise<CardPayment> {
-  // The member's account rides along so the page charges their Rewards price.
+  if (!Capacitor.isNativePlatform()) throw new Error('Payments are taken in the Ringo iPhone app.');
+  // The member's account rides along so the sheet charges their Rewards price.
   const acct = account.get();
-  const r = await light.cardCheckout({ ...order, ...(acct ? { user: acct.userId, t: acct.t } : {}) });
-  const session = r.id || (r.url.match(/cs_(live|test)_[A-Za-z0-9]+/)?.[0] ?? '');
-  if (!session) throw new Error('The card payment could not be started.');
+  // A top-up always needs it; a plan for someone else's email is at list price.
+  const mine = acct && (order.topUp || !acct.email || acct.email.toLowerCase() === order.email.toLowerCase());
+  const r = await light.appPay({ ...order, ...(acct && mine ? { user: acct.userId, t: acct.t } : {}) });
+  const ref = r.payment_intent_id || r.subscription_id || '';
+  if (!r.client_secret || !r.publishable_key || !ref) throw new Error('The payment could not be started. Nothing was charged.');
 
   let stopped = false;
-  let closed = false;
-  let afterClose = 0;
-  let timer: number | null = null;
-  const cleanups: (() => void)[] = [];
-  const stop = () => { stopped = true; if (timer) window.clearTimeout(timer); cleanups.splice(0).forEach((f) => f()); };
-
-  const done = new Promise<CardOutcome>((resolve) => {
-    const tick = async () => {
-      if (stopped) return;
+  const stop = () => { stopped = true; };
+  const done = (async (): Promise<CardOutcome> => {
+    const out = await Sheet.present({ clientSecret: r.client_secret, publishableKey: r.publishable_key!, email: order.email });
+    if (out.status === 'canceled') return { state: 'left' };
+    if (out.status === 'failed') throw new Error(out.message || 'The payment did not go through. Nothing was charged.');
+    // The sheet says confirmed; Stripe's own record says paid before the buyer is told.
+    const started = Date.now();
+    let paidSeen = false;
+    while (!stopped) {
       try {
-        const st = await light.cardStatus(session);
-        if (stopped) return;
-        if (st.paid && st.user_id && st.t) {
-          stop();
-          if (Capacitor.isNativePlatform()) { const { Browser } = await import('@capacitor/browser'); void Browser.close().catch(() => {}); }
-          resolve({ state: 'paid', session, userId: st.user_id, t: st.t });
-          return;
+        const st = await light.cardStatus(r.payment_intent_id ? { pi: r.payment_intent_id } : { sub: r.subscription_id! });
+        if (st.paid) {
+          paidSeen = true;
+          if (order.topUp) return { state: 'received', session: ref };
+          if (st.user_id && st.t) return { state: 'paid', session: ref, userId: st.user_id, t: st.t };
         }
-        // Paid with the account a few seconds behind: keep asking.
-        if (!st.paid && closed && ++afterClose > AFTER_CLOSE) { stop(); resolve({ state: 'left' }); return; }
       } catch { /* next tick */ }
-      timer = window.setTimeout(() => void tick(), POLL_MS);
-    };
-    void (async () => {
-      if (Capacitor.isNativePlatform()) {
-        const { Browser } = await import('@capacitor/browser');
-        const { App: CapApp } = await import('@capacitor/app');
-        const h1 = await Browser.addListener('browserFinished', () => { closed = true; });
-        // The return page hands back with ringo://checkout: shut the sheet.
-        const h2 = await CapApp.addListener('appUrlOpen', ({ url }) => { if (url.startsWith('ringo://checkout')) { closed = true; void Browser.close().catch(() => {}); } });
-        cleanups.push(() => { void h1.remove(); void h2.remove(); });
-      }
-      await openInSheet(r.url);
-      void tick();
-    })();
-  });
+      if (Date.now() - started > OWNER_WAIT_MS) return paidSeen ? { state: 'received', session: ref } : { state: 'unconfirmed', session: ref };
+      await wait(POLL_MS);
+    }
+    return paidSeen ? { state: 'received', session: ref } : { state: 'unconfirmed', session: ref };
+  })();
   return { done, stop };
 }
 

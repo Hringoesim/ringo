@@ -88,8 +88,9 @@ async function refresh(): Promise<void> {
     setState({ permission: s.permission, environment: s.environment, token: s.token ?? state.token, known: true });
   } catch { /* plugin missing on an old build */ }
   // Where the phone is now, for pushes about the trip (never asks here).
-  if (state.permission === 'granted') await readCountry(false);
-  await syncPush();
+  // In the background: a slow location fix never holds up the push token.
+  if (state.permission === 'granted') void readCountry(false).then(() => syncPush()).catch(() => {});
+  else await syncPush();
 }
 
 /**

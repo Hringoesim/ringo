@@ -11,6 +11,7 @@ class MainViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(BiometricAuthPlugin())
         bridge?.registerPluginInstance(NotifyPlugin())
         bridge?.registerPluginInstance(LocationPlugin())
+        bridge?.registerPluginInstance(PaymentSheetPlugin())
         bridge?.registerPluginInstance(StoreKitPlugin())
         bridge?.registerPluginInstance(GoogleSignInPlugin())
     }

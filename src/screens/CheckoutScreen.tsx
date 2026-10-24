@@ -43,7 +43,7 @@ import { type Selection } from './DestinationScreen';
 import { planName, periodWord } from '../lib/terms';
 import { useLayout, contentColumn, type Layout } from '../lib/layout';
 
-type Stage = 'email' | 'card' | 'issuing' | 'slow' | 'ready';
+type Stage = 'email' | 'card' | 'checking' | 'issuing' | 'slow' | 'ready';
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 // Retired: the last email typed on this phone, which pre-filled one
@@ -132,7 +132,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
     return e;
   };
 
-  // Card: Stripe's hosted page in the sheet; Stripe says when it is paid.
+  // Card: Stripe's payment sheet inside the app; Stripe says when it is paid.
   const payByCard = async () => {
     const e = checkedEmail();
     if (!e) return;
@@ -145,6 +145,8 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
       cardStop.current = null;
       if (!mounted.current) return;
       if (out.state === 'left') { setStageBoth('email'); return; }
+      if (out.state === 'unconfirmed') { setStageBoth('checking'); return; }
+      if (out.state === 'received') { hapticNotify('success'); setStageBoth('slow'); return; }
       account.set({ userId: out.userId, t: out.t, email: e, purchaseRef: out.session });
       logAb('purchase', { destination: selection.destination, plan: p.plan, product: 'stripe' });
       waitForEsim();
@@ -218,7 +220,8 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
 
   const status = (
     <>
-      {stage === 'card' && <Waiting title="Pay on the secure page" sub="Any card from any country, or Apple Pay. Your eSIM starts the moment Stripe confirms." />}
+      {stage === 'card' && <Waiting title="Confirming your payment" sub="Your eSIM starts the moment Stripe confirms." />}
+      {stage === 'checking' && <Waiting ok title="Checking your payment" sub="Stripe has not confirmed it yet. If it went through, your eSIM appears under My eSIM. Look there before paying again." />}
       {stage === 'issuing' && <Waiting title="Preparing your eSIM" sub={relayEmail ? 'Under a minute. It lands under My eSIM, here in the app.' : 'Under a minute. It lands under My eSIM and in your email.'} />}
       {stage === 'slow' && <Waiting ok title="Your eSIM is on its way" sub={relayEmail ? 'It is taking a little longer than usual. It appears under My eSIM as soon as it is ready.' : 'It is taking a little longer than usual. It appears under My eSIM and in your email as soon as it is ready.'} />}
       {stage === 'ready' && (
@@ -242,8 +245,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   const action: ReactNode = (
     <>
       {stage === 'email' && <RingoButton onClick={() => void payByCard()} disabled={Boolean(otherEmail)}>{buyLabel}</RingoButton>}
-      {stage === 'card' && <RingoButton variant="soft" onClick={() => { cardStop.current?.(); cardStop.current = null; setStageBoth('email'); }}>Cancel</RingoButton>}
-      {(stage === 'issuing' || stage === 'slow') && <RingoButton variant="soft" onClick={onReady}>Go to My eSIM</RingoButton>}
+      {(stage === 'issuing' || stage === 'slow' || stage === 'checking') && <RingoButton variant="soft" onClick={onReady}>Go to My eSIM</RingoButton>}
       {stage === 'ready' && <RingoButton onClick={onReady}>Install my eSIM</RingoButton>}
     </>
   );

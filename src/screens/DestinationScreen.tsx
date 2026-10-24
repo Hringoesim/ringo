@@ -355,11 +355,14 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
     return [...allLines].sort((a, b) => (Number(Boolean(a.app_only)) - Number(Boolean(b.app_only))) || ((a.data_gb ?? 0) - (b.data_gb ?? 0)) || (a.days - b.days) || ((a.daily_gb ?? 0) - (b.daily_gb ?? 0)));
   }, [cat, allLines, native, products]);
   const byDays = (list: Plan[]) => [...list].sort((a, b) => a.days - b.days);
-  const dataLines = plans.filter((p) => !p.app_only);
+  // A set amount for the trip: data lines only (an unlimited trip line is not one).
+  const dataLines = plans.filter((p) => !p.app_only && p.tier === 'data');
   // Power (3 GB a day) is its own box; the server only sends it where it beats
   // the cheapest rival and still clears cost, so most places show two tabs.
   const powerLines = byDays(plans.filter((p) => p.app_only && p.group === 'power'));
-  const unlLines = plans.filter((p) => p.app_only && p.group !== 'power');
+  // The day passes; where none is sold, the unlimited trip lines take the tab.
+  const dayPasses = plans.filter((p) => p.app_only && p.group !== 'power');
+  const unlLines = dayPasses.length ? dayPasses : plans.filter((p) => !p.app_only && p.tier === 'unlimited');
   // The Unlimited tab: the full-speed amount a day, then one card per length.
   const tierOptions = [...new Set(unlLines.map((p) => p.daily_gb ?? 0))].sort((a, b) => a - b);
   const tierGb = unlGb != null && tierOptions.includes(unlGb) ? unlGb : (tierOptions[0] ?? null);
@@ -377,7 +380,9 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
   const visibleLines = showAll ? tabLines : chosenExtra ? [...firstThree.slice(0, 2), chosenExtra] : firstThree;
   const hiddenCount = showAll ? 0 : tabLines.length - visibleLines.length;
   // The test's default: the cheapest line, or the one that keeps Ringo the most.
-  const defaultOf = (list: Plan[]) => (arm === 'recommended' ? list.find((p) => p.best_margin) : undefined) ?? list[0];
+  // (tabLines leads with the Recommended line, so the cheapest is looked for, not taken from the top.)
+  const cheapestOf = (list: Plan[]) => list.reduce((a, b) => (b.billed_upfront_amount < a.billed_upfront_amount ? b : a), list[0]);
+  const defaultOf = (list: Plan[]) => (arm === 'recommended' ? list.find((p) => p.best_margin) : undefined) ?? cheapestOf(list);
 
   // The chosen line stays while it is in the tab shown; otherwise the test's
   // default for that tab (owner 2026-10-24 replaced "cheapest first" with this test).
@@ -478,11 +483,11 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
               );
             })}
           </div>
-          {tierLines[0] && (
-            <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 14, color: RC.ink2 }}>
-              {tierGb === 10 ? 'For van travel or a hotspot for friends. ' : ''}{`Full speed up to ${tierGb} GB a day${tierLines[0].after_speed ? `, then ${tierLines[0].after_speed}` : ', never cut off'}.`}
-            </div>
-          )}
+        </div>
+      )}
+      {!unlimitedGlobal && shownTab === 'unl' && tierLines[0] && (tierGb ?? 0) > 0 && (
+        <div style={{ marginTop: tierOptions.length > 1 ? -4 : 0, fontFamily: 'var(--font)', fontSize: 14, color: RC.ink2 }}>
+          {tierGb === 10 ? 'For van travel or a hotspot for friends. ' : ''}{`Full speed up to ${tierGb} GB a day${tierLines[0].after_speed ? `, then ${tierLines[0].after_speed}` : ', never cut off'}.`}
         </div>
       )}
       {!unlimitedGlobal && visibleLines.map((p) => {

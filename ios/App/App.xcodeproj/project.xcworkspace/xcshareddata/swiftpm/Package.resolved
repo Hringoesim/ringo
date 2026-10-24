@@ -1,5 +1,5 @@
 {
-  "originHash" : "0bed0c6d8c1c6408f928ddeb2f925c8c0aaadbe6a379ecfc4aecb73fa7c92c41",
+  "originHash" : "bd10a8d6ff1aae82bd369d90f68b7c00bf16ba31cd5de9b5ea20a2d5d71922f4",
   "pins" : [
     {
       "identity" : "capacitor-swift-pm",
@@ -8,6 +8,15 @@
       "state" : {
         "revision" : "3fe94bbbe43e63ada75aa6788fc10e3764622a97",
         "version" : "6.2.1"
+      }
+    },
+    {
+      "identity" : "stripe-ios-spm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/stripe/stripe-ios-spm",
+      "state" : {
+        "revision" : "f4f28a0b358011089e4538059d443eccff183382",
+        "version" : "24.25.0"
       }
     }
   ],
