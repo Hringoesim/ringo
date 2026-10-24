@@ -109,6 +109,8 @@ export interface Profile {
   pioneer?: { kind: 'backer' | 'promoter' | 'global'; tier: string; credit_eur?: number } | null;
   /** The badges to earn (absent on an older site). */
   achievements?: Achievement[];
+  /** Share with 3 friends: EUR credit for every `per` friends who bought through the link (absent on an older site). */
+  referral?: { code: string | null; link: string | null; friends_bought: number; per: number; credit_cents: number; earned: number };
   loyalty: { paid_months: number; tier: LoyaltyTier & { next: { id: string; name: string; min: number; to_go: number } | null }; tiers: LoyaltyTier[] };
 }
 
