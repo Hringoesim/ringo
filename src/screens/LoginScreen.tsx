@@ -203,7 +203,7 @@ export function LoginScreen({ onBack, onDone, initialEmail = '', startWithEmail 
   // open) it is the left column; on a phone it sits above the sheet.
   const hero = (
     <div style={{ position: 'relative', overflow: 'hidden', background: 'linear-gradient(135deg,hsl(8,95%,55%),hsl(330,90%,58%),hsl(262,70%,48%))', ...(l.isWide ? { borderRadius: 28, minHeight: 'min(720px, calc(100vh - 80px))' } : { minHeight: l.isCover ? 300 : 340 }) }}>
-      <div aria-hidden style={{ position: 'absolute', inset: 0, display: 'grid', gridTemplateColumns: '1.3fr 1fr', gridTemplateRows: '1fr 1fr', gap: 2 }}>
+      <div aria-hidden style={{ position: 'absolute', inset: 0, display: 'grid', gridTemplateColumns: '1.3fr 1fr', gridTemplateRows: '1fr 1fr', gap: 2, background: '#1A0F2E' }}>
         {HERO_PHOTOS.map((id, i) => {
           const src = bundledPictureFor(id) ?? pictureFor(id);
           return <img key={id} src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', gridRow: i === 0 ? '1 / span 2' : undefined }} />;

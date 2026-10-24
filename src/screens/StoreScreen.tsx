@@ -38,16 +38,26 @@ function isoOf(d: Destination): string | null {
 }
 const fold = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 // Cities whose name starts with the query (or a word in it does): "barc" finds Barcelona.
+// Folded once: search runs on every keystroke over ~300 cities.
+let FOLDED: { words: string[]; iso: string; name: string }[] | null = null;
+const foldedCities = () => (FOLDED ??= CITIES.map(([name, iso]) => ({ name, iso, words: fold(name).split(/[\s-]+/) })));
 function citiesFor(q: string): [string, string][] {
   const f = fold(q);
   if (f.length < 2) return [];
-  return CITIES.filter(([name]) => fold(name).split(/[\s-]+/).some((w, i, all) => w.startsWith(f) || all.slice(i).join(' ').startsWith(f)));
+  return foldedCities().filter(({ words }) => words.some((w, i) => w.startsWith(f) || words.slice(i).join(' ').startsWith(f))).map(({ name, iso }) => [name, iso]);
 }
+// The countries whose cities match, worked out once per query, not once per destination.
+let lastCityQuery = '';
+let lastCityIsos = new Set<string>();
+const cityIsos = (q: string) => {
+  if (q !== lastCityQuery) { lastCityQuery = q; lastCityIsos = new Set(citiesFor(q).map(([, c]) => c)); }
+  return lastCityIsos;
+};
 const matches = (d: Destination, q: string) => {
   if (!q) return true;
   if (fold(d.label).includes(fold(q)) || d.id.includes(q) || ALIASES[q] === d.id) return true;
   const iso = isoOf(d);
-  return Boolean(iso) && citiesFor(q).some(([, c]) => c === iso);
+  return Boolean(iso) && cityIsos(q).has(iso!);
 };
 
 const REGION_ORDER = ['Europe', 'North America', 'Latin America', 'Caribbean', 'Asia-Pacific', 'Oceania', 'Middle East', 'Africa', 'Central Asia and Caucasus'];

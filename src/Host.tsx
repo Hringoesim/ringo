@@ -115,15 +115,29 @@ export function Host() {
   // (sign-up / log-in) and can leave it shifted afterwards, so the app no
   // longer fills the screen. Snap the document back whenever focus leaves an
   // input or the visual viewport settles.
+  // The field being typed in is brought to the middle of its column, above
+  // the keyboard (the tab bar stays under the keyboard, as in iOS apps).
   useEffect(() => {
     if (!fullScreen) return;
     const snap = () => requestAnimationFrame(() => window.scrollTo(0, 0));
-    window.addEventListener('focusout', snap);
     const vv = window.visualViewport;
-    vv?.addEventListener('resize', snap);
+    const reveal = () => {
+      const el = document.activeElement as HTMLElement | null;
+      if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    };
+    const onResize = () => {
+      const covered = vv ? Math.max(0, Math.round(window.innerHeight - vv.height)) : 0;
+      snap();
+      if (covered > 80) window.setTimeout(reveal, 60);
+    };
+    const onFocusIn = () => window.setTimeout(reveal, 320);
+    window.addEventListener('focusout', snap);
+    window.addEventListener('focusin', onFocusIn);
+    vv?.addEventListener('resize', onResize);
     return () => {
       window.removeEventListener('focusout', snap);
-      vv?.removeEventListener('resize', snap);
+      window.removeEventListener('focusin', onFocusIn);
+      vv?.removeEventListener('resize', onResize);
     };
   }, [fullScreen]);
 

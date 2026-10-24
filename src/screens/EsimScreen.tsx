@@ -67,6 +67,10 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
   const [topProducts, setTopProducts] = useState<Map<string, IapProduct>>(new Map());
   const [restoring, setRestoring] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  // One timer for the note: a newer note is never wiped by an older one's timer.
+  const noteTimer = useRef<number | null>(null);
+  const clearNoteIn = (ms: number) => { if (noteTimer.current) window.clearTimeout(noteTimer.current); noteTimer.current = window.setTimeout(() => setNote(null), ms); };
+  useEffect(() => () => { if (noteTimer.current) window.clearTimeout(noteTimer.current); }, []);
   const [usageAll, setUsageAll] = useState<Usage | null>(null);
   const [pioneer, setPioneer] = useState<Pioneer | null>(null);
   // Ringo Rewards: Global's cheaper month, offered once the site has signed it.
@@ -172,7 +176,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
         pendingPurchase.clear(t.apple_product_id, ctx.startedAt);
         hapticNotify('success');
         setNote(r.environment === 'Sandbox' ? 'Sandbox top-up recorded.' : 'Allowance top-up added to your eSIM.');
-        setTimeout(() => setNote(null), 5000);
+        clearNoteIn(5000);
         void load(true);
       } else if (out.state === 'pending') {
         setNote('Waiting for approval (Ask to Buy). The data lands once it is approved.');
@@ -190,31 +194,34 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
   // here; the site lands the data on this eSIM once Stripe says paid.
   const topUpStop = useRef<(() => void) | null>(null);
   useEffect(() => () => { topUpStop.current?.(); }, []);
+  const topUpBusy = useRef(false);
   const topUpByCard = async (t: TopUp) => {
-    if (!acct || !data?.destination) return;
+    if (!acct || !data?.destination || topUpBusy.current) return;
     const email = acct.email || '';
     if (!email) { setErr('Sign in with the email this eSIM was bought with before adding data.'); return; }
     setErr(null);
+    topUpBusy.current = true;
     setTopping(t.plan);
     haptic('medium');
     try {
-      const pay = await payByCard({ plan: t.plan, destination: data.destination.id, email, currency: t.currency, topUp: true });
+      const pay = await payByCard({ plan: t.plan, destination: data.destination.id, email, currency: t.currency, topUp: true, subscription: data.subscription?.id ?? undefined });
       topUpStop.current = pay.stop;
       const out = await pay.done;
       topUpStop.current = null;
       if (out.state === 'paid' || out.state === 'received') {
         hapticNotify('success');
         setNote('Payment received. The data lands on your eSIM within a minute or two.');
-        setTimeout(() => setNote(null), 6000);
+        clearNoteIn(6000);
         void load(true);
       } else if (out.state === 'unconfirmed') {
         setNote('Stripe has not confirmed the payment yet. If it went through, the data lands shortly.');
-        setTimeout(() => setNote(null), 8000);
+        clearNoteIn(8000);
       }
     } catch (e) {
       setErr((e as Error).message || 'Could not complete the top-up.');
     } finally {
       setTopping(null);
+      topUpBusy.current = false;
     }
   };
 
@@ -229,7 +236,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
       const r = await light.setRenewal(acct.userId, acct.t, on);
       const until = r.ends_at ? new Date(r.ends_at).toLocaleDateString(undefined, { day: 'numeric', month: 'long' }) : null;
       setNote(on ? 'Renewal is on again.' : until ? `Renewal is off. Your plan runs until ${until}.` : 'Renewal is off. Your plan runs to the end of the month you paid for.');
-      setTimeout(() => setNote(null), 6000);
+      clearNoteIn(6000);
       void load(true);
     } catch (e) {
       setErr((e as Error).message || 'Could not change the renewal.');
@@ -257,7 +264,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
         hapticNotify('success');
         setNote(`Done. Your Global month is ${globalOffer.pct}% cheaper from your next renewal.`);
         setGlobalOffer(null);
-        setTimeout(() => setNote(null), 6000);
+        clearNoteIn(6000);
       } else if (out.state === 'pending') {
         setNote('Waiting for approval (Ask to Buy). Your lower price applies once it is approved.');
       }
@@ -290,7 +297,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
       setNote('Could not reach the App Store. Try again.');
     } finally {
       setRestoring(false);
-      setTimeout(() => setNote(null), 6000);
+      clearNoteIn(6000);
     }
   };
 

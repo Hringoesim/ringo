@@ -94,6 +94,8 @@ export interface TravelBadge {
 }
 export interface LoyaltyTier { id: string; name: string; min: number; perk: string }
 export interface RewardLevel { id: string; name: string; min: number; credit_pct?: number; discount_pct: number; topup_pct?: number; free_esims_per_year: number; perks: string[] }
+/** An earnable badge: earned, or how far along (have of need). Recognition only. */
+export interface Achievement { id: string; group: string; name: string; how: string; have: number; need: number; earned: boolean }
 export interface Profile {
   email: string;
   member_since: string | null;
@@ -105,6 +107,8 @@ export interface Profile {
   credit?: { balance_cents: number; earned_cents: number; spent_cents: number; pct: number; currency: 'eur' };
   /** Ringo Pioneer (absent or null when not one): how they became one and the rung's name. Never the Pioneer number. */
   pioneer?: { kind: 'backer' | 'promoter' | 'global'; tier: string; credit_eur?: number } | null;
+  /** The badges to earn (absent on an older site). */
+  achievements?: Achievement[];
   loyalty: { paid_months: number; tier: LoyaltyTier & { next: { id: string; name: string; min: number; to_go: number } | null }; tiers: LoyaltyTier[] };
 }
 
@@ -150,6 +154,8 @@ export interface PurchaseRecord {
 }
 
 export interface Subscription {
+  /** The row's id (owner's view): names the eSIM a top-up is for. */
+  id?: string | null;
   plan: string;
   plan_label: string;
   status: string;
@@ -231,13 +237,13 @@ export const light = {
   appPurchase: (body: { signedTransaction: string; plan: string; destination: string; data_gb?: number | null; email: string }) =>
     request<PurchaseRecord>('/app-purchase', { method: 'POST', body: JSON.stringify(body) }),
 
-  /** Card payment (owner 2026-10-24, "accept any and all cards"): a hosted Stripe Checkout for any plan or top-up the app lists, opened in the browser sheet. Any card from any country, Apple Pay, Link. */
+  /** Hosted Stripe Checkout (the app's old card path; the app now pays in its own sheet, appPay). */
   cardCheckout: (body: { plan: string; destination: string; data_gb?: number | null; email: string; currency?: string; user?: string; t?: string }) =>
     request<{ url: string; id?: string }>('/esim-checkout', { method: 'POST', body: JSON.stringify({ ...body, client: 'app', device: 'iPhone app' }) }),
   /** Stripe's own word on that session: paid, and once the site has the row, whose account it is. */
   cardStatus: (ref: { pi: string } | { sub: string }) => request<CardStatus>(`/light-status?${new URLSearchParams(ref as Record<string, string>).toString()}`),
   /** The app's own payment sheet (api/app-pay.js): the intent for the line the app showed. */
-  appPay: (body: { plan: string; destination: string; data_gb?: number | null; email: string; currency?: string; user?: string; t?: string; topUp?: boolean }) =>
+  appPay: (body: { plan: string; destination: string; data_gb?: number | null; email: string; currency?: string; user?: string; t?: string; topUp?: boolean; subscription?: string }) =>
     request<{ client_secret: string; mode: 'payment' | 'subscription'; amount: number; currency: string; label: string; payment_intent_id?: string; subscription_id?: string; publishable_key: string | null }>('/app-pay', { method: 'POST', body: JSON.stringify({ ...body, client: 'app' }) }),
 
   /** "Restore purchases": the owner of a purchase the site already knows (404 otherwise). */

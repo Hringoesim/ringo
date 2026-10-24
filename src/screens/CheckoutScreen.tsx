@@ -35,7 +35,7 @@ import { hasMosaic, pictureFor, skyFor, bundledPictureFor } from '../data/destin
 import { light, SITE } from '../api/light';
 import { account } from '../store/account';
 import { openInSheet } from '../lib/browser';
-import { payByCard as startCard } from '../lib/cardPay';
+import { payByCard as startCard, waitForOwner } from '../lib/cardPay';
 import { haptic, hapticNotify } from '../lib/haptics';
 import { priceOf } from '../lib/purchase';
 import { logAb } from '../lib/abtest';
@@ -88,6 +88,13 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   const isGlobal = selection.destination === 'global';
 
   const stageRef = useRef<Stage>('email');
+  // A long wait on Stripe (a slow bank) gets a way out after 15 seconds.
+  const [cardSlow, setCardSlow] = useState(false);
+  useEffect(() => {
+    if (stage !== 'card') { setCardSlow(false); return; }
+    const t = window.setTimeout(() => setCardSlow(true), 15000);
+    return () => window.clearTimeout(t);
+  }, [stage]);
   const setStageBoth = (s: Stage) => { if (!mounted.current) return; stageRef.current = s; setStage(s); };
 
   // After the site has recorded the purchase, wait for THIS purchase's eSIM:
@@ -134,6 +141,8 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
 
   // Card: Stripe's payment sheet inside the app; Stripe says when it is paid.
   const payByCard = async () => {
+    // One payment at a time: Enter and a tap, or two quick taps, start one sheet.
+    if (stageRef.current !== 'email') return;
     const e = checkedEmail();
     if (!e) return;
     haptic('medium');
@@ -146,13 +155,23 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
       if (!mounted.current) return;
       if (out.state === 'left') { setStageBoth('email'); return; }
       if (out.state === 'unconfirmed') { setStageBoth('checking'); return; }
-      if (out.state === 'received') { hapticNotify('success'); setStageBoth('slow'); return; }
+      if (out.state === 'received') {
+        hapticNotify('success');
+        setStageBoth('slow');
+        // The account follows: name it here the moment the site has it, so My eSIM shows this eSIM.
+        void waitForOwner(out.query).then((o) => {
+          if (!o) return;
+          account.set({ userId: o.userId, t: o.t, email: e, purchaseRef: out.session });
+          if (mounted.current && stageRef.current === 'slow') waitForEsim();
+        });
+        return;
+      }
       account.set({ userId: out.userId, t: out.t, email: e, purchaseRef: out.session });
       logAb('purchase', { destination: selection.destination, plan: p.plan, product: 'stripe' });
       waitForEsim();
     } catch (ex) {
       if (!mounted.current) return;
-      setErr((ex as Error).message || 'The card payment could not be started.');
+      setErr((ex as Error).message || 'The payment could not be started. Nothing was charged.');
       setStageBoth('email');
     }
   };
@@ -161,7 +180,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   const useSignedIn = () => { setEmail(signedInEmail); setOtherEmail(null); confirmedOther.current = null; };
 
   const planLine = isGlobal && renewing ? 'Unlimited, renews monthly' : `${planName(p)}${renewing ? '' : ', one payment'}`;
-  const buyLabel = renewing ? `Subscribe, ${price.total} a month` : `Pay ${price.total} by card or Apple Pay`;
+  const buyLabel = renewing ? `Subscribe, ${price.total} a month` : `Pay ${price.total} by card`;
 
   // ── Pieces ────────────────────────────────────────────────────────────────
   const summary = <Summary l={l} selection={selection} planLine={planLine} total={price.total} renewing={renewing} />;
@@ -220,7 +239,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
 
   const status = (
     <>
-      {stage === 'card' && <Waiting title="Confirming your payment" sub="Your eSIM starts the moment Stripe confirms." />}
+      {stage === 'card' && <Waiting title="Confirming your payment" sub={cardSlow ? 'Still checking with Stripe. Your eSIM appears under My eSIM the moment it is confirmed.' : 'Your eSIM starts the moment Stripe confirms.'} />}
       {stage === 'checking' && <Waiting ok title="Checking your payment" sub="Stripe has not confirmed it yet. If it went through, your eSIM appears under My eSIM. Look there before paying again." />}
       {stage === 'issuing' && <Waiting title="Preparing your eSIM" sub={relayEmail ? 'Under a minute. It lands under My eSIM, here in the app.' : 'Under a minute. It lands under My eSIM and in your email.'} />}
       {stage === 'slow' && <Waiting ok title="Your eSIM is on its way" sub={relayEmail ? 'It is taking a little longer than usual. It appears under My eSIM as soon as it is ready.' : 'It is taking a little longer than usual. It appears under My eSIM and in your email as soon as it is ready.'} />}
@@ -245,7 +264,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   const action: ReactNode = (
     <>
       {stage === 'email' && <RingoButton onClick={() => void payByCard()} disabled={Boolean(otherEmail)}>{buyLabel}</RingoButton>}
-      {(stage === 'issuing' || stage === 'slow' || stage === 'checking') && <RingoButton variant="soft" onClick={onReady}>Go to My eSIM</RingoButton>}
+      {(stage === 'issuing' || stage === 'slow' || stage === 'checking' || (stage === 'card' && cardSlow)) && <RingoButton variant="soft" onClick={onReady}>Go to My eSIM</RingoButton>}
       {stage === 'ready' && <RingoButton onClick={onReady}>Install my eSIM</RingoButton>}
     </>
   );

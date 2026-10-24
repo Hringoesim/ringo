@@ -5,7 +5,10 @@ const config: CapacitorConfig = {
   appName: 'Ringo',
   webDir: 'dist',
   ios: {
-    contentInset: 'always',
+    // Edge to edge: the page fills the screen and every screen pads itself
+    // with env(safe-area-inset-*). 'always' let iOS move the whole page down
+    // by the status bar's height whenever the keyboard opened.
+    contentInset: 'never',
   },
   backgroundColor: '#FFF6EF',
   plugins: {

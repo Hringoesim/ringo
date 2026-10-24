@@ -24,7 +24,7 @@ import { useAccount } from '../store/account';
 import { useLayout, contentColumn, twoColumn, type Layout } from '../lib/layout';
 import { hapticNotify, hapticSelection } from '../lib/haptics';
 import { countryByIso, isoArray, isoOrEmpty, searchCountries, type Country } from '../lib/countries';
-import { PROFILE_QUESTIONS, PLACES_PER_REFERRAL, fmt, isLead, isPioneer, placeFrom, referralLink } from '../lib/waitlist';
+import { PROFILE_QUESTIONS, PLACES_PER_REFERRAL, PLACES_PER_ANSWER, fmt, isLead, isPioneer, placeFrom, referralLink } from '../lib/waitlist';
 
 // ── The survey's options, byte-identical to the website ─────────────────────
 const TOP_VALUES = [
@@ -477,8 +477,17 @@ function Survey({ l, user, userId, t, onAnswered }: { l: Layout; user: WaitlistU
       auto.current = { first: false, sig, picks };
       queue(payload);
     }, delay);
+    pendingSave.current = { sig, payload };
     return () => window.clearTimeout(timer);
   }, [name, phone, extra, noSecond, travel, regions, values, regionsOther, valuesOther, queue]);
+  // Leaving inside the typing pause still saves what was typed.
+  const pendingSave = useRef<{ sig: string; payload: ProfileAnswers } | null>(null);
+  const queueRef = useRef(queue);
+  queueRef.current = queue;
+  useEffect(() => () => {
+    const p = pendingSave.current;
+    if (p && p.sig !== auto.current.sig) queueRef.current(p.payload);
+  }, []);
 
   const toggle = (list: string[], item: string, max?: number) => {
     if (list.includes(item)) return list.filter((x) => x !== item);
@@ -498,7 +507,7 @@ function Survey({ l, user, userId, t, onAnswered }: { l: Layout; user: WaitlistU
     <section aria-label="Help us build it around you">
       <div style={{ ...cardSurface(), padding: `${l.cardPad + 2}px ${l.cardPad}px ${l.cardPad - 6}px` }}>
         <h2 style={{ margin: 0, ...typeFor('h1', l.size), color: RC.ink }}>Help us build it around you</h2>
-        <p style={{ margin: '6px 0 0', ...TYPE.small, color: RC.ink2 }}>Each answer moves you up {PLACES_PER_REFERRAL} places.</p>
+        <p style={{ margin: '6px 0 0', ...TYPE.small, color: RC.ink2 }}>Each answer moves you up {PLACES_PER_ANSWER} places.</p>
         <div style={{ marginTop: 14 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
             <span style={{ ...TYPE.bodyStrong, fontSize: 16, color: done ? RC.success : RC.ink }}>{done ? 'Profile complete' : `${count} of ${PROFILE_QUESTIONS} answered`}</span>
