@@ -7,7 +7,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // No notification permission request and no remote-notification
+        // registration here: the app asks once, from its own pre-prompt
+        // (NotifyPlugin.requestPermission), and only after a yes.
         return true
     }
 

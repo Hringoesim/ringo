@@ -7,7 +7,10 @@
 // fulfils the eSIM and tells the app who bought it. Log in (email + code) is
 // for a phone that did not do the buying. Everything the app knows about its
 // owner lives in src/store/account.ts, on this phone only.
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+//
+// Notifications are asked in one place only: the PushSheet below, once per
+// phone, after the first purchase is delivered.
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { RingoTabBar, type TabId } from './components/TabBar';
 import { ScreenHost, type NavDir } from './components/ScreenHost';
 import { haptic } from './lib/haptics';
@@ -28,9 +31,9 @@ import { LoginScreen } from './screens/LoginScreen';
 import { ReportScreen } from './screens/ReportScreen';
 import { HelpScreen } from './screens/HelpScreen';
 import { RewardsScreen } from './screens/RewardsScreen';
-import { startPush } from './lib/push';
-import { WelcomeScreen } from './screens/WelcomeScreen';
-import { welcomeDue } from './lib/welcome';
+import { startPush, shouldPrompt } from './lib/push';
+import { PushSheet } from './components/PushControls';
+import { bundledPictureFor, pictureFor } from './data/destinations';
 
 const TABBED = new Set<string>(['store', 'esim', 'rewards', 'help']);
 
@@ -58,10 +61,43 @@ export function App() {
   // the foreground, so what the app sells is what ringoesim.com sells now.
   useEffect(() => { startLive(); }, []);
   // Signing out (or deleting the account, or a token the site no longer
-  // accepts) goes back to the sign-in screen.
+  // accepts) goes back to the sign-in screen. When the account on this phone
+  // changes, the email remembered for checkout goes too, so the next person
+  // never buys with the previous person's address (and onto their account).
+  const prevUserRef = useRef<string | null>(account.get()?.userId ?? null);
   useEffect(() => account.subscribe(() => {
-    if (!account.get()) { navDirRef.current = 'fade'; setStack([mkFrame('landing', {})]); }
+    const acct = account.get();
+    const id = acct?.userId ?? null;
+    if (id !== prevUserRef.current) {
+      if (prevUserRef.current) { try { localStorage.removeItem('ringo_last_email'); } catch { /* ignore */ } }
+      prevUserRef.current = id;
+    }
+    if (!acct) { navDirRef.current = 'fade'; setPushAsk(null); setStack([mkFrame('landing', {})]); }
   }), []);
+
+  // The ONE notification ask: once per phone, after the first purchase is
+  // delivered (the eSIM is attached to the account), over the My eSIM tab.
+  // Never at launch, never on Rewards, never inside checkout.
+  const [pushAsk, setPushAsk] = useState<{ place: string } | null>(null);
+  const pushTimer = useRef<number | null>(null);
+  useEffect(() => () => { if (pushTimer.current) window.clearTimeout(pushTimer.current); }, []);
+  const askAfterDelivery = (place: string) => {
+    if (pushTimer.current) window.clearTimeout(pushTimer.current);
+    if (!shouldPrompt()) return;
+    let tries = 0;
+    const check = async () => {
+      pushTimer.current = null;
+      tries++;
+      const acct = account.get();
+      if (!acct || !shouldPrompt()) return;
+      try {
+        const d = await light.subscription(acct.userId, acct.t, {});
+        if (d.subscription?.esim_attached) { if (shouldPrompt()) setPushAsk({ place }); return; }
+      } catch { /* asked again below */ }
+      if (tries < 8) pushTimer.current = window.setTimeout(() => void check(), 5000);
+    };
+    pushTimer.current = window.setTimeout(() => void check(), 1200);
+  };
   // Push: listens for this phone's token and for taps, never asks at launch
   // (src/lib/push.ts). A tapped push opens the tab its path names.
   useEffect(() => startPush((path) => {
@@ -94,8 +130,6 @@ export function App() {
     // them sign in, like all apps do"; 2026-09-18: sign-in must be seen).
     const acct = account.get();
     if (!acct) return [{ id: 0, name: 'landing', params: {} }];
-    // A member who has not had the Rewards welcome on this phone gets it first.
-    if (welcomeDue(acct.userId)) return [{ id: 0, name: 'welcome', params: {} }];
     return [{ id: 0, name: 'store', params: {} }];
   });
   const current = stack[stack.length - 1];
@@ -120,12 +154,10 @@ export function App() {
     haptic('light');
     setStack([mkFrame(name, {})]);
   };
-  // Signed in or signed up: the Rewards welcome (and the notification ask)
-  // comes first, once per account on this phone.
-  const signedIn = () => {
-    if (welcomeDue(account.get()?.userId)) { navDirRef.current = 'fade'; setStack([mkFrame('welcome', {})]); return; }
-    goTab('esim');
-  };
+  // Signed in or signed up: straight to My eSIM. No welcome screen and no
+  // notification ask here (owner 2026-10-24: the ask came twice and sat with
+  // Rewards); the one ask follows the first delivered purchase.
+  const signedIn = () => { goTab('esim'); };
 
   // One line in the device log at launch saying whether the App Store
   // returns our products: the Paid Apps agreement and the product state are
@@ -236,7 +268,7 @@ export function App() {
         <CheckoutScreen
           selection={current.params.selection!}
           onBack={pop}
-          onReady={() => goTab('esim')}
+          onReady={() => { const place = current.params.selection?.destination || 'global'; goTab('esim'); askAfterDelivery(place); }}
         />
       );
       break;
@@ -258,9 +290,6 @@ export function App() {
     case 'login':
       body = <LoginScreen onBack={pop} onDone={signedIn} startWithEmail={Boolean(current.params.email)} />;
       break;
-    case 'welcome':
-      body = <WelcomeScreen onDone={() => goTab('esim')} />;
-      break;
     case 'report':
       body = <ReportScreen onBack={pop} />;
       break;
@@ -278,6 +307,7 @@ export function App() {
   }
 
   const showTabs = TABBED.has(current.name);
+  const closePushAsk = useCallback(() => setPushAsk(null), []);
 
   return (
     <div data-screen-label={`Ringo / ${current.name}`} style={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
@@ -285,6 +315,13 @@ export function App() {
         {body}
       </ScreenHost>
       {showTabs && <RingoTabBar active={current.name} onChange={goTab} />}
+      {pushAsk && showTabs && (
+        <PushSheet
+          place={pushAsk.place}
+          photo={bundledPictureFor(pushAsk.place) ?? pictureFor(pushAsk.place)}
+          onClose={closePushAsk}
+        />
+      )}
     </div>
   );
 }

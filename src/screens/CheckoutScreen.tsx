@@ -1,4 +1,4 @@
-// CheckoutScreen — email, then the App Store. The purchase sheet is Apple's
+// CheckoutScreen: email, then the App Store. The purchase sheet is Apple's
 // (StoreKit 2); the signed transaction it returns goes to ringoesim.com,
 // which verifies it against Apple's roots, issues the eSIM and names the
 // buyer's account. Only after that is the transaction finished, so a
@@ -9,77 +9,120 @@
 // what App Review requires stated before the buy button: the price and
 // period, that it renews until cancelled, where to cancel, and the links to
 // the Terms of Use and the Privacy Policy.
+//
+// The email is the signed-in account's, never a remembered one from another
+// account on this phone (the site ties the purchase to the account of the
+// email typed here). Buying for a different email than the signed-in one is
+// asked once before it happens.
+//
+// The notification ask is not here: it lives in components/PushControls and
+// App shows it once, after the first delivered purchase.
+//
+// Layout follows the live width: on a phone a summary card, the form and a
+// sticky buy bar; on a wide screen the photo card on the left and the form
+// with its button in a readable column on the right.
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { PlaceMosaic } from '../components/PlaceMosaic';
-import { hasMosaic } from '../data/destinations';
-import { useEffect, useRef, useState } from 'react';
-import { RC, RADIUS, cardSurface } from '../theme';
+import { RC, RADIUS, TYPE, typeFor, cardSurface, PHOTO_OVERLAY, PHOTO_TEXT_SHADOW } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
-import { BackBtn, FieldLabel, Input } from '../components/ui';
-import { pictureFor, skyFor } from '../data/destinations';
+import { BackBtn, FieldLabel, Input, HelpText, ErrorBox } from '../components/ui';
+import { useBlockSwipeBack } from '../components/ScreenHost';
+import { hasMosaic, pictureFor, skyFor, bundledPictureFor } from '../data/destinations';
 import { light, SITE } from '../api/light';
 import { account, pendingPurchase } from '../store/account';
 import { iapAvailable, purchase } from '../lib/iap';
 import { openInSheet } from '../lib/browser';
 import { haptic, hapticNotify } from '../lib/haptics';
-import { PushPrompt } from '../components/PushControls';
 import { priceOf, reportTransaction } from '../lib/purchase';
 import { type Selection } from './DestinationScreen';
 import { planName, periodWord } from '../lib/terms';
+import { useLayout, contentColumn, type Layout } from '../lib/layout';
 
-type Stage = 'email' | 'buying' | 'recording' | 'issuing' | 'ready' | 'pending' | 'failed';
+type Stage = 'email' | 'buying' | 'recording' | 'issuing' | 'slow' | 'ready' | 'pending' | 'failed';
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-const EMAIL_KEY = 'ringo_last_email';
+// Retired: the last email typed on this phone, which pre-filled one
+// account's email into another account's purchase. Cleared on sight.
+const OLD_EMAIL_KEY = 'ringo_last_email';
+const POLL_MS = 3000;
+const POLL_TRIES = 40;
 
 // An inline link inside the small print: padded to a 44pt hit area, and the
 // padding taken back with a negative margin so the line keeps its height.
-const INLINE_LINK: React.CSSProperties = { border: 'none', background: 'transparent', padding: '14px 0', margin: '-14px 0', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', lineHeight: 'inherit', fontWeight: 700, color: RC.inkStrong, verticalAlign: 'baseline' };
+const inlineLink = (): CSSProperties => ({ border: 'none', background: 'transparent', padding: '14px 0', margin: '-14px 0', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', lineHeight: 'inherit', fontWeight: 700, color: RC.orangeInk, verticalAlign: 'baseline', textDecoration: 'underline', textUnderlineOffset: 2 });
 
 export function CheckoutScreen({ selection, onBack, onReady }: { selection: Selection; onBack: () => void; onReady: () => void }) {
-  const [email, setEmail] = useState(() => { try { return localStorage.getItem(EMAIL_KEY) || account.get()?.email || ''; } catch { return ''; } });
+  const l = useLayout();
+  const signedInEmail = (account.get()?.email || '').trim();
+  const [email, setEmail] = useState(signedInEmail);
   const [stage, setStage] = useState<Stage>('email');
   const [err, setErr] = useState<string | null>(null);
+  // Set when the email typed is not the signed-in account's: asked once.
+  const [otherEmail, setOtherEmail] = useState<string | null>(null);
+  const confirmedOther = useRef<string | null>(null);
+
+  const mounted = useRef(true);
   const pollRef = useRef<number | null>(null);
-  const stopPolling = () => { if (pollRef.current) { window.clearInterval(pollRef.current); pollRef.current = null; } };
-  useEffect(() => () => stopPolling(), []);
+  const stopPolling = () => { if (pollRef.current) { window.clearTimeout(pollRef.current); pollRef.current = null; } };
+  useEffect(() => {
+    mounted.current = true;
+    try { localStorage.removeItem(OLD_EMAIL_KEY); } catch { /* ignore */ }
+    return () => { mounted.current = false; stopPolling(); };
+  }, []);
+
+  // Leaving mid-purchase would hide what happened to the payment.
+  useBlockSwipeBack(!['email', 'failed', 'ready', 'pending', 'slow'].includes(stage));
 
   const p = selection.plan;
   const price = priceOf(p, selection.product);
   const renewing = p.mode === 'subscription';
+  const isGlobal = selection.destination === 'global';
 
-  // After the site has recorded the purchase, wait for the eSIM to exist.
+  const stageRef = useRef<Stage>('email');
+  const setStageBoth = (s: Stage) => { if (!mounted.current) return; stageRef.current = s; setStage(s); };
+
+  // After the site has recorded the purchase, wait for THIS purchase's eSIM:
+  // the site only returns `install` for a subscription matching the
+  // transaction reference, so an older eSIM on the account never reads as
+  // the new one being ready.
   const waitForEsim = () => {
     const acct = account.get();
-    if (!acct) { setStageBoth('ready'); return; }
+    if (!acct) { setStageBoth('slow'); return; }
+    const ref = acct.purchaseRef;
     let tries = 0;
     setStageBoth('issuing');
     const tick = async () => {
+      if (!mounted.current) return;
       tries++;
       try {
-        const d = await light.subscription(acct.userId, acct.t, {});
-        if (d.subscription?.esim_attached) { stopPolling(); hapticNotify('success'); setStageBoth('ready'); }
+        const d = await light.subscription(acct.userId, acct.t, ref ? { install: ref } : {});
+        if (!mounted.current) return;
+        const done = ref ? Boolean(d.install) : Boolean(d.subscription?.esim_attached);
+        if (done) { stopPolling(); hapticNotify('success'); setStageBoth('ready'); return; }
       } catch { /* next tick */ }
-      if (tries >= 40) { stopPolling(); setStageBoth('ready'); }
+      if (!mounted.current) return;
+      if (tries >= POLL_TRIES) { stopPolling(); setStageBoth('slow'); return; }
+      pollRef.current = window.setTimeout(() => void tick(), POLL_MS);
     };
     void tick();
-    pollRef.current = window.setInterval(() => void tick(), 3000);
   };
-  const stageRef = useRef<Stage>('email');
 
   // Sign in with Apple can hand us a Hide My Email relay address. Apple's
   // relay refuses senders that are not registered with Apple, so mail to it
   // bounces: the app must not tell anyone to go and look for it. The eSIM
   // itself is always here, under My eSIM.
   const relayEmail = /@privaterelay\.appleid\.com$/i.test(email.trim());
-  const setStageBoth = (s: Stage) => { stageRef.current = s; setStage(s); };
 
   const buy = async () => {
     const e = email.trim().toLowerCase();
     if (!EMAIL_RE.test(e)) { setErr('Enter the email your eSIM should be sent to.'); return; }
     if (!selection.product && iapAvailable()) { setErr('This plan is not available in the App Store right now.'); return; }
+    // Signed in, but buying for another email: the eSIM would belong to
+    // that email's account and the phone would switch to it. Ask first.
+    if (signedInEmail && e !== signedInEmail.toLowerCase() && confirmedOther.current !== e) { setErr(null); setOtherEmail(e); return; }
     setErr(null);
-    try { localStorage.setItem(EMAIL_KEY, e); } catch { /* ignore */ }
+    setOtherEmail(null);
     if (!iapAvailable()) { setErr('Purchases are made in the Ringo iPhone app.'); return; }
     haptic('medium');
     setStageBoth('buying');
@@ -95,6 +138,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
     try {
       outcome = await purchase(selection.product!.id, token);
     } catch (ex) {
+      if (!mounted.current) return;
       setErr((ex as Error).message || 'The purchase could not be started.');
       setStageBoth('email');
       // The context stays. StoreKit rejects an unverified transaction AFTER
@@ -112,104 +156,204 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
       // Paid but not recorded: the transaction stays unfinished and is
       // reported again on the next launch. Say so plainly.
       hapticNotify('error');
+      if (!mounted.current) return;
       setErr((ex as Error).message || 'Could not record the purchase.');
       setStageBoth('failed');
     }
   };
 
-  return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <RingoHeader title={stage === 'ready' ? 'Your eSIM' : 'Checkout'} leading={stage === 'email' || stage === 'failed' ? <BackBtn onClick={onBack} /> : null} />
-      <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: '0 20px 190px' }}>
-        <div style={{ ...cardSurface(), overflow: 'hidden' }}>
-          <div style={{ position: 'relative', height: 110, background: skyFor(selection.destination) }}>
-            {hasMosaic(selection.destination) ? <PlaceMosaic id={selection.destination} /> : <img src={pictureFor(selection.destination)} alt="" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
+  const confirmOther = () => { if (otherEmail) { confirmedOther.current = otherEmail; void buy(); } };
+  const useSignedIn = () => { setEmail(signedInEmail); setOtherEmail(null); confirmedOther.current = null; };
+
+  const planLine = isGlobal && renewing ? 'Unlimited, renews monthly' : `${planName(p)}${renewing ? '' : ', one payment'}`;
+  const buyLabel = renewing ? `Subscribe for ${price.total}` : `Buy for ${price.total}`;
+
+  // ── Pieces ────────────────────────────────────────────────────────────────
+  const summary = <Summary l={l} selection={selection} planLine={planLine} total={price.total} renewing={renewing} />;
+
+  const form = stage === 'email' && (
+    <div>
+      <FieldLabel htmlFor="checkout-email">Your email</FieldLabel>
+      <Input
+        id="checkout-email"
+        name="email"
+        value={email}
+        onChange={(v) => { setEmail(v); setOtherEmail(null); if (err) setErr(null); }}
+        placeholder="you@example.com"
+        type="email"
+        inputMode="email"
+        autoComplete="email"
+        invalid={Boolean(err) && !EMAIL_RE.test(email.trim())}
+        onEnter={() => void buy()}
+      />
+      <HelpText style={{ fontSize: 15, color: RC.ink2, lineHeight: 1.45 }}>
+        {relayEmail
+          ? 'Your eSIM installs here in the app. Apple hides this address, so use a real one if you also want it by email.'
+          : 'Your activation code and receipt go here.'}
+      </HelpText>
+      {otherEmail && (
+        <div role="alert" style={{ marginTop: 14, ...cardSurface(), padding: 16 }}>
+          <div style={{ ...TYPE.bodyStrong, color: RC.ink }}>Buy for {otherEmail}?</div>
+          <div style={{ marginTop: 6, ...TYPE.small, color: RC.ink2, overflowWrap: 'anywhere' }}>
+            You are signed in as {signedInEmail}. This eSIM will belong to the account for {otherEmail}, and the app will switch to it.
           </div>
-          <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <div>
-              <div style={{ fontFamily: 'var(--font)', fontSize: 16, fontWeight: 800, color: RC.ink, letterSpacing: -0.3 }}>{selection.destinationLabel}</div>
-              <div style={{ marginTop: 2, fontFamily: 'var(--font)', fontSize: 13, color: RC.inkMute }}>
-                {selection.destination === 'global' && renewing ? 'Unlimited, renews monthly' : planName(p)}{renewing ? '' : ', one payment'}
-              </div>
-            </div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800, color: RC.ink, letterSpacing: -0.5 }}>{price.total}</div>
+          <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <RingoButton onClick={confirmOther}>Yes, use this email</RingoButton>
+            <RingoButton variant="secondary" onClick={useSignedIn}>Use my account email</RingoButton>
           </div>
         </div>
+      )}
+      {err && <ErrorBox style={{ marginTop: 12 }}>{err}</ErrorBox>}
+    </div>
+  );
 
-        {stage === 'email' && (
-          <div style={{ marginTop: 22 }}>
-            <FieldLabel>Your email</FieldLabel>
-            <Input value={email} onChange={setEmail} placeholder="you@example.com" type="email" inputMode="email" />
-            <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 12.5, color: RC.inkMute, lineHeight: 1.5 }}>
-              {relayEmail
-                ? 'Your eSIM installs here in the app. Apple hides this address, so use a real one if you also want it by email.'
-                : 'The activation code and receipt go here.'}
-            </div>
-            {err && <div style={{ marginTop: 10, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.error }}>{err}</div>}
-          </div>
-        )}
-
-        {(stage === 'buying') && <Waiting title="Confirm with your Apple ID" sub="Nothing is charged until you confirm." />}
-        {stage === 'recording' && <Waiting title="Payment confirmed. Recording your purchase…" sub="One moment." />}
-        {stage === 'issuing' && <Waiting title="Preparing your eSIM…" sub={relayEmail ? 'Under a minute. It lands under My eSIM, here in the app.' : 'Under a minute. It lands under My eSIM and in your email.'} ok />}
-        {stage === 'pending' && <Waiting title="Waiting for approval" sub="This purchase needs approval (Ask to Buy). Once it is approved, open the app and your eSIM will be prepared." ok />}
-
-        {stage === 'ready' && (
-          <div className="rise" style={{ marginTop: 22, textAlign: 'center' }}>
-            <div style={{ width: 64, height: 64, margin: '0 auto', borderRadius: '50%', background: RC.grad, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 12px 30px -12px rgba(249,60,31,0.6)' }}>
-              <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            </div>
-            <div style={{ marginTop: 14, fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, color: RC.ink, letterSpacing: -0.6 }}>Your eSIM is ready.</div>
-            <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 14, color: RC.inkMute, lineHeight: 1.5 }}>
-              {relayEmail
-                ? 'Install it now, or later from My eSIM.'
-                : 'Install it now, or later from My eSIM.'}
-            </div>
-            <PushPrompt />
-          </div>
-        )}
-
-        {stage === 'failed' && (
-          <div style={{ marginTop: 22, padding: 16, borderRadius: RADIUS.sm, background: RC.errorSoft, fontFamily: 'var(--font)', fontSize: 14, color: RC.ink, lineHeight: 1.5 }}>
-            <div style={{ fontWeight: 700 }}>Your payment went through, but we could not record it yet.</div>
-            <div style={{ marginTop: 4, color: RC.inkMute }}>{err} The app will try again the next time it opens; your purchase is not lost. If your eSIM is not under My eSIM within an hour, tap Help and contact us.</div>
-          </div>
-        )}
-
-        {stage === 'email' && renewing && (
-          <div style={{ marginTop: 18, padding: '12px 14px', borderRadius: RADIUS.sm, background: RC.cream, fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute, lineHeight: 1.55 }}>
-            <span style={{ fontWeight: 700, color: RC.ink }}>Renews {price.total} every {periodWord(p)} through your Apple ID until you cancel in Settings.</span> Cancel in Settings › Apple ID › Subscriptions at least 24 hours before a renewal. No minimum term: cancel any time and keep the {periodWord(p)} you paid for. Charged when you confirm.
-          </div>
-        )}
-        {stage === 'email' && (
-          <div style={{ marginTop: 14, fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute, lineHeight: 1.6 }}>
-            By buying you agree to the{' '}
-            <button className="press" onClick={() => void openInSheet(`${SITE}/terms?app=1`)} style={INLINE_LINK}>Terms of Use</button>
-            {' '}and the{' '}
-            <button className="press" onClick={() => void openInSheet(`${SITE}/privacy?app=1`)} style={INLINE_LINK}>Privacy Policy</button>
-            . Prices include VAT.
-          </div>
-        )}
+  const renewBox = stage === 'email' && renewing && (
+    <div style={{ padding: '14px 16px', borderRadius: RADIUS.sm, background: RC.cream, border: `1px solid ${RC.line}` }}>
+      <div style={{ ...TYPE.small, fontWeight: 700, color: RC.ink }}>Renews at {price.total} every {periodWord(p)} until you cancel.</div>
+      <div style={{ marginTop: 6, ...TYPE.caption, color: RC.inkMute }}>
+        Cancel in Settings, then Apple ID, then Subscriptions, at least 24 hours before a renewal. No minimum term: cancel any time and keep the {periodWord(p)} you paid for. Charged to your Apple ID when you confirm.
       </div>
+    </div>
+  );
 
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '12px 20px max(20px, env(safe-area-inset-bottom, 0px))', background: RC.glass, borderTop: `1px solid ${RC.line}` }}>
-        {/* The no-refund consent, directly above the buy button (owner
-            2026-09-27: no refund once the eSIM is issued). UK Consumer
-            Contracts Regulations 2013 reg 37: the right to cancel digital
-            content ends only on an express request for immediate supply and
-            an acknowledgement that it is lost. Apple decides App Store
-            refunds itself, so this neither promises nor denies one. */}
-        {stage === 'email' && (
-          <div data-refund-consent style={{ marginBottom: 10, fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute, lineHeight: 1.5, textAlign: 'center' }}>
-            By buying you ask us to issue your eSIM straight away and accept that you lose your right to cancel once it is issued. Refunds for App Store purchases are handled by Apple.
+  const terms = stage === 'email' && (
+    <div style={{ ...TYPE.caption, color: RC.inkMute }}>
+      By buying you agree to the{' '}
+      <button type="button" onClick={() => void openInSheet(`${SITE}/terms?app=1`)} style={inlineLink()}>Terms of Use</button>
+      {' '}and the{' '}
+      <button type="button" onClick={() => void openInSheet(`${SITE}/privacy?app=1`)} style={inlineLink()}>Privacy Policy</button>
+      . Prices include VAT.
+    </div>
+  );
+
+  const status = (
+    <>
+      {stage === 'buying' && <Waiting title="Confirm with your Apple ID" sub="Nothing is charged until you confirm." />}
+      {stage === 'recording' && <Waiting title="Payment confirmed" sub="Recording your purchase. One moment." />}
+      {stage === 'issuing' && <Waiting title="Preparing your eSIM" sub={relayEmail ? 'Under a minute. It lands under My eSIM, here in the app.' : 'Under a minute. It lands under My eSIM and in your email.'} />}
+      {stage === 'slow' && <Waiting ok title="Your eSIM is on its way" sub={relayEmail ? 'It is taking a little longer than usual. It appears under My eSIM as soon as it is ready.' : 'It is taking a little longer than usual. It appears under My eSIM and in your email as soon as it is ready.'} />}
+      {stage === 'pending' && <Waiting ok title="Waiting for approval" sub="This purchase needs approval (Ask to Buy). Once it is approved, open the app and your eSIM will be prepared." />}
+      {stage === 'ready' && (
+        <div className="rise" style={{ textAlign: 'center', padding: '8px 0' }}>
+          <div style={{ width: 68, height: 68, margin: '0 auto', borderRadius: '50%', background: RC.gradCta, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 12px 30px -12px rgba(223,40,12,0.6)' }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </div>
-        )}
-        {stage === 'email' && <RingoButton onClick={() => void buy()}>{renewing ? `Subscribe for ${price.total}` : `Buy for ${price.total}`}</RingoButton>}
-        {(stage === 'buying' || stage === 'recording') && <RingoButton loading>One moment…</RingoButton>}
-        {stage === 'issuing' && <RingoButton variant="soft" onClick={onReady}>Go to My eSIM</RingoButton>}
-        {stage === 'pending' && <RingoButton variant="soft" onClick={onReady}>Done</RingoButton>}
-        {stage === 'ready' && <RingoButton onClick={onReady}>Install my eSIM</RingoButton>}
-        {stage === 'failed' && <RingoButton variant="soft" onClick={onReady}>Go to My eSIM</RingoButton>}
+          <h2 style={{ margin: '16px 0 0', ...typeFor('h1', l.size), color: RC.ink }}>Your eSIM is ready</h2>
+          <p style={{ margin: '8px 0 0', ...TYPE.body, color: RC.ink2 }}>Install it now, or later from My eSIM.</p>
+        </div>
+      )}
+      {stage === 'failed' && (
+        <ErrorBox>
+          <div style={{ fontWeight: 700, color: RC.ink }}>Your payment went through, but we could not record it yet.</div>
+          <div style={{ marginTop: 6, color: RC.ink2 }}>{err} The app tries again the next time it opens, so your purchase is not lost. If your eSIM is not under My eSIM within an hour, tap Help and contact us.</div>
+        </ErrorBox>
+      )}
+    </>
+  );
+
+  // The no-refund consent sits directly above the buy button (owner
+  // 2026-09-27: no refund once the eSIM is issued). UK Consumer Contracts
+  // Regulations 2013 reg 37: the right to cancel digital content ends only
+  // on an express request for immediate supply and an acknowledgement that
+  // it is lost. Apple decides App Store refunds itself, so this neither
+  // promises nor denies one.
+  const consent = stage === 'email' && (
+    <div data-refund-consent style={{ ...TYPE.caption, color: RC.inkMute, textAlign: l.isWide ? 'left' : 'center' }}>
+      By buying you ask us to issue your eSIM straight away and accept that you lose your right to cancel once it is issued. Refunds for App Store purchases are handled by Apple.
+    </div>
+  );
+
+  const action: ReactNode = (
+    <>
+      {stage === 'email' && <RingoButton onClick={() => void buy()} disabled={Boolean(otherEmail)}>{buyLabel}</RingoButton>}
+      {(stage === 'buying' || stage === 'recording') && <RingoButton loading>One moment</RingoButton>}
+      {(stage === 'issuing' || stage === 'slow' || stage === 'failed') && <RingoButton variant="soft" onClick={onReady}>Go to My eSIM</RingoButton>}
+      {stage === 'pending' && <RingoButton variant="soft" onClick={onReady}>Done</RingoButton>}
+      {stage === 'ready' && <RingoButton onClick={onReady}>Install my eSIM</RingoButton>}
+    </>
+  );
+
+  const header = <RingoHeader title={stage === 'ready' ? 'Your eSIM' : 'Checkout'} leading={stage === 'email' || stage === 'failed' ? <BackBtn onClick={onBack} /> : null} />;
+
+  // ── Wide: photo card left, form and button right ──────────────────────────
+  if (l.isWide) {
+    return (
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {header}
+        <div className="no-bar" style={{ flex: 1, overflowY: 'auto', paddingBottom: 'calc(40px + env(safe-area-inset-bottom, 0px))' }}>
+          <div style={{ ...contentColumn(l), display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 28, alignItems: 'start' }}>
+            <div style={{ position: 'sticky', top: 0 }}>{summary}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18, minWidth: 0, maxWidth: 480 }}>
+              {form}
+              {status}
+              {renewBox}
+              {consent}
+              {action}
+              {terms}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Phone: summary, form, sticky buy bar ──────────────────────────────────
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+      {header}
+      <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: `0 ${l.gutter}px ${stage === 'email' ? 260 : 150}px` }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+          {summary}
+          {form}
+          {status}
+          {renewBox}
+          {terms}
+        </div>
+      </div>
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: `12px ${l.gutter}px max(20px, env(safe-area-inset-bottom, 0px))`, background: RC.glass, backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)', borderTop: `1px solid ${RC.line}`, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {consent}
+        {action}
+      </div>
+    </div>
+  );
+}
+
+/** The plan being bought: the place's photo with its name, then the plan and the price. */
+function Summary({ l, selection, planLine, total, renewing }: { l: Layout; selection: Selection; planLine: string; total: string; renewing: boolean }) {
+  const id = selection.destination;
+  return (
+    <div style={{ ...cardSurface(), overflow: 'hidden' }}>
+      <div style={{ position: 'relative', aspectRatio: l.isWide ? '4 / 3' : '2 / 1', background: skyFor(id) }}>
+        {hasMosaic(id)
+          ? <PlaceMosaic id={id} />
+          : (
+            <img
+              src={pictureFor(id)}
+              alt=""
+              decoding="async"
+              onError={(e) => {
+                const el = e.currentTarget as HTMLImageElement;
+                const b = bundledPictureFor(id);
+                if (b && !el.src.endsWith(b)) el.src = b;
+                else el.style.display = 'none';
+              }}
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+          )}
+        <div aria-hidden style={{ position: 'absolute', inset: 0, background: PHOTO_OVERLAY }} />
+        <div style={{ position: 'absolute', left: 16, right: 16, bottom: 14, fontFamily: 'var(--font-display)', fontSize: l.isWide ? 28 : 22, fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.02em', color: '#fff', textShadow: PHOTO_TEXT_SHADOW, overflowWrap: 'anywhere' }}>
+          {selection.destinationLabel}
+        </div>
+      </div>
+      <div style={{ padding: `14px ${l.cardPad}px 16px`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ ...TYPE.h3, color: RC.ink }}>{planLine}</div>
+          {selection.plan.member_pct ? <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 15, fontWeight: 700, color: RC.purpleInk }}>Your Rewards price</div> : null}
+        </div>
+        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+          <div style={{ ...TYPE.price, color: RC.ink, fontVariantNumeric: 'tabular-nums' }}>{total}</div>
+          {renewing && <div style={{ marginTop: 2, ...TYPE.caption, color: RC.inkMute }}>today</div>}
+        </div>
       </div>
     </div>
   );
@@ -217,16 +361,16 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
 
 function Waiting({ title, sub, ok = false }: { title: string; sub: string; ok?: boolean }) {
   return (
-    <div style={{ marginTop: 26, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+    <div role="status" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '8px 0' }}>
       {ok ? (
-        <div style={{ width: 44, height: 44, borderRadius: '50%', background: RC.successSoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke={RC.success} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        <div style={{ width: 48, height: 48, borderRadius: '50%', background: RC.successSoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M5 12.5l4.5 4.5L19 7.5" stroke={RC.success} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </div>
       ) : (
-        <div style={{ width: 34, height: 34, borderRadius: '50%', border: `3px solid ${RC.line}`, borderTopColor: RC.inkStrong, animation: 'ringoSpin 0.7s linear infinite' }} />
+        <div aria-hidden style={{ width: 36, height: 36, borderRadius: '50%', border: `3px solid ${RC.line}`, borderTopColor: RC.inkStrong, animation: 'ringoSpin 0.7s linear infinite' }} />
       )}
-      <div style={{ marginTop: 14, fontFamily: 'var(--font)', fontSize: 16, fontWeight: 700, color: RC.ink, letterSpacing: -0.2 }}>{title}</div>
-      <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 13.5, color: RC.inkMute, lineHeight: 1.5, maxWidth: 300 }}>{sub}</div>
+      <div style={{ marginTop: 14, ...TYPE.bodyStrong, color: RC.ink }}>{title}</div>
+      <div style={{ marginTop: 6, ...TYPE.small, color: RC.ink2, maxWidth: 420 }}>{sub}</div>
     </div>
   );
 }

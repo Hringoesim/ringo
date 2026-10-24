@@ -3,8 +3,15 @@
   <head>
     <meta charset="utf-8" />
     <link rel="icon" type="image/png" href="./icon-192.png" />
+    <!-- width=device-width + viewport-fit=cover: the layout follows the live
+         width (iPhone Duo cover ~360pt / inner ~744pt) and safe areas come
+         from env(). maximum-scale=1 only stops pinch zoom inside the app;
+         there is no user-scalable=no. -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
-    <meta name="theme-color" content="#F4EFE9" />
+    <meta name="theme-color" content="#FFFAF7" />
+    <meta name="format-detection" content="telephone=no" />
+    <!-- First paint before the bundle loads: the site's warm cream, never white. -->
+    <style>html,body{background:#fffaf7;color:#1a0f2e;margin:0}</style>
     <title>Ringo: Global Data eSIM</title>
 
     <!-- PWA / iOS home-screen app -->

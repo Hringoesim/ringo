@@ -3,9 +3,12 @@
 // member's two switches (POST /api/app-push-register), and opens the screen a
 // tapped push names.
 //
-// - Permission is asked after a purchase, behind a one-line pre-prompt
-//   (PushPrompt in CheckoutScreen) or from the switches under Help, never at
-//   launch.
+// - Permission is asked in ONE place: the pre-prompt sheet App.tsx shows once
+//   per device, after the first purchase is delivered (PushSheet in
+//   components/PushControls.tsx), then the iOS dialog once. 'Not now' and an
+//   iOS 'Don't Allow' both close the ask for good on this phone; after that
+//   only the switches under Help can turn notifications on (they open iOS
+//   Settings once iOS has been refused). Never at launch, never on Rewards.
 // - Service alerts (data running low, eSIM ready) are on once notifications
 //   are allowed. Offers (Rewards, promos) stay OFF until the member turns
 //   them on, and turn off as easily (App Store guideline 4.5.4).
@@ -31,7 +34,11 @@ const Native = registerPlugin<NotifyPlugin>('Notify');
 export const pushAvailable = (): boolean => Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
 
 export interface PushPrefs { service: boolean; offers: boolean }
-export interface PushState { permission: Permission; prefs: PushPrefs; token: string | null; environment: ApnsEnv }
+export interface PushState {
+  permission: Permission; prefs: PushPrefs; token: string | null; environment: ApnsEnv;
+  /** true once the native side has said where permission stands */
+  known: boolean;
+}
 
 const PREFS_KEY = 'ringo_push_prefs_v1';
 const PROMPTED_KEY = 'ringo_push_prompted_v1';
@@ -45,7 +52,7 @@ function readPrefs(): PushPrefs {
   return { service: true, offers: false };
 }
 
-let state: PushState = { permission: pushAvailable() ? 'prompt' : 'unavailable', prefs: readPrefs(), token: null, environment: 'production' };
+let state: PushState = { permission: pushAvailable() ? 'prompt' : 'unavailable', prefs: readPrefs(), token: null, environment: 'production', known: false };
 const listeners = new Set<() => void>();
 function setState(patch: Partial<PushState>) {
   state = { ...state, ...patch };
@@ -76,7 +83,7 @@ async function refresh(): Promise<void> {
   if (!pushAvailable()) return;
   try {
     const s = await Native.status();
-    setState({ permission: s.permission, environment: s.environment, token: s.token ?? state.token });
+    setState({ permission: s.permission, environment: s.environment, token: s.token ?? state.token, known: true });
   } catch { /* plugin missing on an old build */ }
   await syncPush();
 }
@@ -103,17 +110,21 @@ export function startPush(onOpen: (path: string) => void): () => void {
   };
 }
 
-/** The pre-prompt shows once, only while iOS has not been asked yet. */
+/**
+ * The pre-prompt shows once per device (not per account), only while iOS has
+ * not been asked yet and the native side has answered where permission stands.
+ */
 export function shouldPrompt(): boolean {
-  if (state.permission !== 'prompt') return false;
-  try { return localStorage.getItem(PROMPTED_KEY) !== '1'; } catch { return true; }
+  if (!pushAvailable() || !state.known || state.permission !== 'prompt') return false;
+  try { return localStorage.getItem(PROMPTED_KEY) !== '1'; } catch { return false; }
 }
+/** 'Not now' (or any answer): the pre-prompt never shows again on this phone. */
 export function dismissPrompt(): void {
   try { localStorage.setItem(PROMPTED_KEY, '1'); } catch { /* ignore */ }
   listeners.forEach((l) => l());
 }
 
-/** Raise the iOS dialog (after our own one line). Returns whether allowed. */
+/** Raise the iOS dialog (after the pre-prompt). Returns whether allowed. */
 export async function askPermission(): Promise<boolean> {
   dismissPrompt();
   if (!pushAvailable()) return false;
@@ -141,4 +152,20 @@ export async function setPushPref(key: keyof PushPrefs, on: boolean): Promise<vo
 
 export async function openPushSettings(): Promise<void> {
   try { await Native.openSettings(); } catch { /* ignore */ }
+}
+
+/**
+ * Sign out or account deletion: tell the site this phone's token no longer
+ * belongs to the account, so its pushes stop arriving here. Never throws and
+ * never holds the caller for long (capped at 2.5 s).
+ */
+export async function unregisterPush(): Promise<void> {
+  try { localStorage.removeItem(SENT_KEY); } catch { /* ignore */ }
+  const acct = account.get();
+  const { token, environment } = state;
+  if (!acct || !token) return;
+  const send = light.pushRegister(acct.userId, acct.t, { token, environment, service_ok: false, offers_ok: false, app_version: String(import.meta.env.VITE_APP_VERSION || '') })
+    .then(() => undefined)
+    .catch((e) => { log.error('push', e, { step: 'unregister' }); });
+  await Promise.race([send, new Promise<void>((r) => setTimeout(r, 2500))]);
 }

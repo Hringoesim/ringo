@@ -7,6 +7,33 @@
 import { useEffect, useRef, useState, type ReactNode, type CSSProperties } from 'react';
 import { COLUMN_MAX } from '../theme';
 
+// ── Swipe-back guard ────────────────────────────────────────────────────────
+// A screen in the middle of something that must not be abandoned (Checkout
+// while buying / recording / issuing) blocks the edge-swipe back. Each block
+// is counted, so two screens can hold one at the same time.
+let swipeBlocks = 0;
+/** Blocks the edge-swipe back until the returned release function is called. */
+export function blockSwipeBack(): () => void {
+  swipeBlocks += 1;
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    swipeBlocks = Math.max(0, swipeBlocks - 1);
+  };
+}
+/** True while any screen blocks the edge-swipe back. */
+export function isSwipeBackBlocked(): boolean {
+  return swipeBlocks > 0;
+}
+/** Hook form: blocks the edge-swipe back while `active` is true. */
+export function useBlockSwipeBack(active: boolean): void {
+  useEffect(() => {
+    if (!active) return;
+    return blockSwipeBack();
+  }, [active]);
+}
+
 export type NavDir = 'push' | 'pop' | 'fade';
 
 // Slightly longer than the matching CSS animation, to be safe. Fades are quick
@@ -16,9 +43,12 @@ export type NavDir = 'push' | 'pop' | 'fade';
 // after the motion fully settles (matches index.css: push/pop 0.44s, fade 0.36s).
 const DURATION: Record<NavDir, number> = { push: 460, pop: 460, fade: 380 };
 
-// The layer itself spans the screen (its background fills an iPad); the
-// screen inside it is held to a centred column no wider than COLUMN_MAX.
-// A `fullBleed` screen (the welcome sky) keeps the whole width and centres
+// The layer itself spans the screen (its background fills the wide display);
+// the screen inside it is held to a centred column no wider than COLUMN_MAX
+// (880). On a phone the column is the full width. The layer is a CSS size
+// container named "screen", so `@container screen (...)` rules and the
+// --gutter variable (index.css) follow the live width when an iPhone Duo
+// opens or closes. A `fullBleed` screen keeps the whole width and centres
 // its own content.
 const column = (fullBleed: boolean): CSSProperties => ({
   flex: 1, minHeight: 0, width: '100%', maxWidth: fullBleed ? undefined : COLUMN_MAX,
@@ -60,13 +90,13 @@ export function ScreenHost({ navKey, dir, children, onSwipeBack, fullBleed = fal
   if (leaving && leaving.key !== navKey) {
     layers.push(
       <div key={leaving.key} className={`screen-layer ${leaveClass}`} style={{ zIndex: leaveZ }} aria-hidden>
-        <div style={column(leaving.full)}>{leaving.node}</div>
+        <div className="screen-col" style={column(leaving.full)}>{leaving.node}</div>
       </div>,
     );
   }
   layers.push(
     <div key={navKey} className={`screen-layer ${enterClass}`} style={{ zIndex: enterZ }}>
-      <div style={column(fullBleed)}>{children}</div>
+      <div className="screen-col" style={column(fullBleed)}>{children}</div>
     </div>,
   );
 
@@ -80,6 +110,10 @@ export function ScreenHost({ navKey, dir, children, onSwipeBack, fullBleed = fal
   };
   const onTouchEnd = (e: React.TouchEvent) => {
     if (!swipe.current || !onSwipeBack) return;
+    if (isSwipeBackBlocked()) {
+      swipe.current = null;
+      return;
+    }
     const t = e.changedTouches[0];
     const dx = t.clientX - swipe.current.x;
     const dy = Math.abs(t.clientY - swipe.current.y);

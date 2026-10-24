@@ -2,10 +2,11 @@
 // much of the current plan is used, the last 30 days day by day, and every
 // eSIM the account has held with what it used. The figures are the ones
 // ringoesim.com stored from the carriers (/api/app-usage); the current plan's
-// "left" prefers the live figure My eSIM already read, so the two never
-// disagree on screen.
-import { RC, RADIUS } from '../theme';
+// "left" prefers the live figure My eSIM already read, but only when the
+// meter shows that same plan, so the two never disagree on screen.
+import { RC, RADIUS, TYPE } from '../theme';
 import { RingoCard } from './Card';
+import { SectionHead } from './ui';
 import type { Usage, UsageEsim } from '../api/light';
 
 function fmtData(mb: number | null | undefined): string {
@@ -32,10 +33,6 @@ function lastDays(daily: Usage['daily'], n = 30): { day: string; mb: number }[] 
   return out;
 }
 
-function Heading({ children }: { children: string }) {
-  return <h2 style={{ margin: '8px 0 0', fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color: RC.ink, letterSpacing: -0.6 }}>{children}</h2>;
-}
-
 function Meter({ esim, liveRemaining }: { esim: UsageEsim; liveRemaining: number | null }) {
   const remaining = liveRemaining ?? esim.remaining_mb;
   const total = esim.allowance_mb;
@@ -44,26 +41,29 @@ function Meter({ esim, liveRemaining }: { esim: UsageEsim; liveRemaining: number
   const low = total != null && remaining != null && remaining <= total * 0.1;
   return (
     <RingoCard>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, color: RC.ink, letterSpacing: -0.6 }}>
+      <div style={{ ...TYPE.h3, color: RC.ink }}>{esim.flag ? `${esim.flag} ` : ''}{esim.label}</div>
+      <div style={{ marginTop: 10, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px 12px' }}>
+        <div style={{ ...TYPE.price, color: RC.ink, fontVariantNumeric: 'tabular-nums' }}>
           {esim.unlimited ? fmtData(esim.used_mb ?? 0) : fmtData(used)}
-          <span style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, color: RC.inkMute, letterSpacing: 0 }}>
+          <span style={{ ...TYPE.small, fontWeight: 500, color: RC.ink2 }}>
             {esim.unlimited ? ' used' : total != null ? ` of ${fmtData(total)} used` : ' used'}
           </span>
         </div>
-        {!esim.unlimited && remaining != null && (
-          <div style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, color: low ? RC.error : RC.ink }}>{fmtData(remaining)} left</div>
+        {esim.unlimited ? (
+          <div style={{ ...TYPE.small, fontWeight: 700, color: RC.success }}>Unlimited</div>
+        ) : remaining != null && (
+          <div style={{ ...TYPE.small, fontWeight: 700, color: low ? RC.error : RC.ink }}>{fmtData(remaining)} left</div>
         )}
       </div>
       {!esim.unlimited && total != null && (
         <div role="progressbar" aria-label="Data used" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pct)}
-          style={{ marginTop: 12, height: 10, borderRadius: RADIUS.pill, background: RC.cream, overflow: 'hidden' }}>
+          style={{ marginTop: 12, height: 12, borderRadius: RADIUS.pill, background: RC.cream, overflow: 'hidden' }}>
           <div style={{ width: `${Math.max(pct, used ? 2 : 0)}%`, height: '100%', borderRadius: RADIUS.pill, background: low ? RC.error : RC.grad, transition: 'width .6s ease' }} />
         </div>
       )}
       {esim.checked_at && (
-        <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 12, color: RC.inkMute }}>
-          {esim.unlimited ? 'Unlimited plan. ' : ''}Updated {new Date(esim.checked_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+        <div style={{ marginTop: 10, ...TYPE.caption, color: RC.inkMute }}>
+          Updated {new Date(esim.checked_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
         </div>
       )}
     </RingoCard>
@@ -76,18 +76,18 @@ function DailyChart({ daily }: { daily: Usage['daily'] }) {
   const week = days.slice(-7).reduce((n, d) => n + d.mb, 0);
   return (
     <RingoCard>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <div style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 700, color: RC.ink }}>Last 30 days</div>
-        <div style={{ fontFamily: 'var(--font)', fontSize: 12.5, color: RC.inkMute }}>{fmtData(week)} this week</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '2px 12px' }}>
+        <div style={{ ...TYPE.h3, color: RC.ink }}>Last 30 days</div>
+        <div style={{ ...TYPE.small, color: RC.ink2 }}>{fmtData(week)} in the last 7 days</div>
       </div>
       <div role="img" aria-label={`Daily data use over the last 30 days, ${fmtData(week)} in the last 7`}
-        style={{ marginTop: 14, height: 96, display: 'flex', alignItems: 'flex-end', gap: 3 }}>
+        style={{ marginTop: 14, height: 110, display: 'flex', alignItems: 'flex-end', gap: 3 }}>
         {days.map((d) => (
           <div key={d.day} title={`${shortDate(d.day)}: ${fmtData(d.mb)}`}
-            style={{ flex: 1, height: `${d.mb ? Math.max(4, (d.mb / max) * 100) : 2}%`, borderRadius: 3, background: d.mb ? RC.grad : RC.line }} />
+            style={{ flex: 1, minWidth: 0, height: `${d.mb ? Math.max(4, (d.mb / max) * 100) : 2}%`, borderRadius: 3, background: d.mb ? RC.grad : RC.line }} />
         ))}
       </div>
-      <div style={{ marginTop: 6, display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font)', fontSize: 11, color: RC.inkMute }}>
+      <div aria-hidden style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', ...TYPE.caption, color: RC.inkMute }}>
         <span>{shortDate(days[0].day)}</span><span>Today</span>
       </div>
     </RingoCard>
@@ -96,39 +96,47 @@ function DailyChart({ daily }: { daily: Usage['daily'] }) {
 
 function History({ esims }: { esims: UsageEsim[] }) {
   return (
-    <RingoCard padding={0}>
-      {esims.map((e, i) => (
-        <div key={e.id} style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: i === esims.length - 1 ? 'none' : `1px solid ${RC.line}` }}>
-          <div aria-hidden style={{ width: 34, height: 34, borderRadius: 12, background: RC.cream, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>{e.flag || '🌍'}</div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: 'var(--font)', fontSize: 14.5, fontWeight: 700, color: RC.ink }}>{e.label}</div>
-            <div style={{ fontFamily: 'var(--font)', fontSize: 12.5, color: RC.inkMute }}>Bought {shortDate(e.bought_at)}{e.ends_at ? ` · until ${shortDate(e.ends_at)}` : ''}</div>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 800, color: RC.ink }}>{e.used_mb != null ? fmtData(e.used_mb) : '–'}</div>
-            <div style={{ fontFamily: 'var(--font)', fontSize: 11.5, color: RC.inkMute }}>{e.unlimited ? 'unlimited' : e.allowance_mb ? `of ${fmtData(e.allowance_mb)}` : 'used'}</div>
-          </div>
-        </div>
-      ))}
+    <RingoCard padding={0} clip>
+      <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+        {esims.map((e, i) => (
+          <li key={e.id} style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: i === esims.length - 1 ? 'none' : `1px solid ${RC.line}` }}>
+            <div aria-hidden style={{ width: 42, height: 42, borderRadius: 14, flexShrink: 0, background: RC.cream, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{e.flag || '🌍'}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ ...TYPE.h3, color: RC.ink, overflowWrap: 'anywhere' }}>{e.label}</div>
+              <div style={{ ...TYPE.small, color: RC.ink2 }}>Bought {shortDate(e.bought_at)}{e.ends_at ? `, until ${shortDate(e.ends_at)}` : ''}</div>
+            </div>
+            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+              <div style={{ ...TYPE.bodyStrong, color: RC.ink, fontVariantNumeric: 'tabular-nums' }}>{e.used_mb != null ? fmtData(e.used_mb) : 'None'}</div>
+              <div style={{ ...TYPE.caption, color: RC.inkMute }}>{e.unlimited ? 'Unlimited' : e.allowance_mb ? `of ${fmtData(e.allowance_mb)}` : 'used'}</div>
+            </div>
+          </li>
+        ))}
+      </ul>
     </RingoCard>
   );
 }
 
-/** The whole usage block for My eSIM; `currentId` is the plan on top of the screen. */
-export function UsageSection({ usage, currentId, liveRemaining }: { usage: Usage; currentId: string | null; liveRemaining: number | null }) {
-  const current = usage.esims.find((e) => e.id === currentId) || usage.esims[0] || null;
+/**
+ * The whole usage block for My eSIM. `currentDestination` is the destination
+ * of the plan at the top of the screen: the meter shows that eSIM, and only
+ * then takes My eSIM's live "left" figure.
+ */
+export function UsageSection({ usage, currentDestination, liveRemaining }: { usage: Usage; currentDestination: string | null; liveRemaining: number | null }) {
+  const forPlan = currentDestination ? usage.esims.filter((e) => e.destination === currentDestination) : [];
+  const matched = forPlan.find((e) => !/ended|expired|terminated/i.test(e.status)) || forPlan[0] || null;
+  const current = matched || usage.esims[0] || null;
   if (!current && !usage.daily.length) return null;
   return (
-    <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>
-      <Heading>Your data</Heading>
-      {current && <Meter esim={current} liveRemaining={current.id === usage.esims[0]?.id ? liveRemaining : null} />}
+    <section style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
+      <SectionHead title="Your data" style={{ marginBottom: 4 }} />
+      {current && <Meter esim={current} liveRemaining={matched && current.id === matched.id ? liveRemaining : null} />}
       <DailyChart daily={usage.daily} />
       {usage.esims.length > 1 && (
         <>
-          <Heading>{`Every eSIM, ${fmtData(usage.totals.used_mb)} used`}</Heading>
+          <SectionHead title="Every eSIM" sub={`${fmtData(usage.totals.used_mb)} used in all.`} style={{ marginTop: 12, marginBottom: 4 }} />
           <History esims={usage.esims} />
         </>
       )}
-    </div>
+    </section>
   );
 }

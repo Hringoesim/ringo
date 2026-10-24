@@ -27,8 +27,10 @@ import { SaturnWorld } from '../components/SaturnWorld';
 import { NightSky, type SkyGeometry } from '../components/NightSky';
 import { AuthButtons } from '../components/AuthButtons';
 import { LOGO_SRC } from '../assets';
-import { COLUMN_MAX } from '../theme';
+import { BUTTON_MAX, TYPE, typeFor } from '../theme';
 import { requestLightStatusBar } from '../lib/statusBar';
+import { useLayout } from '../lib/layout';
+import { ACCOUNT_DELETED_KEY } from './HelpScreen';
 
 type Hero = 'a' | 'b' | 'c';
 const SHIPPED: Hero = 'a';
@@ -96,6 +98,15 @@ export function LandingScreen({
     logo: 160, globe: 300, height: 932, width: 430, logoBox: { left: 144, right: 287, top: 85, bottom: 149 }, globeX: 215,
   });
   const [paused, setPaused] = useState(false);
+  const l = useLayout();
+  // Shown once after "Delete my account" (HelpScreen) lands back here.
+  const [deleted] = useState(() => {
+    try {
+      const v = sessionStorage.getItem(ACCOUNT_DELETED_KEY) === '1';
+      if (v) sessionStorage.removeItem(ACCOUNT_DELETED_KEY);
+      return v;
+    } catch { return false; }
+  });
   const rootRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLImageElement>(null);
@@ -189,21 +200,32 @@ export function LandingScreen({
     return () => { document.removeEventListener('visibilitychange', onVis); io?.disconnect(); };
   }, []);
 
-  useEffect(() => {
+  // Globe size and compact chrome follow the screen's own box (ResizeObserver),
+  // not a one-off window read, so an iPhone Duo opening or closing re-lays the
+  // screen live.
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    let lastW = -1;
+    let lastH = -1;
     const compute = () => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
+      const w = root.clientWidth || window.innerWidth;
+      const h = root.clientHeight || window.innerHeight;
+      if (w === lastW && h === lastH) return;
+      lastW = w; lastH = h;
       const short = h < 800;
       setCompact(short);
       // Owner 2026-09-26: a bigger globe. About 350pt on a 430x932 phone and
-      // 300pt on 375x812, leaving room for the native sign-in block (three
-      // 52pt buttons plus "Browse plans first"); the overflow check above
-      // trims it further if the text still does not fit.
-      setGlobe(Math.max(140, Math.min(w * 0.82, h * (short ? 0.25 : 0.378), 360)));
+      // 300pt on 375x812, leaving room for the sign-in block; the overflow
+      // check above trims it further if the text still does not fit. A wide
+      // screen (Duo open) gets a larger globe instead of empty sky.
+      const cap = w >= 600 ? 440 : 360;
+      setGlobe(Math.max(140, Math.min(w * 0.82, h * (short ? 0.25 : 0.378), cap)));
     };
     compute();
-    window.addEventListener('resize', compute);
-    return () => window.removeEventListener('resize', compute);
+    const ro = new ResizeObserver(compute);
+    ro.observe(root);
+    return () => ro.disconnect();
   }, []);
 
   const onCream = hero === 'c';
@@ -260,7 +282,7 @@ export function LandingScreen({
           // Hug the sign-in block: the hero's spare room goes to the sky above
           // it, not to a gap between the tagline and the buttons. Short
           // (compact) screens keep the original centring.
-          justifyContent: compact ? 'center' : 'flex-end', padding: compact ? '12px 24px 0' : 'max(20px, calc(env(safe-area-inset-top, 0px) + 6px)) 24px 16px', textAlign: 'center',
+          justifyContent: compact ? 'center' : 'flex-end', padding: compact ? `max(12px, calc(env(safe-area-inset-top, 0px) + 4px)) ${l.gutter}px 0` : `max(20px, calc(env(safe-area-inset-top, 0px) + 6px)) ${l.gutter}px 16px`, textAlign: 'center',
           ...(onCream ? {
             margin: 'max(12px, calc(env(safe-area-inset-top, 0px) + 4px)) 12px 0', borderRadius: 28,
             background: 'linear-gradient(180deg, #FFFAF7 0%, #FEF3EE 100%)',
@@ -294,30 +316,44 @@ export function LandingScreen({
           </div>
         </div>
 
-        <div
+        <h1
           style={{
-            marginTop: compact ? 2 : 8, fontFamily: 'var(--font-display)', fontSize: compact ? 28 : 34, fontWeight: 800,
-            letterSpacing: -1.2, lineHeight: 1.04, textWrap: 'balance', position: 'relative',
+            margin: `${compact ? 2 : 8}px 0 0`, ...typeFor('hero', compact ? 'cover' : l.size),
+            ...(l.isWide ? null : { fontSize: compact ? 28 : 34 }),
+            textWrap: 'balance', position: 'relative',
             ...heroText,
           }}
         >
           Data for every trip.
-        </div>
-        <div
+        </h1>
+        <p
           style={{
-            marginTop: compact ? 4 : 8, fontFamily: 'var(--font)', fontSize: compact ? 13.5 : 15, fontWeight: 600,
-            color: onCream ? '#4A3F60' : 'rgba(255,255,255,0.94)', textShadow: shade,
-            lineHeight: 1.45, maxWidth: 300, position: 'relative',
+            margin: `${compact ? 4 : 8}px 0 0`, ...TYPE.body, fontWeight: 600,
+            color: onCream ? '#4A3F60' : '#FFFFFF', textShadow: shade,
+            maxWidth: 420, position: 'relative',
           }}
         >
           196 countries, one app.
-        </div>
+        </p>
       </div>
 
-      <div style={{ padding: compact ? '8px 20px 16px' : '12px 20px 24px', display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: COLUMN_MAX, alignSelf: 'center', position: 'relative' }}>
-        <div style={{ textAlign: 'center', fontFamily: 'var(--font)', fontSize: 12, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(255,255,255,0.9)', textShadow: '0 1px 6px rgba(40,10,50,0.3)' }}>
+      {/* The sign-in block clears the home indicator on every screen,
+          compact ones (Duo cover display, mini) included. */}
+      <div
+        style={{
+          padding: `${compact ? 8 : 12}px ${l.gutter}px ${compact ? 'max(16px, calc(env(safe-area-inset-bottom, 0px) + 8px))' : 'max(24px, calc(env(safe-area-inset-bottom, 0px) + 8px))'}`,
+          display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: BUTTON_MAX + 2 * l.gutter,
+          boxSizing: 'border-box', alignSelf: 'center', position: 'relative',
+        }}
+      >
+        {deleted && (
+          <div role="status" style={{ padding: '12px 14px', borderRadius: 12, background: '#FFFFFF', ...TYPE.small, fontWeight: 600, color: '#1F7A40', textAlign: 'center' }}>
+            Your account has been deleted.
+          </div>
+        )}
+        <p style={{ margin: 0, textAlign: 'center', ...TYPE.small, fontWeight: 600, color: onCream ? '#1A0F2E' : '#FFFFFF', textShadow: onCream ? 'none' : '0 1px 6px rgba(40,10,50,0.45)' }}>
           Sign in or create an account
-        </div>
+        </p>
         <AuthButtons onSignedIn={onSignedIn} onEmail={onEmail} onDark />
       </div>
       {/* On tall screens a share of the height sits under the buttons, so the

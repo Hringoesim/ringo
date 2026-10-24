@@ -2,7 +2,7 @@
 // (Sign in with Apple first wherever another sign-in is offered, guideline
 // 4.8): Apple, Google (once its client is configured), then an email code.
 // Shared by the welcome screen and the login screen so they never drift.
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { RC, RADIUS } from '../theme';
 import { signInWithApple, signInWithGoogle, appleSignInAvailable, googleSignInAvailable } from '../lib/auth';
 import { hapticNotify } from '../lib/haptics';
@@ -26,10 +26,11 @@ export function AuthButtons({ onSignedIn, onEmail, onDark = false }: { onSignedI
     } finally { setBusy(null); }
   };
 
-  const row = (extra: React.CSSProperties): React.CSSProperties => ({
-    height: 52, borderRadius: RADIUS.control, border: 'none', width: '100%',
+  // 54pt, radius 14, 17/600: the site's button shape at a tap-first size.
+  const row = (extra: CSSProperties): CSSProperties => ({
+    height: 54, borderRadius: RADIUS.control, border: 'none', width: '100%', boxSizing: 'border-box',
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer',
-    fontFamily: 'var(--font)', fontSize: 16, fontWeight: 600, ...extra,
+    fontFamily: 'var(--font)', fontSize: 17, fontWeight: 600, letterSpacing: '-0.01em', ...extra,
   });
 
   // The App Store screenshots are shot in a browser (VITE_SHOT), where the
@@ -44,16 +45,22 @@ export function AuthButtons({ onSignedIn, onEmail, onDark = false }: { onSignedI
         </button>
       )}
       {googleSignInAvailable() && (
-        <button className="press" disabled={busy !== null} onClick={() => void social('google')} aria-label="Continue with Google" style={row({ background: '#fff', color: '#1A0F2E', border: `1.5px solid ${onDark ? 'transparent' : RC.line}` })}>
+        <button className="press" disabled={busy !== null} onClick={() => void social('google')} aria-label="Continue with Google" style={row({ background: '#fff', color: '#1A0F2E', border: `1.5px solid ${onDark ? 'transparent' : RC.lineStrong}` })}>
           <GoogleMark />{busy === 'google' ? 'Opening…' : 'Continue with Google'}
         </button>
       )}
+      {/* On the sunset a deep plum glass keeps the white label well over 4.5:1
+          (the old 18% white glass let it fall near 2.5:1 on the orange). */}
       <button className="press" disabled={busy !== null} onClick={onEmail} style={row(onDark
-        ? { background: 'rgba(255,255,255,0.18)', color: '#fff', border: '1.5px solid rgba(255,255,255,0.55)', backdropFilter: 'blur(10px)' }
+        ? { background: 'rgba(26,15,46,0.58)', color: '#fff', border: '1.5px solid rgba(255,255,255,0.45)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }
         : { background: RC.paper, color: RC.ink, border: `1.5px solid ${RC.lineStrong}` })}>
         Continue with email
       </button>
-      {err && <div style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: onDark ? '#FFE3B8' : RC.error, textAlign: 'center' }}>{err}</div>}
+      {err && (
+        <div role="alert" style={{ padding: '12px 14px', borderRadius: 12, background: onDark ? '#FFFFFF' : RC.errorSoft, border: '1px solid rgba(225,29,72,0.18)', fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, lineHeight: 1.45, color: onDark ? '#A12C2C' : RC.error, textAlign: 'center' }}>
+          {err}
+        </div>
+      )}
     </div>
   );
 }

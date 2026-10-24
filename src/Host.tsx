@@ -3,12 +3,41 @@
 //    full-screen, no mockup frame.
 //  • In a desktop/web browser: inside a scaled iPhone mockup frame.
 // Owns the active theme (persisted) + a quick toggle in browser mode.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { RingoDevice } from './components/Device';
 import { App } from './App';
-import { RC, applyTheme, RADIUS, type Scheme } from './theme';
+import { RC, applyTheme, RADIUS, LOGO_GRAD, type Scheme } from './theme';
 import { syncStatusBar } from './lib/statusBar';
+import { setLayoutWidth } from './lib/layout';
+
+// Measures the app root and feeds its live width to useLayout(). On the
+// iPhone Duo the WebView resizes when the phone opens or closes; the
+// ResizeObserver follows that without any idiom or user-agent check. In the
+// desktop mockup it reports the mockup's width, not the browser window's.
+function LayoutRoot({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    setLayoutWidth(el.getBoundingClientRect().width);
+    if (typeof ResizeObserver === 'undefined') return () => setLayoutWidth(null);
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w) setLayoutWidth(w);
+    });
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      setLayoutWidth(null);
+    };
+  }, []);
+  return (
+    <div ref={ref} style={{ flex: 1, minHeight: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      {children}
+    </div>
+  );
+}
 
 // True when running as an installed app (native shell or standalone PWA).
 // `?shot=1` forces it, so App Store screenshots can be captured from a
@@ -53,7 +82,7 @@ export function Host() {
       syncStatusBar();
       void import('@capacitor/status-bar')
         .then(({ StatusBar }) => {
-          StatusBar.setBackgroundColor?.({ color: next === 'dark' ? '#0A0810' : '#FFF6EF' });
+          StatusBar.setBackgroundColor?.({ color: next === 'dark' ? '#0E0A16' : '#FFFAF7' });
         })
         .catch(() => {});
     }
@@ -107,7 +136,9 @@ export function Host() {
           background: RC.bg, overflow: 'hidden',
         }}
       >
-        <App />
+        <LayoutRoot>
+          <App />
+        </LayoutRoot>
       </div>
     );
   }
@@ -116,17 +147,28 @@ export function Host() {
   return <BrowserMockup />;
 }
 
+// Preview widths for the browser mockup: `?w=360` (iPhone Duo cover),
+// `?w=744` (Duo inner display) or any width from 320 to 1024. Default 390.
+function mockupSize(): { width: number; height: number } {
+  const q = new URLSearchParams(window.location.search);
+  const raw = q.get('w') ?? (q.get('duo') === 'inner' ? '744' : q.get('duo') === 'cover' ? '360' : null);
+  const w = Math.min(1024, Math.max(320, Number(raw) || 390));
+  const h = w >= 600 ? Math.round(w * 1.42) : w < 375 ? 780 : 844;
+  return { width: w, height: h };
+}
+
 function BrowserMockup() {
   const [scale, setScale] = useState(1);
+  const [{ width, height }] = useState(mockupSize);
   useEffect(() => {
     const compute = () => {
-      const s = Math.min(window.innerWidth / 430, window.innerHeight / 880, 1);
+      const s = Math.min(window.innerWidth / (width + 40), window.innerHeight / (height + 36), 1);
       setScale(Math.max(0.4, s));
     };
     compute();
     window.addEventListener('resize', compute);
     return () => window.removeEventListener('resize', compute);
-  }, []);
+  }, [width, height]);
 
   return (
     <div
@@ -138,20 +180,21 @@ function BrowserMockup() {
       <div
         style={{
           position: 'absolute', top: 24, left: 28,
-          fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18,
-          background: RC.grad, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          letterSpacing: -0.4,
+          fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 24,
+          background: LOGO_GRAD, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          letterSpacing: -1,
         }}
       >
         Ringo
-        <span style={{ display: 'inline-block', width: 5, height: 5, borderRadius: '50%', background: RC.grad, marginLeft: 2, transform: 'translateY(-1px)' }} />
       </div>
 
       <DemoNotice />
 
       <div style={{ transform: `scale(${scale})`, transformOrigin: 'center center' }}>
-        <RingoDevice width={390} height={844}>
-          <App />
+        <RingoDevice width={width} height={height}>
+          <LayoutRoot>
+            <App />
+          </LayoutRoot>
         </RingoDevice>
       </div>
     </div>
@@ -170,12 +213,11 @@ function DemoNotice() {
         fontFamily: 'var(--font)', lineHeight: 1.45,
       }}
     >
-      <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.7, textTransform: 'uppercase', color: RC.inkStrong }}>
-        Demo
-      </div>
-      <div style={{ marginTop: 3, fontSize: 12, color: RC.ink }}>
+      <div style={{ fontSize: 15, fontWeight: 700, color: RC.ink }}>Demo</div>
+      <div style={{ marginTop: 4, fontSize: 13, color: RC.ink2 }}>
         Browser preview of the Ringo iPhone app. Plans, prices and payments
-        are the real ones from ringoesim.com.
+        are the real ones from ringoesim.com. Add ?w=360 or ?w=744 to see the
+        iPhone Duo cover and inner displays.
       </div>
     </div>
   );

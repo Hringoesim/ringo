@@ -1,10 +1,12 @@
 // Small helpers the profile's pieces share.
-/** "Sep 2026" from an ISO date; empty when there is none. */
+import type { Profile } from '../../api/light';
+
+/** "Sep 2026" from an ISO date (always English); empty when there is none. */
 export function monthYear(iso: string | null | undefined): string {
   if (!iso) return '';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 }
 
 export function plural(n: number, one: string, many: string): string {
@@ -21,4 +23,22 @@ export const LEVEL_COLOR: Record<string, string> = {
 };
 export function levelColor(id: string | null | undefined): string {
   return LEVEL_COLOR[id || ''] || '#E8DDD6';
+}
+
+/** Gold for every Pioneer mark (fills and rings only, never text). */
+export const PIONEER_GOLD = 'linear-gradient(135deg,#FFE79A 0%,#F4C64B 50%,#D9982A 100%)';
+/** Dark brown that reads on the gold (over 7:1). */
+export const PIONEER_INK = '#3A1A00';
+
+type Pioneer = NonNullable<Profile['pioneer']>;
+
+/** "Ringo Pioneer", or "Ringo Pioneer, Patron" for a backing rung. Never the Pioneer number. */
+export function pioneerTitle(p: Pioneer): string {
+  const tier = (p.tier || '').trim();
+  return !tier || tier.toLowerCase() === 'pioneer' ? 'Ringo Pioneer' : `Ringo Pioneer, ${tier}`;
+}
+
+/** The Pioneer's own reward, in the words the website's dashboard uses. */
+export function pioneerPerk(p: Pioneer): string {
+  return p.kind === 'global' ? `€${p.credit_eur || 5} off your first Ringo bill` : 'Founding pricing locked in';
 }

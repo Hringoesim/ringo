@@ -1,14 +1,28 @@
 :root {
-  /* Light (warm porcelain / sunset-trust) defaults — applyTheme() keeps these
-     in sync at runtime. */
-  --bg: #ffffff;
+  /* Light defaults, matched to ringoesim.com (light only on the site).
+     applyTheme() keeps these in sync at runtime; they are set here too so the
+     first paint, before JS runs, is already right. */
+  color-scheme: light;
+  --bg: #fffaf7;
   --paper: #ffffff;
-  --ink: #221a14;
-  --ink-strong: #ce4a1e;
-  --ink-mute: #82715f;
-  --line: rgba(34, 26, 20, 0.08);
-  --line-strong: rgba(34, 26, 20, 0.14);
-  --grad: linear-gradient(135deg, #ff8a3d 0%, #f0566b 48%, #c74b8e 100%);
+  --cream: #fef3ee;
+  --ink: #1a0f2e;
+  --ink2: #4a3f60;
+  --ink-mute: #655a7e; /* captions: 6.1:1 on cream */
+  --ink-strong: #ff5724; /* brand orange: fills and icons only */
+  --orange-ink: #b93a0b; /* orange text: 5.5:1 */
+  --line: rgba(26, 15, 46, 0.1);
+  --line-strong: rgba(26, 15, 46, 0.16);
+  --grad: linear-gradient(135deg, #f93c1f 0%, #ff7733 52%, #ffb83d 100%);
+  /* Primary button fill: white label 4.57:1 or better at every stop. */
+  --grad-cta: linear-gradient(135deg, #df280c 0%, #d64000 55%, #d14600 100%);
+  --error: #a12c2c;
+  --success: #1f7a40;
+  /* Responsive spacing (overridden per width below). */
+  --gutter: 20px;
+  --section-gap: 32px;
+  --card-gap: 12px;
+  --card-pad: 16px;
   /* EXACT font stacks from the live ringoesim.com (which loads no webfonts), so
      the app renders identically to the website on every device: system fonts —
      SF Pro on Apple, Segoe/Roboto elsewhere; Syne/DM Sans only if installed. */
@@ -32,10 +46,11 @@ body {
 
 body {
   min-height: 100vh;
-  background:
-    radial-gradient(1100px 720px at 50% -12%, rgba(255, 138, 61, 0.04), transparent 55%),
-    radial-gradient(760px 560px at 88% 108%, rgba(199, 75, 142, 0.03), transparent 60%),
-    #ffffff;
+  background: #fffaf7;
+  /* iOS Dynamic Type would otherwise inflate text on rotation; layout is
+     driven by width, sizes come from the type scale in theme.ts. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 #root {
@@ -86,8 +101,8 @@ textarea,
     opacity 0.13s ease;
 }
 .press:active {
-  transform: scale(0.955);
-  opacity: 0.86;
+  transform: scale(0.97);
+  opacity: 0.9;
 }
 
 /* ── Screen transitions (iOS-style push / pop / fade) ─────────────────────── */
@@ -98,6 +113,121 @@ textarea,
   flex-direction: column;
   background: var(--bg);
   overflow: hidden;
+  /* Size container: rules below follow the live width (iPhone Duo fold). */
+  container-type: inline-size;
+  container-name: screen;
+}
+
+/* ── Responsive layout (see src/lib/layout.ts for the same values in JS) ──
+   cover  < 375  : Duo cover display, iPhone SE   gutter 16
+   phone  375-599: normal phones                  gutter 20
+   wide   >= 600 : Duo inner display (~744) +     gutter 28, two columns  */
+@container screen (max-width: 374px) {
+  .screen-col {
+    --gutter: 16px;
+  }
+}
+@container screen (min-width: 600px) {
+  .screen-col {
+    --gutter: 28px;
+    --section-gap: 40px;
+    --card-gap: 16px;
+    --card-pad: 22px;
+  }
+}
+/* Side gutter on any block. */
+.r-gutter {
+  padding-left: var(--gutter);
+  padding-right: var(--gutter);
+}
+/* Centred readable text column (help articles, login, report). */
+.r-read {
+  width: 100%;
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
+}
+/* Cards: one column on a phone, 2+ columns of min 320 on wide. */
+.r-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--card-gap);
+}
+/* Tiles: 2-up on phones (min 150), 3 to 4 up on wide (min 170). */
+.r-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
+  gap: var(--card-gap);
+}
+/* Two columns on wide (left / right), stacked on a phone. */
+.r-two {
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-gap);
+}
+/* Primary action: full width on a phone, 420 centred on wide. */
+.r-action {
+  width: 100%;
+}
+/* Only on wide. */
+.r-wide-only {
+  display: none;
+}
+@container screen (min-width: 600px) {
+  .r-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  }
+  .r-tiles {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr));
+  }
+  .r-two {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+  .r-action {
+    max-width: 420px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .r-wide-only {
+    display: revert;
+  }
+  .r-phone-only {
+    display: none !important;
+  }
+}
+
+/* Inputs: placeholder in the caption ink (readable, 6:1). */
+.ringo-input::placeholder {
+  color: var(--ink-mute);
+  opacity: 1;
+}
+
+/* Tappable cards: give a little and the hairline turns orange while pressed
+   (the site's hover, translated to touch). */
+.card-press {
+  transition:
+    transform 0.14s cubic-bezier(0, 0, 0.2, 1),
+    border-color 0.14s ease;
+}
+.card-press:active {
+  transform: scale(0.98);
+  border-color: #ff5724 !important;
+}
+.card-press:focus-visible,
+button:focus-visible,
+[role='button']:focus-visible {
+  outline: 3px solid rgba(255, 87, 36, 0.45);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-press,
+  .card-press:active {
+    transition: none;
+    transform: none;
+  }
 }
 /* Promote layers only WHILE animating — a permanent hint pins ~12MB of GPU
    store per screen and hurts scroll tiling on iPhone. */

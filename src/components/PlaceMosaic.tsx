@@ -4,6 +4,7 @@
 // silent sunset film two rows tall on the left (its poster for anyone who
 // asks for less motion), and four sunny beach photographs, each on a slow
 // drift. Every file is the site's, so the two never drift apart.
+import type { SyntheticEvent } from 'react';
 import { useReducedMotion } from '../lib/useReducedMotion';
 import { SITE } from '../api/light';
 import { SITE_PICTURES, MOSAIC_IDS } from '../data/destinations';
@@ -19,6 +20,8 @@ const MOSAICS: Record<(typeof MOSAIC_IDS)[number], { film: { src: string; poster
 export function PlaceMosaic({ id }: { id: string }) {
   const set = MOSAICS[id as keyof typeof MOSAICS] || MOSAICS.global;
   const still = useReducedMotion();
+  // A picture that fails leaves the dusk ground showing, never a broken-image icon.
+  const hide = (e: SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.visibility = 'hidden'; };
   const fill = { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' } as const;
   return (
     <div aria-hidden data-mosaic={id} style={{ position: 'absolute', inset: 0, display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gridTemplateRows: 'repeat(2, minmax(0, 1fr))', gap: 3, background: '#1a0f2e' }}>
@@ -29,12 +32,12 @@ export function PlaceMosaic({ id }: { id: string }) {
       `}</style>
       <div style={{ gridColumn: 'span 2', gridRow: 'span 2', overflow: 'hidden', position: 'relative' }}>
         {still
-          ? <img src={set.film.poster} alt="" decoding="async" style={fill} />
+          ? <img src={set.film.poster} alt="" decoding="async" onError={hide} style={fill} />
           : <video src={set.film.src} poster={set.film.poster} autoPlay muted loop playsInline preload="metadata" disablePictureInPicture style={fill} />}
       </div>
       {set.tiles.map((p, i) => (
         <div key={p} style={{ overflow: 'hidden', position: 'relative' }}>
-          <img className="pm-tile" src={`${SITE_PICTURES}/${p}.jpg`} alt="" decoding="async" loading="lazy" style={{ ...fill, animationDelay: `${-i * 4}s` }} />
+          <img className="pm-tile" src={`${SITE_PICTURES}/${p}.jpg`} alt="" decoding="async" loading="lazy" onError={hide} style={{ ...fill, animationDelay: `${-i * 4}s` }} />
         </div>
       ))}
     </div>

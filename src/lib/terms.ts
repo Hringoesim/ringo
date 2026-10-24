@@ -44,14 +44,25 @@ export function periodWord(p: Plan): string {
   return n === 12 ? 'year' : n === 1 ? 'month' : `${n} months`;
 }
 
+/**
+ * Global is one Unlimited monthly plan, the way ringoesim.com sells it (owner
+ * 2026-10-23). Its App Store line still carries an allowance in data_gb (the
+ * site meters top-ups against it), so it is named by its term code, never by
+ * that number.
+ */
+export function isGlobalUnlimited(p: Plan): boolean {
+  return termCode(p) === 'global_1m' || (p.mode === 'subscription' && /^global/.test(p.plan));
+}
+
 /** What the line holds: "10 GB", "10 GB a month" on a subscription, or "Unlimited". */
 export function sizeOf(p: Plan): string {
-  if (p.tier === 'unlimited' || p.data_gb == null) return 'Unlimited';
+  if (p.tier === 'unlimited' || p.data_gb == null || isGlobalUnlimited(p)) return 'Unlimited';
   return `${p.data_gb} GB${p.mode === 'subscription' ? ' a month' : ''}`;
 }
 
-/** Duration and data together, the way a card, the footer and checkout name a line: "2 weeks, 10 GB". */
+/** Duration and data together, the way a card, the footer and checkout name a line: "2 weeks, 10 GB"; Global reads "Unlimited, monthly". */
 export function planName(p: Plan): string {
+  if (isGlobalUnlimited(p)) return 'Unlimited, monthly';
   return `${termTitle(p)}, ${sizeOf(p)}`;
 }
 
