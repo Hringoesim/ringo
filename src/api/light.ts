@@ -102,7 +102,7 @@ export interface Profile {
   badges: TravelBadge[];
   stats: { destinations: number; plans: number; countries_reachable: number; paid_months: number };
   /** Ringo Rewards, by destinations booked (absent on an older site). */
-  rewards?: { destinations: number; booked?: number; global_months?: number; global_pct?: number; global_tenure?: { months: number; pct: number }[]; level: RewardLevel | null; next: { id: string; name: string; min: number; to_go: number } | null; levels: RewardLevel[] };
+  rewards?: { destinations: number; /** Progress counts this many months back (12 since 2026-10-25). */ window_months?: number; booked?: number; global_months?: number; global_pct?: number; global_tenure?: { months: number; pct: number }[]; level: RewardLevel | null; next: { id: string; name: string; min: number; to_go: number } | null; levels: RewardLevel[] };
   /** Ringo credit in EUR cents, earned back on every plan by level (absent on an older site). */
   credit?: { balance_cents: number; earned_cents: number; spent_cents: number; pct: number; currency: 'eur' };
   /** Ringo Pioneer (absent or null when not one): how they became one and the rung's name. Never the Pioneer number. */

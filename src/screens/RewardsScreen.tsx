@@ -84,7 +84,7 @@ function Current({ l, rewards, credit }: { l: Layout; rewards: Rewards; credit?:
     <section aria-label="Your level" style={{ ...cardSurface(), overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <LevelPhoto id={shownId} aspect="16 / 9" eager>
         <div style={{ ...typeFor('hero', l.size) }}>{level ? level.name : 'Your first trip'}</div>
-        <div style={{ marginTop: 4, ...TYPE.small, fontWeight: 700 }}>{destinations(n)} booked</div>
+        <div style={{ marginTop: 4, ...TYPE.small, fontWeight: 700 }}>{destinations(n)} booked{rewards.window_months ? ` in ${rewards.window_months} months` : ''}</div>
       </LevelPhoto>
       <div style={{ padding: l.cardPad }}>
         <div role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pct)} aria-label={next ? `Progress to ${next.name}` : 'Top level'}
@@ -99,10 +99,10 @@ function Current({ l, rewards, credit }: { l: Layout; rewards: Rewards; credit?:
         {credit && (
           <div aria-label="Ringo credit" style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${RC.line}`, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
             <div>
-              <div style={{ ...TYPE.small, color: RC.ink2 }}>Ringo credit</div>
+              <div style={{ ...TYPE.small, color: RC.ink2 }}>Ringo credit, lasts 12 months</div>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 800, color: RC.ink }}>{`€${(credit.balance_cents / 100).toFixed(2)}`}</div>
             </div>
-            {credit.pct > 0 && <div style={{ ...TYPE.small, fontWeight: 700, color: RC.ink2 }}>{`${credit.pct}% back on every plan`}</div>}
+            {credit.pct > 0 && <div style={{ ...TYPE.small, fontWeight: 700, color: RC.ink2 }}>{`${credit.pct}% back in the app`}</div>}
           </div>
         )}
       </div>
