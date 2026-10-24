@@ -15,6 +15,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { light, type Plan, type Summary } from '../api/light';
 import { iapAvailable, loadProducts } from '../lib/iap';
 import { appleMoney } from '../lib/purchase';
+import { CARD_PAYMENTS } from '../lib/cardPay';
 import { subMonths } from '../lib/terms';
 import { live } from './live';
 
@@ -84,7 +85,7 @@ export function useAppleFrom(summary: Summary | null): Record<string, string> {
   const fromLines = summary?.from_lines;
   const [from, setFrom] = useState<Record<string, string>>({});
   useEffect(() => {
-    if (!iapAvailable()) return;
+    if (!iapAvailable() || CARD_PAYMENTS) return;
     let alive = true;
     // The summary's lines for every destination, plus the lines of any
     // destination opened; one batched StoreKit request, asked afresh so a

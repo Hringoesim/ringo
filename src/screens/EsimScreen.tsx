@@ -19,6 +19,7 @@ import { UsageSection } from '../components/UsageCard';
 import { useAccount, account, pendingPurchase } from '../store/account';
 import { openInSheet } from '../lib/browser';
 import { iapAvailable, loadProducts, purchase, finish, restoreTransactions, manageSubscriptions, type IapProduct, type SignedOffer } from '../lib/iap';
+import { CARD_PAYMENTS, payByCard } from '../lib/cardPay';
 import { haptic, hapticNotify } from '../lib/haptics';
 import { useLiveTick } from '../store/live';
 import { useLayout, twoColumn, TABBAR_CLEARANCE, type Layout } from '../lib/layout';
@@ -81,12 +82,12 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
     if (!acct) return;
     void light.usage(acct.userId, acct.t).then(setUsageAll).catch(() => {});
     const rg = d.rewards_global;
-    if (rg?.product_id && iapAvailable()) {
+    if (rg?.product_id && iapAvailable() && d.subscription?.billing !== 'card') {
       light.rewardsOffer(acct.userId, acct.t, rg.product_id)
         .then((o) => setGlobalOffer(o.available && o.offer ? { pct: o.pct || rg.pct, productId: rg.product_id!, offer: o.offer } : null))
         .catch(() => setGlobalOffer(null));
     } else setGlobalOffer(null);
-    const ids = (d.top_ups || []).map((t) => t.apple_product_id).filter((x): x is string => Boolean(x));
+    const ids = CARD_PAYMENTS ? [] : (d.top_ups || []).map((t) => t.apple_product_id).filter((x): x is string => Boolean(x));
     if (ids.length) setTopProducts(await loadProducts(ids, { fresh: freshPrices }));
   }, [acct]);
 
@@ -154,6 +155,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
   // A top-up is an App Store consumable: Apple's sheet, then the signed
   // transaction goes to the site, which lands the data on this eSIM.
   const topUp = async (t: TopUp) => {
+    if (CARD_PAYMENTS) { void topUpByCard(t); return; }
     if (!acct || !data?.destination || !t.apple_product_id) return;
     if (!iapAvailable()) { setErr('Top-ups are bought in the Ringo iPhone app.'); return; }
     const email = acct.email || '';
@@ -181,6 +183,51 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
       setErr((e as Error).message || 'Could not complete the top-up.');
     } finally {
       setTopping(null);
+    }
+  };
+
+  // A top-up by card (owner 2026-10-24): Stripe's page, the amount shown
+  // here; the site lands the data on this eSIM once Stripe says paid.
+  const topUpByCard = async (t: TopUp) => {
+    if (!acct || !data?.destination) return;
+    const email = acct.email || '';
+    if (!email) { setErr('Sign in with the email this eSIM was bought with before adding data.'); return; }
+    setErr(null);
+    setTopping(t.plan);
+    haptic('medium');
+    try {
+      const pay = await payByCard({ plan: t.plan, destination: data.destination.id, email, currency: t.currency });
+      const out = await pay.done;
+      if (out.state === 'paid') {
+        hapticNotify('success');
+        setNote('Allowance top-up added to your eSIM.');
+        setTimeout(() => setNote(null), 5000);
+        void load(true);
+      }
+    } catch (e) {
+      setErr((e as Error).message || 'Could not complete the top-up.');
+    } finally {
+      setTopping(null);
+    }
+  };
+
+  // Renewal of a card subscription, off or back on. Off keeps the month paid for.
+  const [renewBusy, setRenewBusy] = useState(false);
+  const toggleRenewal = async (on: boolean) => {
+    if (!acct || renewBusy) return;
+    setRenewBusy(true);
+    setErr(null);
+    haptic('light');
+    try {
+      const r = await light.setRenewal(acct.userId, acct.t, on);
+      const until = r.ends_at ? new Date(r.ends_at).toLocaleDateString(undefined, { day: 'numeric', month: 'long' }) : null;
+      setNote(on ? 'Renewal is on again.' : until ? `Renewal is off. Your plan runs until ${until}.` : 'Renewal is off. Your plan runs to the end of the month you paid for.');
+      setTimeout(() => setNote(null), 6000);
+      void load(true);
+    } catch (e) {
+      setErr((e as Error).message || 'Could not change the renewal.');
+    } finally {
+      setRenewBusy(false);
     }
   };
 
@@ -350,8 +397,8 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
       <SectionHead title="Allowance top-up" sub="More data on this same eSIM." />
       <RingoCard padding={0} clip>
         {data.top_ups.map((t, i) => {
-          const ready = !iapAvailable() || Boolean(t.apple_product_id && topProducts.has(t.apple_product_id));
-          const price = (t.apple_product_id && topProducts.get(t.apple_product_id)?.displayPrice) || (iapAvailable() ? '…' : money(t.amount, t.currency));
+          const ready = CARD_PAYMENTS || !iapAvailable() || Boolean(t.apple_product_id && topProducts.has(t.apple_product_id));
+          const price = CARD_PAYMENTS ? money(t.amount, t.currency) : (t.apple_product_id && topProducts.get(t.apple_product_id)?.displayPrice) || (iapAvailable() ? '…' : money(t.amount, t.currency));
           return (
             <button
               key={t.plan}
@@ -438,7 +485,9 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
                     {data?.install && <LinkRow label={resent || 'Send the install email again'} onClick={() => void resend()} />}
                     <LinkRow label="Setup guide" onClick={() => void openInSheet(`${SITE}/esim-setup.html`)} />
                     <LinkRow label="Report a problem" onClick={onReport} />
-                    {(sub.cycles_total > 1 || /_1m$/.test(String(sub.plan))) && <LinkRow label="Manage subscription" onClick={() => void manageSubscriptions()} />}
+                    {sub.billing === 'card'
+                      ? <LinkRow label={renewBusy ? 'One moment…' : sub.renewal_off ? 'Turn renewal back on' : 'Turn renewal off'} onClick={() => void toggleRenewal(Boolean(sub.renewal_off))} />
+                      : (sub.cycles_total > 1 || /_1m$/.test(String(sub.plan))) && <LinkRow label="Manage subscription" onClick={() => void manageSubscriptions()} />}
                     <LinkRow label={restoring ? 'Restoring…' : 'Restore purchases'} onClick={() => void restore()} last />
                   </RingoCard>
                 </section>

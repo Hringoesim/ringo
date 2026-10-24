@@ -160,6 +160,9 @@ export interface Subscription {
   current_cycle_ends_at: string | null;
   esim_attached: boolean;
   provisioned: boolean;
+  /** Who bills the renewal: a card (turned off here, setRenewal) or Apple (iOS Settings). */
+  billing?: 'card' | 'apple' | null;
+  renewal_off?: boolean;
 }
 
 export interface SubscriptionRead {
@@ -228,8 +231,8 @@ export const light = {
   appPurchase: (body: { signedTransaction: string; plan: string; destination: string; data_gb?: number | null; email: string }) =>
     request<PurchaseRecord>('/app-purchase', { method: 'POST', body: JSON.stringify(body) }),
 
-  /** Card payment (owner 2026-10-24, "accept any and all cards"): a hosted Stripe Checkout for a one-payment plan, opened in the browser sheet. Any card from any country, Apple Pay, Link. */
-  cardCheckout: (body: { plan: string; destination: string; data_gb?: number | null; email: string; currency?: string }) =>
+  /** Card payment (owner 2026-10-24, "accept any and all cards"): a hosted Stripe Checkout for any plan or top-up the app lists, opened in the browser sheet. Any card from any country, Apple Pay, Link. */
+  cardCheckout: (body: { plan: string; destination: string; data_gb?: number | null; email: string; currency?: string; user?: string; t?: string }) =>
     request<{ url: string; id?: string }>('/esim-checkout', { method: 'POST', body: JSON.stringify({ ...body, client: 'app', device: 'iPhone app' }) }),
   /** Stripe's own word on that session: paid, and once the site has the row, whose account it is. */
   cardStatus: (session: string) => request<CardStatus>(`/light-status?session=${encodeURIComponent(session)}`),
@@ -245,6 +248,12 @@ export const light = {
     return request<SubscriptionRead>(`/esim-subscription?${q.toString()}`);
   },
 
+  /** A card subscription's renewal off or back on (Stripe cancel_at_period_end; the paid month runs on). */
+  setRenewal: (userId: string, t: string, on: boolean) =>
+    request<{ ok: boolean; renewal_off: boolean; ends_at: string | null }>(
+      `/esim-subscription?${new URLSearchParams({ user: userId, t }).toString()}`,
+      { method: 'POST', body: JSON.stringify({ action: 'renewal', on }) },
+    ),
   resendInstall: (userId: string, t: string) =>
     request<{ ok: boolean; throttled?: boolean; retry_after_seconds?: number; sent_to?: string }>(
       `/esim-subscription?${new URLSearchParams({ user: userId, t }).toString()}`,

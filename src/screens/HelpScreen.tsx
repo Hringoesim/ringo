@@ -3,6 +3,7 @@
 // pages (the live ones on ringoesim.com, so they never drift from the site)
 // and the photo credits. On a wide screen (iPhone Duo open) the groups sit in
 // two columns.
+import { CARD_PAYMENTS } from '../lib/cardPay';
 import { useState, type ReactNode } from 'react';
 import { RC, TYPE, cardSurface } from '../theme';
 import { RingoButton } from '../components/Button';
@@ -27,7 +28,7 @@ const FAQ: { q: string; a: string }[] = [
   { q: 'When should I install it?', a: 'Any time before you fly. Installing does not start the clock: the days start when the eSIM first connects at your destination.' },
   { q: 'Do I keep my own number?', a: 'Yes. Your own SIM stays for calls and texts and Ringo carries the data. In Settings › Mobile Data choose Ringo for data and turn Data Roaming on for it.' },
   { q: 'What if I need more data?', a: 'Add more from My eSIM. It lands on the same eSIM within a minute.' },
-  { q: 'How do I pay, and how do I cancel a renewing plan?', a: 'Every plan is bought through the App Store with your Apple ID. A renewing plan renews until you cancel it in Settings › Apple ID › Subscriptions, at least 24 hours before the period ends. One payment plans never renew.' },
+  { q: 'How do I pay, and how do I cancel a renewing plan?', a: 'By card or Apple Pay, on a secure Stripe page: any card from any country. Global renews every month until you turn renewal off under My eSIM, and you keep the month you paid for. A plan bought earlier through the App Store is cancelled in Settings › Apple ID › Subscriptions. One payment plans never renew.' },
 ];
 
 const photo = (id: string) => bundledPictureFor(id) ?? pictureFor(id);
@@ -113,7 +114,7 @@ export function HelpScreen({ onLogin, onProfile }: { onLogin: () => void; onProf
     }
   };
 
-  const storeNote = iapAvailable() && (storeStatus.error || (storeStatus.checked && storeStatus.available === 0))
+  const storeNote = !CARD_PAYMENTS && iapAvailable() && (storeStatus.error || (storeStatus.checked && storeStatus.available === 0))
     ? (storeStatus.error ? `App Store: ${storeStatus.error}` : 'App Store: no products available')
     : undefined;
 

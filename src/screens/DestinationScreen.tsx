@@ -35,6 +35,7 @@ import { useDestinations, destinationFrom } from '../store/destinations';
 import { useAccount } from '../store/account';
 import { light, type Catalog, type Plan } from '../api/light';
 import { loadProducts, iapAvailable, type IapProduct } from '../lib/iap';
+import { CARD_PAYMENTS } from '../lib/cardPay';
 import { rememberAppleLines } from '../store/summary';
 import { useLiveTick } from '../store/live';
 import { priceOf } from '../lib/purchase';
@@ -289,6 +290,8 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
       // A destination sold only as Unlimited opens on Unlimited.
       // Apple's products for every line here; a line Apple does not sell is
       // not offered. An empty answer is asked again before it is believed.
+      // Paid by card: the site's lines and prices, no App Store products.
+      if (CARD_PAYMENTS) { setProducts(new Map()); return; }
       const ids = [...c.plans, ...(c.app_plans ?? [])].map((p) => p.apple_product_id).filter((x): x is string => Boolean(x));
       let map = await loadProducts(ids);
       for (let i = 0; i < 4 && alive && map.size === 0 && iapAvailable(); i++) {
@@ -314,6 +317,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
     let alive = true;
     light.catalog(id, member).then(async (c) => {
       if (!alive) return;
+      if (CARD_PAYMENTS) { setCat(c); setErr(null); return; }
       const ids = [...c.plans, ...(c.app_plans ?? [])].map((p) => p.apple_product_id).filter((x): x is string => Boolean(x));
       const map = await loadProducts(ids, { fresh: true });
       if (!alive) return;
@@ -326,7 +330,8 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `member` follows memberKey
   }, [tick, id, memberKey]);
 
-  const native = iapAvailable();
+  // On the phone, a line is on sale when StoreKit returns it, unless it is paid by card.
+  const native = iapAvailable() && !CARD_PAYMENTS;
   const productFor = (p: Plan): IapProduct | null => (p.apple_product_id && products?.get(p.apple_product_id)) || null;
   const unlimitedGlobal = Boolean(cat && cat.destination.id === 'global' && cat.meter_topups);
   // One list for the tier shown, cheapest first (owner 2026-09-25: the first
@@ -498,7 +503,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
       {unlimitedGlobal && <p style={{ margin: 0, ...TYPE.small, color: RC.ink2 }}>Use a lot? Add a top-up from My eSIM in one tap.</p>}
       {selected && selected.mode === 'subscription' && selectedPrice && (
         <p style={{ margin: 0, ...TYPE.caption, color: RC.inkMute }}>
-          Renews at {selectedPrice.total} every {periodWord(selected)} through your Apple ID until you cancel in Settings, then Apple ID, then Subscriptions.
+          Renews at {selectedPrice.total} every {periodWord(selected)} until you turn renewal off under My eSIM. No minimum term.
         </p>
       )}
     </div>
