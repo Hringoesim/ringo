@@ -12,6 +12,12 @@
 // Store buyer has no card on file, so the app says the top-up is one tap on
 // My eSIM. A member price is labelled "Your Rewards price".
 //
+// Where the supplier sells them, the App Store only day passes (app_plans)
+// sit beside the trip plans: a switch between Trip plans, Day plans, Power
+// user and Super user. A day group's cards are named by their days ("24
+// hours", "3 days"), cheapest first, with one line on the daily allowance.
+// They go through the same StoreKit purchase as any plan.
+//
 // Layout follows the live width: on a phone the photo is a hero with the
 // plans on a sheet over it and a floating Continue bar; on a wide screen
 // (iPhone Duo open) the photo is a large card on the left with the ticks
@@ -19,7 +25,7 @@
 // Nothing here decides a price.
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { PlaceMosaic } from '../components/PlaceMosaic';
-import { RC, RADIUS, TYPE, typeFor, hexA, cardSurface, SHADOW_CARD, SKINS, ON_DARK, PHOTO_OVERLAY, PHOTO_TEXT_SHADOW } from '../theme';
+import { RC, RADIUS, TAP, TYPE, typeFor, hexA, cardSurface, SHADOW_CARD, SKINS, ON_DARK, PHOTO_OVERLAY, PHOTO_TEXT_SHADOW } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { BackBtn, Segmented, TickList, ErrorBox } from '../components/ui';
@@ -46,6 +52,14 @@ export interface Selection {
 }
 
 type Tier = 'data' | 'unlimited';
+/** Which list is shown: the trip plans, or one family of App Store only day passes. */
+type Group = 'trip' | 'day' | 'power' | 'super';
+const DAY_GROUPS: { id: Exclude<Group, 'trip'>; label: string; line: string }[] = [
+  { id: 'day', label: 'Day plans', line: '1 GB a day at full speed, never cut off' },
+  { id: 'power', label: 'Power user', line: '3 GB a day at full speed' },
+  { id: 'super', label: 'Super user', line: '10 GB a day at full speed' },
+];
+const DAY_TICKS = ['Full speed up to the day\'s allowance, then slower', 'Never cut off', 'Data only, next to your own SIM'];
 
 const SHEET_RADIUS = 28;
 const GLOBAL_TICKS = ['Unlimited data at full speed', 'One plan, renews until you cancel', 'One price, no roaming bills', 'Data only, next to your own SIM and number'];
@@ -55,6 +69,7 @@ const UNLIMITED_TICKS = ['Unlimited data', 'Hotspot included', 'Data only, next 
 // One short line under a card's name. A one-off says it is one payment; a
 // subscription says it renews.
 function termLine(p: Plan, total: string): string {
+  if (p.app_only) return DAY_GROUPS.find((g) => g.id === p.group)?.line ?? 'One payment, no renewal';
   if (p.mode === 'payment') return 'One payment, no renewal';
   const per = periodWord(p);
   return per === 'month' ? 'Renews monthly' : `${total} every ${per}, renews`;
@@ -131,7 +146,7 @@ function PlanCard({ p, on, price, onPick }: { p: Plan; on: boolean; price: { tot
     >
       <Check on={on} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ ...TYPE.h2, color: RC.ink }}>{planName(p)}</div>
+        <div style={{ ...TYPE.h2, color: RC.ink }}>{p.app_only ? termTitle(p) : planName(p)}</div>
         <div style={{ marginTop: 4, ...TYPE.small, color: RC.ink2 }}>{termLine(p, price.total)}</div>
         {p.member_pct ? <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 15, fontWeight: 700, color: RC.purpleInk }}>Your Rewards price</div> : null}
       </div>
@@ -140,6 +155,34 @@ function PlanCard({ p, on, price, onPick }: { p: Plan; on: boolean; price: { tot
         <div style={{ marginTop: 4, ...TYPE.caption, color: RC.inkMute }}>{sub ? 'a month' : `for ${termTitle(p)}`}</div>
       </div>
     </button>
+  );
+}
+
+/**
+ * Trip plans and the day families. Up to three fit one segmented row; four
+ * do not fit a phone's width in one row (the names were cut off), so they
+ * sit two by two in the same cream track, the chosen one on a white pill.
+ */
+function GroupPicker({ value, options, onChange }: { value: Group; options: { id: Group; label: string }[]; onChange: (g: Group) => void }) {
+  if (options.length <= 3) return <Segmented<Group> ariaLabel="Plan family" value={value} options={options} onChange={onChange} />;
+  return (
+    <div role="tablist" aria-label="Plan family" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 4, padding: 4, borderRadius: RADIUS.card, background: RC.cream, border: `1px solid ${RC.line}` }}>
+      {options.map((o) => {
+        const on = o.id === value;
+        return (
+          <button
+            key={o.id}
+            type="button"
+            role="tab"
+            aria-selected={on}
+            onClick={() => { if (!on) { hapticSelection(); onChange(o.id); } }}
+            style={{ border: 'none', cursor: 'pointer', minHeight: TAP, padding: '0 10px', borderRadius: RADIUS.pill, fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, lineHeight: 1.2, whiteSpace: 'nowrap', color: on ? RC.ink : RC.ink2, background: on ? RC.paper : 'transparent', boxShadow: on ? '0 2px 14px rgba(26,15,46,0.12)' : 'none', transition: 'color .2s, background .2s' }}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -173,6 +216,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
   const [products, setProducts] = useState<Map<string, IapProduct> | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [tier, setTier] = useState<Tier>('data');
+  const [group, setGroup] = useState<Group>('trip');
   const [planId, setPlanId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -191,11 +235,12 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
       setCat(c);
       // Not c.default_plan: the screen opens on the cheapest line (below).
       setPlanId(null);
+      setGroup('trip');
       // A destination sold only as Unlimited opens on Unlimited.
       setTier((t) => (c.plans.some((p) => p.tier === t) ? t : (c.plans[0]?.tier ?? 'data')));
       // Apple's products for every line here; a line Apple does not sell is
       // not offered. An empty answer is asked again before it is believed.
-      const ids = c.plans.map((p) => p.apple_product_id).filter((x): x is string => Boolean(x));
+      const ids = [...c.plans, ...(c.app_plans ?? [])].map((p) => p.apple_product_id).filter((x): x is string => Boolean(x));
       let map = await loadProducts(ids);
       for (let i = 0; i < 4 && alive && map.size === 0 && iapAvailable(); i++) {
         await new Promise((r) => setTimeout(r, 1500 * (i + 1)));
@@ -220,7 +265,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
     let alive = true;
     light.catalog(id, member).then(async (c) => {
       if (!alive) return;
-      const ids = c.plans.map((p) => p.apple_product_id).filter((x): x is string => Boolean(x));
+      const ids = [...c.plans, ...(c.app_plans ?? [])].map((p) => p.apple_product_id).filter((x): x is string => Boolean(x));
       const map = await loadProducts(ids, { fresh: true });
       if (!alive) return;
       setCat(c);
@@ -241,6 +286,12 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
     if (!cat) return [];
     const get = (p: Plan) => (p.apple_product_id && products?.get(p.apple_product_id)) || null;
     const sold = (p: Plan) => !native || Boolean(products && p.apple_product_id && products.has(p.apple_product_id));
+    // A family of day passes: its lines, cheapest first.
+    if (group !== 'trip') {
+      return (cat.app_plans ?? [])
+        .filter((p) => p.group === group && sold(p))
+        .sort((a, b) => (shownCost(a, get(a)) - shownCost(b, get(b))) || (a.days - b.days));
+    }
     // Global: the one monthly plan the website sells.
     if (cat.destination.id === 'global' && cat.meter_topups) {
       const one = cat.plans.filter((p) => p.mode === 'subscription' && sold(p)).sort((a, b) => (a.data_gb ?? 0) - (b.data_gb ?? 0))[0];
@@ -249,7 +300,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
     return cat.plans
       .filter((p) => p.tier === tier && sold(p))
       .sort((a, b) => (shownCost(a, get(a)) - shownCost(b, get(b))) || ((a.days || 30) - (b.days || 30)) || ((a.data_gb ?? 0) - (b.data_gb ?? 0)));
-  }, [cat, tier, native, products]);
+  }, [cat, tier, group, native, products]);
 
   // The cheapest is chosen (owner 2026-09-25), and a choice still sold is kept.
   useEffect(() => {
@@ -259,8 +310,19 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
   }, [plans, planId]);
 
   const selected = plans.find((p) => lineKey(p) === planId) || null;
+  // The day families on sale here (a line Apple does not return is not offered).
+  const groups = useMemo(() => {
+    if (!cat?.app_plans?.length) return [];
+    const sold = (p: Plan) => !native || Boolean(products && p.apple_product_id && products.has(p.apple_product_id));
+    return DAY_GROUPS.filter((g) => cat.app_plans!.some((p) => p.group === g.id && sold(p)));
+  }, [cat, native, products]);
+  // A family no longer on sale falls back to the trip plans.
+  useEffect(() => {
+    if (group !== 'trip' && products && !groups.some((g) => g.id === group)) setGroup('trip');
+  }, [group, groups, products]);
+  const onTrip = group === 'trip';
   const tiers = new Set(cat?.plans.map((p) => p.tier) ?? []);
-  const hasBothTiers = !unlimitedGlobal && tiers.has('data') && tiers.has('unlimited');
+  const hasBothTiers = onTrip && !unlimitedGlobal && tiers.has('data') && tiers.has('unlimited');
   const name = dest?.label || cat?.destination.label || id;
   const coverage = cat ? cat.destination.coverage_line : dest ? (dest.countries > 1 ? `Works in ${dest.countries} countries` : `Works across ${dest.label}`) : '';
 
@@ -290,12 +352,15 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
     </div>
   );
 
-  const ticks = !unlimitedGlobal && cat && !loadingPrices && plans.length > 0 && (
-    <TickList items={tier === 'unlimited' ? UNLIMITED_TICKS : DATA_TICKS} />
+  const ticks = !(onTrip && unlimitedGlobal) && cat && !loadingPrices && plans.length > 0 && (
+    <TickList items={!onTrip ? DAY_TICKS : tier === 'unlimited' ? UNLIMITED_TICKS : DATA_TICKS} />
   );
 
   const planList: ReactNode = cat && !loadingPrices && (
     <div style={{ display: 'flex', flexDirection: 'column', gap: l.cardGap }}>
+      {groups.length > 0 && (
+        <GroupPicker value={group} options={[{ id: 'trip', label: 'Trip plans' }, ...groups.map((g) => ({ id: g.id, label: g.label }))]} onChange={setGroup} />
+      )}
       {hasBothTiers && (
         <Segmented<Tier> ariaLabel="Plan type" value={tier} options={[{ id: 'data', label: 'Data' }, { id: 'unlimited', label: 'Unlimited' }]} onChange={setTier} />
       )}
@@ -311,10 +376,10 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
             : <div style={{ ...TYPE.body, color: RC.ink }}>Not sold here yet.{hasBothTiers ? ' Try the other plan type.' : ''}</div>}
         </div>
       )}
-      {unlimitedGlobal && plans[0] && (
+      {onTrip && unlimitedGlobal && plans[0] && (
         <GlobalCard l={l} p={plans[0]} price={priceOf(plans[0], productFor(plans[0]))} />
       )}
-      {!unlimitedGlobal && plans.map((p) => {
+      {!(onTrip && unlimitedGlobal) && plans.map((p) => {
         const key = lineKey(p);
         return <PlanCard key={key} p={p} on={key === planId} price={priceOf(p, productFor(p))} onPick={() => { hapticSelection(); setPlanId(key); }} />;
       })}
@@ -323,7 +388,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
 
   const notes = cat && !loadingPrices && (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {unlimitedGlobal && <p style={{ margin: 0, ...TYPE.small, color: RC.ink2 }}>Use a lot? Add a top-up from My eSIM in one tap.</p>}
+      {onTrip && unlimitedGlobal && <p style={{ margin: 0, ...TYPE.small, color: RC.ink2 }}>Use a lot? Add a top-up from My eSIM in one tap.</p>}
       {selected && selected.mode === 'subscription' && selectedPrice && (
         <p style={{ margin: 0, ...TYPE.caption, color: RC.inkMute }}>
           Renews at {selectedPrice.total} every {periodWord(selected)} through your Apple ID until you cancel in Settings, then Apple ID, then Subscriptions.

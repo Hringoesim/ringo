@@ -26,6 +26,7 @@ export function termCode(p: Plan): string {
 
 /** The term's name: "2 weeks", "30 days", "7 days", "Monthly", "Annual". */
 export function termTitle(p: Plan): string {
+  if (p.app_only) return p.days === 1 ? '24 hours' : `${p.days} days`;
   const code = termCode(p);
   if (NAME[code]) return NAME[code];
   if (p.mode === 'payment') return p.days === 14 ? '2 weeks' : `${p.days} days`;
@@ -60,8 +61,12 @@ export function sizeOf(p: Plan): string {
   return `${p.data_gb} GB${p.mode === 'subscription' ? ' a month' : ''}`;
 }
 
+/** The App Store only day passes by family ("Power user, 7 days"); the catalogue's label wins. */
+const APP_GROUP_NAME: Record<string, string> = { day: 'Day plan', power: 'Power user', super: 'Super user' };
+
 /** Duration and data together, the way a card, the footer and checkout name a line: "2 weeks, 10 GB"; Global reads "Unlimited, monthly". */
 export function planName(p: Plan): string {
+  if (p.app_only) return p.label || `${APP_GROUP_NAME[p.group ?? 'day']}, ${termTitle(p)}`;
   if (isGlobalUnlimited(p)) return 'Unlimited, monthly';
   return `${termTitle(p)}, ${sizeOf(p)}`;
 }

@@ -5,7 +5,7 @@
 //
 // Endpoints (all on ringoesim.com/api, CORS allows capacitor://localhost):
 //   GET  esim-plans?summary=1              from-prices per destination
-//   GET  esim-plans?destination=<id>       the plans of one destination
+//   GET  esim-plans?destination=<id>&app=1 the plans of one destination (+ app_plans)
 //   POST app-purchase                      a StoreKit signed transaction -> eSIM
 //   GET  esim-subscription?user&t[&usage=1][&install=apple:…]
 //   POST esim-subscription                 resend_install | report_problem
@@ -38,6 +38,10 @@ export interface Plan {
   /** Ringo Rewards: present when this is a member price (the usual one, and the level's percentage). */
   list_monthly_amount?: number;
   member_pct?: number;
+  /** App Store only day passes (app_plans): the family, the GB a day at full speed, and the flag. */
+  group?: 'day' | 'power' | 'super';
+  daily_gb?: number;
+  app_only?: boolean;
 }
 
 export interface TopUp {
@@ -59,6 +63,8 @@ export interface Catalog {
   default_plan: string;
   default_unlimited_plan: string;
   plans: Plan[];
+  /** App Store only day passes, where the supplier sells them (asked with app=1). */
+  app_plans?: Plan[];
   from_amount: number;
   top_ups: TopUp[];
   /** Global's meter (the website tops it up at 90%); its presence makes the plan read as unlimited. */
@@ -207,7 +213,7 @@ export const light = {
   summary: () => request<Summary>('/esim-plans?summary=1'),
   /** With the member's account, plans carry their Ringo Rewards price and its App Store product. */
   catalog: (destination: string, member?: { userId: string; t: string } | null) =>
-    request<Catalog>(`/esim-plans?${new URLSearchParams({ destination, ...(member ? { user: member.userId, t: member.t } : {}) }).toString()}`),
+    request<Catalog>(`/esim-plans?${new URLSearchParams({ destination, app: '1', ...(member ? { user: member.userId, t: member.t } : {}) }).toString()}`),
 
   /** Report an App Store purchase; the site verifies Apple's signature and issues the eSIM. */
   appPurchase: (body: { signedTransaction: string; plan: string; destination: string; data_gb?: number | null; email: string }) =>
