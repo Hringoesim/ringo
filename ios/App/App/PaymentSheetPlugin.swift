@@ -30,6 +30,22 @@ public class PaymentSheetPlugin: CAPPlugin, CAPBridgedPlugin {
         config.merchantDisplayName = "Ringo"
         config.returnURL = "ringo://stripe-redirect"
         config.allowsDelayedPaymentMethods = false
+        // Ringo's look: the orange Pay button, the app's cream and ink, 14pt corners.
+        var look = PaymentSheet.Appearance()
+        look.colors.primary = UIColor(red: 0xD6/255, green: 0x40/255, blue: 0x00/255, alpha: 1)
+        look.colors.background = UIColor(red: 0xFF/255, green: 0xFA/255, blue: 0xF7/255, alpha: 1)
+        look.colors.componentBackground = .white
+        look.colors.text = UIColor(red: 0x1A/255, green: 0x0F/255, blue: 0x2E/255, alpha: 1)
+        look.colors.textSecondary = UIColor(red: 0x4A/255, green: 0x3F/255, blue: 0x60/255, alpha: 1)
+        look.colors.componentBorder = UIColor(red: 0x1A/255, green: 0x0F/255, blue: 0x2E/255, alpha: 0.16)
+        look.cornerRadius = 14
+        look.borderWidth = 1.5
+        look.primaryButton.backgroundColor = look.colors.primary
+        look.primaryButton.textColor = .white
+        look.primaryButton.cornerRadius = 14
+        look.primaryButton.height = 54
+        config.appearance = look
+        config.style = .alwaysLight
         config.primaryButtonLabel = call.getString("buttonLabel")
         if let email = call.getString("email"), !email.isEmpty { config.defaultBillingDetails.email = email }
         if let merchant = Bundle.main.object(forInfoDictionaryKey: "RingoApplePayMerchantId") as? String, merchant.hasPrefix("merchant.") {
