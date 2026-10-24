@@ -57,7 +57,7 @@ type Group = 'trip' | 'day' | 'power' | 'super';
 const DAY_GROUPS: { id: Exclude<Group, 'trip'>; label: string; line: string }[] = [
   { id: 'day', label: 'Day plans', line: '1 GB a day at full speed, never cut off' },
   { id: 'power', label: 'Power user', line: '3 GB a day at full speed' },
-  { id: 'super', label: 'Super user', line: '10 GB a day at full speed' },
+  { id: 'super', label: 'Super user', line: '10 GB a day, for van travel or a hotspot for friends' },
 ];
 const DAY_TICKS = ['Full speed up to the day\'s allowance, then slower', 'Never cut off', 'Data only, next to your own SIM'];
 
@@ -173,15 +173,36 @@ const SHADES: Record<Group, { solid: string; ink: string; on: string; sub: strin
   super: { solid: '#6B3FD1', ink: '#5A33B5', on: '#FFFFFF', sub: '10 GB a day', label: 'Super user' },
 };
 
-function GroupIcon({ id, color }: { id: Group; color: string }) {
-  const s = { stroke: color, strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
+// The plan family icons, the website's way (owner 2026-10-24: "icon and icon
+// colours do not match the website ... need an upgrade to feel modern"): a
+// filled white glyph on a squircle in the family's sunset gradient, built
+// from the site's own tokens (orange #f26122, pink #ff42a1, purple #8652e0,
+// yellow #ffcc33). Trip a plane, Day a rising sun, Power a bolt, Super a
+// hotspot signal (van travel, sharing the connection with friends).
+const ICON_GRADS: Record<Group, string> = {
+  trip: 'linear-gradient(135deg, hsl(8,95%,55%), hsl(24,100%,58%))',
+  day: 'linear-gradient(135deg, #f26122, #ffb21e)',
+  power: 'linear-gradient(135deg, #ff42a1, #f26122)',
+  super: 'linear-gradient(135deg, #8652e0, #ff42a1)',
+};
+
+function GroupGlyph({ id }: { id: Group }) {
+  const f = { fill: '#FFFFFF' };
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden>
-      {id === 'trip' && (<><rect x="3.5" y="7" width="17" height="12.5" rx="2.5" {...s} /><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7M3.5 12.5h17" {...s} /></>)}
-      {id === 'day' && (<><circle cx="12" cy="12" r="4" {...s} /><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6" {...s} /></>)}
-      {id === 'power' && <path d="M13 2.5L5 13.5h6l-1 8 8-11h-6l1-8z" {...s} />}
-      {id === 'super' && (<><path d="M12 2.8c3.2 2.3 5 5.7 5 9.6V16H7v-3.6c0-3.9 1.8-7.3 5-9.6z" {...s} /><circle cx="12" cy="10" r="1.8" {...s} /><path d="M7 13.5L4.5 16v3l3-1.5M17 13.5l2.5 2.5v3l-3-1.5M10 16.5l-.5 3.5h5l-.5-3.5" {...s} /></>)}
+      {id === 'trip' && <path {...f} d="M21.2 14.6v-1.8l-7.6-4.6V3.6c0-.9-.7-1.6-1.6-1.6s-1.6.7-1.6 1.6v4.6l-7.6 4.6v1.8l7.6-2.3v4.9l-2.2 1.6V20l3.8-1.1 3.8 1.1v-1.2l-2.2-1.6v-4.9z" />}
+      {id === 'day' && (<><path {...f} d="M12 9.2a5.6 5.6 0 0 1 5.6 5.6H6.4A5.6 5.6 0 0 1 12 9.2z" /><rect {...f} x="3" y="16.4" width="18" height="2" rx="1" /><rect {...f} x="7" y="19.8" width="10" height="1.8" rx=".9" /><path d="M12 3.4v2.4M5.1 6.6l1.6 1.6M18.9 6.6l-1.6 1.6M2.6 12.6h2.2M19.2 12.6h2.2" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" /></>)}
+      {id === 'power' && <path {...f} d="M13.4 2.2c.4-.6-.3-1.3-.9-.9L4.6 12.2c-.4.5 0 1.3.6 1.3h5.3l-1.9 8.2c-.2.7.7 1.1 1.1.5l9.6-11.6c.4-.5 0-1.2-.6-1.2h-5.6l.3-7.2z" />}
+      {id === 'super' && (<><circle {...f} cx="12" cy="17.6" r="2.2" /><path d="M8 13.6a5.6 5.6 0 0 1 8 0M4.8 10.4a10.2 10.2 0 0 1 14.4 0M1.9 7.3a14.4 14.4 0 0 1 20.2 0" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" fill="none" /></>)}
     </svg>
+  );
+}
+
+function GroupIcon({ id, size = 38 }: { id: Group; size?: number }) {
+  return (
+    <span aria-hidden style={{ width: size, height: size, borderRadius: Math.round(size * 0.32), flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ICON_GRADS[id], boxShadow: '0 6px 14px -6px rgba(26,15,46,0.45), inset 0 1px 0 rgba(255,255,255,0.28)' }}>
+      <GroupGlyph id={id} />
+    </span>
   );
 }
 
@@ -208,8 +229,8 @@ function GroupPicker({ value, options, onChange }: { value: Group; options: { id
               transition: 'background .2s, box-shadow .2s, border-color .2s',
             }}
           >
-            <span style={{ width: 36, height: 36, borderRadius: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? hexA(sh.on, 0.18) : RC.paper }}>
-              <GroupIcon id={o.id} color={on ? sh.on : sh.ink} />
+            <span style={{ borderRadius: 13, padding: on ? 2 : 0, background: on ? hexA(sh.on, 0.35) : 'transparent', display: 'flex' }}>
+              <GroupIcon id={o.id} />
             </span>
             <span style={{ minWidth: 0 }}>
               <span style={{ display: 'block', fontFamily: 'var(--font)', fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', lineHeight: 1.2, color: on ? sh.on : RC.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sh.label}</span>
