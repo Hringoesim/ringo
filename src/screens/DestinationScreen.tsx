@@ -116,7 +116,6 @@ function PlanCard({ p, on, price, onPick }: { p: Plan; on: boolean; price: { tot
   return (
     <button type="button" className="press" onClick={onPick} aria-pressed={on}
       style={{ textAlign: 'left', cursor: 'pointer', width: '100%', font: 'inherit', padding: 0, borderRadius: RADIUS.card, position: 'relative', overflow: 'hidden', ...(on ? ringOn(unlimited || Boolean(p.app_only)) : ringOff) }}>
-      {p.best_margin && <div style={{ background: p.app_only ? SUNSET : ORANGE, color: '#FFFFFF', textAlign: 'center', padding: '6px 0', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600 }}>Recommended</div>}
       <div style={{ display: 'flex', gap: 14, padding: '16px 18px 16px 16px' }}>
         <Radio on={on} shade={unlimited || p.app_only ? '#FF42A1' : ORANGE} />
         <div style={{ flex: 1, minWidth: 0 }}>
