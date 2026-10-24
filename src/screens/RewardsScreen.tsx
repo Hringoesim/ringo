@@ -68,7 +68,7 @@ function Member({ l, userId, email, since, level, pioneer }: { l: Layout; userId
         </div>
       </div>
       {email && <div title={email} style={{ ...TYPE.small, color: RC.ink2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{email}</div>}
-      <AvatarPhotoControls userId={userId} pioneer={!!pioneer} />
+      <AvatarPhotoControls userId={userId} pioneer={!!pioneer} seed={email || userId} level={level?.id ?? null} />
     </section>
   );
 }

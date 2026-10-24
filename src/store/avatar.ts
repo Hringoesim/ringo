@@ -47,3 +47,21 @@ export const avatarPhoto = {
     return useSyncExternalStore(subscribe, () => read(userId), () => null);
   },
 };
+
+// The traveller a member picked (owner 2026-10-25, "update the avatars"):
+// one of the Ringo travellers in Avatar.tsx, kept on this phone like the
+// photo. Unset means the Ringo cowboy.
+const TKEY = (userId: string) => `ringo_traveller_v1_${userId}`;
+function readTraveller(userId: string | null): string | null {
+  if (!userId) return null;
+  try { return localStorage.getItem(TKEY(userId)); } catch { return null; }
+}
+export const avatarTraveller = {
+  set(userId: string, kind: string): void {
+    try { localStorage.setItem(TKEY(userId), kind); } catch { /* storage full: keep the last one */ }
+    notify();
+  },
+  use(userId: string | null): string | null {
+    return useSyncExternalStore(subscribe, () => readTraveller(userId), () => null);
+  },
+};
