@@ -265,8 +265,8 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
 
   const status = (
     <>
-      {stage === 'card' && <Waiting title="Confirming your payment" sub={cardSlow ? 'Still checking with Stripe. Your eSIM appears under My eSIM the moment it is confirmed.' : 'Your eSIM starts the moment Stripe confirms.'} />}
-      {stage === 'checking' && <Waiting ok title="Checking your payment" sub="Stripe has not confirmed it yet. If it went through, your eSIM appears under My eSIM. Look there before paying again." />}
+      {stage === 'card' && <Waiting title="Confirming your payment" sub={cardSlow ? 'Still confirming your payment. Your eSIM appears under My eSIM the moment it goes through.' : 'Your eSIM starts the moment your payment goes through.'} />}
+      {stage === 'checking' && <Waiting ok title="Checking your payment" sub="Your payment is not confirmed yet. If it went through, your eSIM appears under My eSIM. Look there before paying again." />}
       {stage === 'issuing' && <Waiting title="Preparing your eSIM" sub={relayEmail ? 'Under a minute. It lands under My eSIM, here in the app.' : 'Under a minute. It lands under My eSIM and in your email.'} />}
       {stage === 'slow' && <Waiting ok title="Your eSIM is on its way" sub={relayEmail ? 'It is taking a little longer than usual. It appears under My eSIM as soon as it is ready.' : 'It is taking a little longer than usual. It appears under My eSIM and in your email as soon as it is ready.'} />}
       {stage === 'ready' && (

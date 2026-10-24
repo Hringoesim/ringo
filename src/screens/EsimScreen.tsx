@@ -214,7 +214,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
         clearNoteIn(6000);
         void load(true);
       } else if (out.state === 'unconfirmed') {
-        setNote('Stripe has not confirmed the payment yet. If it went through, the data lands shortly.');
+        setNote('Your payment is not confirmed yet. If it went through, the data lands shortly.');
         clearNoteIn(8000);
       }
     } catch (e) {
