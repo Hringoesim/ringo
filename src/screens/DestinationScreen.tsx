@@ -109,7 +109,8 @@ function PlanCard({ p, on, price, onPick }: { p: Plan; on: boolean; price: { tot
   const unlimited = isUnlimitedPlan(p);
   // A data card names its data and length; an unlimited card its length and the day's amount.
   const title = p.app_only ? termTitle(p) : unlimited ? 'Unlimited' : p.data_gb ? `${p.data_gb} GB` : planName(p);
-  const length = p.app_only ? `${p.daily_gb} GB a day at full speed${p.after_speed ? `, then ${p.after_speed}` : ''}` : sub ? `Every ${periodWord(p)}` : termTitle(p);
+  // An unlimited card names only its length; the day's amount is said once above the cards.
+  const length = p.app_only ? '' : sub ? `Every ${periodWord(p)}` : termTitle(p);
   // True claim only: the 2-week plan is what most people buy (236 of 316 sales, 2026-10-24).
   const popular = !p.app_only && p.plan === 'rl_14';
   return (
@@ -123,7 +124,7 @@ function PlanCard({ p, on, price, onPick }: { p: Plan; on: boolean; price: { tot
             <span style={{ fontFamily: 'var(--font)', fontSize: 18, fontWeight: 600, color: RC.ink }}>{title}</span>
             <span style={{ fontFamily: 'var(--font)', fontSize: 18, fontWeight: 600, color: RC.ink, fontVariantNumeric: 'tabular-nums' }}>{sub ? price.monthly : price.total}</span>
           </div>
-          <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 15, color: RC.ink2 }}>{length}</div>
+          {length && <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 15, color: RC.ink2 }}>{length}</div>}
           {popular && <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: ORANGE }}>Most popular</div>}
           {p.member_pct ? <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.purpleInk }}>Your Rewards price</div> : null}
         </div>
@@ -186,6 +187,16 @@ const ringOff = { border: `1.5px solid ${LINE}`, background: CREAM, boxShadow: '
 
 /** Data or Unlimited, each said in one line so a buyer knows what is what. */
 function PlanTabs({ value, onChange }: { value: 'data' | 'unl'; onChange: (t: 'data' | 'unl') => void }) {
+  const icon = (id: 'data' | 'unl', on: boolean) => (
+    <span aria-hidden style={{ width: 34, height: 34, borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8,
+      background: id === 'data' ? 'rgba(242,97,34,0.10)' : 'linear-gradient(135deg, rgba(242,97,34,0.12), rgba(255,66,161,0.12), rgba(134,82,224,0.14))' }}>
+      <svg width="19" height="19" viewBox="0 0 24 24">
+        {id === 'data'
+          ? <path fill={on ? ORANGE : RC.ink} d="M21.2 14.6v-1.8l-7.6-4.6V3.6c0-.9-.7-1.6-1.6-1.6s-1.6.7-1.6 1.6v4.6l-7.6 4.6v1.8l7.6-2.3v4.9l-2.2 1.6V20l3.8-1.1 3.8 1.1v-1.2l-2.2-1.6v-4.9z" />
+          : <path fill="none" stroke={on ? '#D6247A' : RC.ink} strokeWidth="2.3" strokeLinecap="round" d="M7 8.5c-2 0-3.5 1.6-3.5 3.5s1.5 3.5 3.5 3.5c3.5 0 6.5-7 10-7 2 0 3.5 1.6 3.5 3.5s-1.5 3.5-3.5 3.5c-3.5 0-6.5-7-10-7z" />}
+      </svg>
+    </span>
+  );
   const tabs: { id: 'data' | 'unl'; label: string; line: string }[] = [
     { id: 'data', label: 'Data', line: 'A set amount for your whole trip' },
     { id: 'unl', label: 'Unlimited', line: 'Full speed every day, never cut off' },
@@ -197,6 +208,7 @@ function PlanTabs({ value, onChange }: { value: 'data' | 'unl'; onChange: (t: 'd
         return (
           <button key={t.id} type="button" role="tab" aria-selected={on} className="press" onClick={() => { if (!on) onChange(t.id); }}
             style={{ cursor: 'pointer', textAlign: 'left', padding: '12px 14px', borderRadius: 18, ...(on ? ringOn(t.id === 'unl') : ringOff) }}>
+            {icon(t.id, on)}
             <span style={{ display: 'block', fontFamily: 'var(--font)', fontSize: 17, fontWeight: 600, color: RC.ink }}>{t.label}</span>
             <span style={{ display: 'block', marginTop: 2, fontFamily: 'var(--font)', fontSize: 13, color: RC.ink2, lineHeight: 1.35 }}>{t.line}</span>
           </button>
@@ -249,6 +261,8 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
   // Unlimited first, each explained in one line, then that tab's plans.
   const [tab, setTab] = useState<'data' | 'unl'>('data');
   const arm = useMemo(() => defaultArm(), []);
+  // At most three plans on screen (choice overload), the rest one tap away.
+  const [showAll, setShowAll] = useState(false);
   const [planId, setPlanId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -342,6 +356,12 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
   // Ringo the most is the first thing seen; the rest keep their order.
   const leadFirst = (list: Plan[]) => [...list.filter((p) => p.best_margin), ...list.filter((p) => !p.best_margin)];
   const tabLines = leadFirst(shownTab === 'data' ? dataLines : tierLines);
+  // Three on screen: the Recommended one, then the shortest lengths; the chosen
+  // line always stays in view.
+  const firstThree = tabLines.slice(0, 3);
+  const chosenExtra = tabLines.find((p) => lineKey(p) === planId && !firstThree.includes(p));
+  const visibleLines = showAll ? tabLines : chosenExtra ? [...firstThree.slice(0, 2), chosenExtra] : firstThree;
+  const hiddenCount = showAll ? 0 : tabLines.length - visibleLines.length;
   // The test's default: the cheapest line, or the one that keeps Ringo the most.
   const defaultOf = (list: Plan[]) => (arm === 'recommended' ? list.find((p) => p.best_margin) : undefined) ?? list[0];
 
@@ -428,7 +448,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
         <GlobalCard l={l} p={plans[0]} price={priceOf(plans[0], productFor(plans[0]))} />
       )}
       {!unlimitedGlobal && dataLines.length > 0 && unlLines.length > 0 && (
-        <PlanTabs value={shownTab} onChange={(t) => { hapticSelection(); setTab(t); }} />
+        <PlanTabs value={shownTab} onChange={(t) => { hapticSelection(); setTab(t); setShowAll(false); }} />
       )}
       {!unlimitedGlobal && shownTab === 'unl' && tierOptions.length > 1 && (
         <div>
@@ -437,19 +457,30 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
             {tierOptions.map((g) => {
               const sel = g === tierGb;
               return (
-                <button key={g} type="button" className="press" onClick={() => { hapticSelection(); setUnlGb(g); }}
+                <button key={g} type="button" className="press" onClick={() => { hapticSelection(); setUnlGb(g); setShowAll(false); }}
                   style={{ flex: 1, cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, padding: '10px 0', borderRadius: 12, color: RC.ink, ...(sel ? ringOn(true) : ringOff) }}>
                   {g} GB a day
                 </button>
               );
             })}
           </div>
+          {tierLines[0] && (
+            <div style={{ marginTop: 8, fontFamily: 'var(--font)', fontSize: 14, color: RC.ink2 }}>
+              {tierGb === 10 ? 'For van travel or a hotspot for friends. ' : ''}{`Full speed up to ${tierGb} GB a day${tierLines[0].after_speed ? `, then ${tierLines[0].after_speed}` : ', never cut off'}.`}
+            </div>
+          )}
         </div>
       )}
-      {!unlimitedGlobal && tabLines.map((p) => {
+      {!unlimitedGlobal && visibleLines.map((p) => {
         const key = lineKey(p);
         return <PlanCard key={key} p={p} on={key === planId} price={priceOf(p, productFor(p))} onPick={() => { hapticSelection(); setPlanId(key); }} />;
       })}
+      {!unlimitedGlobal && hiddenCount > 0 && (
+        <button type="button" className="press" onClick={() => { hapticSelection(); setShowAll(true); }}
+          style={{ alignSelf: 'center', cursor: 'pointer', background: 'transparent', border: 'none', padding: '6px 10px', fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, color: RC.ink2, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+          {`More lengths (${hiddenCount})`}
+        </button>
+      )}
     </div>
   );
 
