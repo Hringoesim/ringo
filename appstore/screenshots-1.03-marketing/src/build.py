@@ -28,10 +28,20 @@ p{{margin:34px 0 0;font-size:54px;line-height:1.25;font-weight:500;opacity:.92}}
 .phone img{{display:block;width:100%;border-radius:126px}}
 </style></head><body><div class="copy"><h1>{h}</h1><p>{s}</p></div>
 <div class="phone"><img src="{img}"></div></body></html>'''
+# The review account's address on the Rewards card is painted out (white, the card's own colour).
+from PIL import Image, ImageDraw
+MASKS = {'06-rewards.png': [(100, 1350, 640, 1418)]}
 for name, h, s, bg in SLIDES:
+    img = SRC / name
+    if name in MASKS:
+        im = Image.open(img).convert('RGB')
+        for box in MASKS[name]:
+            ImageDraw.Draw(im).rectangle(box, fill=(255, 255, 255))
+        img = HERE / ('_' + name)
+        im.save(img)
     top = 720
     page = HERE / ('_' + name.replace('.png', '.html'))
-    page.write_text(PAGE.format(bg=bg, h=html.escape(h).replace('|', '<br>'), s=html.escape(s), img=(SRC / name).as_uri(), top=top))
+    page.write_text(PAGE.format(bg=bg, h=html.escape(h).replace('|', '<br>'), s=html.escape(s), img=img.as_uri(), top=top))
     out = OUT / name
     subprocess.run([CHROME, '--headless=new', '--disable-gpu', '--hide-scrollbars', '--force-device-scale-factor=1',
                     '--window-size=1320,2868', f'--screenshot={out}', '--allow-file-access-from-files', page.as_uri()],
