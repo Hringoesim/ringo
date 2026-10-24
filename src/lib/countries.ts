@@ -104,12 +104,18 @@ export function flagFromIso(iso: string): string {
   return String.fromCodePoint(A + cc.charCodeAt(0) - 65, A + cc.charCodeAt(1) - 65);
 }
 
+// The pickers offer only the website's 199 (COUNTRY_DATA_RAW): a code the
+// website's survey does not know would be dropped by its next autosave.
+// The other territories still resolve to a name and flag for display.
+const WEBSITE_COUNT = 199;
+const toCountry = ([iso, name, dial]: [string, string, string]): Country => ({ iso, name, dial, flag: flagFromIso(iso) });
+
 /** A to Z by English name, one flat list (no "popular" tier, as on the site). */
-export const COUNTRIES: Country[] = RAW
-  .map(([iso, name, dial]) => ({ iso, name, dial, flag: flagFromIso(iso) }))
+export const COUNTRIES: Country[] = RAW.slice(0, WEBSITE_COUNT)
+  .map(toCountry)
   .sort((a, b) => a.name.localeCompare(b.name, 'en'));
 
-const BY_ISO = new Map(COUNTRIES.map((c) => [c.iso, c]));
+const BY_ISO = new Map(RAW.map(toCountry).map((c) => [c.iso, c]));
 
 export function countryByIso(iso: string | null | undefined): Country | null {
   return iso ? BY_ISO.get(String(iso).toUpperCase()) ?? null : null;
@@ -118,8 +124,10 @@ export function countryByIso(iso: string | null | undefined): Country | null {
 /** A stored country (ISO2, or a legacy full name) as ISO2, '' when unknown. */
 export function isoOrEmpty(raw: unknown): string {
   if (!raw || typeof raw !== 'string') return '';
-  const up = raw.toUpperCase();
-  if (BY_ISO.has(up)) return up;
+  const up = raw.trim().toUpperCase();
+  // Any two-letter code is kept as stored, listed here or not: dropping it
+  // would erase it from the person's answers at the next save.
+  if (BY_ISO.has(up) || /^[A-Z]{2}$/.test(up)) return up;
   const low = raw.toLowerCase();
   return COUNTRIES.find((c) => c.name.toLowerCase() === low)?.iso ?? '';
 }
