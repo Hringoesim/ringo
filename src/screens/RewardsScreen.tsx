@@ -69,7 +69,7 @@ function Member({ l, userId, email, since, level, pioneer }: { l: Layout; userId
   );
 }
 
-function Current({ l, rewards }: { l: Layout; rewards: Rewards }) {
+function Current({ l, rewards, credit }: { l: Layout; rewards: Rewards; credit?: Profile['credit'] }) {
   const { level, next, destinations: n, levels } = rewards;
   const shownId = level?.id || levels[0]?.id || 'bronze';
   const nextLevel = next ? levels.find((x) => x.id === next.id) : null;
@@ -92,6 +92,15 @@ function Current({ l, rewards }: { l: Layout; rewards: Rewards }) {
             ? <><b>{next.to_go === 1 ? 'One more destination' : `${next.to_go} more destinations`}</b> to {next.name}{nextLevel?.perks[0] ? `: ${lower(nextLevel.perks[0])}.` : '.'}</>
             : <b>You reached the top. Thank you for travelling with Ringo.</b>}
         </p>
+        {credit && (
+          <div aria-label="Ringo credit" style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${RC.line}`, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+            <div>
+              <div style={{ ...TYPE.small, color: RC.ink2 }}>Ringo credit</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 800, color: RC.ink }}>{`€${(credit.balance_cents / 100).toFixed(2)}`}</div>
+            </div>
+            {credit.pct > 0 && <div style={{ ...TYPE.small, fontWeight: 700, color: RC.ink2 }}>{`${credit.pct}% back on every plan`}</div>}
+          </div>
+        )}
       </div>
     </section>
   );
@@ -251,7 +260,7 @@ export function RewardsScreen({ onBack, onBrowse, onLogin }: { onBack?: () => vo
               <div style={{ ...twoColumn(l, 1, 1), alignItems: 'stretch' }}>
                 <Member l={l} userId={acct.userId} email={profile?.email || acct.email || ''} since={profile?.member_since ?? null} level={rewards?.level ?? null} pioneer={pioneer} />
                 {rewards
-                  ? <Current l={l} rewards={rewards} />
+                  ? <Current l={l} rewards={rewards} credit={profile?.credit} />
                   : !err && <div aria-hidden style={{ minHeight: 260, borderRadius: RADIUS.card, background: RC.cream }} />}
               </div>
               {err && !profile && <ErrorBox>{err}</ErrorBox>}

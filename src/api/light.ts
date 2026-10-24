@@ -93,7 +93,7 @@ export interface TravelBadge {
   active: boolean;
 }
 export interface LoyaltyTier { id: string; name: string; min: number; perk: string }
-export interface RewardLevel { id: string; name: string; min: number; discount_pct: number; topup_pct?: number; free_esims_per_year: number; perks: string[] }
+export interface RewardLevel { id: string; name: string; min: number; credit_pct?: number; discount_pct: number; topup_pct?: number; free_esims_per_year: number; perks: string[] }
 export interface Profile {
   email: string;
   member_since: string | null;
@@ -101,6 +101,8 @@ export interface Profile {
   stats: { destinations: number; plans: number; countries_reachable: number; paid_months: number };
   /** Ringo Rewards, by destinations booked (absent on an older site). */
   rewards?: { destinations: number; booked?: number; global_months?: number; global_pct?: number; global_tenure?: { months: number; pct: number }[]; level: RewardLevel | null; next: { id: string; name: string; min: number; to_go: number } | null; levels: RewardLevel[] };
+  /** Ringo credit in EUR cents, earned back on every plan by level (absent on an older site). */
+  credit?: { balance_cents: number; earned_cents: number; spent_cents: number; pct: number; currency: 'eur' };
   /** Ringo Pioneer (absent or null when not one): how they became one and the rung's name. Never the Pioneer number. */
   pioneer?: { kind: 'backer' | 'promoter' | 'global'; tier: string; credit_eur?: number } | null;
   loyalty: { paid_months: number; tier: LoyaltyTier & { next: { id: string; name: string; min: number; to_go: number } | null }; tiers: LoyaltyTier[] };
