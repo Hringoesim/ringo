@@ -357,6 +357,8 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
     if (group !== 'trip' && products && !groups.some((g) => g.id === group)) setGroup('trip');
   }, [group, groups, products]);
   const onTrip = group === 'trip';
+  // Continue wears the chosen family's shade, like its tile and cards.
+  const ctaStyle = onTrip ? undefined : { background: SHADES[group].solid, color: SHADES[group].on, boxShadow: `0 12px 26px -12px ${hexA(SHADES[group].solid, 0.8)}` };
   const tiers = new Set(cat?.plans.map((p) => p.tier) ?? []);
   const hasBothTiers = onTrip && !unlimitedGlobal && tiers.has('data') && tiers.has('unlimited');
   const name = dest?.label || cat?.destination.label || id;
@@ -456,7 +458,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
               {planList}
               {selected && selectedPrice && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <RingoButton onClick={continueTap}>{`Continue, ${selectedPrice.total}${selected.mode === 'subscription' ? ' today' : ''}`}</RingoButton>
+                  <RingoButton onClick={continueTap} style={ctaStyle}>{`Continue, ${selectedPrice.total}${selected.mode === 'subscription' ? ' today' : ''}`}</RingoButton>
                 </div>
               )}
               {notes}
@@ -505,7 +507,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
             </div>
           </div>
           <div style={{ flex: 1, minWidth: 132 }}>
-            <RingoButton round onClick={continueTap}>Continue</RingoButton>
+            <RingoButton round onClick={continueTap} style={ctaStyle}>Continue</RingoButton>
           </div>
         </div>
       )}
