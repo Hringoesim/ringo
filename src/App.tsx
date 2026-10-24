@@ -32,6 +32,7 @@ import { LoginScreen } from './screens/LoginScreen';
 import { ReportScreen } from './screens/ReportScreen';
 import { HelpScreen } from './screens/HelpScreen';
 import { RewardsScreen } from './screens/RewardsScreen';
+import { WaitlistScreen } from './screens/WaitlistScreen';
 import { startPush, shouldPrompt } from './lib/push';
 import { PushSheet } from './components/PushControls';
 import { bundledPictureFor, pictureFor } from './data/destinations';
@@ -295,13 +296,18 @@ export function App() {
       body = <ReportScreen onBack={pop} />;
       break;
     case 'help':
-      body = <HelpScreen onLogin={() => push('login')} onProfile={() => push('profile')} />;
+      body = <HelpScreen onLogin={() => push('login')} onProfile={() => push('profile')} onWaitlist={() => push('waitlist')} />;
       break;
     case 'rewards':
-      body = <RewardsScreen onBrowse={() => goTab('store')} onLogin={() => push('login')} />;
+      body = <RewardsScreen onBrowse={() => goTab('store')} onLogin={() => push('login')} onWaitlist={() => push('waitlist')} />;
       break;
     case 'profile':
-      body = <RewardsScreen onBack={pop} onBrowse={() => goTab('store')} onLogin={() => push('login')} />;
+      body = <RewardsScreen onBack={pop} onBrowse={() => goTab('store')} onLogin={() => push('login')} onWaitlist={() => push('waitlist')} />;
+      break;
+    // The full Ringo service (own number ported, every country): its free
+    // waitlist and the website's survey. Not Ringo Light.
+    case 'waitlist':
+      body = <WaitlistScreen onBack={pop} onLogin={() => push('login')} onBrowse={() => goTab('store')} />;
       break;
     default:
       body = <div style={{ padding: 40 }}>Unknown screen: {current.name}</div>;

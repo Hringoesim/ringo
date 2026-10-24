@@ -311,7 +311,62 @@ export const light = {
 
   loginVerify: (email: string, code: string) =>
     request<{ ok: boolean; user_id: string; t: string; email: string }>('/app-login', { method: 'POST', body: JSON.stringify({ email, code }) }),
+
+  // ── The full Ringo service (not launched): its waitlist and survey ──────
+  // The same endpoints the website's dashboard uses. The token rides in the
+  // query or body, never a header.
+  /** The member's waitlist row (place in line, survey answers) and the live counts. */
+  dashboard: (userId: string, t: string) =>
+    request<WaitlistDashboard>(`/dashboard?${new URLSearchParams({ user: userId, t }).toString()}`),
+  /** Joins the waitlist (lead -> waitlist_active). Idempotent; one welcome email. */
+  joinWaitlist: (userId: string, email: string, t: string) =>
+    request<{ ok: boolean; activated?: boolean; t?: string }>('/waitlist', { method: 'POST', body: JSON.stringify({ user_id: userId, email, t }) }),
+  /**
+   * Saves survey answers. The database keeps a stored value only when NULL
+   * is sent: an empty array OVERWRITES. Always send the full current state
+   * of every field the screen shows, loaded from dashboard() first.
+   */
+  saveProfile: (body: ProfileAnswers & { user_id: string; t: string }) =>
+    request<{ ok: boolean; credited?: boolean }>('/profile', { method: 'POST', body: JSON.stringify(body) }),
 };
+
+/** The survey's six answers, as /api/profile stores them (ISO2 codes, English strings). */
+export interface ProfileAnswers {
+  name: string | null;
+  phone_country: string | null;
+  extra_phone_countries: string[];
+  no_second_number: boolean;
+  travel_countries: string[];
+  travel_regions: string[];
+  top_values: string[];
+}
+
+export type SignupStatus = 'lead' | 'waitlist_active' | 'pending_payment' | 'payment_failed' | 'pioneer_active' | 'promoter_pioneer';
+
+export interface WaitlistUser {
+  id?: string;
+  email?: string | null;
+  status?: SignupStatus | string | null;
+  name?: string | null;
+  phone_country?: string | null;
+  extra_phone_countries?: string[] | null;
+  no_second_number?: boolean | null;
+  travel_countries?: string[] | null;
+  travel_regions?: string[] | null;
+  top_values?: string[] | null;
+  queue_ahead?: number | null;
+  queue_behind?: number | null;
+  profile_answers?: number | null;
+  profile_questions?: number | null;
+  free_referrals_count?: number | null;
+  pioneer_referrals_count?: number | null;
+  referral_code?: string | null;
+}
+
+export interface WaitlistDashboard {
+  user: WaitlistUser;
+  stats?: { waitlisters?: number; pioneers?: number } | null;
+}
 
 // Mirrors REASONS in the site's api/_cy-support.js: the ids are what the
 // endpoint accepts.

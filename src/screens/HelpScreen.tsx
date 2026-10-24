@@ -76,7 +76,7 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-export function HelpScreen({ onLogin, onProfile }: { onLogin: () => void; onProfile: () => void }) {
+export function HelpScreen({ onLogin, onProfile, onWaitlist }: { onLogin: () => void; onProfile: () => void; onWaitlist: () => void }) {
   const l = useLayout();
   const acct = useAccount();
   const storeStatus = useStoreStatus();
@@ -209,6 +209,11 @@ export function HelpScreen({ onLogin, onProfile }: { onLogin: () => void; onProf
               ) : (
                 <HelpRow label="Sign in" onClick={onLogin} last />
               )}
+            </Group>
+
+            {/* The full Ringo service (not launched), apart from Ringo Light. */}
+            <Group title="Coming next from Ringo">
+              <HelpRow label="Your number, every country" sub="Join the free waitlist and help shape it." onClick={() => { hapticSelection(); onWaitlist(); }} last />
             </Group>
 
             <Group title="Plans and legal">

@@ -16,7 +16,7 @@ import { RC, RADIUS, TYPE, typeFor, cardSurface, SITE_GRAD, PHOTO_OVERLAY, PHOTO
 import { RingoHeader } from '../components/Header';
 import { RingoCard } from '../components/Card';
 import { RingoButton } from '../components/Button';
-import { BackBtn, ScreenTitle, SectionHead, TickList, PioneerBadge, ErrorBox } from '../components/ui';
+import { BackBtn, ScreenTitle, SectionHead, TickList, PioneerBadge, ErrorBox, PhotoCard } from '../components/ui';
 import { light, type Profile, type RewardLevel } from '../api/light';
 import { useAccount } from '../store/account';
 import { useLiveTick } from '../store/live';
@@ -25,6 +25,7 @@ import { RingoAvatar, AvatarPhotoControls } from '../components/Avatar';
 import { BadgeGrid, BadgeEmpty, BadgeSkeleton } from '../components/profile/BadgeGrid';
 import { TravelMap } from '../components/profile/TravelMap';
 import { monthYear, levelColor, pioneerTitle } from '../components/profile/format';
+import { isLead, isPioneer, placeFrom, fmt } from '../lib/waitlist';
 
 type Rewards = NonNullable<Profile['rewards']>;
 type Pioneer = NonNullable<Profile['pioneer']>;
@@ -201,6 +202,43 @@ function PhotoBanner({ id }: { id: string }) {
   );
 }
 
+// The full Ringo service's waitlist (own number ported, every country; not
+// launched), at the top of Rewards. Separate from Ringo Light, the eSIMs.
+function WaitlistCard({ l, onOpen }: { l: Layout; onOpen: () => void }) {
+  const acct = useAccount();
+  const tick = useLiveTick();
+  const [line, setLine] = useState<string>('Join the waitlist');
+  const userId = acct?.userId, t = acct?.t;
+  useEffect(() => {
+    setLine('Join the waitlist');
+    if (!userId || !t) return;
+    let alive = true;
+    light.dashboard(userId, t)
+      .then((d) => {
+        if (!alive) return;
+        const u = d.user;
+        if (!u || isLead(u.status)) { setLine('Join the waitlist'); return; }
+        if (isPioneer(u.status)) { setLine("You're a Ringo Pioneer"); return; }
+        const { ahead } = placeFrom(u);
+        setLine(ahead == null ? "You're on the waitlist" : `You're #${fmt(ahead + 1)} in line`);
+      })
+      .catch(() => { /* the card still opens the waitlist */ });
+    return () => { alive = false; };
+  }, [userId, t, tick]);
+  return (
+    <PhotoCard
+      id="ringo-waitlist"
+      name="Ringo, one number for every country"
+      photo={`${import.meta.env.BASE_URL}img/destinations/global.jpg`}
+      aspect={l.isWide ? '21 / 9' : '16 / 9'}
+      what="Your own number on one plan that works everywhere. Coming soon."
+      price={line}
+      onClick={onOpen}
+      ariaLabel={`Ringo waitlist. ${line}`}
+    />
+  );
+}
+
 function SignedOut({ l, onLogin }: { l: Layout; onLogin: () => void }) {
   return (
     <section style={{ ...cardSurface(), overflow: 'hidden' }}>
@@ -215,7 +253,7 @@ function SignedOut({ l, onLogin }: { l: Layout; onLogin: () => void }) {
   );
 }
 
-export function RewardsScreen({ onBack, onBrowse, onLogin }: { onBack?: () => void; onBrowse: () => void; onLogin: () => void }) {
+export function RewardsScreen({ onBack, onBrowse, onLogin, onWaitlist }: { onBack?: () => void; onBrowse: () => void; onLogin: () => void; onWaitlist?: () => void }) {
   const l = useLayout();
   const acct = useAccount();
   const tick = useLiveTick();
@@ -253,6 +291,7 @@ export function RewardsScreen({ onBack, onBrowse, onLogin }: { onBack?: () => vo
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: l.sectionGap }}>
           {tabRoot && <ScreenTitle style={{ marginBottom: -12 }}>Rewards</ScreenTitle>}
+          {onWaitlist && <WaitlistCard l={l} onOpen={onWaitlist} />}
           {!acct ? (
             <SignedOut l={l} onLogin={onLogin} />
           ) : (
