@@ -8,7 +8,7 @@
 // Layout follows the live width (iPhone Duo: about 360pt closed, about 744pt
 // open): the popular plans are one column on a phone and two on a wide
 // screen; the country tiles are two up on a phone and three to four up wide.
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { PlaceMosaic } from '../components/PlaceMosaic';
 import { RC, RADIUS, TAP, TYPE, cardSurface, typeFor, hexA, PHOTO_OVERLAY, PHOTO_TEXT_SHADOW } from '../theme';
 import { LOGO_SRC } from '../assets';
@@ -16,7 +16,9 @@ import { SectionHead } from '../components/ui';
 import { hasMosaic, pictureFor, skyFor, FEATURED, bundledPictureFor, type Destination } from '../data/destinations';
 import { useSummary, useAppleFrom } from '../store/summary';
 import { useDestinations } from '../store/destinations';
-import { money } from '../api/light';
+import { money, light } from '../api/light';
+import { CITIES } from '../data/cities';
+import { useAccount } from '../store/account';
 import { haptic } from '../lib/haptics';
 import { useLayout, contentColumn, cardGrid, tileGrid, TABBAR_CLEARANCE, type Layout } from '../lib/layout';
 
@@ -29,8 +31,24 @@ const ALIASES: Record<string, string> = {
   holland: 'netherlands', emirates: 'uae', dubai: 'uae', turkiye: 'turkey',
   burma: 'myanmar', czechia: 'czech-republic', korea: 'south-korea',
 };
-const matches = (d: Destination, q: string) =>
-  !q || d.label.toLowerCase().includes(q) || d.id.includes(q) || ALIASES[q] === d.id;
+// The ISO code a destination's flag emoji spells (its two regional indicators).
+function isoOf(d: Destination): string | null {
+  const cps = [...String(d.flag || '')].map((c) => c.codePointAt(0)! - 0x1f1e6);
+  return cps.length === 2 && cps.every((n) => n >= 0 && n < 26) ? String.fromCharCode(65 + cps[0], 65 + cps[1]) : null;
+}
+const fold = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+// Cities whose name starts with the query (or a word in it does): "barc" finds Barcelona.
+function citiesFor(q: string): [string, string][] {
+  const f = fold(q);
+  if (f.length < 2) return [];
+  return CITIES.filter(([name]) => fold(name).split(/[\s-]+/).some((w, i, all) => w.startsWith(f) || all.slice(i).join(' ').startsWith(f)));
+}
+const matches = (d: Destination, q: string) => {
+  if (!q) return true;
+  if (fold(d.label).includes(fold(q)) || d.id.includes(q) || ALIASES[q] === d.id) return true;
+  const iso = isoOf(d);
+  return Boolean(iso) && citiesFor(q).some(([, c]) => c === iso);
+};
 
 const REGION_ORDER = ['Europe', 'North America', 'Latin America', 'Caribbean', 'Asia-Pacific', 'Oceania', 'Middle East', 'Africa', 'Central Asia and Caucasus'];
 
@@ -81,7 +99,13 @@ function whatLine(d: Destination): string {
   return 'One payment, no renewal';
 }
 
-function Card({ d, from, onOpen, size, eager = false }: { d: Destination; from: string | null; onOpen: (id: string) => void; size: 'big' | 'tile'; eager?: boolean }) {
+function Card({ d, from, onOpen, onPeek, size, eager = false }: { d: Destination; from: string | null; onOpen: (id: string) => void; onPeek?: (d: Destination) => void; size: 'big' | 'tile'; eager?: boolean }) {
+  // Press and hold: a quick look at the price without leaving the store
+  // (owner 2026-10-24, long-press preview); the tap that ends the hold does not open it.
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const peeked = useRef(false);
+  const startY = useRef(0);
+  const stop = () => { if (timer.current) { clearTimeout(timer.current); timer.current = null; } };
   const big = size === 'big';
   const chip = big && d.kind === 'region' && d.countries > 1 && d.id !== 'global' ? `${d.countries} countries` : null;
   const priceText = from != null ? `From ${from}` : '';
@@ -89,9 +113,16 @@ function Card({ d, from, onOpen, size, eager = false }: { d: Destination; from: 
     <button
       type="button"
       className="card-press"
-      onClick={() => onOpen(d.id)}
+      onClick={() => { if (peeked.current) { peeked.current = false; return; } onOpen(d.id); }}
+      // Touch events, not pointer events: WKWebView cancels the pointer when its
+      // own long press starts, so the hold is timed on the touch itself.
+      onTouchStart={(e) => { peeked.current = false; startY.current = e.touches[0]?.clientY ?? 0; stop(); if (onPeek) timer.current = setTimeout(() => { timer.current = null; peeked.current = true; onPeek(d); }, 420); }}
+      onTouchMove={(e) => { if (Math.abs((e.touches[0]?.clientY ?? 0) - startY.current) > 8) stop(); }}
+      onTouchEnd={(e) => { stop(); if (peeked.current) e.preventDefault(); }}
+      onTouchCancel={stop}
+      onContextMenu={(e) => e.preventDefault()}
       aria-label={from != null ? `${d.label}, from ${from}` : d.label}
-      style={{ ...cardSurface(), textAlign: 'left', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', font: 'inherit', color: 'inherit' }}
+      style={{ ...cardSurface(), textAlign: 'left', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', font: 'inherit', color: 'inherit', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
     >
       <Picture d={d} size={size} eager={eager} chip={chip} />
       <div style={{ padding: big ? '14px 16px 16px' : '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: 4, width: '100%', boxSizing: 'border-box' }}>
@@ -121,7 +152,7 @@ function SearchField({ value, onChange }: { value: string; onChange: (v: string)
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        placeholder="Search a country or region"
+        placeholder="Search a country, city or region"
         aria-label="Search destinations"
         className="ringo-input"
         style={{
@@ -167,6 +198,34 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn }: { onOpen: (
   const all = useDestinations();
   const [q, setQ] = useState('');
   const query = q.trim().toLowerCase();
+  const [peek, setPeek] = useState<Destination | null>(null);
+  const acct = useAccount();
+  const [visited, setVisited] = useState<string[]>([]);
+  useEffect(() => {
+    if (!acct) return;
+    let alive = true;
+    light.profile(acct.userId, acct.t).then((p) => { if (alive) setVisited(p.badges.map((b) => b.destination)); }).catch(() => {});
+    return () => { alive = false; };
+  }, [acct]);
+  // Suggestions while typing: destinations whose name starts with it, then cities.
+  const suggestions = useMemo(() => {
+    if (query.length < 2) return [] as { key: string; label: string; sub: string; d: Destination }[];
+    const byIso = new Map(all.filter((d) => d.kind === 'country').map((d) => [isoOf(d), d] as const));
+    const out: { key: string; label: string; sub: string; d: Destination }[] = [];
+    for (const d of all) if (fold(d.label).startsWith(fold(query))) out.push({ key: d.id, label: d.label, sub: d.kind === 'region' ? `${d.countries} countries` : 'Country', d });
+    for (const [name, iso] of citiesFor(query)) { const d = byIso.get(iso); if (d && !out.some((o) => o.key === `${name}|${d.id}`)) out.push({ key: `${name}|${d.id}`, label: name, sub: d.label, d }); }
+    return out.slice(0, 6);
+  }, [all, query]);
+  // Your next trip: countries near the ones you have been to, cheapest first.
+  const nextTrips = useMemo(() => {
+    if (!visited.length) return [] as Destination[];
+    const been = new Set(visited);
+    const regions = new Set(all.filter((d) => been.has(d.id)).map((d) => d.region).filter(Boolean));
+    return all
+      .filter((d) => d.kind === 'country' && !been.has(d.id) && regions.has(d.region))
+      .sort((a, b) => (summary?.from?.[a.id] ?? 1e9) - (summary?.from?.[b.id] ?? 1e9))
+      .slice(0, 4);
+  }, [all, visited, summary]);
   const open = (id: string) => { haptic('light'); onOpen(id); };
 
   // Apple's price where StoreKit has answered for this destination (the plan
@@ -192,7 +251,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn }: { onOpen: (
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', paddingTop: 'max(54px, calc(env(safe-area-inset-top, 0px) + 12px))', paddingBottom: `calc(${TABBAR_CLEARANCE} + 24px)` }}>
         <div style={contentColumn(l)}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: TAP }}>
@@ -209,14 +268,38 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn }: { onOpen: (
 
           <div style={l.isWide ? { maxWidth: 560 } : undefined}>
             <SearchField value={q} onChange={setQ} />
+            {suggestions.length > 0 && (
+              <div role="listbox" aria-label="Suggestions" style={{ marginTop: 8, ...cardSurface(), padding: 0, overflow: 'hidden' }}>
+                {suggestions.map((sg, i) => (
+                  <button key={sg.key} type="button" role="option" aria-selected={false} className="press" onClick={() => open(sg.d.id)}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'transparent', border: 'none', borderTop: i ? `1px solid ${RC.line}` : 'none', textAlign: 'left', cursor: 'pointer', font: 'inherit' }}>
+                    <span aria-hidden style={{ fontSize: 20, width: 24, textAlign: 'center' }}>{sg.d.flag || '🌍'}</span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: 'block', fontFamily: 'var(--font)', fontSize: 16, fontWeight: 600, color: RC.ink }}>{sg.label}</span>
+                      <span style={{ display: 'block', fontFamily: 'var(--font)', fontSize: 13, color: RC.ink2 }}>{sg.sub}</span>
+                    </span>
+                    {fromOf(sg.d) && <span style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, color: RC.ink2 }}>{`From ${fromOf(sg.d)}`}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+
+          {!query && nextTrips.length > 0 && (
+            <section style={{ marginTop: l.sectionGap }}>
+              <SectionHead title="Your next trip" sub="Close to where you have been." />
+              <div style={tileGrid(l)}>
+                {nextTrips.map((d) => <Card key={d.id} d={d} from={fromOf(d)} onOpen={open} onPeek={setPeek} size="tile" />)}
+              </div>
+            </section>
+          )}
 
           {featured.length > 0 && (
             <section style={{ marginTop: l.sectionGap }}>
               {!query && <SectionHead title="Popular plans" sub="Many countries, one eSIM." />}
               <div style={cardGrid(l)}>
                 {featured.map((d, i) => (
-                  <Card key={d.id} d={d} from={fromOf(d)} onOpen={open} size="big" eager={i < (l.isWide ? 2 : 1)} />
+                  <Card key={d.id} d={d} from={fromOf(d)} onOpen={open} onPeek={setPeek} size="big" eager={i < (l.isWide ? 2 : 1)} />
                 ))}
               </div>
             </section>
@@ -226,7 +309,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn }: { onOpen: (
             <section key={region} style={{ marginTop: l.sectionGap }}>
               <SectionHead title={region} />
               <div style={tileGrid(l)}>
-                {list.map((d) => <Card key={d.id} d={d} from={fromOf(d)} onOpen={open} size="tile" />)}
+                {list.map((d) => <Card key={d.id} d={d} from={fromOf(d)} onOpen={open} onPeek={setPeek} size="tile" />)}
               </div>
             </section>
           ))}
@@ -240,6 +323,20 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn }: { onOpen: (
           {all.length === 0 && <Skeleton l={l} />}
         </div>
       </div>
+      {peek && (
+        <div role="dialog" aria-modal="true" aria-label={peek.label} onClick={() => setPeek(null)}
+          style={{ position: 'absolute', inset: 0, zIndex: 50, background: 'rgba(26,15,46,0.35)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, animation: 'ringoFadeIn 0.18s ease both' }}>
+          <div onClick={(e) => e.stopPropagation()} className="rise" style={{ width: '100%', maxWidth: 360, ...cardSurface(), padding: 0, overflow: 'hidden' }}>
+            <Picture d={peek} size="big" />
+            <div style={{ padding: '14px 16px 16px' }}>
+              <div style={{ fontFamily: 'var(--font)', fontSize: 18, fontWeight: 600, color: RC.ink }}>{fromOf(peek) ? `From ${fromOf(peek)}` : peek.label}</div>
+              <div style={{ marginTop: 2, ...TYPE.small, color: RC.ink2 }}>{whatLine(peek)}</div>
+              <button type="button" className="press" onClick={() => { const id = peek.id; setPeek(null); open(id); }}
+                style={{ marginTop: 14, width: '100%', minHeight: 48, borderRadius: 14, border: 'none', background: '#F26122', color: '#fff', fontFamily: 'var(--font)', fontSize: 16, fontWeight: 600, cursor: 'pointer' }}>See plans</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
