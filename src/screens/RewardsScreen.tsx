@@ -25,6 +25,7 @@ import { useLayout, twoColumn, cardGrid, TABBAR_CLEARANCE, type Layout } from '.
 import { RingoAvatar, AvatarPhotoControls } from '../components/Avatar';
 import { BadgeGrid, BadgeEmpty, BadgeSkeleton } from '../components/profile/BadgeGrid';
 import { TravelMap } from '../components/profile/TravelMap';
+import { EarnBadges } from '../components/profile/EarnBadges';
 import { monthYear, levelColor, pioneerTitle } from '../components/profile/format';
 import { isLead, isPioneer, placeFrom, fmt } from '../lib/waitlist';
 
@@ -337,6 +338,16 @@ export function RewardsScreen({ onBack, onBrowse, onLogin, onWaitlist }: { onBac
                       <BadgeGrid badges={badges} pioneer={pioneer} />
                     </div>
                   )}
+                </section>
+              )}
+
+              {profile?.achievements && profile.achievements.length > 0 && (
+                <section>
+                  <SectionHead
+                    title="Badges to earn"
+                    sub={`${profile.achievements.filter((a) => a.earned).length} of ${profile.achievements.length} earned.`}
+                  />
+                  <EarnBadges items={profile.achievements} l={l} />
                 </section>
               )}
 
