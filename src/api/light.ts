@@ -243,8 +243,8 @@ export const light = {
   /** Stripe's own word on that session: paid, and once the site has the row, whose account it is. */
   cardStatus: (ref: { pi: string } | { sub: string }) => request<CardStatus>(`/light-status?${new URLSearchParams(ref as Record<string, string>).toString()}`),
   /** The app's own payment sheet (api/app-pay.js): the intent for the line the app showed. */
-  appPay: (body: { plan: string; destination: string; data_gb?: number | null; email: string; currency?: string; user?: string; t?: string; topUp?: boolean; subscription?: string }) =>
-    request<{ client_secret: string; mode: 'payment' | 'subscription'; amount: number; currency: string; label: string; payment_intent_id?: string; subscription_id?: string; publishable_key: string | null }>('/app-pay', { method: 'POST', body: JSON.stringify({ ...body, client: 'app' }) }),
+  appPay: (body: { plan: string; destination: string; data_gb?: number | null; email: string; currency?: string; user?: string; t?: string; topUp?: boolean; subscription?: string; use_credit?: boolean }) =>
+    request<{ client_secret: string; mode: 'payment' | 'subscription'; amount: number; currency: string; label: string; payment_intent_id?: string; subscription_id?: string; publishable_key: string | null; credit_off?: number; list_amount?: number }>('/app-pay', { method: 'POST', body: JSON.stringify({ ...body, client: 'app' }) }),
 
   /** "Restore purchases": the owner of a purchase the site already knows (404 otherwise). */
   restorePurchase: (signedTransaction: string) =>

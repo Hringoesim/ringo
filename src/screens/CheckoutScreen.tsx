@@ -36,7 +36,7 @@ import { light, SITE } from '../api/light';
 import { account } from '../store/account';
 import { openInSheet } from '../lib/browser';
 import { payByCard as startCard, waitForOwner } from '../lib/cardPay';
-import { haptic, hapticNotify } from '../lib/haptics';
+import { haptic, hapticNotify, hapticSelection } from '../lib/haptics';
 import { priceOf } from '../lib/purchase';
 import { logAb } from '../lib/abtest';
 import { type Selection } from './DestinationScreen';
@@ -86,6 +86,18 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   const price = priceOf(p, null);
   const renewing = p.mode === 'subscription';
   const isGlobal = selection.destination === 'global';
+
+  // Ringo credit (earned back on every plan by Rewards level): the balance,
+  // and whether to spend it here. The site decides how much comes off, never
+  // under cost, and Stripe's sheet shows the exact amount. Not on Global's month.
+  const [creditCents, setCreditCents] = useState(0);
+  const [useCredit, setUseCredit] = useState(true);
+  useEffect(() => {
+    const acct = account.get();
+    if (!acct || renewing) return;
+    light.profile(acct.userId, acct.t).then((pr) => { if (mounted.current) setCreditCents(pr.credit?.balance_cents || 0); }).catch(() => {});
+  }, [renewing]);
+  const creditHere = creditCents > 0 && !renewing && (!signedInEmail || email.trim().toLowerCase() === signedInEmail.toLowerCase());
 
   const stageRef = useRef<Stage>('email');
   // A long wait on Stripe (a slow bank) gets a way out after 15 seconds.
@@ -148,7 +160,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
     haptic('medium');
     setStageBoth('card');
     try {
-      const pay = await startCard({ plan: p.plan, destination: selection.destination, data_gb: selection.data_gb, email: e, currency: p.currency });
+      const pay = await startCard({ plan: p.plan, destination: selection.destination, data_gb: selection.data_gb, email: e, currency: p.currency, useCredit: creditHere && useCredit });
       cardStop.current = pay.stop;
       const out = await pay.done;
       cardStop.current = null;
@@ -180,7 +192,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   const useSignedIn = () => { setEmail(signedInEmail); setOtherEmail(null); confirmedOther.current = null; };
 
   const planLine = isGlobal && renewing ? 'Unlimited, renews monthly' : `${planName(p)}${renewing ? '' : ', one payment'}`;
-  const buyLabel = renewing ? `Subscribe, ${price.total} a month` : `Pay ${price.total} by card`;
+  const buyLabel = renewing ? `Subscribe, ${price.total} a month` : creditHere && useCredit ? 'Pay by card with credit' : `Pay ${price.total} by card`;
 
   // ── Pieces ────────────────────────────────────────────────────────────────
   const summary = <Summary l={l} selection={selection} planLine={planLine} total={price.total} renewing={renewing} />;
@@ -224,6 +236,20 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   const renewBox = stage === 'email' && renewing && (
     <div style={{ padding: '14px 16px', borderRadius: RADIUS.sm, background: RC.cream, border: `1px solid ${RC.line}` }}>
       <div style={{ ...TYPE.small, fontWeight: 700, color: RC.ink }}>Renews every {periodWord(p)}. Turn it off any time in My eSIM.</div>
+    </div>
+  );
+
+  const creditBox = stage === 'email' && creditHere && (
+    <div style={{ padding: '12px 16px', borderRadius: RADIUS.sm, background: RC.cream, border: `1px solid ${RC.line}`, display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ ...TYPE.bodyStrong, color: RC.ink }}>Use Ringo credit</div>
+        <div style={{ ...TYPE.small, color: RC.ink2, marginTop: 2 }}>{`€${(creditCents / 100).toFixed(2)} available`}</div>
+      </div>
+      <button type="button" role="switch" aria-checked={useCredit} aria-label="Use Ringo credit" className="press"
+        onClick={() => { hapticSelection(); setUseCredit(!useCredit); }}
+        style={{ width: 51, height: 31, borderRadius: 16, border: 'none', cursor: 'pointer', padding: 2, flexShrink: 0, background: useCredit ? RC.tick : RC.lineStrong, transition: 'background .2s' }}>
+        <span style={{ display: 'block', width: 27, height: 27, borderRadius: '50%', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', transform: useCredit ? 'translateX(20px)' : 'none', transition: 'transform .2s' }} />
+      </button>
     </div>
   );
 
@@ -283,6 +309,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
               {form}
               {status}
               {renewBox}
+              {creditBox}
               {consent}
               {action}
             </div>
@@ -302,6 +329,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
           {form}
           {status}
           {renewBox}
+          {creditBox}
         </div>
       </div>
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: `12px ${l.gutter}px max(20px, env(safe-area-inset-bottom, 0px))`, background: RC.glass, backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)', borderTop: `1px solid ${RC.line}`, display: 'flex', flexDirection: 'column', gap: 10 }}>

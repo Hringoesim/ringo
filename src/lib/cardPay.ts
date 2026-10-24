@@ -17,7 +17,7 @@ const POLL_MS = 2500;
 const OWNER_WAIT_MS = 90_000;
 
 export type StatusQuery = { pi: string } | { sub: string };
-export interface CardOrder { plan: string; destination: string; data_gb?: number | null; email: string; currency?: string; topUp?: boolean; subscription?: string }
+export interface CardOrder { plan: string; destination: string; data_gb?: number | null; email: string; currency?: string; topUp?: boolean; subscription?: string; /** Spend the account's Ringo credit (the site decides how much, never under cost). */ useCredit?: boolean }
 export type CardOutcome =
   | { state: 'paid'; session: string; userId: string; t: string }
   /** Stripe says paid; the account is not named yet (or a top-up, which has none to name). */
@@ -72,7 +72,8 @@ async function start(order: CardOrder): Promise<CardPayment> {
   const acct = account.get();
   // A top-up always needs it; a plan for someone else's email is at list price.
   const mine = acct && (order.topUp || !acct.email || acct.email.toLowerCase() === order.email.toLowerCase());
-  const r = await light.appPay({ ...order, ...(acct && mine ? { user: acct.userId, t: acct.t } : {}) });
+  const { useCredit, ...rest } = order;
+  const r = await light.appPay({ ...rest, ...(acct && mine ? { user: acct.userId, t: acct.t, ...(useCredit ? { use_credit: true } : {}) } : {}) });
   const ref = r.payment_intent_id || r.subscription_id || '';
   if (!r.client_secret || !r.publishable_key || !ref) throw new Error('The payment could not be started. Nothing was charged.');
 
