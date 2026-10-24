@@ -25,7 +25,7 @@
 // Nothing here decides a price.
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { PlaceMosaic } from '../components/PlaceMosaic';
-import { RC, RADIUS, TAP, TYPE, typeFor, hexA, cardSurface, SHADOW_CARD, SKINS, ON_DARK, PHOTO_OVERLAY, PHOTO_TEXT_SHADOW } from '../theme';
+import { RC, RADIUS, TYPE, typeFor, hexA, cardSurface, SHADOW_CARD, SKINS, ON_DARK, PHOTO_OVERLAY, PHOTO_TEXT_SHADOW } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { BackBtn, Segmented, TickList, ErrorBox } from '../components/ui';
@@ -81,9 +81,9 @@ function shownCost(p: Plan, product: IapProduct | null): number {
   return product ? product.price : p.billed_upfront_amount;
 }
 
-function Check({ on }: { on: boolean }) {
+function Check({ on, shade }: { on: boolean; shade?: string }) {
   return (
-    <span aria-hidden style={{ width: 26, height: 26, borderRadius: '50%', flexShrink: 0, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? RC.gradCta : 'transparent', border: on ? 'none' : `2px solid ${RC.lineStrong}`, transition: 'transform .2s', transform: on ? 'scale(1)' : 'scale(0.92)' }}>
+    <span aria-hidden style={{ width: 26, height: 26, borderRadius: '50%', flexShrink: 0, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? (shade || RC.gradCta) : 'transparent', border: on ? 'none' : `2px solid ${RC.lineStrong}`, transition: 'transform .2s', transform: on ? 'scale(1)' : 'scale(0.92)' }}>
       {on && (
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
           <path d="M3.5 8.5l3 3 6-7" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
@@ -128,6 +128,8 @@ function PhotoTitle({ l, dest, name, coverage }: { l: Layout; dest: Destination 
 /** A light plan card: duration and data, one line, the price. */
 function PlanCard({ p, on, price, onPick }: { p: Plan; on: boolean; price: { total: string; monthly: string }; onPick: () => void }) {
   const sub = p.mode === 'subscription';
+  // A day pass wears its family's shade; trip plans keep the brand orange.
+  const shade = p.app_only && p.group ? SHADES[p.group as Group]?.solid : undefined;
   return (
     <button
       type="button"
@@ -139,12 +141,12 @@ function PlanCard({ p, on, price, onPick }: { p: Plan; on: boolean; price: { tot
         padding: '18px 18px 18px 16px', borderRadius: RADIUS.card,
         background: RC.paper,
         // The same 2px border on every card so choosing one shifts nothing.
-        border: `2px solid ${on ? RC.inkStrong : RC.line}`,
-        boxShadow: on ? `0 0 0 4px ${hexA('#FF5724', 0.14)}, ${SHADOW_CARD}` : SHADOW_CARD,
+        border: `2px solid ${on ? (shade || RC.inkStrong) : RC.line}`,
+        boxShadow: on ? `0 0 0 4px ${hexA(shade || '#FF5724', 0.16)}, ${SHADOW_CARD}` : SHADOW_CARD,
         display: 'flex', alignItems: 'center', gap: 14,
       }}
     >
-      <Check on={on} />
+      <Check on={on} shade={shade} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ ...TYPE.h2, color: RC.ink }}>{p.app_only ? termTitle(p) : planName(p)}</div>
         <div style={{ marginTop: 4, ...TYPE.small, color: RC.ink2 }}>{termLine(p, price.total)}</div>
@@ -159,16 +161,37 @@ function PlanCard({ p, on, price, onPick }: { p: Plan; on: boolean; price: { tot
 }
 
 /**
- * Trip plans and the day families. Up to three fit one segmented row; four
- * do not fit a phone's width in one row (the names were cut off), so they
- * sit two by two in the same cream track, the chosen one on a white pill.
+ * Each plan family wears its own shade (owner 2026-10-24: "power and super
+ * use, all these buttons need a different shade"): Trip plans the brand
+ * orange, Day plans sunny amber, Power user pink, Super user purple. Text on
+ * each solid shade is white, except dark ink on amber, every pair over 4.5:1.
  */
-function GroupPicker({ value, options, onChange }: { value: Group; options: { id: Group; label: string }[]; onChange: (g: Group) => void }) {
-  if (options.length <= 3) return <Segmented<Group> ariaLabel="Plan family" value={value} options={options} onChange={onChange} />;
+const SHADES: Record<Group, { solid: string; ink: string; on: string; sub: string; label: string }> = {
+  trip: { solid: '#C9431A', ink: '#B23A14', on: '#FFFFFF', sub: 'Your whole trip', label: 'Trip plans' },
+  day: { solid: '#F2B01E', ink: '#8A5A00', on: '#1A0F2E', sub: '1 GB a day', label: 'Day plans' },
+  power: { solid: '#D6247A', ink: '#B01C63', on: '#FFFFFF', sub: '3 GB a day', label: 'Power user' },
+  super: { solid: '#6B3FD1', ink: '#5A33B5', on: '#FFFFFF', sub: '10 GB a day', label: 'Super user' },
+};
+
+function GroupIcon({ id, color }: { id: Group; color: string }) {
+  const s = { stroke: color, strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
   return (
-    <div role="tablist" aria-label="Plan family" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 4, padding: 4, borderRadius: RADIUS.card, background: RC.cream, border: `1px solid ${RC.line}` }}>
+    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden>
+      {id === 'trip' && (<><rect x="3.5" y="7" width="17" height="12.5" rx="2.5" {...s} /><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7M3.5 12.5h17" {...s} /></>)}
+      {id === 'day' && (<><circle cx="12" cy="12" r="4" {...s} /><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6" {...s} /></>)}
+      {id === 'power' && <path d="M13 2.5L5 13.5h6l-1 8 8-11h-6l1-8z" {...s} />}
+      {id === 'super' && (<><path d="M12 2.8c3.2 2.3 5 5.7 5 9.6V16H7v-3.6c0-3.9 1.8-7.3 5-9.6z" {...s} /><circle cx="12" cy="10" r="1.8" {...s} /><path d="M7 13.5L4.5 16v3l3-1.5M17 13.5l2.5 2.5v3l-3-1.5M10 16.5l-.5 3.5h5l-.5-3.5" {...s} /></>)}
+    </svg>
+  );
+}
+
+function GroupPicker({ value, options, onChange }: { value: Group; options: { id: Group; label: string }[]; onChange: (g: Group) => void }) {
+  const cols = options.length >= 4 ? 2 : options.length;
+  return (
+    <div role="tablist" aria-label="Plan family" style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: 10 }}>
       {options.map((o) => {
         const on = o.id === value;
+        const sh = SHADES[o.id];
         return (
           <button
             key={o.id}
@@ -176,9 +199,22 @@ function GroupPicker({ value, options, onChange }: { value: Group; options: { id
             role="tab"
             aria-selected={on}
             onClick={() => { if (!on) { hapticSelection(); onChange(o.id); } }}
-            style={{ border: 'none', cursor: 'pointer', minHeight: TAP, padding: '0 10px', borderRadius: RADIUS.pill, fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, lineHeight: 1.2, whiteSpace: 'nowrap', color: on ? RC.ink : RC.ink2, background: on ? RC.paper : 'transparent', boxShadow: on ? '0 2px 14px rgba(26,15,46,0.12)' : 'none', transition: 'color .2s, background .2s' }}
+            className="press"
+            style={{
+              border: `1.5px solid ${on ? sh.solid : hexA(sh.solid, 0.38)}`, cursor: 'pointer', minHeight: 64, padding: '10px 12px',
+              borderRadius: 18, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10,
+              background: on ? sh.solid : hexA(sh.solid, 0.10),
+              boxShadow: on ? `0 10px 22px -10px ${hexA(sh.solid, 0.75)}` : 'none',
+              transition: 'background .2s, box-shadow .2s, border-color .2s',
+            }}
           >
-            {o.label}
+            <span style={{ width: 36, height: 36, borderRadius: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? hexA(sh.on, 0.18) : RC.paper }}>
+              <GroupIcon id={o.id} color={on ? sh.on : sh.ink} />
+            </span>
+            <span style={{ minWidth: 0 }}>
+              <span style={{ display: 'block', fontFamily: 'var(--font)', fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em', lineHeight: 1.2, color: on ? sh.on : RC.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sh.label}</span>
+              <span style={{ display: 'block', marginTop: 2, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, lineHeight: 1.2, color: on ? hexA(sh.on, 0.9) : sh.ink }}>{sh.sub}</span>
+            </span>
           </button>
         );
       })}
