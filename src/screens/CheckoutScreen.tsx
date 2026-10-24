@@ -9,7 +9,9 @@
 // polls /api/light-status, Stripe's own word, then waits for the eSIM like
 // an App Store purchase. Day passes (App Store products only), renewing
 // plans and Rewards member prices (the hosted page charges the list price)
-// stay on the App Store button below it.
+// stay on the App Store until the card covers them. Where the card works it
+// is the only way to pay (owner 2026-10-24: "dont make the person have an
+// option to pay by the app store").
 // The purchase sheet is Apple's
 // (StoreKit 2); the signed transaction it returns goes to ringoesim.com,
 // which verifies it against Apple's roots, issues the eSIM and names the
@@ -250,7 +252,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   // Card where the hosted page charges what this screen shows.
   const cardOk = !renewing && !p.app_only && !p.member_pct;
   const cardPrice = priceOf(p, null);
-  const buyLabel = renewing ? `Subscribe for ${price.total}` : cardOk ? `App Store, ${price.total}` : `Buy for ${price.total}`;
+  const buyLabel = renewing ? `Subscribe for ${price.total}` : `Buy for ${price.total}`;
 
   // ── Pieces ────────────────────────────────────────────────────────────────
   const summary = <Summary l={l} selection={selection} planLine={planLine} total={price.total} renewing={renewing} />;
@@ -344,14 +346,14 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   // promises nor denies one.
   const consent = stage === 'email' && (
     <div data-refund-consent style={{ ...TYPE.caption, color: RC.inkMute, textAlign: l.isWide ? 'left' : 'center' }}>
-      By buying you ask us to issue your eSIM straight away and accept that you lose your right to cancel once it is issued. {cardOk ? 'Card payments are processed by Stripe. ' : ''}Refunds for App Store purchases are handled by Apple.
+      By buying you ask us to issue your eSIM straight away and accept that you lose your right to cancel once it is issued. {cardOk ? 'Payments are processed by Stripe.' : 'Refunds for App Store purchases are handled by Apple.'}
     </div>
   );
 
   const action: ReactNode = (
     <>
       {stage === 'email' && cardOk && <RingoButton onClick={() => void payByCard()} disabled={Boolean(otherEmail)}>{`Pay ${cardPrice.total} by card or Apple Pay`}</RingoButton>}
-      {stage === 'email' && <RingoButton variant={cardOk ? 'secondary' : undefined} onClick={() => void buy()} disabled={Boolean(otherEmail)}>{buyLabel}</RingoButton>}
+      {stage === 'email' && !cardOk && <RingoButton onClick={() => void buy()} disabled={Boolean(otherEmail)}>{buyLabel}</RingoButton>}
       {stage === 'card' && <RingoButton variant="soft" onClick={() => { cardCleanup.current?.(); cardCleanup.current = null; stopPolling(); setStageBoth('email'); }}>Cancel</RingoButton>}
       {(stage === 'buying' || stage === 'recording') && <RingoButton loading>One moment</RingoButton>}
       {(stage === 'issuing' || stage === 'slow' || stage === 'failed') && <RingoButton variant="soft" onClick={onReady}>Go to My eSIM</RingoButton>}
