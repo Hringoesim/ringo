@@ -14,7 +14,7 @@ PLUM = 'radial-gradient(120% 60% at 50% 100%, #FF7733 0%, rgba(255,119,51,0) 55%
 SUN = 'linear-gradient(160deg, #F93C1F 0%, #FF7733 52%, #FFB83D 100%)'
 W, H = 2007, 2853
 SLIDES = [
-  ('01-travel-esim.png', 'welcome.png', 'Travel eSIM for|190+ countries', 'Data for every trip, ready in minutes.', PLUM, 'light'),
+  ('01-travel-esim.png', 'welcome.png', 'Travel eSIM for|190+ countries', 'Join 40,000+ people signed up to Ringo.', PLUM, 'light'),
   ('02-cheap-data.png', 'store.png', 'Cheap data eSIM|for every trip', 'Search any country, city or region.', SUN, 'dark'),
   ('03-unlimited-global.png', 'global.png', 'Unlimited data|around the world', 'One global eSIM, one monthly price.', PLUM, 'dark'),
   ('04-europe.png', 'europe.png', 'One eSIM for|all of Europe', '33 countries, hotspot included.', SUN, 'dark'),

@@ -21,7 +21,7 @@ SUN = 'linear-gradient(160deg, #F93C1F 0%, #FF7733 52%, #FFB83D 100%)'
 CREAM = (255, 250, 247)
 # (out, source, headline, line, background, status bar for web shots, cream fill above this y)
 SLIDES = [
-  ('01-travel-esim.png', SIM / '01-welcome.png', 'Travel eSIM for|190+ countries', 'Data for every trip, ready in minutes.', PLUM, None, 0),
+  ('01-travel-esim.png', SIM / '01-welcome.png', 'Travel eSIM for|190+ countries', 'Join 40,000+ people signed up to Ringo.', PLUM, None, 0),
   ('02-cheap-data.png', SIM / '02-store.png', 'Cheap data eSIM|for every trip', 'Search any country or region.', SUN, None, 0),
   ('03-unlimited-global.png', SIM / '03-global.png', 'Unlimited data|around the world', 'One global eSIM, one monthly price.', PLUM, None, 0),
   ('04-europe.png', WEB / 'europe.png', 'One eSIM for|all of Europe', '33 countries, hotspot included.', SUN, 'light', 0),
