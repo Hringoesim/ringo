@@ -44,19 +44,18 @@ export function AuthButtons({ onSignedIn, onEmail, onDark = false }: { onSignedI
     fontFamily: 'var(--font)', fontSize: 17, fontWeight: 600, letterSpacing: '-0.01em', ...extra,
   });
 
-  // Ringo's own button for the email door (owner 2026-10-24: "continue with
-  // email on the Ringo colours"): the site's CTA gradient, white label and mark.
-  const ringo: CSSProperties = { background: RC.gradCta, color: '#FFFFFF', border: 'none', boxShadow: '0 10px 24px -12px rgba(223,40,12,0.6)' };
+  // The email door (owner 2026-10-24): white next to Apple's black, ink label, Ringo's orange mail mark.
+  const emailStyle: CSSProperties = { background: '#FFFFFF', color: '#1A0F2E', border: `1.5px solid ${onDark ? 'transparent' : RC.lineStrong}`, boxShadow: onDark ? '0 10px 26px -12px rgba(26,15,46,0.55)' : 'none' };
 
   // The App Store screenshots are shot in a browser (VITE_SHOT), where the
   // native sheet does not exist; they still show the button the phone shows.
   const showApple = appleSignInAvailable() || Boolean(import.meta.env.VITE_SHOT);
   return (
     <div style={{ display: 'grid', gap: 10 }}>
-      {/* Apple's own white style (owner 2026-10-24: "the normal Apple colours"; no black button). */}
+      {/* Apple's black style (owner 2026-10-24: "black sign in with apple button"). */}
       {showApple && (
-        <button className="press" disabled={busy !== null} onClick={() => void social('apple')} aria-label="Sign in with Apple" style={row({ background: '#fff', color: '#000', border: `1.5px solid ${onDark ? 'transparent' : '#000'}`, fontFamily: '-apple-system, var(--font)', fontSize: 17 })}>
-          <AppleMark />{busy === 'apple' ? 'Opening…' : 'Sign in with Apple'}
+        <button className="press" disabled={busy !== null} onClick={() => void social('apple')} aria-label="Sign in with Apple" style={row({ background: '#000', color: '#fff', border: `1.5px solid ${onDark ? 'rgba(255,255,255,0.18)' : '#000'}`, fontFamily: '-apple-system, var(--font)', fontSize: 17 })}>
+          <AppleMark color="#FFFFFF" />{busy === 'apple' ? 'Opening…' : 'Sign in with Apple'}
         </button>
       )}
       {googleSignInAvailable() && (
@@ -64,8 +63,8 @@ export function AuthButtons({ onSignedIn, onEmail, onDark = false }: { onSignedI
           <GoogleMark />{busy === 'google' ? 'Opening…' : 'Continue with Google'}
         </button>
       )}
-      <button className="press" disabled={busy !== null} onClick={onEmail} style={row(ringo)}>
-        <MailMark color="#FFFFFF" />Continue with email
+      <button className="press" disabled={busy !== null} onClick={onEmail} style={row(emailStyle)}>
+        <MailMark />Continue with email
       </button>
       {err && (
         <div role="alert" style={{ padding: '12px 14px', borderRadius: 12, background: onDark ? '#FFFFFF' : RC.errorSoft, border: '1px solid rgba(225,29,72,0.18)', fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, lineHeight: 1.45, color: onDark ? '#A12C2C' : RC.error, textAlign: 'center' }}>
