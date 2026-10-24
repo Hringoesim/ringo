@@ -246,6 +246,9 @@ export const light = {
   /** Sign in, step one: a six-digit code is emailed. */
   loginStart: (email: string) =>
     request<{ ok: boolean; sent: boolean; retry_after?: number }>('/app-login', { method: 'POST', body: JSON.stringify({ email }) }),
+  /** While the code screen waits: did the code email bounce (an address that does not exist)? */
+  loginCheck: (email: string) =>
+    request<{ ok: boolean; bounced: boolean; error?: string }>('/app-login', { method: 'POST', body: JSON.stringify({ email, check: true }) }),
   /** Delete the account: identifiers wiped on the site, purchases kept. */
   deleteAccount: (userId: string, t: string) =>
     request<{ ok: boolean; deleted: boolean }>(`/app-account-delete?${new URLSearchParams({ user: userId, t }).toString()}`, { method: 'POST', body: '{}' }),

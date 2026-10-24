@@ -39,6 +39,27 @@ export function LoginScreen({ onBack, onDone, initialEmail = '', startWithEmail 
     return () => window.clearTimeout(t);
   }, [wait]);
 
+  // A code to an address that does not exist bounces within seconds, and
+  // "Check your inbox" would otherwise wait forever. Ask the site every few
+  // seconds for two minutes; on a bounce, back to the email with the reason.
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  useEffect(() => {
+    if (stage !== 'code' || !sentTo) return;
+    let n = 0;
+    const t = window.setInterval(async () => {
+      if (++n > 24) { window.clearInterval(t); return; }
+      try {
+        const r = await light.loginCheck(sentTo);
+        if (!alive.current || !r.bounced) return;
+        window.clearInterval(t);
+        setSentTo(null); setStage('email'); setCode('');
+        setErr(r.error || 'Our email to that address bounced back. Check the spelling.');
+        hapticNotify('error');
+      } catch { /* a failed check never interrupts the sign-in */ }
+    }, 5000);
+    return () => window.clearInterval(t);
+  }, [stage, sentTo]);
+
   const focusCode = () => window.setTimeout(() => { if (alive.current) codeRef.current?.focus(); }, 200);
 
   const send = async () => {
@@ -50,6 +71,7 @@ export function LoginScreen({ onBack, onDone, initialEmail = '', startWithEmail 
       const r = await light.loginStart(e);
       if (!alive.current) return;
       setWait(r.retry_after || 60);
+      if (r.sent) setSentTo(e);
       setStage('code');
       focusCode();
     } catch (ex) {
