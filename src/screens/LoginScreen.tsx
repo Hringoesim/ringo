@@ -5,18 +5,18 @@
 //
 // Layout: a readable column (max 560) on every width; on a wide screen
 // (iPhone Duo open) the photo sits beside the sign-in choices.
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { RC, RADIUS, TYPE, typeFor, hexA } from '../theme';
-import { RingoHeader } from '../components/Header';
+import { useEffect, useRef, useState } from 'react';
+import { RC, RADIUS, TYPE, TAP, typeFor, hexA } from '../theme';
+import { RingoWordmark } from '../components/Wordmark';
 import { RingoButton } from '../components/Button';
 import { AuthButtons } from '../components/AuthButtons';
-import { BackBtn, FieldLabel, Input, TextLink, ErrorBox, PhotoCard } from '../components/ui';
+import { FieldLabel, Input, TextLink, ErrorBox } from '../components/ui';
 import { light } from '../api/light';
 import { account } from '../store/account';
 import { bundledPictureFor, pictureFor } from '../data/destinations';
 import { hapticNotify, hapticSelection } from '../lib/haptics';
 import { appleSignInAvailable } from '../lib/auth';
-import { useLayout, contentColumn, readColumn } from '../lib/layout';
+import { useLayout, contentColumn } from '../lib/layout';
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -82,102 +82,146 @@ export function LoginScreen({ onBack, onDone, initialEmail = '', startWithEmail 
       ? () => { hapticSelection(); setStage('choose'); setErr(null); }
       : onBack;
 
-  const title = (children: string, sub: ReactNode) => (
-    <div style={{ marginBottom: 24 }}>
-      <h2 style={{ margin: 0, ...typeFor('display', l.size), color: RC.ink }}>{children}</h2>
-      <p style={{ margin: '8px 0 0', ...TYPE.body, color: RC.ink2 }}>{sub}</p>
+  const errBox = err ? <ErrorBox style={{ marginTop: 12 }}>{err}</ErrorBox> : null;
+  const head = stage === 'code'
+    ? { title: 'Check your inbox', sub: <>We sent a six digit code to <b style={{ fontWeight: 700, overflowWrap: 'anywhere' }}>{email.trim().toLowerCase()}</b>. It works for ten minutes.</> }
+    : stage === 'email'
+      ? { title: 'Sign in with your email', sub: 'We send you a six digit code. No password to remember.' }
+      : { title: 'Welcome to Ringo', sub: 'Sign in or create your account in one tap.' };
+
+  const form = (
+    <>
+      {stage === 'choose' && (
+        <AuthButtons onSignedIn={onDone} onEmail={() => { hapticSelection(); setErr(null); setStage('email'); }} />
+      )}
+
+      {stage === 'email' && (
+        <>
+          <FieldLabel htmlFor="login-email">Email</FieldLabel>
+          <Input id="login-email" name="email" autoComplete="email" value={email} onChange={(v) => { setEmail(v); if (err) setErr(null); }} placeholder="you@example.com" type="email" inputMode="email" invalid={Boolean(err)} onEnter={() => void send()} />
+          {errBox}
+          <div style={{ marginTop: 20 }}>
+            <RingoButton loading={busy} onClick={() => void send()}>Send my code</RingoButton>
+          </div>
+          {/* App Review is given a fixed code, and the field for it used to
+              sit behind a send that their address cannot receive. */}
+          <div style={{ marginTop: 18, textAlign: 'center' }}>
+            <TextLink
+              onClick={() => {
+                if (!EMAIL_RE.test(email.trim().toLowerCase())) { setErr('Enter a valid email.'); return; }
+                hapticSelection(); setErr(null); setStage('code');
+                focusCode();
+              }}
+            >
+              I already have a code
+            </TextLink>
+          </div>
+        </>
+      )}
+
+      {stage === 'code' && (
+        <>
+          <FieldLabel htmlFor="login-code">Six digit code</FieldLabel>
+          <input
+            id="login-code"
+            ref={codeRef}
+            value={code}
+            onChange={(e) => { setCode(e.target.value.replace(/\D/g, '').slice(0, 6)); if (err) setErr(null); }}
+            onFocus={() => setCodeFocus(true)}
+            onBlur={() => setCodeFocus(false)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && code.length === 6) void verify(); }}
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            placeholder="••••••"
+            aria-invalid={Boolean(err) || undefined}
+            className="ringo-input ringo-code"
+            style={{
+              width: '100%', height: 64, padding: '0 16px', boxSizing: 'border-box', borderRadius: RADIUS.control, background: RC.paper,
+              border: `1.5px solid ${err ? RC.error : codeFocus ? RC.inkStrong : RC.lineStrong}`,
+              boxShadow: codeFocus ? `0 0 0 3px ${hexA('#FF5724', 0.14)}` : 'none',
+              outline: 'none', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 28, fontWeight: 700,
+              letterSpacing: 10, color: RC.ink, textAlign: 'center',
+            }}
+          />
+          {errBox}
+          <div style={{ marginTop: 20 }}>
+            <RingoButton loading={busy} disabled={code.length !== 6} onClick={() => void verify()}>Sign in</RingoButton>
+          </div>
+          <div style={{ marginTop: 18, textAlign: 'center' }}>
+            {wait > 0 ? (
+              <p aria-live="polite" style={{ margin: 0, ...TYPE.small, fontWeight: 500, color: RC.ink2 }}>Send a new code in {wait}s</p>
+            ) : (
+              <TextLink disabled={busy} onClick={() => void send()}>Send a new code</TextLink>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* What the account is for, said once, in the site's green ticks. */}
+      <ul style={{ listStyle: 'none', margin: '28px 0 0', padding: '20px 0 0', borderTop: `1.5px solid ${RC.line}`, display: 'grid', gap: 10 }}>
+        {['Your eSIMs on any phone you sign in on', 'Data left and day by day usage', 'Ringo Rewards and your travel badges'].map((t) => (
+          <li key={t} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', ...TYPE.body, fontSize: 16, color: RC.ink }}>
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden style={{ marginTop: 3, flexShrink: 0 }}><path d="M3 8.5l3.2 3L13 4.5" stroke="hsl(142,60%,42%)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            <span>{t}</span>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+
+  // The hero: three travel photographs under the site's warm dusk, the white
+  // wordmark, and the step's heading in white. On a wide screen (iPhone Duo
+  // open) it is the left column; on a phone it sits above the sheet.
+  const hero = (
+    <div style={{ position: 'relative', overflow: 'hidden', background: 'linear-gradient(135deg,hsl(8,95%,55%),hsl(330,90%,58%),hsl(262,70%,48%))', ...(l.isWide ? { borderRadius: 28, minHeight: 'min(720px, calc(100vh - 80px))' } : { minHeight: l.isCover ? 300 : 340 }) }}>
+      <div aria-hidden style={{ position: 'absolute', inset: 0, display: 'grid', gridTemplateColumns: '1.3fr 1fr', gridTemplateRows: '1fr 1fr', gap: 2 }}>
+        {HERO_PHOTOS.map((id, i) => {
+          const src = bundledPictureFor(id) ?? pictureFor(id);
+          return <img key={id} src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', gridRow: i === 0 ? '1 / span 2' : undefined }} />;
+        })}
+      </div>
+      <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(26,15,46,0.55) 0%, rgba(26,15,46,0.25) 38%, rgba(26,15,46,0.82) 100%)' }} />
+      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', minHeight: 'inherit', boxSizing: 'border-box', padding: l.isWide ? '24px 28px 32px' : `calc(env(safe-area-inset-top, 0px) + 12px) ${l.gutter}px ${l.isWide ? 32 : 52}px` }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <button className="press" onClick={back} aria-label="Back" style={{ width: TAP, height: TAP, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.45)', background: 'rgba(26,15,46,0.35)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M15 5l-7 7 7 7" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </button>
+          <RingoWordmark light size={30} />
+          <span style={{ width: TAP }} aria-hidden />
+        </div>
+        <div style={{ marginTop: 'auto', paddingTop: 40 }}>
+          <h1 style={{ margin: 0, ...typeFor('display', l.size), color: '#fff', textShadow: '0 2px 16px rgba(0,0,0,0.35)' }}>{head.title}</h1>
+          <p style={{ margin: '8px 0 0', ...TYPE.body, color: 'rgba(255,255,255,0.94)', textShadow: '0 1px 10px rgba(0,0,0,0.35)', maxWidth: 440 }}>{head.sub}</p>
+        </div>
+      </div>
     </div>
   );
-  const errBox = err ? <ErrorBox style={{ marginTop: 12 }}>{err}</ErrorBox> : null;
-  const picture = bundledPictureFor('japan') ?? pictureFor('japan');
+
+  const sheet = (
+    <div style={{ position: 'relative', background: RC.bg, ...(l.isWide ? { padding: '8px 0 0' } : { marginTop: -28, borderRadius: '28px 28px 0 0', padding: `28px ${l.gutter}px 0`, boxShadow: '0 -10px 24px -16px rgba(20,10,30,0.45)' }) }}>
+      <div style={l.isWide ? undefined : { maxWidth: 560, margin: '0 auto' }}>{form}</div>
+    </div>
+  );
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <RingoHeader title="Sign in" leading={<BackBtn onClick={back} />} />
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: RC.bg }}>
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', paddingBottom: 'max(40px, calc(env(safe-area-inset-bottom, 0px) + 24px))' }}>
-        {stage === 'choose' && (
-          <div style={{ ...contentColumn(l, l.isWide ? 880 : 560), paddingTop: 4 }}>
-            <div style={l.isWide ? { display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 28, alignItems: 'center' } : undefined}>
-              <PhotoCard
-                id="signin"
-                name="Your trips, one account"
-                photo={picture}
-                eager
-                aspect={l.isWide ? '4 / 3' : l.isCover ? '2 / 1' : '16 / 9'}
-                style={{ marginBottom: l.isWide ? 0 : 24 }}
-              />
-              <div>
-                {title('Sign in or create an account', 'Your eSIMs, your data and your travel badges in one place.')}
-                <AuthButtons onSignedIn={onDone} onEmail={() => { hapticSelection(); setErr(null); setStage('email'); }} />
-              </div>
-            </div>
+        {l.isWide ? (
+          <div style={{ ...contentColumn(l, 1040), minHeight: '100%', boxSizing: 'border-box', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 32px)', paddingBottom: 24, display: 'grid', gridTemplateColumns: 'minmax(0,1.1fr) minmax(0,1fr)', gap: 40, alignItems: 'center' }}>
+            {hero}
+            <div>{sheet}</div>
           </div>
-        )}
-
-        {stage === 'email' && (
-          <div style={{ ...readColumn(l), paddingTop: 4 }}>
-            {title('Your email', 'We send a six digit code there. No password.')}
-            <FieldLabel htmlFor="login-email">Email</FieldLabel>
-            <Input id="login-email" name="email" autoComplete="email" value={email} onChange={(v) => { setEmail(v); if (err) setErr(null); }} placeholder="you@example.com" type="email" inputMode="email" invalid={Boolean(err)} onEnter={() => void send()} />
-            {errBox}
-            <div style={{ marginTop: 24 }}>
-              <RingoButton loading={busy} onClick={() => void send()}>Send my code</RingoButton>
-            </div>
-            {/* App Review is given a fixed code, and the field for it used to
-                sit behind a send that their address cannot receive. */}
-            <div style={{ marginTop: 28, textAlign: 'center' }}>
-              <TextLink
-                onClick={() => {
-                  if (!EMAIL_RE.test(email.trim().toLowerCase())) { setErr('Enter a valid email.'); return; }
-                  hapticSelection(); setErr(null); setStage('code');
-                  focusCode();
-                }}
-              >
-                I already have a code
-              </TextLink>
-            </div>
-          </div>
-        )}
-
-        {stage === 'code' && (
-          <div style={{ ...readColumn(l), paddingTop: 4 }}>
-            {title('Check your inbox', <>Code sent to <span style={{ color: RC.ink, fontWeight: 600, overflowWrap: 'anywhere' }}>{email.trim().toLowerCase()}</span>. It works for ten minutes.</>)}
-            <FieldLabel htmlFor="login-code">Six digit code</FieldLabel>
-            <input
-              id="login-code"
-              ref={codeRef}
-              value={code}
-              onChange={(e) => { setCode(e.target.value.replace(/\D/g, '').slice(0, 6)); if (err) setErr(null); }}
-              onFocus={() => setCodeFocus(true)}
-              onBlur={() => setCodeFocus(false)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && code.length === 6) void verify(); }}
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              placeholder="123456"
-              aria-invalid={Boolean(err) || undefined}
-              className="ringo-input"
-              style={{
-                width: '100%', height: 60, padding: '0 16px', boxSizing: 'border-box', borderRadius: RADIUS.control, background: RC.paper,
-                border: `1.5px solid ${err ? RC.error : codeFocus ? RC.inkStrong : RC.lineStrong}`,
-                boxShadow: codeFocus ? `0 0 0 3px ${hexA('#FF5724', 0.14)}` : 'none',
-                outline: 'none', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 26, fontWeight: 700,
-                letterSpacing: 8, color: RC.ink, textAlign: 'center',
-              }}
-            />
-            {errBox}
-            <div style={{ marginTop: 24 }}>
-              <RingoButton loading={busy} disabled={code.length !== 6} onClick={() => void verify()}>Sign in</RingoButton>
-            </div>
-            <div style={{ marginTop: 28, textAlign: 'center' }}>
-              {wait > 0 ? (
-                <p aria-live="polite" style={{ margin: 0, ...TYPE.small, fontWeight: 500, color: RC.ink2 }}>Send a new code in {wait}s</p>
-              ) : (
-                <TextLink disabled={busy} onClick={() => void send()}>Send a new code</TextLink>
-              )}
-            </div>
-          </div>
+        ) : (
+          <>
+            {hero}
+            {sheet}
+          </>
         )}
       </div>
     </div>
   );
 }
+
+// The three photographs behind the sign-in heading (bundled, so they show
+// offline and at once).
+const HERO_PHOTOS = ['japan', 'iceland', 'morocco'];

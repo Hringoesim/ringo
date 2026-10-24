@@ -26,7 +26,7 @@ const FAQ: { q: string; a: string }[] = [
   { q: 'Does my phone support eSIM?', a: 'Every iPhone from the XS and XR onwards does, including iPhone Duo, as long as it is not carrier locked. In Settings › General › About, look for “Available SIM” or “Digital SIM”.' },
   { q: 'When should I install it?', a: 'Any time before you fly. Installing does not start the clock: the days start when the eSIM first connects at your destination.' },
   { q: 'Do I keep my own number?', a: 'Yes. Your own SIM stays for calls and texts and Ringo carries the data. In Settings › Mobile Data choose Ringo for data and turn Data Roaming on for it.' },
-  { q: 'What if I need more data?', a: 'Add more from My eSIM. It lands on the same eSIM within a minute. Unlimited plans follow the fair use policy in the Terms.' },
+  { q: 'What if I need more data?', a: 'Add more from My eSIM. It lands on the same eSIM within a minute.' },
   { q: 'How do I pay, and how do I cancel a renewing plan?', a: 'Every plan is bought through the App Store with your Apple ID. A renewing plan renews until you cancel it in Settings › Apple ID › Subscriptions, at least 24 hours before the period ends. One payment plans never renew.' },
 ];
 

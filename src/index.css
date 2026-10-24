@@ -473,3 +473,6 @@ button:focus-visible,
     transform: none;
   }
 }
+
+/* The sign-in code box: its hint is six light dots, never mistaken for a typed code. */
+.ringo-code::placeholder { color: rgba(26, 15, 46, 0.22); letter-spacing: 12px; }

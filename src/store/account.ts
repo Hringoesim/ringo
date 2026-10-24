@@ -59,6 +59,10 @@ export const account = {
     return next;
   },
   forget(): void {
+    // The next person on this phone never sees the last checkout's email.
+    // Purchases still in flight (ringo_pending_purchases_v1) stay: they are
+    // paid, and their context is what completes them.
+    try { localStorage.removeItem('ringo_last_email'); } catch { /* storage unavailable */ }
     write(null);
   },
   subscribe(l: () => void): () => void {

@@ -12,6 +12,10 @@ const GoogleMark = () => (
   <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.3l7.9 6.1C12.4 13.7 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z"/><path fill="#FBBC05" d="M10.5 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C.9 16.6 0 20.2 0 24s.9 7.4 2.6 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.3 0 11.7-2.1 15.6-5.7l-7.7-6c-2.1 1.4-4.8 2.3-7.9 2.3-6.3 0-11.6-4.2-13.5-9.9l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
 );
 
+const MailMark = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3" stroke="#F26122" strokeWidth="2" /><path d="M4 7l8 6 8-6" stroke="#F26122" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+);
+
 export function AuthButtons({ onSignedIn, onEmail, onDark = false }: { onSignedIn: () => void; onEmail: () => void; onDark?: boolean }) {
   useFlags();   // re-render when the site's switches arrive
   const [busy, setBusy] = useState<'apple' | 'google' | null>(null);
@@ -49,12 +53,11 @@ export function AuthButtons({ onSignedIn, onEmail, onDark = false }: { onSignedI
           <GoogleMark />{busy === 'google' ? 'Opening…' : 'Continue with Google'}
         </button>
       )}
-      {/* On the sunset a deep plum glass keeps the white label well over 4.5:1
-          (the old 18% white glass let it fall near 2.5:1 on the orange). */}
-      <button className="press" disabled={busy !== null} onClick={onEmail} style={row(onDark
-        ? { background: 'rgba(26,15,46,0.58)', color: '#fff', border: '1.5px solid rgba(255,255,255,0.45)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }
-        : { background: RC.paper, color: RC.ink, border: `1.5px solid ${RC.lineStrong}` })}>
-        Continue with email
+      {/* The same white button as Apple and Google, with a mail mark: one
+          family of three choices, ink on white (well over 7:1) on the sunset
+          and on the cream sheet alike. */}
+      <button className="press" disabled={busy !== null} onClick={onEmail} style={row({ background: '#fff', color: '#1A0F2E', border: `1.5px solid ${onDark ? 'transparent' : RC.lineStrong}`, boxShadow: onDark ? '0 10px 26px -12px rgba(26,15,46,0.55)' : 'none' })}>
+        <MailMark />Continue with email
       </button>
       {err && (
         <div role="alert" style={{ padding: '12px 14px', borderRadius: 12, background: onDark ? '#FFFFFF' : RC.errorSoft, border: '1px solid rgba(225,29,72,0.18)', fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, lineHeight: 1.45, color: onDark ? '#A12C2C' : RC.error, textAlign: 'center' }}>
