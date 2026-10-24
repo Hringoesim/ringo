@@ -44,39 +44,28 @@ export function AuthButtons({ onSignedIn, onEmail, onDark = false }: { onSignedI
     fontFamily: 'var(--font)', fontSize: 17, fontWeight: 600, letterSpacing: '-0.01em', ...extra,
   });
 
-  // On the dusk sky (the welcome screen): frosted glass (owner 2026-10-24,
-  // "the glass look"), white label and marks over a blurred, lightly tinted
-  // pane with a bright top edge. On the cream sheet: the white buttons.
-  const glass: CSSProperties = {
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.26) 0%, rgba(255,255,255,0.12) 100%)',
-    backdropFilter: 'blur(22px) saturate(170%)', WebkitBackdropFilter: 'blur(22px) saturate(170%)',
-    border: '1px solid rgba(255,255,255,0.42)',
-    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5), 0 10px 28px -14px rgba(26,15,46,0.6)',
-    color: '#FFFFFF', textShadow: '0 1px 1px rgba(26,15,46,0.25)',
-  };
-  const mark = onDark ? '#FFFFFF' : undefined;
+  // Ringo's own button for the email door (owner 2026-10-24: "continue with
+  // email on the Ringo colours"): the site's CTA gradient, white label and mark.
+  const ringo: CSSProperties = { background: RC.gradCta, color: '#FFFFFF', border: 'none', boxShadow: '0 10px 24px -12px rgba(223,40,12,0.6)' };
 
   // The App Store screenshots are shot in a browser (VITE_SHOT), where the
   // native sheet does not exist; they still show the button the phone shows.
   const showApple = appleSignInAvailable() || Boolean(import.meta.env.VITE_SHOT);
   return (
     <div style={{ display: 'grid', gap: 10 }}>
-      {/* White on cream (Apple's white style); frosted glass with the white logo on the dusk sky. */}
+      {/* Apple's own white style (owner 2026-10-24: "the normal Apple colours"; no black button). */}
       {showApple && (
-        <button className="press" disabled={busy !== null} onClick={() => void social('apple')} aria-label="Sign in with Apple" style={row({ ...(onDark ? glass : { background: '#fff', color: '#000', border: '1.5px solid #000' }), fontFamily: '-apple-system, var(--font)', fontSize: 17 })}>
-          <AppleMark color={mark} />{busy === 'apple' ? 'Opening…' : 'Sign in with Apple'}
+        <button className="press" disabled={busy !== null} onClick={() => void social('apple')} aria-label="Sign in with Apple" style={row({ background: '#fff', color: '#000', border: `1.5px solid ${onDark ? 'transparent' : '#000'}`, fontFamily: '-apple-system, var(--font)', fontSize: 17 })}>
+          <AppleMark />{busy === 'apple' ? 'Opening…' : 'Sign in with Apple'}
         </button>
       )}
       {googleSignInAvailable() && (
-        <button className="press" disabled={busy !== null} onClick={() => void social('google')} aria-label="Continue with Google" style={row(onDark ? glass : { background: '#fff', color: '#1A0F2E', border: `1.5px solid ${RC.lineStrong}` })}>
+        <button className="press" disabled={busy !== null} onClick={() => void social('google')} aria-label="Continue with Google" style={row({ background: '#fff', color: '#1A0F2E', border: `1.5px solid ${onDark ? 'transparent' : RC.lineStrong}` })}>
           <GoogleMark />{busy === 'google' ? 'Opening…' : 'Continue with Google'}
         </button>
       )}
-      {/* The same white button as Apple and Google, with a mail mark: one
-          family of three choices, ink on white (well over 7:1) on the sunset
-          and on the cream sheet alike. */}
-      <button className="press" disabled={busy !== null} onClick={onEmail} style={row(onDark ? glass : { background: '#fff', color: '#1A0F2E', border: `1.5px solid ${RC.lineStrong}` })}>
-        <MailMark color={mark} />Continue with email
+      <button className="press" disabled={busy !== null} onClick={onEmail} style={row(ringo)}>
+        <MailMark color="#FFFFFF" />Continue with email
       </button>
       {err && (
         <div role="alert" style={{ padding: '12px 14px', borderRadius: 12, background: onDark ? '#FFFFFF' : RC.errorSoft, border: '1px solid rgba(225,29,72,0.18)', fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, lineHeight: 1.45, color: onDark ? '#A12C2C' : RC.error, textAlign: 'center' }}>
