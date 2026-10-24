@@ -16,7 +16,8 @@ import { RC, RADIUS, TYPE, typeFor, cardSurface, SITE_GRAD, PHOTO_OVERLAY, PHOTO
 import { RingoHeader } from '../components/Header';
 import { RingoCard } from '../components/Card';
 import { RingoButton } from '../components/Button';
-import { BackBtn, ScreenTitle, SectionHead, TickList, PioneerBadge, ErrorBox, PhotoCard } from '../components/ui';
+import { SaturnWorld } from '../components/SaturnWorld';
+import { BackBtn, ScreenTitle, SectionHead, TickList, PioneerBadge, ErrorBox } from '../components/ui';
 import { light, type Profile, type RewardLevel } from '../api/light';
 import { useAccount } from '../store/account';
 import { useLiveTick } from '../store/live';
@@ -225,17 +226,31 @@ function WaitlistCard({ l, onOpen }: { l: Layout; onOpen: () => void }) {
       .catch(() => { /* the card still opens the waitlist */ });
     return () => { alive = false; };
   }, [userId, t, tick]);
+  // The welcome screen's globe on the night sky, small, beside the promise.
+  const globe = l.isWide ? 132 : l.isCover ? 92 : 108;
   return (
-    <PhotoCard
-      id="ringo-waitlist"
-      name="Ringo, one number for every country"
-      photo={`${import.meta.env.BASE_URL}img/destinations/global.jpg`}
-      aspect={l.isWide ? '21 / 9' : '16 / 9'}
-      what="Your own number on one plan that works everywhere. Coming soon."
-      price={line}
+    <button
+      type="button"
+      className="card-press"
       onClick={onOpen}
-      ariaLabel={`Ringo waitlist. ${line}`}
-    />
+      aria-label={`Ringo waitlist. ${line}`}
+      style={{
+        width: '100%', textAlign: 'left', border: 'none', cursor: 'pointer', padding: `${l.cardPad}px ${l.cardPad}px ${l.cardPad}px ${l.cardPad - 4}px`,
+        position: 'relative', overflow: 'hidden', borderRadius: 24, display: 'flex', alignItems: 'center', gap: 14,
+        background: 'radial-gradient(120% 90% at 20% 0%, #3B1F5E 0%, #1A0F2E 62%), #1A0F2E',
+        boxShadow: '0 18px 36px -20px rgba(88,24,72,0.7)', font: 'inherit',
+      }}
+    >
+      <span aria-hidden style={{ position: 'absolute', left: '-15%', right: '-15%', bottom: '-70%', height: '110%', borderRadius: '50%', background: 'radial-gradient(50% 50% at 50% 50%, rgba(255,122,82,0.45) 0%, rgba(255,66,161,0.22) 42%, rgba(134,82,224,0) 72%)' }} />
+      <span aria-hidden style={{ position: 'relative', flexShrink: 0, animation: 'ringoGlobeFloat 6s ease-in-out infinite' }}>
+        <SaturnWorld size={globe} />
+      </span>
+      <span style={{ position: 'relative', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <span style={{ fontFamily: 'var(--font-display)', fontSize: l.isCover ? 19 : 21, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.15, color: '#FFFFFF' }}>Ringo, one number for every country</span>
+        <span style={{ ...TYPE.small, color: 'rgba(255,255,255,0.86)' }}>Your own number on one plan that works everywhere.</span>
+        <span style={{ alignSelf: 'flex-start', marginTop: 2, padding: '6px 12px', borderRadius: RADIUS.pill, background: '#FFFFFF', fontFamily: 'var(--font)', fontSize: 14, fontWeight: 800, color: '#1A0F2E' }}>{line}</span>
+      </span>
+    </button>
   );
 }
 

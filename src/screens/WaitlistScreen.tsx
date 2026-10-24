@@ -14,9 +14,10 @@
 // empty array OVERWRITES. So the form is always filled from /api/dashboard
 // first and every save carries the full current state of every field.
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { RC, TYPE, RADIUS, TAP, typeFor, cardSurface, SITE_GRAD, PHOTO_OVERLAY, PHOTO_TEXT_SHADOW, hexA } from '../theme';
+import { RC, TYPE, RADIUS, TAP, typeFor, cardSurface, SITE_GRAD, hexA } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
+import { SaturnWorld } from '../components/SaturnWorld';
 import { BackBtn, ErrorBox, PioneerBadge } from '../components/ui';
 import { light, type ProfileAnswers, type WaitlistDashboard, type WaitlistUser } from '../api/light';
 import { useAccount } from '../store/account';
@@ -38,8 +39,6 @@ const TRAVEL_REGIONS = ['Europe', 'North America', 'Asia', 'Latin America', 'Afr
 const MAX_VALUES = 3;
 const AUTOSAVE_TEXT_MS = 1200;
 
-const HERO = `${import.meta.env.BASE_URL}img/destinations/global.jpg`;
-
 /** Saved answers split into the options shown and anything else (kept and re-sent unchanged). */
 function split(saved: unknown, known: string[]): { picked: string[]; other: string[] } {
   const arr = Array.isArray(saved) ? saved.filter((x): x is string => typeof x === 'string' && x.trim() !== '') : [];
@@ -48,29 +47,81 @@ function split(saved: unknown, known: string[]): { picked: string[]; other: stri
 
 // ── Small pieces ────────────────────────────────────────────────────────────
 
-function Hero({ l, children }: { l: Layout; children?: ReactNode }) {
-  const [broken, setBroken] = useState(false);
+// The hero: the welcome screen's illustrated globe, floating on the plum
+// night sky with a sunset horizon (owner 2026-10-24: "needs a better globe"),
+// a "Your number" chip riding on it, and the promise in white.
+const STARS = Array.from({ length: 34 }, (_, i) => {
+  // Deterministic positions so the sky does not reshuffle on every render.
+  const r = (n: number) => { const x = Math.sin(i * 97.13 + n * 13.7) * 43758.5453; return x - Math.floor(x); };
+  return { x: r(1) * 100, y: r(2) * 62, s: r(3) < 0.18 ? 2.4 : r(3) < 0.55 ? 1.6 : 1.1, o: 0.35 + r(4) * 0.55 };
+});
+
+function NumberChip() {
   return (
-    <section style={{ ...cardSurface(), overflow: 'hidden' }}>
-      <div style={{ position: 'relative', aspectRatio: l.isWide ? '16 / 9' : '4 / 3', background: SITE_GRAD }}>
-        {!broken && (
-          <img src={HERO} alt="" loading="eager" decoding="async" onError={() => setBroken(true)}
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-        )}
-        <div aria-hidden style={{ position: 'absolute', inset: 0, background: PHOTO_OVERLAY }} />
-        <h2 style={{ position: 'absolute', left: l.cardPad, right: l.cardPad, bottom: 16, margin: 0, color: '#fff', textShadow: PHOTO_TEXT_SHADOW, ...typeFor('hero', l.isWide ? 'phone' : l.size) }}>
+    <div aria-hidden style={{
+      position: 'absolute', right: '-10%', top: '2%', display: 'flex', alignItems: 'center', gap: 7,
+      padding: '7px 12px 7px 8px', borderRadius: RADIUS.pill, background: '#FFFFFF',
+      boxShadow: '0 10px 24px -10px rgba(26,15,46,0.6)', animation: 'ringoGlobeFloat 6s ease-in-out infinite reverse',
+    }}>
+      <span style={{ width: 24, height: 24, borderRadius: '50%', background: 'linear-gradient(135deg,#f26122,#ff42a1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.6a1 1 0 0 1-.25 1z" fill="#fff" /></svg>
+      </span>
+      <span style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 800, color: '#1A0F2E', whiteSpace: 'nowrap' }}>Your number</span>
+    </div>
+  );
+}
+
+function Hero({ l, children, signedOut = false }: { l: Layout; children?: ReactNode; signedOut?: boolean }) {
+  const size = l.isWide ? 280 : l.isCover ? 190 : 220;
+  return (
+    <section style={{
+      position: 'relative', overflow: 'hidden', borderRadius: 28,
+      background: 'radial-gradient(120% 70% at 50% 0%, #3B1F5E 0%, #1A0F2E 58%), #1A0F2E',
+      boxShadow: '0 22px 44px -22px rgba(88,24,72,0.7)',
+    }}>
+      {/* Stars, then the sunset horizon rising behind the globe. */}
+      <div aria-hidden style={{ position: 'absolute', inset: 0 }}>
+        {STARS.map((st, i) => (
+          <span key={i} style={{ position: 'absolute', left: `${st.x}%`, top: `${st.y}%`, width: st.s, height: st.s, borderRadius: '50%', background: '#FFF6EC', opacity: st.o }} />
+        ))}
+        <div style={{ position: 'absolute', left: '-20%', right: '-20%', bottom: '-38%', height: '78%', borderRadius: '50%', background: 'radial-gradient(50% 50% at 50% 50%, rgba(255,122,82,0.55) 0%, rgba(255,66,161,0.28) 42%, rgba(134,82,224,0) 72%)' }} />
+      </div>
+      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: `${l.isCover ? 22 : 28}px ${l.cardPad + 4}px ${l.cardPad + 8}px` }}>
+        <div style={{ position: 'relative', width: size, height: size }}>
+          <div aria-hidden style={{ position: 'absolute', left: '50%', bottom: -10, transform: 'translateX(-50%)', width: size * 0.62, height: 20, borderRadius: '50%', background: 'radial-gradient(50% 50% at 50% 50%, rgba(10,4,20,0.55) 0%, rgba(10,4,20,0) 70%)', animation: 'ringoGlobeFloat 6s ease-in-out infinite reverse' }} />
+          <div style={{ animation: 'ringoGlobeIn 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) both' }}>
+            <div style={{ animation: 'ringoGlobeFloat 6s ease-in-out infinite' }}>
+              <SaturnWorld size={size} satellite />
+            </div>
+          </div>
+          <NumberChip />
+        </div>
+        <h2 style={{ margin: '22px 0 0', color: '#FFFFFF', textWrap: 'balance', ...typeFor('hero', l.isWide ? 'phone' : l.size) }}>
           Ringo: your number, every country
         </h2>
-      </div>
-      <div style={{ padding: l.cardPad, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <p style={{ margin: 0, ...TYPE.body, color: RC.ink }}>
+        <p style={{ margin: '10px 0 0', ...TYPE.body, color: 'rgba(255,255,255,0.9)', maxWidth: 460 }}>
           Port your own number onto one plan that works in every country. We are building it now, and the waitlist is free.
         </p>
-        <p style={{ margin: 0, ...TYPE.small, color: RC.ink2 }}>
-          Ringo Light, the data eSIMs you buy in this app, is what funds it.
-        </p>
-        {children}
+        {signedOut && <p style={{ margin: '8px 0 0', ...TYPE.small, color: 'rgba(255,255,255,0.82)' }}>Sign in to join the waitlist and see your place in line.</p>}
+        {children && <div style={{ width: '100%', maxWidth: 420, marginTop: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>{children}</div>}
       </div>
+    </section>
+  );
+}
+
+// What the full service is, in three ticks, and what funds it.
+function Promise({ l }: { l: Layout }) {
+  return (
+    <section style={{ ...cardSurface(), padding: l.cardPad }}>
+      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }}>
+        {['Keep your own number, moved to Ringo', 'One plan that works in every country', 'Free to join, nothing to pay'].map((t) => (
+          <li key={t} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', ...TYPE.body, color: RC.ink }}>
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden style={{ marginTop: 4, flexShrink: 0 }}><path d="M3 8.5l3.2 3L13 4.5" stroke="hsl(142,60%,42%)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            <span>{t}</span>
+          </li>
+        ))}
+      </ul>
+      <p style={{ margin: '14px 0 0', ...TYPE.small, color: RC.ink2 }}>Ringo Light, the data eSIMs you buy in this app, is what funds it.</p>
     </section>
   );
 }
@@ -603,10 +654,12 @@ export function WaitlistScreen({ onBack, onLogin, onBrowse }: { onBack: () => vo
   let right: ReactNode = null;
   if (!acct) {
     left = (
-      <Hero l={l}>
-        <p style={{ margin: '4px 0 0', ...TYPE.small, color: RC.ink2 }}>Sign in to join the waitlist and see your place in line.</p>
-        <div style={{ marginTop: 6 }}><RingoButton capped onClick={onLogin}>Sign in</RingoButton></div>
-      </Hero>
+      <>
+        <Hero l={l} signedOut>
+          <RingoButton variant="onDark" onClick={onLogin}>Sign in</RingoButton>
+        </Hero>
+        <Promise l={l} />
+      </>
     );
   } else if (!data) {
     left = (
@@ -624,10 +677,13 @@ export function WaitlistScreen({ onBack, onLogin, onBrowse }: { onBack: () => vo
     );
   } else if (lead) {
     left = (
-      <Hero l={l}>
-        <div style={{ marginTop: 6 }}><RingoButton capped loading={joining} onClick={() => void join()}>Join the waitlist</RingoButton></div>
-        {joinErr && <ErrorBox>{joinErr}</ErrorBox>}
-      </Hero>
+      <>
+        <Hero l={l}>
+          <RingoButton variant="onDark" loading={joining} onClick={() => void join()}>Join the waitlist</RingoButton>
+          {joinErr && <ErrorBox>{joinErr}</ErrorBox>}
+        </Hero>
+        <Promise l={l} />
+      </>
     );
   } else if (user) {
     left = (
