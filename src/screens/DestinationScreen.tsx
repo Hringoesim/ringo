@@ -185,28 +185,33 @@ const ringOff = { border: `1.5px solid ${LINE}`, background: CREAM, boxShadow: '
 
 
 /** Data or Unlimited, each said in one line so a buyer knows what is what. */
-function PlanTabs({ value, onChange }: { value: 'data' | 'unl'; onChange: (t: 'data' | 'unl') => void }) {
-  const icon = (id: 'data' | 'unl', on: boolean) => (
+/** The plan families a destination shows: Data, Unlimited, and Power where it is competitive. */
+type PlanTab = 'data' | 'unl' | 'power';
+function PlanTabs({ value, options, onChange }: { value: PlanTab; options: PlanTab[]; onChange: (t: PlanTab) => void }) {
+  const icon = (id: PlanTab, on: boolean) => (
     <span aria-hidden style={{ width: 34, height: 34, borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8,
       background: id === 'data' ? 'rgba(242,97,34,0.10)' : 'linear-gradient(135deg, rgba(242,97,34,0.12), rgba(255,66,161,0.12), rgba(134,82,224,0.14))' }}>
       <svg width="19" height="19" viewBox="0 0 24 24">
-        {id === 'data'
+        {id === 'power'
+          ? <path fill={on ? '#D6247A' : RC.ink} d="M13.4 2.2c.4-.6-.3-1.3-.9-.9L4.6 12.2c-.4.5 0 1.3.6 1.3h5.3l-1.9 8.2c-.2.7.7 1.1 1.1.5l9.6-11.6c.4-.5 0-1.2-.6-1.2h-5.6l.3-7.2z" />
+          : id === 'data'
           ? <path fill={on ? ORANGE : RC.ink} d="M21.2 14.6v-1.8l-7.6-4.6V3.6c0-.9-.7-1.6-1.6-1.6s-1.6.7-1.6 1.6v4.6l-7.6 4.6v1.8l7.6-2.3v4.9l-2.2 1.6V20l3.8-1.1 3.8 1.1v-1.2l-2.2-1.6v-4.9z" />
           : <path fill="none" stroke={on ? '#D6247A' : RC.ink} strokeWidth="2.3" strokeLinecap="round" d="M7 8.5c-2 0-3.5 1.6-3.5 3.5s1.5 3.5 3.5 3.5c3.5 0 6.5-7 10-7 2 0 3.5 1.6 3.5 3.5s-1.5 3.5-3.5 3.5c-3.5 0-6.5-7-10-7z" />}
       </svg>
     </span>
   );
-  const tabs: { id: 'data' | 'unl'; label: string; line: string }[] = [
+  const tabs: { id: PlanTab; label: string; line: string }[] = [
     { id: 'data', label: 'Data', line: 'A set amount for your whole trip' },
+    { id: 'power', label: 'Power', line: '3 GB a day at full speed' },
     { id: 'unl', label: 'Unlimited', line: 'Full speed every day, never cut off' },
   ];
   return (
-    <div role="tablist" aria-label="Plan type" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-      {tabs.map((t) => {
+    <div role="tablist" aria-label="Plan type" style={{ display: 'grid', gridTemplateColumns: `repeat(${options.length}, 1fr)`, gap: 10 }}>
+      {tabs.filter((t) => options.includes(t.id)).map((t) => {
         const on = t.id === value;
         return (
           <button key={t.id} type="button" role="tab" aria-selected={on} className="press" onClick={() => { if (!on) onChange(t.id); }}
-            style={{ cursor: 'pointer', textAlign: 'left', padding: '12px 14px', borderRadius: 18, ...(on ? ringOn(t.id === 'unl') : ringOff) }}>
+            style={{ cursor: 'pointer', textAlign: 'left', padding: '12px 14px', borderRadius: 18, ...(on ? ringOn(t.id !== 'data') : ringOff) }}>
             {icon(t.id, on)}
             <span style={{ display: 'block', fontFamily: 'var(--font)', fontSize: 17, fontWeight: 600, color: RC.ink }}>{t.label}</span>
             <span style={{ display: 'block', marginTop: 2, fontFamily: 'var(--font)', fontSize: 13, color: RC.ink2, lineHeight: 1.35 }}>{t.line}</span>
@@ -258,7 +263,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
   const [unlGb, setUnlGb] = useState<number | null>(null);
   // Screen 1, the tabs (owner 2026-10-24, after the choice research): Data or
   // Unlimited first, each explained in one line, then that tab's plans.
-  const [tab, setTab] = useState<'data' | 'unl'>('data');
+  const [tab, setTab] = useState<PlanTab>('data');
   const arm = useMemo(() => defaultArm(), []);
   // At most three plans on screen (choice overload), the rest one tap away.
   const [showAll, setShowAll] = useState(false);
@@ -344,17 +349,22 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
     // Fixed data smallest first, then the unlimited lines (shown as one card).
     return [...allLines].sort((a, b) => (Number(Boolean(a.app_only)) - Number(Boolean(b.app_only))) || ((a.data_gb ?? 0) - (b.data_gb ?? 0)) || (a.days - b.days) || ((a.daily_gb ?? 0) - (b.daily_gb ?? 0)));
   }, [cat, allLines, native, products]);
+  const byDays = (list: Plan[]) => [...list].sort((a, b) => a.days - b.days);
   const dataLines = plans.filter((p) => !p.app_only);
-  const unlLines = plans.filter((p) => p.app_only);
+  // Power (3 GB a day) is its own box; the server only sends it where it beats
+  // the cheapest rival and still clears cost, so most places show two tabs.
+  const powerLines = byDays(plans.filter((p) => p.app_only && p.group === 'power'));
+  const unlLines = plans.filter((p) => p.app_only && p.group !== 'power');
   // The Unlimited tab: the full-speed amount a day, then one card per length.
   const tierOptions = [...new Set(unlLines.map((p) => p.daily_gb ?? 0))].sort((a, b) => a - b);
   const tierGb = unlGb != null && tierOptions.includes(unlGb) ? unlGb : (tierOptions[0] ?? null);
   const tierLines = unlLines.filter((p) => (p.daily_gb ?? 0) === tierGb).sort((a, b) => a.days - b.days);
-  const shownTab: 'data' | 'unl' = tab === 'unl' && unlLines.length ? 'unl' : dataLines.length ? 'data' : 'unl';
+  const tabOptions = (['data', 'power', 'unl'] as PlanTab[]).filter((t) => (t === 'data' ? dataLines : t === 'power' ? powerLines : unlLines).length > 0);
+  const shownTab: PlanTab = tabOptions.includes(tab) ? tab : (tabOptions[0] ?? 'data');
   // The Recommended line leads its tab (in both arms), so the plan that keeps
   // Ringo the most is the first thing seen; the rest keep their order.
   const leadFirst = (list: Plan[]) => [...list.filter((p) => p.best_margin), ...list.filter((p) => !p.best_margin)];
-  const tabLines = leadFirst(shownTab === 'data' ? dataLines : tierLines);
+  const tabLines = leadFirst(shownTab === 'data' ? dataLines : shownTab === 'power' ? powerLines : tierLines);
   // Three on screen: the Recommended one, then the shortest lengths; the chosen
   // line always stays in view.
   const firstThree = tabLines.slice(0, 3);
@@ -446,8 +456,8 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
       {unlimitedGlobal && plans[0] && (
         <GlobalCard l={l} p={plans[0]} price={priceOf(plans[0], productFor(plans[0]))} />
       )}
-      {!unlimitedGlobal && dataLines.length > 0 && unlLines.length > 0 && (
-        <PlanTabs value={shownTab} onChange={(t) => { hapticSelection(); setTab(t); setShowAll(false); }} />
+      {!unlimitedGlobal && tabOptions.length > 1 && (
+        <PlanTabs value={shownTab} options={tabOptions} onChange={(t) => { hapticSelection(); setTab(t); setShowAll(false); }} />
       )}
       {!unlimitedGlobal && shownTab === 'unl' && tierOptions.length > 1 && (
         <div>
