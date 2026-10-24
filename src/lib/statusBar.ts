@@ -9,19 +9,21 @@
 import { Capacitor } from '@capacitor/core';
 import { RC } from '../theme';
 
-let lightRequested = false;
+// A count, not a flag: the sign-in screen asks too, and can mount and unmount
+// while the welcome screen still holds its own request.
+let lightRequests = 0;
 
 /** Re-apply the status bar text colour for the current theme and screen. */
 export function syncStatusBar(): void {
   if (!Capacitor.isNativePlatform()) return;
-  const light = lightRequested || RC.scheme === 'dark';
+  const light = lightRequests > 0 || RC.scheme === 'dark';
   void import('@capacitor/status-bar')
     .then(({ StatusBar, Style }) => StatusBar.setStyle({ style: light ? Style.Dark : Style.Light }))
     .catch(() => {});
 }
 
-/** The welcome screen: light text while shown, the theme's again after. */
+/** A screen with a dark photo under the clock: light text while shown, the theme's again after. */
 export function requestLightStatusBar(on: boolean): void {
-  lightRequested = on;
+  lightRequests = Math.max(0, lightRequests + (on ? 1 : -1));
   syncStatusBar();
 }

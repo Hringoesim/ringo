@@ -34,6 +34,7 @@ import { useLiveTick } from '../store/live';
 import { priceOf } from '../lib/purchase';
 import { haptic, hapticSelection } from '../lib/haptics';
 import { useLayout, contentColumn, type Layout } from '../lib/layout';
+import { requestLightStatusBar } from '../lib/statusBar';
 
 export interface Selection {
   destination: string;
@@ -174,6 +175,13 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
   const [tier, setTier] = useState<Tier>('data');
   const [planId, setPlanId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+
+  // On a phone the photos stay under the clock (only the sheet scrolls): light text over them.
+  useEffect(() => {
+    if (l.isWide) return;
+    requestLightStatusBar(true);
+    return () => requestLightStatusBar(false);
+  }, [l.isWide]);
 
   useEffect(() => {
     let alive = true;

@@ -12,6 +12,7 @@
 // phone, after the first purchase is delivered.
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { RingoTabBar, type TabId } from './components/TabBar';
+import { RC } from './theme';
 import { ScreenHost, type NavDir } from './components/ScreenHost';
 import { haptic } from './lib/haptics';
 import { account, pendingPurchase } from './store/account';
@@ -314,6 +315,9 @@ export function App() {
       <ScreenHost navKey={navKey} dir={navDirRef.current} fullBleed={current.name === 'landing'} onSwipeBack={() => { if (stack.length > 1) pop(); }}>
         {body}
       </ScreenHost>
+      {/* The tab screens scroll under the clock; without this strip a heading
+          scrolled up runs straight through the time and battery. */}
+      {showTabs && <div aria-hidden style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 'env(safe-area-inset-top, 0px)', background: RC.bg, zIndex: 5, pointerEvents: 'none' }} />}
       {showTabs && <RingoTabBar active={current.name} onChange={goTab} />}
       {pushAsk && showTabs && (
         <PushSheet

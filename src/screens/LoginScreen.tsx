@@ -17,6 +17,7 @@ import { bundledPictureFor, pictureFor } from '../data/destinations';
 import { hapticNotify, hapticSelection } from '../lib/haptics';
 import { appleSignInAvailable } from '../lib/auth';
 import { useLayout, contentColumn } from '../lib/layout';
+import { requestLightStatusBar } from '../lib/statusBar';
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -32,6 +33,12 @@ export function LoginScreen({ onBack, onDone, initialEmail = '', startWithEmail 
   const codeRef = useRef<HTMLInputElement>(null);
   const alive = useRef(true);
   useEffect(() => () => { alive.current = false; }, []);
+  // On a phone the photo hero sits under the clock: light text over it.
+  useEffect(() => {
+    if (l.isWide) return;
+    requestLightStatusBar(true);
+    return () => requestLightStatusBar(false);
+  }, [l.isWide]);
 
   useEffect(() => {
     if (wait <= 0) return;

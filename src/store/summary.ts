@@ -15,6 +15,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { light, type Plan, type Summary } from '../api/light';
 import { iapAvailable, loadProducts } from '../lib/iap';
 import { appleMoney } from '../lib/purchase';
+import { subMonths } from '../lib/terms';
 import { live } from './live';
 
 let current: Summary | null = null;
@@ -58,7 +59,10 @@ live.subscribe(() => {
 export function rememberAppleLines(ids: string[], plans: Plan[]): void {
   const list: AppleLine[] = plans
     .filter((p) => p.apple_product_id)
-    .map((p) => [p.apple_product_id!, p.mode === 'subscription' && p.term_months > 1 ? p.term_months : 1]);
+    // subMonths reads the term from the product id: Global's line carries the
+    // site's term_months 12 but renews monthly in the app, and dividing by 12
+    // showed "From US$4.17" on its card (found 2026-10-24).
+    .map((p) => [p.apple_product_id!, subMonths(p)]);
   if (!list.length) return;
   const same = ids.every((id) => JSON.stringify(lines[id]) === JSON.stringify(list));
   if (same) return;
