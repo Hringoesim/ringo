@@ -215,6 +215,9 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return body as T;
 }
 
+/** /api/light-status for a hosted Checkout session. */
+export interface CardStatus { status: string; paid: boolean; pending: boolean; delivered?: boolean; user_id?: string; t?: string }
+
 export const light = {
   summary: () => request<Summary>('/esim-plans?summary=1'),
   /** With the member's account, plans carry their Ringo Rewards price and its App Store product. */
@@ -224,6 +227,12 @@ export const light = {
   /** Report an App Store purchase; the site verifies Apple's signature and issues the eSIM. */
   appPurchase: (body: { signedTransaction: string; plan: string; destination: string; data_gb?: number | null; email: string }) =>
     request<PurchaseRecord>('/app-purchase', { method: 'POST', body: JSON.stringify(body) }),
+
+  /** Card payment (owner 2026-10-24, "accept any and all cards"): a hosted Stripe Checkout for a one-payment plan, opened in the browser sheet. Any card from any country, Apple Pay, Link. */
+  cardCheckout: (body: { plan: string; destination: string; data_gb?: number | null; email: string; currency?: string }) =>
+    request<{ url: string; id?: string }>('/esim-checkout', { method: 'POST', body: JSON.stringify({ ...body, client: 'app', device: 'iPhone app' }) }),
+  /** Stripe's own word on that session: paid, and once the site has the row, whose account it is. */
+  cardStatus: (session: string) => request<CardStatus>(`/light-status?session=${encodeURIComponent(session)}`),
 
   /** "Restore purchases": the owner of a purchase the site already knows (404 otherwise). */
   restorePurchase: (signedTransaction: string) =>
@@ -285,7 +294,7 @@ export const light = {
     request<Usage>(`/app-usage?${new URLSearchParams({ user: userId, t }).toString()}`),
 
   /** This phone's push token and the member's switches; the site is the sender. */
-  pushRegister: (userId: string, t: string, body: { token: string; environment: 'production' | 'sandbox'; service_ok: boolean; offers_ok: boolean; app_version?: string }) =>
+  pushRegister: (userId: string, t: string, body: { token: string; environment: 'production' | 'sandbox'; service_ok: boolean; offers_ok: boolean; app_version?: string; country?: string }) =>
     request<{ ok: boolean; service_ok: boolean; offers_ok: boolean }>(
       `/app-push-register?${new URLSearchParams({ user: userId, t }).toString()}`,
       { method: 'POST', body: JSON.stringify(body) },

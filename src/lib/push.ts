@@ -17,6 +17,7 @@ import { useSyncExternalStore } from 'react';
 import { light } from '../api/light';
 import { account } from '../store/account';
 import { log } from './log';
+import { lastCountry, readCountry } from './location';
 
 type Permission = 'granted' | 'denied' | 'prompt' | 'unavailable';
 type ApnsEnv = 'production' | 'sandbox';
@@ -68,7 +69,8 @@ export async function syncPush(): Promise<void> {
   const { token, environment, prefs, permission } = state;
   if (!acct || !token) return;
   const allowed = permission === 'granted';
-  const body = { token, environment, service_ok: allowed && prefs.service, offers_ok: allowed && prefs.offers, app_version: String(import.meta.env.VITE_APP_VERSION || '') };
+  const country = allowed ? lastCountry() : null;
+  const body = { token, environment, service_ok: allowed && prefs.service, offers_ok: allowed && prefs.offers, app_version: String(import.meta.env.VITE_APP_VERSION || ''), ...(country ? { country } : {}) };
   const sig = JSON.stringify({ u: acct.userId, ...body });
   try { if (localStorage.getItem(SENT_KEY) === sig) return; } catch { /* ignore */ }
   try {
@@ -85,6 +87,8 @@ async function refresh(): Promise<void> {
     const s = await Native.status();
     setState({ permission: s.permission, environment: s.environment, token: s.token ?? state.token, known: true });
   } catch { /* plugin missing on an old build */ }
+  // Where the phone is now, for pushes about the trip (never asks here).
+  if (state.permission === 'granted') await readCountry(false);
   await syncPush();
 }
 
@@ -131,6 +135,9 @@ export async function askPermission(): Promise<boolean> {
   try {
     const { granted } = await Native.requestPermission();
     setState({ permission: granted ? 'granted' : 'denied' });
+    // A yes to notifications is followed by the one location ask: the
+    // country makes them about the trip. A no is never asked about location.
+    if (granted) void readCountry(true).then(() => syncPush());
     // Telling the site happens in the background: the screen that asked
     // moves on at once, never waiting on the network.
     void refresh();

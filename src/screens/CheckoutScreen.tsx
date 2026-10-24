@@ -1,4 +1,16 @@
-// CheckoutScreen: email, then the App Store. The purchase sheet is Apple's
+// CheckoutScreen: email, then a card or the App Store.
+//
+// Card first (owner 2026-10-24, "accept any and all cards ... like Saily"):
+// a one-payment plan can be paid on Stripe's hosted page in the browser
+// sheet, with any card from any country, Apple Pay or Link, the same session
+// and fulfilment the website uses (api/esim-checkout, client 'app'). An eSIM
+// is a service used outside the app, so App Review allows a payment that is
+// not Apple's (guideline 3.1.3(e)). The app never decides it is paid: it
+// polls /api/light-status, Stripe's own word, then waits for the eSIM like
+// an App Store purchase. Day passes (App Store products only), renewing
+// plans and Rewards member prices (the hosted page charges the list price)
+// stay on the App Store button below it.
+// The purchase sheet is Apple's
 // (StoreKit 2); the signed transaction it returns goes to ringoesim.com,
 // which verifies it against Apple's roots, issues the eSIM and names the
 // buyer's account. Only after that is the transaction finished, so a
@@ -33,13 +45,15 @@ import { light, SITE } from '../api/light';
 import { account, pendingPurchase } from '../store/account';
 import { iapAvailable, purchase } from '../lib/iap';
 import { openInSheet } from '../lib/browser';
+import { Capacitor } from '@capacitor/core';
 import { haptic, hapticNotify } from '../lib/haptics';
 import { priceOf, reportTransaction } from '../lib/purchase';
+import { logAb } from '../lib/abtest';
 import { type Selection } from './DestinationScreen';
 import { planName, periodWord } from '../lib/terms';
 import { useLayout, contentColumn, type Layout } from '../lib/layout';
 
-type Stage = 'email' | 'buying' | 'recording' | 'issuing' | 'slow' | 'ready' | 'pending' | 'failed';
+type Stage = 'email' | 'card' | 'buying' | 'recording' | 'issuing' | 'slow' | 'ready' | 'pending' | 'failed';
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 // Retired: the last email typed on this phone, which pre-filled one
@@ -73,6 +87,9 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
 
   // Leaving mid-purchase would hide what happened to the payment.
   useBlockSwipeBack(!['email', 'failed', 'ready', 'pending', 'slow'].includes(stage));
+  // A listener of the card sheet, removed when the screen goes.
+  const cardCleanup = useRef<(() => void) | null>(null);
+  useEffect(() => () => { cardCleanup.current?.(); }, []);
 
   const p = selection.plan;
   const price = priceOf(p, selection.product);
@@ -113,6 +130,70 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   // bounces: the app must not tell anyone to go and look for it. The eSIM
   // itself is always here, under My eSIM.
   const relayEmail = /@privaterelay\.appleid\.com$/i.test(email.trim());
+
+  // The email checks both buttons share; the address, or null after saying why.
+  const checkedEmail = (): string | null => {
+    const e = email.trim().toLowerCase();
+    if (!EMAIL_RE.test(e)) { setErr('Enter the email your eSIM should be sent to.'); return null; }
+    if (signedInEmail && e !== signedInEmail.toLowerCase() && confirmedOther.current !== e) { setErr(null); setOtherEmail(e); return null; }
+    setErr(null);
+    setOtherEmail(null);
+    return e;
+  };
+
+  // Card: Stripe's hosted page in the sheet; Stripe says when it is paid.
+  const payByCard = async () => {
+    const e = checkedEmail();
+    if (!e) return;
+    haptic('medium');
+    setStageBoth('card');
+    let session: string;
+    let url: string;
+    try {
+      const r = await light.cardCheckout({ plan: p.plan, destination: selection.destination, data_gb: selection.data_gb, email: e, currency: p.currency });
+      url = r.url;
+      session = r.id || (r.url.match(/cs_(live|test)_[A-Za-z0-9]+/)?.[0] ?? '');
+      if (!session) throw new Error('The card payment could not be started.');
+    } catch (ex) {
+      if (!mounted.current) return;
+      setErr((ex as Error).message || 'The card payment could not be started.');
+      setStageBoth('email');
+      return;
+    }
+    let closed = false;
+    let done = false;
+    let afterClose = 0;
+    const finishCard = () => { done = true; cardCleanup.current?.(); cardCleanup.current = null; };
+    const tick = async () => {
+      if (!mounted.current || done) return;
+      try {
+        const st = await light.cardStatus(session);
+        if (!mounted.current || done) return;
+        if (st.paid && st.user_id && st.t) {
+          finishCard();
+          account.set({ userId: st.user_id, t: st.t, email: e, purchaseRef: session });
+          logAb('purchase', { destination: selection.destination, plan: p.plan, product: 'stripe' });
+          if (Capacitor.isNativePlatform()) { const { Browser } = await import('@capacitor/browser'); void Browser.close().catch(() => {}); }
+          waitForEsim();
+          return;
+        }
+        // Paid, the account a few seconds behind: keep asking. Not paid
+        // and the sheet shut a while ago: they left the page.
+        if (!st.paid && closed && ++afterClose > 3) { finishCard(); setErr(null); setStageBoth('email'); return; }
+      } catch { /* next tick */ }
+      pollRef.current = window.setTimeout(() => void tick(), POLL_MS);
+    };
+    if (Capacitor.isNativePlatform()) {
+      const { Browser } = await import('@capacitor/browser');
+      const { App: CapApp } = await import('@capacitor/app');
+      const h1 = await Browser.addListener('browserFinished', () => { closed = true; });
+      // The return page hands back with ringo://checkout: shut the sheet.
+      const h2 = await CapApp.addListener('appUrlOpen', ({ url: u }) => { if (u.startsWith('ringo://checkout')) { closed = true; void Browser.close().catch(() => {}); } });
+      cardCleanup.current = () => { void h1.remove(); void h2.remove(); };
+    }
+    await openInSheet(url);
+    void tick();
+  };
 
   const buy = async () => {
     const e = email.trim().toLowerCase();
@@ -166,7 +247,10 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   const useSignedIn = () => { setEmail(signedInEmail); setOtherEmail(null); confirmedOther.current = null; };
 
   const planLine = isGlobal && renewing ? 'Unlimited, renews monthly' : `${planName(p)}${renewing ? '' : ', one payment'}`;
-  const buyLabel = renewing ? `Subscribe for ${price.total}` : `Buy for ${price.total}`;
+  // Card where the hosted page charges what this screen shows.
+  const cardOk = !renewing && !p.app_only && !p.member_pct;
+  const cardPrice = priceOf(p, null);
+  const buyLabel = renewing ? `Subscribe for ${price.total}` : cardOk ? `App Store, ${price.total}` : `Buy for ${price.total}`;
 
   // ── Pieces ────────────────────────────────────────────────────────────────
   const summary = <Summary l={l} selection={selection} planLine={planLine} total={price.total} renewing={renewing} />;
@@ -228,6 +312,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
 
   const status = (
     <>
+      {stage === 'card' && <Waiting title="Pay on the secure page" sub="Any card from any country, or Apple Pay. Your eSIM starts the moment Stripe confirms." />}
       {stage === 'buying' && <Waiting title="Confirm with your Apple ID" sub="Nothing is charged until you confirm." />}
       {stage === 'recording' && <Waiting title="Payment confirmed" sub="Recording your purchase. One moment." />}
       {stage === 'issuing' && <Waiting title="Preparing your eSIM" sub={relayEmail ? 'Under a minute. It lands under My eSIM, here in the app.' : 'Under a minute. It lands under My eSIM and in your email.'} />}
@@ -259,13 +344,15 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   // promises nor denies one.
   const consent = stage === 'email' && (
     <div data-refund-consent style={{ ...TYPE.caption, color: RC.inkMute, textAlign: l.isWide ? 'left' : 'center' }}>
-      By buying you ask us to issue your eSIM straight away and accept that you lose your right to cancel once it is issued. Refunds for App Store purchases are handled by Apple.
+      By buying you ask us to issue your eSIM straight away and accept that you lose your right to cancel once it is issued. {cardOk ? 'Card payments are processed by Stripe. ' : ''}Refunds for App Store purchases are handled by Apple.
     </div>
   );
 
   const action: ReactNode = (
     <>
-      {stage === 'email' && <RingoButton onClick={() => void buy()} disabled={Boolean(otherEmail)}>{buyLabel}</RingoButton>}
+      {stage === 'email' && cardOk && <RingoButton onClick={() => void payByCard()} disabled={Boolean(otherEmail)}>{`Pay ${cardPrice.total} by card or Apple Pay`}</RingoButton>}
+      {stage === 'email' && <RingoButton variant={cardOk ? 'secondary' : undefined} onClick={() => void buy()} disabled={Boolean(otherEmail)}>{buyLabel}</RingoButton>}
+      {stage === 'card' && <RingoButton variant="soft" onClick={() => { cardCleanup.current?.(); cardCleanup.current = null; stopPolling(); setStageBoth('email'); }}>Cancel</RingoButton>}
       {(stage === 'buying' || stage === 'recording') && <RingoButton loading>One moment</RingoButton>}
       {(stage === 'issuing' || stage === 'slow' || stage === 'failed') && <RingoButton variant="soft" onClick={onReady}>Go to My eSIM</RingoButton>}
       {stage === 'pending' && <RingoButton variant="soft" onClick={onReady}>Done</RingoButton>}

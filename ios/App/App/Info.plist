@@ -32,6 +32,8 @@
 	<array>
 		<string>arm64</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Ringo uses the country you are in, never your exact location, to send you updates for where you travel.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Ringo uses the camera only if you take a photo for your profile picture.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
