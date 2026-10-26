@@ -1,11 +1,21 @@
 // EarnBadges: the badges a member can earn (owner 2026-10-24: "badges have a
 // badge list where people can earn them"). Every badge is shown, earned ones
 // in the site's sunset colours, the rest muted with how to earn them and how
-// far along the member is. Recognition only; read from /api/app-profile.
+// far along the member is. Each badge pays Ringo coins once, by rarity
+// (owner 2026-10-26; 100 coins = EUR 1 credit, credited by /api/app-profile);
+// Pioneer is super rare, in gold.
 import type { ReactNode } from 'react';
 import { RC, RADIUS, TYPE, SITE_GRAD, cardSurface } from '../../theme';
 import type { Layout } from '../../lib/layout';
 import type { Achievement } from '../../api/light';
+import { PIONEER_GOLD } from './format';
+
+const RARITY: Record<string, { label: string; color: string }> = {
+  common: { label: 'Common', color: RC.ink2 },
+  rare: { label: 'Rare', color: '#2F6FEB' },
+  epic: { label: 'Epic', color: '#8652E0' },
+  super: { label: 'Super rare', color: '#B7791F' },
+};
 
 const S = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
 const GLYPH: Record<string, ReactNode> = {
@@ -29,7 +39,7 @@ function Medal({ a, size }: { a: Achievement; size: number }) {
   return (
     <div aria-hidden style={{
       width: size, height: size, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: a.earned ? SITE_GRAD : RC.cream, color: a.earned ? '#fff' : RC.inkMute,
+      background: a.earned ? (a.rarity === 'super' ? PIONEER_GOLD : SITE_GRAD) : RC.cream, color: a.earned ? '#fff' : RC.inkMute,
       boxShadow: a.earned ? '0 6px 16px rgba(249,60,31,.28), inset 0 0 0 3px rgba(255,255,255,.35)' : `inset 0 0 0 2px ${RC.line}`,
     }}>
       <svg width={size * 0.5} height={size * 0.5} viewBox="0 0 24 24">{GLYPH[a.id] || GLYPH.explorer}</svg>
@@ -43,6 +53,9 @@ function Tile({ a, l }: { a: Achievement; l: Layout }) {
     <li style={{ ...cardSurface(), listStyle: 'none', padding: l.isCover ? '14px 10px' : '16px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 8 }}>
       <Medal a={a} size={l.isCover ? 50 : 58} />
       <div style={{ ...TYPE.bodyStrong, color: RC.ink }}>{a.name}</div>
+      {a.coins ? (
+        <div style={{ ...TYPE.caption, fontWeight: 700, color: RARITY[a.rarity || 'common'].color }}>{`${RARITY[a.rarity || 'common'].label}, ${a.coins} coins`}</div>
+      ) : null}
       <div style={{ ...TYPE.small, color: a.earned ? RC.success : RC.ink2, fontWeight: a.earned ? 700 : undefined }}>{a.earned ? 'Earned' : a.how}</div>
       {!a.earned && a.need > 1 && (
         <div style={{ width: '100%', marginTop: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
