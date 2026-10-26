@@ -162,8 +162,20 @@ function PioneerCard({ l, user, status }: { l: Layout; user: WaitlistUser; statu
   return (
     <Card l={l} label="Your Pioneer status">
       <PioneerBadge tone="gold" label={status === 'promoter_pioneer' ? 'Ringo Pioneer, promoter' : 'Ringo Pioneer'} />
-      <h2 style={{ margin: '12px 0 0', ...TYPE.h2, color: RC.ink }}>{first ? `Welcome back, Pioneer ${first}!` : 'Welcome back, Pioneer!'}</h2>
-      <p style={{ margin: '6px 0 0', ...TYPE.small, color: RC.ink2 }}>You're a Ringo Pioneer and already ahead of the line. Thank you for backing Ringo. Your status is on your account for good.</p>
+      {/* The welcome is for backers only, a paid deposit (owner 2026-10-26: "only on
+          backers for now not on global plan users"). A Global plan never sets this
+          status; a Pioneer spot earned by referrals keeps the plain card. */}
+      {status === 'pioneer_active' ? (
+        <>
+          <h2 style={{ margin: '12px 0 0', ...TYPE.h2, color: RC.ink }}>{first ? `Welcome back, Pioneer ${first}!` : 'Welcome back, Pioneer!'}</h2>
+          <p style={{ margin: '6px 0 0', ...TYPE.small, color: RC.ink2 }}>You're a Ringo Pioneer and already ahead of the line. Thank you for backing Ringo. Your status is on your account for good.</p>
+        </>
+      ) : (
+        <>
+          <h2 style={{ margin: '12px 0 0', ...TYPE.h2, color: RC.ink }}>You're a Ringo Pioneer</h2>
+          <p style={{ margin: '6px 0 0', ...TYPE.small, color: RC.ink2 }}>Thank you for backing Ringo. Your status is on your account for good.</p>
+        </>
+      )}
     </Card>
   );
 }
