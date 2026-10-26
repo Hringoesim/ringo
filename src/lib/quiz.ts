@@ -7,6 +7,7 @@
 export type Use = 'maps' | 'social' | 'calls' | 'streaming' | 'hotspot';
 export type PlanTab = 'data' | 'unl' | 'power';
 
+/** Kept for older screens; the quiz now uses a slider. */
 export const LENGTHS = [
   { label: 'A few days', days: 3 },
   { label: 'About a week', days: 7 },
@@ -24,8 +25,13 @@ export const USES: { id: Use; label: string; sub: string; gbDay: number }[] = [
 
 const DATA_SIZES = [1, 3, 5, 10, 20, 50];
 
+/** GB a day for the picked uses, plus one for working online. */
+export function perDayOf(uses: Use[], work: boolean): number {
+  return uses.reduce((n, u) => n + (USES.find((x) => x.id === u)?.gbDay || 0), 0) + (work ? 1 : 0);
+}
+
 export function recommend({ days, uses, work }: { days: number; uses: Use[]; work: boolean }): { tab: PlanTab; title: string; line: string; gb?: number } {
-  const perDay = uses.reduce((n, u) => n + (USES.find((x) => x.id === u)?.gbDay || 0), 0) + (work ? 1 : 0);
+  const perDay = perDayOf(uses, work);
   if (uses.includes('hotspot') || perDay >= 4) {
     return { tab: 'power', title: 'A Power plan', line: 'Plenty of data every day for a hotspot, a van or a laptop, on a mobile connection that is safer than public Wi-Fi.' };
   }
@@ -34,7 +40,7 @@ export function recommend({ days, uses, work }: { days: number; uses: Use[]; wor
   }
   const need = Math.max(1, perDay * days * 1.2);
   const size = DATA_SIZES.find((g) => g >= need) ?? 50;
-  return { tab: 'data', gb: size, title: `About ${size} GB`, line: `A ${size} GB data plan should cover ${days <= 3 ? 'a few days' : days <= 7 ? 'a week' : days <= 14 ? 'two weeks' : 'a month'} of ${uses.length ? 'what you picked' : 'light use'}, with some to spare. You can add more any time.` };
+  return { tab: 'data', gb: size, title: `About ${size} GB`, line: `A ${size} GB data plan should cover ${days === 1 ? 'a day' : `${days} days`} of ${uses.length ? 'what you picked' : 'light use'}, with some to spare. You can add more any time.` };
 }
 
 // The quiz's answer, read once by the next plan screen (then cleared, so it

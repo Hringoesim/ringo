@@ -28,6 +28,7 @@ const GLYPH: Record<string, ReactNode> = {
   'global-3': <><path d="M12 4v8l5 3" {...S} /><circle cx="12" cy="12" r="8" {...S} /></>,
   'global-12': <><rect x="4" y="5" width="16" height="15" rx="2" {...S} /><path d="M4 10h16M9 3v4M15 3v4" {...S} /></>,
   waitlist: <><path d="M6 4h12v16l-6-4-6 4z" {...S} /></>,
+  quiz: <><path d="M5 18V13M10 18V9M15 18V11M20 18V5" {...S} /></>,
   survey: <><path d="M8 4h8v3H8z" {...S} /><rect x="5" y="5" width="14" height="15" rx="2" {...S} /><path d="M9 12l2 2 4-4" {...S} /></>,
   pioneer: <><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z" {...S} /></>,
   'friend-1': <><circle cx="12" cy="8" r="3.5" {...S} /><path d="M5 20a7 7 0 0 1 14 0" {...S} /></>,
