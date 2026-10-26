@@ -30,6 +30,7 @@ import { EsimScreen } from './screens/EsimScreen';
 import { InstallScreen } from './screens/InstallScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { TravellerScreen } from './screens/TravellerScreen';
+import { QuizScreen } from './screens/QuizScreen';
 import { avatarTraveller } from './store/avatar';
 import { ReportScreen } from './screens/ReportScreen';
 import { HelpScreen } from './screens/HelpScreen';
@@ -262,7 +263,7 @@ export function App() {
       body = <LandingScreen onSignedIn={signedIn} onEmail={() => push('login', { email: true })} />;
       break;
     case 'store':
-      body = <StoreScreen onOpen={(id) => push('destination', { destination: id })} onMyEsim={() => goTab('esim')} onLogin={() => push('login')} loggedIn={Boolean(account.get())} />;
+      body = <StoreScreen onOpen={(id) => push('destination', { destination: id })} onMyEsim={() => goTab('esim')} onLogin={() => push('login')} loggedIn={Boolean(account.get())} onQuiz={() => push('quiz')} />;
       break;
     case 'destination':
       body = (
@@ -296,6 +297,9 @@ export function App() {
       break;
     case 'install':
       body = <InstallScreen install={current.params.install!} label={current.params.label || 'Ringo'} onBack={pop} />;
+      break;
+    case 'quiz':
+      body = <QuizScreen onBack={pop} onBrowse={() => goTab('store')} />;
       break;
     case 'traveller':
       body = <TravellerScreen onDone={() => goTab('esim')} />;

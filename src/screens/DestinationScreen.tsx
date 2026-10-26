@@ -30,6 +30,7 @@ import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { BackBtn, TickList, ErrorBox } from '../components/ui';
 import { termTitle, planName, periodWord, lineKey, tierName } from '../lib/terms';
+import { takeQuizPick } from '../lib/quiz';
 import { hasMosaic, pictureFor, skyFor, bundledPictureFor, type Destination } from '../data/destinations';
 import { useDestinations, destinationFrom } from '../store/destinations';
 import { useAccount } from '../store/account';
@@ -203,8 +204,8 @@ function PlanTabs({ value, options, onChange }: { value: PlanTab; options: PlanT
   );
   const tabs: { id: PlanTab; label: string; line: string }[] = [
     { id: 'data', label: 'Data', line: 'A set amount for your whole trip' },
-    { id: 'power', label: 'Power', line: 'Unlimited Pro, for heavy use' },
     { id: 'unl', label: 'Unlimited', line: 'Unlimited data, never cut off' },
+    { id: 'power', label: 'Power', line: 'For vans, hotspots and a secure connection' },
   ];
   return (
     <div role="tablist" aria-label="Plan type" style={{ display: 'grid', gridTemplateColumns: `repeat(${options.length}, 1fr)`, gap: 10 }}>
@@ -287,7 +288,9 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
   const [unlGb, setUnlGb] = useState<number | null>(null);
   // Screen 1, the tabs (owner 2026-10-24, after the choice research): Data or
   // Unlimited first, each explained in one line, then that tab's plans.
-  const [tab, setTab] = useState<PlanTab>('data');
+  // The data quiz's answer opens its tab (lib/quiz.ts), once.
+  const [tab, setTab] = useState<PlanTab>(() => takeQuizPick() ?? 'data');
+  const [powerGb, setPowerGb] = useState<number | null>(null);
   const arm = useMemo(() => defaultArm(), []);
   // At most three plans on screen (choice overload), the rest one tap away.
   const [showAll, setShowAll] = useState(false);
@@ -380,17 +383,22 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
   const byDays = (list: Plan[]) => [...list].sort((a, b) => a.days - b.days);
   // A set amount for the trip: data lines only (an unlimited trip line is not one).
   const dataLines = plans.filter((p) => !p.app_only && p.tier === 'data');
-  // Power (3 GB a day) is its own box; the server only sends it where it beats
-  // the cheapest rival and still clears cost, so most places show two tabs.
-  const powerLines = byDays(plans.filter((p) => p.app_only && p.group === 'power'));
+  // Power (owner 2026-10-27): the 5 and 10 GB a day passes, apart from the
+  // regular offer, for vans, hotspots and a secure connection; priced by the
+  // site at a 35% margin floor. 1 to 3 GB a day stay in the Unlimited tab.
+  const POWER_MIN_GB = 5;
+  const allPower = plans.filter((p) => p.app_only && (p.daily_gb ?? 0) >= POWER_MIN_GB);
+  const powerTiers = [...new Set(allPower.map((p) => p.daily_gb ?? 0))].sort((a, b) => a - b);
+  const powerGbShown = powerGb != null && powerTiers.includes(powerGb) ? powerGb : (powerTiers[0] ?? null);
+  const powerLines = byDays(allPower.filter((p) => (p.daily_gb ?? 0) === powerGbShown));
   // The day passes; where none is sold, the unlimited trip lines take the tab.
-  const dayPasses = plans.filter((p) => p.app_only && p.group !== 'power');
+  const dayPasses = plans.filter((p) => p.app_only && (p.daily_gb ?? 0) < POWER_MIN_GB);
   const unlLines = dayPasses.length ? dayPasses : plans.filter((p) => !p.app_only && p.tier === 'unlimited');
   // The Unlimited tab: the full-speed amount a day, then one card per length.
   const tierOptions = [...new Set(unlLines.map((p) => p.daily_gb ?? 0))].sort((a, b) => a - b);
   const tierGb = unlGb != null && tierOptions.includes(unlGb) ? unlGb : (tierOptions[0] ?? null);
   const tierLines = unlLines.filter((p) => (p.daily_gb ?? 0) === tierGb).sort((a, b) => a.days - b.days);
-  const tabOptions = (['data', 'power', 'unl'] as PlanTab[]).filter((t) => (t === 'data' ? dataLines : t === 'power' ? powerLines : unlLines).length > 0);
+  const tabOptions = (['data', 'unl', 'power'] as PlanTab[]).filter((t) => (t === 'data' ? dataLines : t === 'power' ? powerLines : unlLines).length > 0);
   const shownTab: PlanTab = tabOptions.includes(tab) ? tab : (tabOptions[0] ?? 'data');
   // The Recommended line leads its tab (in both arms), so the plan that keeps
   // Ringo the most is the first thing seen; the rest keep their order.
@@ -509,6 +517,26 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
               );
             })}
           </div>
+        </div>
+      )}
+      {!unlimitedGlobal && shownTab === 'power' && (
+        <div>
+          <p style={{ margin: '0 0 10px', fontFamily: 'var(--font)', fontSize: 15, lineHeight: 1.45, color: RC.ink2 }}>
+            Plenty of data every day for a van, a hotspot or a laptop, on a mobile connection that is safer than public Wi-Fi.
+          </p>
+          {powerTiers.length > 1 && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              {powerTiers.map((g) => {
+                const sel = g === powerGbShown;
+                return (
+                  <button key={g} type="button" className="press" onClick={() => { hapticSelection(); setPowerGb(g); setShowAll(false); }}
+                    style={{ flex: 1, cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, padding: '10px 0', borderRadius: 12, color: RC.ink, ...(sel ? ringOn(true) : ringOff) }}>
+                    {tierName(g)}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
       {!unlimitedGlobal && visibleLines.map((p) => {

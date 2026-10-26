@@ -8,6 +8,7 @@
 // Layout follows the live width (iPhone Duo: about 360pt closed, about 744pt
 // open): the popular plans are one column on a phone and two on a wide
 // screen; the country tiles are two up on a phone and three to four up wide.
+import { setQuizPick } from '../lib/quiz';
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { PlaceMosaic } from '../components/PlaceMosaic';
 import { RC, RADIUS, TAP, TYPE, cardSurface, typeFor, hexA, PHOTO_OVERLAY, PHOTO_TEXT_SHADOW } from '../theme';
@@ -19,7 +20,7 @@ import { useDestinations } from '../store/destinations';
 import { money, light } from '../api/light';
 import { CITIES } from '../data/cities';
 import { useAccount } from '../store/account';
-import { haptic } from '../lib/haptics';
+import { haptic, hapticSelection } from '../lib/haptics';
 import { useLayout, contentColumn, cardGrid, tileGrid, TABBAR_CLEARANCE, type Layout } from '../lib/layout';
 
 // What people actually type. "United States" does not contain "usa", so the
@@ -201,7 +202,7 @@ function Skeleton({ l }: { l: Layout }) {
   );
 }
 
-export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn }: { onOpen: (id: string) => void; onMyEsim: () => void; onLogin: () => void; loggedIn: boolean }) {
+export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { onOpen: (id: string) => void; onMyEsim: () => void; onLogin: () => void; loggedIn: boolean; onQuiz?: () => void }) {
   const l = useLayout();
   const summary = useSummary();
   const apple = useAppleFrom(summary);
@@ -277,7 +278,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn }: { onOpen: (
           </h1>
           <p style={{ margin: '8px 0 16px', ...TYPE.body, color: RC.ink2 }}>Your eSIM is ready in minutes.</p>
 
-          <div style={l.isWide ? { maxWidth: 560 } : undefined}>
+          <div data-store-search style={l.isWide ? { maxWidth: 560 } : undefined}>
             <SearchField value={q} onChange={setQ} />
             {suggestions.length > 0 && (
               <div role="listbox" aria-label="Suggestions" style={{ marginTop: 8, ...cardSurface(), padding: 0, overflow: 'hidden' }}>
@@ -295,6 +296,30 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn }: { onOpen: (
               </div>
             )}
           </div>
+
+          {!query && (
+            <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: l.cardGap }}>
+              {onQuiz && (
+                <button type="button" className="press" onClick={() => { hapticSelection(); onQuiz(); }}
+                  style={{ ...cardSurface(), textAlign: 'left', cursor: 'pointer', padding: 16, border: `1.5px solid ${RC.line}`, fontFamily: 'var(--font)' }}>
+                  <svg aria-hidden width="26" height="26" viewBox="0 0 24 24"><g fill={RC.orangeInk}><rect x="3" y="15" width="3.6" height="6" rx="1.2" /><rect x="8.6" y="11" width="3.6" height="10" rx="1.2" /><rect x="14.2" y="7" width="3.6" height="14" rx="1.2" /><rect x="19.4" y="3" width="1.6" height="18" rx=".8" opacity=".35" /></g></svg>
+                  <div style={{ marginTop: 6, fontSize: 16, fontWeight: 700, color: RC.ink }}>How much data do I need?</div>
+                  <div style={{ marginTop: 2, fontSize: 13, color: RC.ink2 }}>Three quick questions.</div>
+                </button>
+              )}
+              <button type="button" className="press"
+                onClick={() => {
+                  hapticSelection();
+                  setQuizPick('power');
+                  document.querySelector<HTMLInputElement>('[data-store-search] input')?.focus();
+                }}
+                style={{ textAlign: 'left', cursor: 'pointer', padding: 16, borderRadius: 22, border: 'none', background: 'linear-gradient(160deg,#1A0F2E 0%,#3A1D5C 100%)', fontFamily: 'var(--font)', color: '#fff' }}>
+                <svg aria-hidden width="26" height="26" viewBox="0 0 24 24"><path fill="#FFB83D" d="M13.4 2.2c.4-.6-.3-1.3-.9-.9L4.6 12.2c-.4.5 0 1.3.6 1.3h5.3l-1.9 8.2c-.2.7.7 1.1 1.1.5l9.6-11.6c.4-.5 0-1.2-.6-1.2h-5.6l.3-7.2z" /></svg>
+                <div style={{ marginTop: 6, fontSize: 16, fontWeight: 700 }}>Power plans</div>
+                <div style={{ marginTop: 2, fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>For vans, hotspots and a secure connection.</div>
+              </button>
+            </div>
+          )}
 
           {!query && nextTrips.length > 0 && (
             <section style={{ marginTop: l.sectionGap }}>
