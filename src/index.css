@@ -494,3 +494,19 @@ button:focus-visible,
    the keyboard's, not ours. */
 .kb-open [data-tabbar] { display: none !important; }
 .kb-open [data-kb-hide] { display: none !important; }
+
+/* Power plan outline: the sunset colours slide round the card (owner
+   2026-10-27). One tile of the gradient is twice the card's width and starts
+   and ends on the same orange, so moving it by one tile loops seamlessly. */
+.power-contour {
+  background:
+    linear-gradient(#FFFAF7, #FFFAF7) padding-box,
+    linear-gradient(90deg, #f26122, #ff42a1, #8652e0, #ffcc33, #f26122) border-box;
+  background-size: 100% 100%, 200% 100%;
+  animation: ringoContour 4s linear infinite;
+}
+@keyframes ringoContour {
+  from { background-position: 0 0, 0% 50%; }
+  to { background-position: 0 0, -200% 50%; }
+}
+@media (prefers-reduced-motion: reduce) { .power-contour { animation: none; } }

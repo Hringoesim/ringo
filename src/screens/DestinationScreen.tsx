@@ -115,9 +115,16 @@ function PlanCard({ p, on, price, onPick }: { p: Plan; on: boolean; price: { tot
   const length = p.app_only ? '' : sub ? `Every ${periodWord(p)}` : termTitle(p);
   // True claim only: the 2-week plan is what most people buy (236 of 316 sales, 2026-10-24).
   const popular = !p.app_only && p.plan === 'rl_14';
+  // A Power plan (5 and 10 GB a day) wears its own outline, the sunset
+  // colours sliding round it (owner 2026-10-27: "some type of contour where
+  // the change changes the colour"), thicker and glowing once chosen.
+  const power = Boolean(p.app_only) && (p.daily_gb ?? 0) >= 5;
+  const face = power
+    ? { border: `${on ? 2.5 : 2}px solid transparent`, boxShadow: on ? '0 12px 28px -14px rgba(255,66,161,0.65)' : '0 6px 18px -16px rgba(26,15,46,0.25)' }
+    : on ? ringOn(unlimited || Boolean(p.app_only)) : ringOff;
   return (
-    <button type="button" className="press" onClick={onPick} aria-pressed={on}
-      style={{ textAlign: 'left', cursor: 'pointer', width: '100%', font: 'inherit', padding: 0, borderRadius: RADIUS.card, position: 'relative', overflow: 'hidden', ...(on ? ringOn(unlimited || Boolean(p.app_only)) : ringOff) }}>
+    <button type="button" className={power ? 'press power-contour' : 'press'} onClick={onPick} aria-pressed={on}
+      style={{ textAlign: 'left', cursor: 'pointer', width: '100%', font: 'inherit', padding: 0, borderRadius: RADIUS.card, position: 'relative', overflow: 'hidden', ...face }}>
       <div style={{ display: 'flex', gap: 14, padding: '16px 18px 16px 16px' }}>
         <Radio on={on} shade={unlimited || p.app_only ? '#FF42A1' : ORANGE} />
         <div style={{ flex: 1, minWidth: 0 }}>
