@@ -332,7 +332,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
           {creditBox}
         </div>
       </div>
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: `12px ${l.gutter}px max(20px, env(safe-area-inset-bottom, 0px))`, background: RC.glass, backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)', borderTop: `1px solid ${RC.line}`, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div data-kb-hide style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: `12px ${l.gutter}px max(20px, env(safe-area-inset-bottom, 0px))`, background: RC.glass, backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)', borderTop: `1px solid ${RC.line}`, display: 'flex', flexDirection: 'column', gap: 10 }}>
         {consent}
         {action}
       </div>

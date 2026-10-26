@@ -488,3 +488,9 @@ button:focus-visible,
 }
 .hop { animation: ringoHop .55s cubic-bezier(.3,.7,.4,1) both; }
 @media (prefers-reduced-motion: reduce) { .hop { animation: none; } }
+
+/* While the keyboard is open the app sits above it (Host.tsx, --kb): the tab
+   bar stays out of the way, as in iOS apps, and the safe area at the bottom is
+   the keyboard's, not ours. */
+.kb-open [data-tabbar] { display: none !important; }
+.kb-open [data-kb-hide] { display: none !important; }

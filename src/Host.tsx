@@ -121,14 +121,31 @@ export function Host() {
     if (!fullScreen) return;
     const snap = () => requestAnimationFrame(() => window.scrollTo(0, 0));
     const vv = window.visualViewport;
+    // The keyboard no longer covers what is typed in (owner 2026-10-27: "the
+    // keyboard blocks the text box"): while it is open the app shrinks to the
+    // space above it (--kb on <html>, the root's bottom), as a native iOS
+    // screen does, so a sheet or form pinned to the bottom rises with it, and
+    // the field is then scrolled fully into the visible part of its column.
+    const root = document.documentElement;
     const reveal = () => {
       const el = document.activeElement as HTMLElement | null;
-      if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      if (!el || !/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
+      const visible = vv ? vv.height : window.innerHeight;
+      const r = el.getBoundingClientRect();
+      const over = r.bottom - (visible - 24);
+      const under = 16 - r.top;
+      let p = el.parentElement;
+      while (p && !(p.scrollHeight > p.clientHeight + 4 && /auto|scroll/.test(getComputedStyle(p).overflowY))) p = p.parentElement;
+      if (p && over > 0) p.scrollBy({ top: over, behavior: 'smooth' });
+      else if (p && under > 0) p.scrollBy({ top: -under, behavior: 'smooth' });
     };
     const onResize = () => {
       const covered = vv ? Math.max(0, Math.round(window.innerHeight - vv.height)) : 0;
+      const open = covered > 80;
+      root.style.setProperty('--kb', `${open ? covered : 0}px`);
+      root.classList.toggle('kb-open', open);
       snap();
-      if (covered > 80) window.setTimeout(reveal, 60);
+      if (open) window.setTimeout(reveal, 80);
     };
     const onFocusIn = () => window.setTimeout(reveal, 320);
     window.addEventListener('focusout', snap);
@@ -146,7 +163,7 @@ export function Host() {
     return (
       <div
         style={{
-          position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column',
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 'var(--kb, 0px)', display: 'flex', flexDirection: 'column',
           background: RC.bg, overflow: 'hidden',
         }}
       >

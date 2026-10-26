@@ -86,6 +86,7 @@ export function RingoTabBar({
   return (
     // Floats over the content; the margins let taps pass through to what's behind.
     <nav
+      data-tabbar
       aria-label="Main"
       style={{
         position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 50, pointerEvents: 'none',
