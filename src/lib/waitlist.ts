@@ -52,4 +52,10 @@ export function referralLink(code: string | null | undefined): string | null {
   return code ? `${SITE}/r/${code}` : null;
 }
 
+/** The first name to greet with, from the name given in the survey; null without one (never guessed from the email). */
+export function firstNameOf(user: WaitlistUser | null | undefined): string | null {
+  const first = String(user?.name || '').trim().split(/\s+/)[0];
+  return first ? first.charAt(0).toUpperCase() + first.slice(1) : null;
+}
+
 export const fmt = (n: number) => n.toLocaleString('en-US');

@@ -24,7 +24,7 @@ import { useAccount } from '../store/account';
 import { useLayout, contentColumn, twoColumn, type Layout } from '../lib/layout';
 import { hapticNotify, hapticSelection } from '../lib/haptics';
 import { countryByIso, isoArray, isoOrEmpty, searchCountries, type Country } from '../lib/countries';
-import { PROFILE_QUESTIONS, PLACES_PER_REFERRAL, PLACES_PER_ANSWER, fmt, isLead, isPioneer, placeFrom, referralLink } from '../lib/waitlist';
+import { PROFILE_QUESTIONS, PLACES_PER_REFERRAL, PLACES_PER_ANSWER, firstNameOf, fmt, isLead, isPioneer, placeFrom, referralLink } from '../lib/waitlist';
 
 // ── The survey's options, byte-identical to the website ─────────────────────
 const TOP_VALUES = [
@@ -132,9 +132,10 @@ function Card({ l, children, style = {}, label }: { l: Layout; children: ReactNo
 
 function PlaceCard({ l, user, liveAnswers }: { l: Layout; user: WaitlistUser; liveAnswers: number }) {
   const { ahead, behind } = placeFrom(user, liveAnswers);
+  const first = firstNameOf(user);
   return (
     <Card l={l} label="Your place in line">
-      <h2 style={{ margin: 0, ...TYPE.h2, color: RC.ink }}>You're on the waitlist</h2>
+      <h2 style={{ margin: 0, ...TYPE.h2, color: RC.ink }}>{first ? `Welcome, ${first}! You're on the waitlist` : "Welcome! You're on the waitlist"}</h2>
       {ahead == null ? (
         <p style={{ margin: '8px 0 0', ...TYPE.body, color: RC.ink2 }}>You're in line for Ringo.</p>
       ) : ahead === 0 ? (
@@ -156,12 +157,13 @@ function PlaceCard({ l, user, liveAnswers }: { l: Layout; user: WaitlistUser; li
   );
 }
 
-function PioneerCard({ l, status }: { l: Layout; status: string }) {
+function PioneerCard({ l, user, status }: { l: Layout; user: WaitlistUser; status: string }) {
+  const first = firstNameOf(user);
   return (
     <Card l={l} label="Your Pioneer status">
       <PioneerBadge tone="gold" label={status === 'promoter_pioneer' ? 'Ringo Pioneer, promoter' : 'Ringo Pioneer'} />
-      <h2 style={{ margin: '12px 0 0', ...TYPE.h2, color: RC.ink }}>You're a Ringo Pioneer</h2>
-      <p style={{ margin: '6px 0 0', ...TYPE.small, color: RC.ink2 }}>Thank you for backing Ringo. Your status is on your account for good.</p>
+      <h2 style={{ margin: '12px 0 0', ...TYPE.h2, color: RC.ink }}>{first ? `Welcome back, Pioneer ${first}!` : 'Welcome back, Pioneer!'}</h2>
+      <p style={{ margin: '6px 0 0', ...TYPE.small, color: RC.ink2 }}>You're a Ringo Pioneer and already ahead of the line. Thank you for backing Ringo. Your status is on your account for good.</p>
     </Card>
   );
 }
@@ -458,16 +460,30 @@ function Survey({ l, user, userId, t, onAnswered }: { l: Layout; user: WaitlistU
   const retry = () => { const last = sendRef.current.last; if (last) queue(last); };
 
   const auto = useRef<{ first: boolean; sig: string; picks: string }>({ first: true, sig: '', picks: '' });
+  const current = useMemo<ProfileAnswers>(() => ({
+    name: name || null,
+    phone_country: phone || null,
+    extra_phone_countries: extra,
+    no_second_number: noSecond,
+    travel_countries: travel,
+    travel_regions: [...regions, ...regionsOther],
+    top_values: [...values, ...valuesOther],
+  }), [name, phone, extra, noSecond, travel, regions, values, regionsOther, valuesOther]);
+  // The Save button: everything on the form, now, without waiting for the
+  // typing pause. Autosave keeps running; this is the tap people look for.
+  const [tapped, setTapped] = useState(false);
+  const saveNow = () => {
+    hapticSelection();
+    setTapped(true);
+    auto.current = { ...auto.current, first: false, sig: JSON.stringify(current) };
+    queue(current);
+  };
   useEffect(() => {
-    const payload: ProfileAnswers = {
-      name: name || null,
-      phone_country: phone || null,
-      extra_phone_countries: extra,
-      no_second_number: noSecond,
-      travel_countries: travel,
-      travel_regions: [...regions, ...regionsOther],
-      top_values: [...values, ...valuesOther],
-    };
+    if (tapped && save === 'saved') { hapticNotify('success'); setTapped(false); }
+    if (tapped && save === 'error') setTapped(false);
+  }, [tapped, save]);
+  useEffect(() => {
+    const payload = current;
     const sig = JSON.stringify(payload);
     const picks = JSON.stringify([phone, extra, noSecond, travel, regions, values]);
     if (auto.current.first) { auto.current = { first: false, sig, picks }; return; }
@@ -479,7 +495,7 @@ function Survey({ l, user, userId, t, onAnswered }: { l: Layout; user: WaitlistU
     }, delay);
     pendingSave.current = { sig, payload };
     return () => window.clearTimeout(timer);
-  }, [name, phone, extra, noSecond, travel, regions, values, regionsOther, valuesOther, queue]);
+  }, [current, phone, extra, noSecond, travel, regions, values, queue]);
   // Leaving inside the typing pause still saves what was typed.
   const pendingSave = useRef<{ sig: string; payload: ProfileAnswers } | null>(null);
   const queueRef = useRef(queue);
@@ -601,6 +617,12 @@ function Survey({ l, user, userId, t, onAnswered }: { l: Layout; user: WaitlistU
             />
           </Question>
         </div>
+        <div style={{ padding: '6px 0 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <RingoButton loading={save === 'saving' && tapped} onClick={saveNow}>Save answers</RingoButton>
+          <div aria-live="polite" style={{ minHeight: 18, textAlign: 'center', ...TYPE.caption, color: save === 'error' ? RC.error : RC.inkMute }}>
+            {save === 'saved' ? 'Your answers are saved' : save === 'error' ? 'Could not save, try again.' : ''}
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -698,7 +720,7 @@ export function WaitlistScreen({ onBack, onLogin, onBrowse }: { onBack: () => vo
     left = (
       <>
         <Hero l={l} />
-        {pioneer ? <PioneerCard l={l} status={String(status)} /> : <PlaceCard l={l} user={user} liveAnswers={answers} />}
+        {pioneer ? <PioneerCard l={l} user={user} status={String(status)} /> : <PlaceCard l={l} user={user} liveAnswers={answers} />}
         <ShareCard l={l} code={user.referral_code} />
       </>
     );
