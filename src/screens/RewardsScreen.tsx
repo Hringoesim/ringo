@@ -355,7 +355,7 @@ export function RewardsScreen({ onBack, onBrowse, onLogin, onWaitlist }: { onBac
                 <section>
                   <SectionHead
                     title="Badges to earn"
-                    sub={`${profile.achievements.filter((a) => a.earned).length} of ${profile.achievements.length} earned, ${profile.achievements.filter((a) => a.earned).reduce((n, a) => n + (a.coins || 0), 0)} coins. 100 coins are €1 of credit.`}
+                    sub={`${profile.achievements.filter((a) => a.earned).length} of ${profile.achievements.length} earned${profile.achievements.some((a) => a.coins) ? `, ${profile.achievements.filter((a) => a.earned).reduce((n, a) => n + (a.coins || 0), 0)} coins. 100 coins are €1 of credit` : ''}.`}
                   />
                   <EarnBadges items={profile.achievements} l={l} />
                 </section>

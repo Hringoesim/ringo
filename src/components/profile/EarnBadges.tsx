@@ -47,6 +47,9 @@ function Medal({ a, size }: { a: Achievement; size: number }) {
   );
 }
 
+/** A rarity the app does not know reads as Common rather than breaking the screen. */
+const rarityOf = (a: Achievement) => RARITY[a.rarity ?? ''] ?? RARITY.common;
+
 function Tile({ a, l }: { a: Achievement; l: Layout }) {
   const pct = Math.round((a.have / Math.max(1, a.need)) * 100);
   return (
@@ -54,7 +57,7 @@ function Tile({ a, l }: { a: Achievement; l: Layout }) {
       <Medal a={a} size={l.isCover ? 50 : 58} />
       <div style={{ ...TYPE.bodyStrong, color: RC.ink }}>{a.name}</div>
       {a.coins ? (
-        <div style={{ ...TYPE.caption, fontWeight: 700, color: RARITY[a.rarity || 'common'].color }}>{`${RARITY[a.rarity || 'common'].label}, ${a.coins} coins`}</div>
+        <div style={{ ...TYPE.caption, fontWeight: 700, color: rarityOf(a).color }}>{`${rarityOf(a).label}, ${a.coins} coins`}</div>
       ) : null}
       <div style={{ ...TYPE.small, color: a.earned ? RC.success : RC.ink2, fontWeight: a.earned ? 700 : undefined }}>{a.earned ? 'Earned' : a.how}</div>
       {!a.earned && a.need > 1 && (
@@ -72,7 +75,7 @@ function Tile({ a, l }: { a: Achievement; l: Layout }) {
 
 /** Earned badges first, then the closest to being earned. */
 export function EarnBadges({ items, l }: { items: Achievement[]; l: Layout }) {
-  const sorted = [...items].sort((x, y) => Number(y.earned) - Number(x.earned) || y.have / y.need - x.have / x.need);
+  const sorted = [...items].sort((x, y) => Number(y.earned) - Number(x.earned) || y.have / Math.max(1, y.need) - x.have / Math.max(1, x.need));
   return (
     <ul style={{ margin: 0, padding: 0, display: 'grid', gap: l.cardGap, gridTemplateColumns: l.isWide ? 'repeat(auto-fill, minmax(170px, 1fr))' : 'repeat(2, minmax(0, 1fr))' }}>
       {sorted.map((a) => <Tile key={a.id} a={a} l={l} />)}

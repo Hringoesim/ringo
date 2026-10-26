@@ -69,7 +69,7 @@ export function QuizScreen({ onBack, onBrowse }: { onBack: () => void; onBrowse:
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: `12px ${l.gutter}px max(20px, env(safe-area-inset-bottom, 0px))`, background: RC.glass, backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)', borderTop: `1px solid ${RC.line}` }}>
           {step === 1
             ? <RingoButton onClick={() => setStep(2)} disabled={uses.length === 0}>Next</RingoButton>
-            : <RingoButton onClick={() => { if (rec) setQuizPick(rec.tab); onBrowse(); }}>Pick my destination</RingoButton>}
+            : <RingoButton onClick={() => { if (rec) setQuizPick(rec.tab, rec.gb); onBrowse(); }}>Pick my destination</RingoButton>}
         </div>
       )}
     </div>

@@ -14,7 +14,7 @@ type Referral = NonNullable<Profile['referral']>;
 
 export function ShareFriends({ r, l }: { r: Referral; l: Layout }) {
   const [note, setNote] = useState<string | null>(null);
-  if (!r.link) return null;
+  if (!r.link || !(r.per > 0) || !(r.credit_cents > 0)) return null;
   const link = r.link;
   const eur = `€${Math.round(r.credit_cents / 100)}`;
   const inRound = r.friends_bought % r.per;

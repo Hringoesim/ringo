@@ -331,7 +331,11 @@ export function TravellerGrid({ userId, seed, level, pioneer = false, tile = 84,
         return (
           <button
             key={t.id} type="button" role="radio" aria-checked={on} aria-label={t.name} className="press"
-            onClick={() => { hapticSelection(); avatarPhoto.clear(userId); avatarTraveller.set(userId, t.id); setHop(t.id); onPick?.(t.id); }}
+            onClick={() => {
+              // A photo lives only on this phone: never thrown away by one stray tap.
+              if (photo && !window.confirm('Use this traveller instead of your photo? Your photo will be removed from this phone.')) return;
+              hapticSelection(); avatarPhoto.clear(userId); avatarTraveller.set(userId, t.id); setHop(t.id); onPick?.(t.id);
+            }}
             style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '10px 0', borderRadius: 20, border: `2px solid ${on ? RC.orangeInk : RC.line}`, background: on ? '#FFF1E8' : '#fff', cursor: 'pointer' }}
           >
             <span key={hop === t.id ? `hop-${t.id}` : t.id} className={hop === t.id ? 'hop' : undefined} style={{ width: tile, height: tile, borderRadius: '50%', overflow: 'hidden', display: 'block' }}>

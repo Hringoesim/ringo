@@ -173,7 +173,7 @@ function PioneerCard({ l, user, status }: { l: Layout; user: WaitlistUser; statu
       ) : (
         <>
           <h2 style={{ margin: '12px 0 0', ...TYPE.h2, color: RC.ink }}>You're a Ringo Pioneer</h2>
-          <p style={{ margin: '6px 0 0', ...TYPE.small, color: RC.ink2 }}>Thank you for backing Ringo. Your status is on your account for good.</p>
+          <p style={{ margin: '6px 0 0', ...TYPE.small, color: RC.ink2 }}>Your Pioneer status is on your account for good.</p>
         </>
       )}
     </Card>

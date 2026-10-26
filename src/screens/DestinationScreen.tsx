@@ -208,15 +208,16 @@ function PlanTabs({ value, options, onChange }: { value: PlanTab; options: PlanT
     { id: 'power', label: 'Power', line: 'For vans, hotspots and a secure connection' },
   ];
   return (
-    <div role="tablist" aria-label="Plan type" style={{ display: 'grid', gridTemplateColumns: `repeat(${options.length}, 1fr)`, gap: 10 }}>
+    <div role="tablist" aria-label="Plan type" style={{ display: 'grid', gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))`, gap: options.length > 2 ? 8 : 10 }}>
       {tabs.filter((t) => options.includes(t.id)).map((t) => {
         const on = t.id === value;
         return (
           <button key={t.id} type="button" role="tab" aria-selected={on} className="press" onClick={() => { if (!on) onChange(t.id); }}
-            style={{ cursor: 'pointer', textAlign: 'left', padding: '12px 14px', borderRadius: 18, ...(on ? ringOn(t.id !== 'data') : ringOff) }}>
+            style={{ cursor: 'pointer', textAlign: 'left', minWidth: 0, padding: options.length > 2 ? '10px 10px' : '12px 14px', borderRadius: 18, ...(on ? ringOn(t.id !== 'data') : ringOff) }}>
             {icon(t.id, on)}
-            <span style={{ display: 'block', fontFamily: 'var(--font)', fontSize: 17, fontWeight: 600, color: RC.ink }}>{t.label}</span>
-            <span style={{ display: 'block', marginTop: 2, fontFamily: 'var(--font)', fontSize: 13, color: RC.ink2, lineHeight: 1.35 }}>{t.line}</span>
+            <span style={{ display: 'block', fontFamily: 'var(--font)', fontSize: options.length > 2 ? 15 : 17, fontWeight: 600, color: RC.ink, overflowWrap: 'anywhere' }}>{t.label}</span>
+            {/* Three tabs leave no room for a line on a phone or the Duo's column: name and icon only. */}
+            {options.length < 3 && <span style={{ display: 'block', marginTop: 2, fontFamily: 'var(--font)', fontSize: 13, color: RC.ink2, lineHeight: 1.35 }}>{t.line}</span>}
           </button>
         );
       })}
@@ -242,8 +243,8 @@ function CountryList({ list }: { list: { iso: string; name: string; flag: string
       </button>
       {open && (
         <ul style={{ listStyle: 'none', margin: 0, padding: '0 16px 12px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', columnGap: 12 }}>
-          {[...list].sort((a, b) => a.name.localeCompare(b.name)).map((c) => (
-            <li key={c.iso} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 0', fontFamily: 'var(--font)', fontSize: 15, color: RC.ink, borderTop: `1px solid ${RC.line}` }}>
+          {list.filter((c) => c && c.name).sort((a, b) => a.name.localeCompare(b.name)).map((c) => (
+            <li key={c.iso || c.name} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 0', fontFamily: 'var(--font)', fontSize: 15, color: RC.ink, borderTop: `1px solid ${RC.line}` }}>
               <span aria-hidden style={{ fontSize: 18 }}>{c.flag}</span>{c.name}
             </li>
           ))}
@@ -289,7 +290,8 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
   // Screen 1, the tabs (owner 2026-10-24, after the choice research): Data or
   // Unlimited first, each explained in one line, then that tab's plans.
   // The data quiz's answer opens its tab (lib/quiz.ts), once.
-  const [tab, setTab] = useState<PlanTab>(() => takeQuizPick() ?? 'data');
+  const [quiz] = useState(() => takeQuizPick());
+  const [tab, setTab] = useState<PlanTab>(quiz?.tab ?? 'data');
   const [powerGb, setPowerGb] = useState<number | null>(null);
   const arm = useMemo(() => defaultArm(), []);
   // At most three plans on screen (choice overload), the rest one tap away.
@@ -395,11 +397,15 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
   const dayPasses = plans.filter((p) => p.app_only && (p.daily_gb ?? 0) < POWER_MIN_GB);
   const unlLines = dayPasses.length ? dayPasses : plans.filter((p) => !p.app_only && p.tier === 'unlimited');
   // The Unlimited tab: the full-speed amount a day, then one card per length.
-  const tierOptions = [...new Set(unlLines.map((p) => p.daily_gb ?? 0))].sort((a, b) => a - b);
+  // One button per name: an allowance the app has no name for never shows a second "Unlimited".
+  const tierOptions = [...new Set(unlLines.map((p) => p.daily_gb ?? 0))].sort((a, b) => a - b).filter((g, i, all) => all.findIndex((x) => tierName(x) === tierName(g)) === i);
   const tierGb = unlGb != null && tierOptions.includes(unlGb) ? unlGb : (tierOptions[0] ?? null);
   const tierLines = unlLines.filter((p) => (p.daily_gb ?? 0) === tierGb).sort((a, b) => a.days - b.days);
   const tabOptions = (['data', 'unl', 'power'] as PlanTab[]).filter((t) => (t === 'data' ? dataLines : t === 'power' ? powerLines : unlLines).length > 0);
-  const shownTab: PlanTab = tabOptions.includes(tab) ? tab : (tabOptions[0] ?? 'data');
+  // A tab not sold here (the quiz said Power, the place has none): Unlimited
+  // covers a hotspot too, so that tab, and a line saying so.
+  const shownTab: PlanTab = tabOptions.includes(tab) ? tab : (tab === 'power' && tabOptions.includes('unl') ? 'unl' : (tabOptions[0] ?? 'data'));
+  const quizMissing = Boolean(quiz && tab === quiz.tab && plans.length > 0 && !tabOptions.includes(quiz.tab));
   // The Recommended line leads its tab (in both arms), so the plan that keeps
   // Ringo the most is the first thing seen; the rest keep their order.
   const leadFirst = (list: Plan[]) => [...list.filter((p) => p.best_margin), ...list.filter((p) => !p.best_margin)];
@@ -421,7 +427,9 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
     const list = unlimitedGlobal ? plans : tabLines;
     if (!list.length) return;
     if (list.some((p) => lineKey(p) === planId)) return;
-    setPlanId(lineKey(defaultOf(list)));
+    // The quiz's data size: the smallest line that covers it.
+    const fit = quiz?.gb && shownTab === 'data' ? [...list].filter((p) => (p.data_gb ?? 0) >= quiz.gb!).sort((a, b) => (a.data_gb ?? 0) - (b.data_gb ?? 0) || a.days - b.days)[0] : undefined;
+    setPlanId(lineKey(fit ?? defaultOf(list)));
   // eslint-disable-next-line react-hooks/exhaustive-deps -- defaultOf follows arm
   }, [plans, tabLines, planId, unlimitedGlobal]);
   // One view per screen for the test.
@@ -503,6 +511,11 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
       )}
       {!unlimitedGlobal && tabOptions.length > 1 && (
         <PlanTabs value={shownTab} options={tabOptions} onChange={(t) => { hapticSelection(); setTab(t); setShowAll(false); }} />
+      )}
+      {!unlimitedGlobal && quizMissing && (
+        <p style={{ margin: 0, fontFamily: 'var(--font)', fontSize: 14, color: RC.ink2 }}>
+          {quiz?.tab === 'power' ? 'Power plans are not sold here yet. Unlimited covers a hotspot too.' : 'That plan type is not sold here. Here is what is.'}
+        </p>
       )}
       {!unlimitedGlobal && shownTab === 'unl' && tierOptions.length > 1 && (
         <div>
@@ -629,7 +642,7 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
       {cat && selected && selectedPrice && (
         <div style={footer}>
           <div style={{ flexShrink: 1, minWidth: 0, fontFamily: 'var(--font)' }}>
-            <div style={{ ...TYPE.caption, color: RC.inkMute, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{planName(selected)}</div>
+            <div style={{ ...TYPE.caption, color: RC.inkMute, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{planName(selected)}</div>
             <div style={{ marginTop: 2, fontSize: 19, fontWeight: 800, lineHeight: 1.2, color: RC.ink, letterSpacing: '-0.02em', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
               {selectedPrice.total}{selected.mode === 'subscription' ? ' today' : ''}
             </div>
