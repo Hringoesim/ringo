@@ -61,6 +61,8 @@ export interface TopUp {
 export interface Catalog {
   currency: Currency;
   destination: { id: string; label: string; kind: string; countries: number; coverage_line: string; data_gb: number };
+  /** Every country a regional plan works in (flag and name). */
+  coverage?: { countries: number; list: { iso: string; name: string; flag: string }[] };
   sizes: number[];
   default_data_gb: number;
   unlimited_line: string;

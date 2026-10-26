@@ -29,7 +29,7 @@ import { RC, RADIUS, TYPE, typeFor, cardSurface, SHADOW_CARD, SKINS, ON_DARK, PH
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { BackBtn, TickList, ErrorBox } from '../components/ui';
-import { termTitle, planName, periodWord, lineKey } from '../lib/terms';
+import { termTitle, planName, periodWord, lineKey, tierName } from '../lib/terms';
 import { hasMosaic, pictureFor, skyFor, bundledPictureFor, type Destination } from '../data/destinations';
 import { useDestinations, destinationFrom } from '../store/destinations';
 import { useAccount } from '../store/account';
@@ -56,14 +56,14 @@ export interface Selection {
 /** Which list is shown: the trip plans, or one family of App Store only day passes. */
 type Group = 'trip' | 'day' | 'power' | 'super';
 const DAY_GROUPS: { id: Exclude<Group, 'trip'>; label: string; line: string }[] = [
-  { id: 'day', label: 'Day plans', line: '1 GB a day at full speed, never cut off' },
-  { id: 'power', label: 'Power user', line: '3 GB a day at full speed' },
-  { id: 'super', label: 'Super user', line: '10 GB a day, for van travel or a hotspot for friends' },
+  { id: 'day', label: 'Day plans', line: 'Unlimited, never cut off' },
+  { id: 'power', label: 'Power user', line: 'Unlimited Pro, for heavy use' },
+  { id: 'super', label: 'Super user', line: 'Unlimited Ultra, for van travel or a hotspot for friends' },
 ];
-const DAY_TICKS = ['Full speed up to the day\'s allowance, then slower', 'Never cut off', 'Data only, next to your own SIM'];
+const DAY_TICKS = ['Unlimited data', 'Never cut off', 'Data only, next to your own SIM'];
 
 const SHEET_RADIUS = 28;
-const GLOBAL_TICKS = ['Unlimited data at full speed', 'One plan, renews until you cancel', 'One price, no roaming bills', 'Data only, next to your own SIM and number'];
+const GLOBAL_TICKS = ['Unlimited data', 'One plan, renews until you cancel', 'One price, no roaming bills', 'Data only, next to your own SIM and number'];
 const DATA_TICKS = ['Full speed, no daily cap', 'Hotspot included', 'Data only, next to your own SIM'];
 const UNLIMITED_TICKS = ['Unlimited data', 'Hotspot included', 'Data only, next to your own SIM'];
 
@@ -203,8 +203,8 @@ function PlanTabs({ value, options, onChange }: { value: PlanTab; options: PlanT
   );
   const tabs: { id: PlanTab; label: string; line: string }[] = [
     { id: 'data', label: 'Data', line: 'A set amount for your whole trip' },
-    { id: 'power', label: 'Power', line: '3 GB a day at full speed' },
-    { id: 'unl', label: 'Unlimited', line: 'Full speed every day, never cut off' },
+    { id: 'power', label: 'Power', line: 'Unlimited Pro, for heavy use' },
+    { id: 'unl', label: 'Unlimited', line: 'Unlimited data, never cut off' },
   ];
   return (
     <div role="tablist" aria-label="Plan type" style={{ display: 'grid', gridTemplateColumns: `repeat(${options.length}, 1fr)`, gap: 10 }}>
@@ -228,6 +228,29 @@ function Radio({ on, shade }: { on: boolean; shade: string }) {
   return <span aria-hidden style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, boxSizing: 'border-box', marginTop: 3, border: on ? `6px solid ${shade}` : '1.5px solid rgba(26,15,46,0.3)' }} />;
 }
 
+
+/** A regional plan's countries, folded under one row (owner 2026-10-26: "a drop down menu where you can see what countries are"). */
+function CountryList({ list }: { list: { iso: string; name: string; flag: string }[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ marginTop: 14, flexShrink: 0, borderRadius: 16, border: `1.5px solid ${RC.line}`, background: '#fff', overflow: 'hidden' }}>
+      <button type="button" className="press" aria-expanded={open} onClick={() => { hapticSelection(); setOpen(!open); }}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 16px', minHeight: 48, background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 16, fontWeight: 600, color: RC.ink, textAlign: 'left' }}>
+        <span>{`Works in ${list.length} countries`}</span>
+        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}><path d="M2 5l5 5 5-5" fill="none" stroke={RC.ink2} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      </button>
+      {open && (
+        <ul style={{ listStyle: 'none', margin: 0, padding: '0 16px 12px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', columnGap: 12 }}>
+          {[...list].sort((a, b) => a.name.localeCompare(b.name)).map((c) => (
+            <li key={c.iso} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 0', fontFamily: 'var(--font)', fontSize: 15, color: RC.ink, borderTop: `1px solid ${RC.line}` }}>
+              <span aria-hidden style={{ fontSize: 18 }}>{c.flag}</span>{c.name}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 /** Global on the site's dark plan card: Unlimited, the month's price, the ticks. */
 function GlobalCard({ l, p, price }: { l: Layout; p: Plan; price: { total: string; monthly: string } }) {
@@ -445,8 +468,12 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
     </div>
   );
 
+  const countryList = cat?.coverage?.list && cat.coverage.list.length > 1 ? cat.coverage.list : null;
   const ticks = !unlimitedGlobal && cat && !loadingPrices && plans.length > 0 && (
-    <TickList items={selected && selected.app_only ? DAY_TICKS : selected && selected.tier === 'unlimited' ? UNLIMITED_TICKS : DATA_TICKS} />
+    <>
+      <TickList items={selected && selected.app_only ? DAY_TICKS : selected && selected.tier === 'unlimited' ? UNLIMITED_TICKS : DATA_TICKS} />
+      {countryList && <CountryList list={countryList} />}
+    </>
   );
 
   const planList: ReactNode = cat && !loadingPrices && (
@@ -471,23 +498,17 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
       )}
       {!unlimitedGlobal && shownTab === 'unl' && tierOptions.length > 1 && (
         <div>
-          <div style={{ fontFamily: 'var(--font)', fontSize: 14, color: RC.ink2, marginBottom: 8 }}>Full speed each day</div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {tierOptions.map((g) => {
               const sel = g === tierGb;
               return (
                 <button key={g} type="button" className="press" onClick={() => { hapticSelection(); setUnlGb(g); setShowAll(false); }}
-                  style={{ flex: 1, cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, padding: '10px 0', borderRadius: 12, color: RC.ink, ...(sel ? ringOn(true) : ringOff) }}>
-                  {g} GB a day
+                  style={{ flex: '1 1 30%', cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, padding: '10px 0', borderRadius: 12, color: RC.ink, ...(sel ? ringOn(true) : ringOff) }}>
+                  {tierName(g)}
                 </button>
               );
             })}
           </div>
-        </div>
-      )}
-      {!unlimitedGlobal && shownTab === 'unl' && tierLines[0] && (tierGb ?? 0) > 0 && (
-        <div style={{ marginTop: tierOptions.length > 1 ? -4 : 0, fontFamily: 'var(--font)', fontSize: 14, color: RC.ink2 }}>
-          {tierGb === 10 ? 'For van travel or a hotspot for friends. ' : ''}{`Full speed up to ${tierGb} GB a day${tierLines[0].after_speed ? `, then ${tierLines[0].after_speed}` : ', never cut off'}.`}
         </div>
       )}
       {!unlimitedGlobal && visibleLines.map((p) => {

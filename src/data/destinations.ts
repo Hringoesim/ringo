@@ -39,6 +39,7 @@ export function hasPicture(id: string): boolean {
 export const REGIONS: Destination[] = [
   { id: 'global', label: 'Global', kind: 'region', countries: 133 },
   { id: 'europe', label: 'Europe', kind: 'region', countries: 37 },
+  { id: 'balkans', label: 'Balkans', kind: 'region', countries: 7 },
   { id: 'asia', label: 'Asia', kind: 'region', countries: 19 },
   { id: 'latam', label: 'Latin America', kind: 'region', countries: 18 },
   { id: 'middle-east', label: 'Middle East', kind: 'region', countries: 12 },

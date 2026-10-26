@@ -65,10 +65,20 @@ export function sizeOf(p: Plan): string {
 // The app's tier names (owner 2026-10-24): Day, Super, Ultra.
 const APP_GROUP_NAME: Record<string, string> = { day: 'Unlimited Day', power: 'Unlimited Super', super: 'Unlimited Ultra' };
 
+/**
+ * An unlimited line is called Unlimited (owner 2026-10-26: "don't say full
+ * speed 1 GB a day then 1 Mbps, just call it unlimited"); the daily allowance
+ * only picks the name, and its terms live in the Terms of Use.
+ */
+const TIER_NAME: Record<number, string> = { 1: 'Unlimited', 2: 'Unlimited Plus', 3: 'Unlimited Pro', 5: 'Unlimited Max', 10: 'Unlimited Ultra' };
+export function tierName(dailyGb: number | null | undefined): string {
+  return (dailyGb && TIER_NAME[dailyGb]) || 'Unlimited';
+}
+
 /** Duration and data together, the way a card, the footer and checkout name a line: "2 weeks, 10 GB"; Global reads "Unlimited, monthly". */
 export function planName(p: Plan): string {
   // The tier name, not the catalogue label, so the app reads Day, Super, Ultra everywhere.
-  if (p.app_only) return p.daily_gb ? `${p.daily_gb} GB a day, ${termTitle(p)}` : `${APP_GROUP_NAME[p.group ?? 'day']}, ${termTitle(p)}`;
+  if (p.app_only) return p.daily_gb ? `${tierName(p.daily_gb)}, ${termTitle(p)}` : `${APP_GROUP_NAME[p.group ?? 'day']}, ${termTitle(p)}`;
   if (isGlobalUnlimited(p)) return 'Unlimited, monthly';
   return `${termTitle(p)}, ${sizeOf(p)}`;
 }
