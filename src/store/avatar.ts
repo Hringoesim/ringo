@@ -57,6 +57,10 @@ function readTraveller(userId: string | null): string | null {
   try { return localStorage.getItem(TKEY(userId)); } catch { return null; }
 }
 export const avatarTraveller = {
+  /** Whether this member has picked one yet (the onboarding asks once). */
+  picked(userId: string): boolean {
+    return readTraveller(userId) != null;
+  },
   set(userId: string, kind: string): void {
     try { localStorage.setItem(TKEY(userId), kind); } catch { /* storage full: keep the last one */ }
     notify();

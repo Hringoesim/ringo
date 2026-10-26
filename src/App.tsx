@@ -29,6 +29,8 @@ import { CheckoutScreen } from './screens/CheckoutScreen';
 import { EsimScreen } from './screens/EsimScreen';
 import { InstallScreen } from './screens/InstallScreen';
 import { LoginScreen } from './screens/LoginScreen';
+import { TravellerScreen } from './screens/TravellerScreen';
+import { avatarTraveller } from './store/avatar';
 import { ReportScreen } from './screens/ReportScreen';
 import { HelpScreen } from './screens/HelpScreen';
 import { RewardsScreen } from './screens/RewardsScreen';
@@ -159,7 +161,13 @@ export function App() {
   // Signed in or signed up: straight to My eSIM. No welcome screen and no
   // notification ask here (owner 2026-10-24: the ask came twice and sat with
   // Rewards); the one ask follows the first delivered purchase.
-  const signedIn = () => { goTab('esim'); };
+  // A first sign-in picks a traveller first (owner 2026-10-26: make
+  // onboarding fun); it is asked once per member on this phone.
+  const signedIn = () => {
+    const a = account.get();
+    if (a && !avatarTraveller.picked(a.userId)) { navDirRef.current = 'push'; setStack([mkFrame('traveller', {})]); return; }
+    goTab('esim');
+  };
 
   // One line in the device log at launch saying whether the App Store
   // returns our products: the Paid Apps agreement and the product state are
@@ -288,6 +296,9 @@ export function App() {
       break;
     case 'install':
       body = <InstallScreen install={current.params.install!} label={current.params.label || 'Ringo'} onBack={pop} />;
+      break;
+    case 'traveller':
+      body = <TravellerScreen onDone={() => goTab('esim')} />;
       break;
     case 'login':
       body = <LoginScreen onBack={pop} onDone={signedIn} startWithEmail={Boolean(current.params.email)} />;

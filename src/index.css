@@ -476,3 +476,15 @@ button:focus-visible,
 
 /* The sign-in code box: its hint is six light dots, never mistaken for a typed code. */
 .ringo-code::placeholder { color: rgba(26, 15, 46, 0.22); letter-spacing: 12px; }
+
+/* The traveller picker (owner 2026-10-26, "the onboarding experience needs to
+   be fun"): the picked traveller hops, the rest settle. */
+@keyframes ringoHop {
+  0% { transform: translateY(0) scale(1); }
+  35% { transform: translateY(-14px) scale(1.08); }
+  60% { transform: translateY(0) scale(0.96); }
+  80% { transform: translateY(-4px) scale(1.02); }
+  100% { transform: translateY(0) scale(1); }
+}
+.hop { animation: ringoHop .55s cubic-bezier(.3,.7,.4,1) both; }
+@media (prefers-reduced-motion: reduce) { .hop { animation: none; } }

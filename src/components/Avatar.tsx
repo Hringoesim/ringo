@@ -11,10 +11,12 @@
 // star medallion at the bottom right, whatever their Rewards level. A Pioneer
 // who added their own photo keeps the gold ring and the medallion.
 import { useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { RC } from '../theme';
 import { avatarPhoto, avatarTraveller } from '../store/avatar';
 import { levelColor, PIONEER_GOLD } from './profile/format';
 import { TextLink } from './ui';
+import { hapticSelection } from '../lib/haptics';
 
 function hashStr(s: string): number {
   let h = 2166136261;
@@ -308,6 +310,80 @@ function TravellerPicker({ userId, seed, level, pioneer, current }: { userId: st
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/**
+ * The travellers as a big grid (owner 2026-10-26): the onboarding pick and the
+ * sheet behind a tap on the avatar. The pick sticks on this phone; the one
+ * just picked hops.
+ */
+export function TravellerGrid({ userId, seed, level, pioneer = false, tile = 84, onPick }: { userId: string; seed: string; level: string | null; pioneer?: boolean; tile?: number; onPick?: (id: string) => void }) {
+  const photo = avatarPhoto.use(userId);
+  const kind = avatarTraveller.use(userId);
+  const current = photo ? null : kind;
+  const [hop, setHop] = useState<string | null>(null);
+  return (
+    <div role="radiogroup" aria-label="Pick your traveller" style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${tile + 8}px, 1fr))`, gap: 14 }}>
+      {TRAVELLERS.map((t) => {
+        const on = current === t.id;
+        return (
+          <button
+            key={t.id} type="button" role="radio" aria-checked={on} aria-label={t.name} className="press"
+            onClick={() => { hapticSelection(); avatarPhoto.clear(userId); avatarTraveller.set(userId, t.id); setHop(t.id); onPick?.(t.id); }}
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '10px 0', borderRadius: 20, border: `2px solid ${on ? RC.orangeInk : RC.line}`, background: on ? '#FFF1E8' : '#fff', cursor: 'pointer' }}
+          >
+            <span key={hop === t.id ? `hop-${t.id}` : t.id} className={hop === t.id ? 'hop' : undefined} style={{ width: tile, height: tile, borderRadius: '50%', overflow: 'hidden', display: 'block' }}>
+              {pioneer && t.id === 'cowboy' ? <PioneerAvatar size={tile} /> : <Traveller seed={seed} level={level} size={tile} kind={t.id} />}
+            </span>
+            <span style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: on ? 700 : 600, color: on ? RC.ink : RC.ink2, whiteSpace: 'nowrap' }}>{t.name}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** A tap on the avatar: change the traveller, or use a photo. */
+export function TravellerSheet({ userId, seed, level, pioneer = false, onClose }: { userId: string; seed: string; level: string | null; pioneer?: boolean; onClose: () => void }) {
+  const titleId = useId();
+  // On document.body, so it sits over the tab bar and outside the screen's own stacking.
+  return createPortal(
+    <div
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(26,15,46,0.46)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', animation: 'ringoFadeIn 0.24s ease both' }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div role="dialog" aria-modal="true" aria-labelledby={titleId} className="rise"
+        style={{ width: '100%', maxWidth: 560, maxHeight: '86vh', overflowY: 'auto', boxSizing: 'border-box', background: RC.paper, borderRadius: '24px 24px 0 0', padding: '20px 20px max(24px, calc(env(safe-area-inset-bottom, 0px) + 16px))' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
+          <div id={titleId} style={{ fontFamily: 'var(--font)', fontSize: 22, fontWeight: 800, color: RC.ink }}>Your traveller</div>
+          <button type="button" className="press" onClick={onClose} style={{ border: 'none', background: RC.cream, borderRadius: 999, padding: '10px 16px', fontFamily: 'var(--font)', fontSize: 15, fontWeight: 700, color: RC.ink, cursor: 'pointer' }}>Done</button>
+        </div>
+        <TravellerGrid userId={userId} seed={seed} level={level} pioneer={pioneer} tile={72} />
+        <div style={{ marginTop: 18 }}>
+          <PhotoLinks userId={userId} pioneer={pioneer} />
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+/** "Add a photo" / "Use my Ringo avatar": the photo stays on this phone. */
+function PhotoLinks({ userId, pioneer }: { userId: string; pioneer: boolean }) {
+  const input = useRef<HTMLInputElement>(null);
+  const photo = avatarPhoto.use(userId);
+  const [failed, setFailed] = useState(false);
+  return (
+    <div>
+      <input ref={input} type="file" accept="image/*" hidden aria-hidden
+        onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void avatarPhoto.set(userId, f).then((ok) => setFailed(!ok)); }} />
+      <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: 24, rowGap: 8 }}>
+        <TextLink align="left" onClick={() => { setFailed(false); input.current?.click(); }}>{photo ? 'Change photo' : 'Use a photo instead'}</TextLink>
+        {photo && <TextLink align="left" color={RC.ink2} onClick={() => avatarPhoto.clear(userId)}>{pioneer ? 'Use my golden avatar' : 'Use my Ringo avatar'}</TextLink>}
+      </div>
+      {failed && <div role="alert" style={{ marginTop: 12, fontFamily: 'var(--font)', fontSize: 15, color: RC.error }}>That photo could not be used. Try another one.</div>}
     </div>
   );
 }

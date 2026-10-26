@@ -22,7 +22,7 @@ import { light, type Profile, type RewardLevel } from '../api/light';
 import { useAccount } from '../store/account';
 import { useLiveTick } from '../store/live';
 import { useLayout, twoColumn, cardGrid, TABBAR_CLEARANCE, type Layout } from '../lib/layout';
-import { RingoAvatar, AvatarPhotoControls } from '../components/Avatar';
+import { RingoAvatar, TravellerSheet } from '../components/Avatar';
 import { BadgeGrid, BadgeEmpty, BadgeSkeleton } from '../components/profile/BadgeGrid';
 import { TravelMap } from '../components/profile/TravelMap';
 import { EarnBadges } from '../components/profile/EarnBadges';
@@ -57,10 +57,17 @@ export function LevelPhoto({ id, aspect, children, eager = false }: { id: string
 function Member({ l, userId, email, since, level, pioneer }: { l: Layout; userId: string; email: string; since: string | null; level: RewardLevel | null; pioneer: Pioneer | null }) {
   const month = monthYear(since);
   const size = l.isWide ? 104 : l.isCover ? 80 : 88;
+  const [sheet, setSheet] = useState(false);
   return (
     <section aria-label="Your membership" style={{ ...cardSurface(), padding: l.cardPad, display: 'flex', flexDirection: 'column', gap: 16, height: '100%', boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <RingoAvatar seed={email || userId} userId={userId} level={level?.id ?? null} size={size} pioneer={!!pioneer} />
+        <button type="button" className="press" aria-label="Change your traveller" onClick={() => setSheet(true)}
+          style={{ position: 'relative', padding: 0, border: 'none', background: 'none', cursor: 'pointer', flexShrink: 0 }}>
+          <RingoAvatar seed={email || userId} userId={userId} level={level?.id ?? null} size={size} pioneer={!!pioneer} />
+          <span aria-hidden style={{ position: 'absolute', right: -2, bottom: -2, width: 30, height: 30, borderRadius: '50%', background: RC.orangeInk, border: `3px solid ${RC.paper}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24"><path fill="#fff" d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25zm17.7-10.2a1 1 0 000-1.42l-2.33-2.33a1 1 0 00-1.42 0l-1.83 1.83 3.75 3.75 1.83-1.83z" /></svg>
+          </span>
+        </button>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ ...TYPE.h1, fontSize: l.isCover ? 20 : 22, color: RC.ink }}>{level ? `${level.name} member` : 'Ringo member'}</div>
           {pioneer && <PioneerBadge tone="gold" label={pioneerTitle(pioneer)} style={{ marginTop: 8, maxWidth: '100%', whiteSpace: 'normal' }} />}
@@ -68,7 +75,7 @@ function Member({ l, userId, email, since, level, pioneer }: { l: Layout; userId
         </div>
       </div>
       {email && <div title={email} style={{ ...TYPE.small, color: RC.ink2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{email}</div>}
-      <AvatarPhotoControls userId={userId} pioneer={!!pioneer} seed={email || userId} level={level?.id ?? null} />
+      {sheet && <TravellerSheet userId={userId} seed={email || userId} level={level?.id ?? null} pioneer={!!pioneer} onClose={() => setSheet(false)} />}
     </section>
   );
 }
