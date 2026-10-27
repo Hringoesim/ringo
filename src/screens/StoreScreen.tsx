@@ -21,6 +21,7 @@ import { CITIES } from '../data/cities';
 import { useAccount } from '../store/account';
 import { haptic, hapticSelection } from '../lib/haptics';
 import { useLayout, contentColumn, cardGrid, tileGrid, TABBAR_CLEARANCE, type Layout } from '../lib/layout';
+import signpostPhoto from '../assets/store/beach-signpost.jpg'; // Unsplash KVlyEDdbuac (Zoshua Colah), Unsplash licence
 import dishPhoto from '../assets/store/dish-sunset.jpg'; // Unsplash xpb438CRUnU (Gilles Rolland-Monnet), Unsplash licence
 
 // The two shortcut cards over the list (quiz, Power): a photograph like every
@@ -28,9 +29,9 @@ import dishPhoto from '../assets/store/dish-sunset.jpg'; // Unsplash xpb438CRUnU
 const shortcutCard = (photo: string, place = 'center / cover'): CSSProperties => ({
   position: 'relative', overflow: 'hidden', minHeight: 150, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
   textAlign: 'left', cursor: 'pointer', padding: 14, borderRadius: 22, border: 'none', fontFamily: 'var(--font)', color: '#fff',
-  background: `${PHOTO_OVERLAY}, url(${photo}) ${place}, ${RC.ink}`, textShadow: PHOTO_TEXT_SHADOW,
+  background: `linear-gradient(180deg, rgba(26,15,46,0) 28%, rgba(26,15,46,0.88) 100%), url(${photo}) ${place}, ${RC.ink}`, textShadow: PHOTO_TEXT_SHADOW,
 });
-const shortcutIcon: CSSProperties = { width: 36, height: 36, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.22)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' };
+const shortcutIcon: CSSProperties = { width: 36, height: 36, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(26,15,46,0.32)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' };
 
 // What people actually type. "United States" does not contain "usa", so the
 // most obvious search in an eSIM store returned nothing at all.
@@ -339,7 +340,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
             <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: l.cardGap }}>
               {onQuiz && (
                 <button type="button" className="press" onClick={() => { hapticSelection(); onQuiz(); }}
-                  style={shortcutCard(bundledPictureFor('switzerland') ?? pictureFor('switzerland'))}>
+                  style={shortcutCard(signpostPhoto, '0% 22% / 165% auto')}>
                   <span style={shortcutIcon}><svg aria-hidden width="20" height="20" viewBox="0 0 24 24"><g fill="#fff"><rect x="3" y="15" width="3.6" height="6" rx="1.2" /><rect x="8.6" y="11" width="3.6" height="10" rx="1.2" /><rect x="14.2" y="7" width="3.6" height="14" rx="1.2" /><rect x="19.4" y="3" width="1.6" height="18" rx=".8" opacity=".5" /></g></svg></span>
                   <span style={{ display: 'block', marginTop: 12 }}>
                     <span style={{ display: 'block', fontSize: 16, fontWeight: 700 }}>How much data do I need?</span>
