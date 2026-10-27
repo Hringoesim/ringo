@@ -154,29 +154,30 @@ const POWER_TIER_PERK: Record<number, string> = {
   5: 'Priority access and speed.',
   10: 'Priority network access, guaranteed high speed, priority at peak times.',
 };
-/** Each Power Use tier's own dark card (owner 2026-10-27: tell them apart, feel premium): Power deep blue, Super User purple into magenta. */
-const POWER_TIER_BG: Record<number, string> = {
-  5: 'linear-gradient(150deg, #1534C4 0%, #2F6BFF 100%)',
-  10: 'linear-gradient(150deg, #6A12C9 0%, #B02AB8 55%, #F0388A 100%)',
-};
-const POWER_TIER_RING: Record<number, string> = { 5: '#2F6BFF', 10: '#E0368F' };
+/**
+ * Power Use tiers on light grey glass (owner 2026-10-27: no blue or purple fills). Super User alone
+ * wears the brand's sunset gradient as a softly pulsing edge, so it stands out without shouting.
+ */
+const POWER_GLASS = 'linear-gradient(160deg, rgba(255,255,255,0.85), rgba(240,236,244,0.75))';
+const POWER_SUNSET = 'linear-gradient(120deg, #FF7A3D 0%, #FF4FA1 50%, #8B5CF6 100%)';
+const POWER_PULSE_CSS = '@keyframes superPulse{0%,100%{opacity:.45}50%{opacity:1}}.super-pulse{animation:superPulse 2.8s ease-in-out infinite}@media (prefers-reduced-motion: reduce){.super-pulse{animation:none;opacity:.8}}';
 /** How much each tier carries, as a bar meter rather than GB: Super User fills it, Power half. */
 function PowerMeter({ gb, max }: { gb: number; max: number }) {
   const lit = Math.max(1, Math.round((gb / Math.max(max, 1)) * 4));
   return (
     <span aria-hidden style={{ display: 'flex', gap: 4, marginTop: 10 }}>
       {[0, 1, 2, 3].map((i) => (
-        <span key={i} style={{ flex: 1, height: 5, borderRadius: 3, background: i < lit ? '#FFC94D' : 'rgba(255,255,255,0.22)' }} />
+        <span key={i} style={{ flex: 1, height: 5, borderRadius: 3, background: i < lit ? POWER_SUNSET : 'rgba(26,15,46,0.10)' }} />
       ))}
     </span>
   );
 }
 /** Each Power Use tier's icon (owner 2026-10-27), as the plan tabs draw theirs: a laptop for Power, a van for Super User. */
 function PowerTierIcon({ gb }: { gb: number; on: boolean }) {
-  const fill = '#fff';
+  const fill = RC.ink;
   return (
     <span aria-hidden style={{ width: 36, height: 36, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10,
-      background: 'rgba(255,255,255,0.16)', border: '1px solid rgba(255,255,255,0.28)' }}>
+      background: 'rgba(26,15,46,0.06)', border: '1px solid rgba(26,15,46,0.08)' }}>
       <svg width="20" height="20" viewBox="0 0 24 24">
         {gb >= 10
           ? <g fill={fill}><path fillRule="evenodd" d="M2 8a2 2 0 0 1 2-2h10.6a2 2 0 0 1 1.5.7l3.6 4.1 1.6.5a1 1 0 0 1 .7 1V16a1 1 0 0 1-1 1h-1.1a2.6 2.6 0 0 0-5.1 0H9.2a2.6 2.6 0 0 0-5.1 0H3a1 1 0 0 1-1-1V8zm12 0v3h3.6L15 8h-1zM4.5 8v3H8V8H4.5zm5 0v3h3V8h-3z" /><circle cx="6.6" cy="17.4" r="1.9" /><circle cx="17.4" cy="17.4" r="1.9" /></g>
@@ -624,26 +625,29 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
           <p style={{ margin: '0 0 12px', fontFamily: 'var(--font)', fontSize: 16, lineHeight: 1.4, color: RC.ink }}>
             Unlimited data for a van, hotspot or laptop.
           </p>
+          <style>{POWER_PULSE_CSS}</style>
           {/* What is what (owner 2026-10-27): each tier says what it is for, not its GB a day. */}
           <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
             {powerTiers.map((g) => {
               const sel = g === powerGbShown;
               return (
                 <button key={g} type="button" className="press" aria-pressed={sel} onClick={() => { hapticSelection(); setPowerGb(g); setShowAll(false); }}
-                  style={{ flex: 1, minWidth: 0, cursor: 'pointer', fontFamily: 'var(--font)', padding: '14px 14px 12px', borderRadius: 18, border: 'none', color: '#fff', textAlign: 'left',
-                    position: 'relative', background: POWER_TIER_BG[g] ?? POWER_TIER_BG[5], transition: 'box-shadow .2s',
-                    boxShadow: sel ? `0 0 0 3px ${RC.bg}, 0 0 0 5px ${POWER_TIER_RING[g] ?? POWER_TIER_RING[5]}, 0 14px 28px -12px rgba(26,15,46,0.55)` : '0 6px 16px -10px rgba(26,15,46,0.5)' }}>
-                  {sel && <span aria-hidden style={{ position: 'absolute', top: 12, right: 12, width: 22, height: 22, borderRadius: 11, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><svg width="13" height="13" viewBox="0 0 24 24"><path fill="none" stroke={POWER_TIER_RING[g] ?? POWER_TIER_RING[5]} strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" d="M5 12.5l4.5 4.5L19 7.5" /></svg></span>}
-                  <PowerTierIcon gb={g} on={sel} />
-                  <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-0.01em' }}>{POWER_TIER_NAME[g] ?? tierName(g)}</div>
-                  <div style={{ marginTop: 2, fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>{POWER_TIER_USE[g] ?? `${g} GB a day`}</div>
-                  <PowerMeter gb={g} max={powerTiers[powerTiers.length - 1] ?? g} />
+                  style={{ flex: 1, minWidth: 0, cursor: 'pointer', fontFamily: 'var(--font)', padding: 2, borderRadius: 20, border: 'none', textAlign: 'left', position: 'relative',
+                    background: sel ? RC.ink : 'rgba(26,15,46,0.10)', boxShadow: sel ? '0 12px 26px -14px rgba(26,15,46,0.45)' : 'none', transition: 'box-shadow .2s, background .2s' }}>
+                  {g >= 10 && <span aria-hidden className="super-pulse" style={{ position: 'absolute', inset: 0, borderRadius: 20, background: POWER_SUNSET }} />}
+                  <span style={{ position: 'relative', display: 'block', height: '100%', boxSizing: 'border-box', padding: '12px 12px 12px', borderRadius: 18, background: POWER_GLASS, backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', color: RC.ink }}>
+                    {sel && <span aria-hidden style={{ position: 'absolute', top: 12, right: 12, width: 22, height: 22, borderRadius: 11, background: RC.ink, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><svg width="13" height="13" viewBox="0 0 24 24"><path fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" d="M5 12.5l4.5 4.5L19 7.5" /></svg></span>}
+                    <PowerTierIcon gb={g} on={sel} />
+                    <span style={{ display: 'block', fontSize: 17, fontWeight: 800, letterSpacing: '-0.01em' }}>{POWER_TIER_NAME[g] ?? tierName(g)}</span>
+                    <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: RC.ink2 }}>{POWER_TIER_USE[g] ?? `${g} GB a day`}</span>
+                    <PowerMeter gb={g} max={powerTiers[powerTiers.length - 1] ?? g} />
+                  </span>
                 </button>
               );
             })}
           </div>
           {powerGbShown != null && POWER_TIER_PERK[powerGbShown] && (
-            <p style={{ margin: '12px 2px 0', fontFamily: 'var(--font)', fontSize: 15, lineHeight: 1.4, fontWeight: 600, color: POWER_TIER_RING[powerGbShown] ?? RC.ink }}>
+            <p style={{ margin: '12px 2px 0', fontFamily: 'var(--font)', fontSize: 15, lineHeight: 1.4, fontWeight: 600, color: RC.ink }}>
               {POWER_TIER_PERK[powerGbShown]}
             </p>
           )}
