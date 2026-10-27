@@ -147,6 +147,20 @@ function PlanCard({ p, on, price, onPick }: { p: Plan; on: boolean; price: { tot
 const POWER_TIER_NAME: Record<number, string> = { 3: 'Day plan max', 5: 'Power', 10: 'Super User' };
 /** What each Power Use tier is for, under its name (owner 2026-10-27: by use, not by GB). */
 const POWER_TIER_USE: Record<number, string> = { 5: 'Hotspot and laptop', 10: 'Van and streaming' };
+/** Each Power Use tier's icon (owner 2026-10-27), as the plan tabs draw theirs: a laptop for Power, a van for Super User. */
+function PowerTierIcon({ gb, on }: { gb: number; on: boolean }) {
+  const fill = on ? '#D6247A' : RC.ink;
+  return (
+    <span aria-hidden style={{ width: 34, height: 34, borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 6px',
+      background: 'linear-gradient(135deg, rgba(242,97,34,0.12), rgba(255,66,161,0.12), rgba(134,82,224,0.14))' }}>
+      <svg width="20" height="20" viewBox="0 0 24 24">
+        {gb >= 10
+          ? <g fill={fill}><path fillRule="evenodd" d="M2 8a2 2 0 0 1 2-2h10.6a2 2 0 0 1 1.5.7l3.6 4.1 1.6.5a1 1 0 0 1 .7 1V16a1 1 0 0 1-1 1h-1.1a2.6 2.6 0 0 0-5.1 0H9.2a2.6 2.6 0 0 0-5.1 0H3a1 1 0 0 1-1-1V8zm12 0v3h3.6L15 8h-1zM4.5 8v3H8V8H4.5zm5 0v3h3V8h-3z" /><circle cx="6.6" cy="17.4" r="1.9" /><circle cx="17.4" cy="17.4" r="1.9" /></g>
+          : <path fill={fill} fillRule="evenodd" d="M5 4.5h14A1.5 1.5 0 0 1 20.5 6v9.5h-17V6A1.5 1.5 0 0 1 5 4.5zM5.5 6.5v7h13v-7h-13zM1.5 17h21v.5a2 2 0 0 1-2 2h-17a2 2 0 0 1-2-2V17z" />}
+      </svg>
+    </span>
+  );
+}
 
 /**
  * Each plan family wears its own shade (owner 2026-10-24: "power and super
@@ -578,6 +592,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
               return (
                 <button key={g} type="button" className="press" aria-pressed={sel} onClick={() => { hapticSelection(); setPowerGb(g); setShowAll(false); }}
                   style={{ flex: 1, minWidth: 0, cursor: 'pointer', fontFamily: 'var(--font)', padding: '10px 8px', borderRadius: 14, color: RC.ink, textAlign: 'center', ...(sel ? ringOn(true) : ringOff) }}>
+                  <PowerTierIcon gb={g} on={sel} />
                   <div style={{ fontSize: 16, fontWeight: 700 }}>{POWER_TIER_NAME[g] ?? tierName(g)}</div>
                   <div style={{ marginTop: 2, fontSize: 13, color: RC.ink2 }}>{POWER_TIER_USE[g] ?? `${g} GB a day`}</div>
                 </button>
