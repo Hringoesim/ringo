@@ -487,7 +487,8 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   const hasBothTiers = onTrip && !unlimitedGlobal && tiers.has('data') && tiers.has('unlimited');
   const placeName = dest?.label || cat?.destination.label || id;
   const name = powerMode && !/power use/i.test(placeName) ? `${placeName} Power Use` : placeName;
-  const coverage = cat ? cat.destination.coverage_line : dest ? (dest.countries > 1 ? `Works in ${dest.countries} countries` : `Works across ${dest.label}`) : '';
+  // A line whose package connects in its own countries (Latin America's Power plans: no Mexico, US or Canada) says so.
+  const coverage = selected?.coverage ? `Works in ${selected.coverage.countries} countries` : cat ? cat.destination.coverage_line : dest ? (dest.countries > 1 ? `Works in ${dest.countries} countries` : `Works across ${dest.label}`) : '';
 
   const continueTap = () => {
     if (!cat || !selected) return;
@@ -515,7 +516,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
     </div>
   );
 
-  const countryList = cat?.coverage?.list && cat.coverage.list.length > 1 ? cat.coverage.list : null;
+  const countryList = selected?.coverage?.list ?? (cat?.coverage?.list && cat.coverage.list.length > 1 ? cat.coverage.list : null);
   const ticks = !unlimitedGlobal && cat && !loadingPrices && plans.length > 0 && (
     <>
       <TickList items={selected && selected.app_only ? DAY_TICKS : selected && selected.tier === 'unlimited' ? UNLIMITED_TICKS : DATA_TICKS} />

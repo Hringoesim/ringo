@@ -43,6 +43,8 @@ export interface Plan {
   daily_gb?: number;
   /** The speed once the day's allowance is used ("1 Mbps"), when the supplier states it. */
   after_speed?: string | null;
+  /** The countries this line's own package connects in, where it differs from the place's list (app day plans). */
+  coverage?: { countries: number; list: { iso: string; name: string; flag: string }[] };
   /** The line in its list that keeps Ringo the most per sale (app catalogue only). */
   best_margin?: boolean;
   app_only?: boolean;
