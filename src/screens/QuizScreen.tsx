@@ -2,12 +2,14 @@
 // (owner: "focus on the quiz that makes it interactive, and completing the
 // quiz gives you coins"). Three steps: a trip length slider, tiles for what
 // the trip needs with a live data meter that fills as they are picked, and
-// work online or not; then a reveal with confetti and the plan type. A
-// signed-in member's first completed quiz earns the Data smart badge, 25
-// Ringo coins (/api/app-quiz, credited on the next profile load). The answer
+// work online or not; then a reveal with confetti and the plan type. Drawn in
+// 3D (owner 2026-10-27: raised keys, a carved meter, a minted coin; the
+// .q3d classes in index.css). A signed-in member earns the Data smart badge
+// and 25 Ringo coins once per purchase (owner 2026-10-27: "once per purchase,
+// it gives an incentive for people to come back"; /api/app-quiz). The answer
 // rides to the plan screen (quizPick in lib/quiz.ts), which opens on that tab.
 import { useEffect, useState, type ReactNode } from 'react';
-import { RC, TYPE, RADIUS, SITE_GRAD, cardSurface } from '../theme';
+import { RC, TYPE, RADIUS, SITE_GRAD } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { BackBtn } from '../components/ui';
@@ -33,13 +35,13 @@ function DataMeter({ gbDay }: { gbDay: number }) {
   const pct = Math.min(100, (gbDay / 6) * 100);
   const label = gbDay < 0.6 ? 'Light' : gbDay < 1.5 ? 'Moderate' : gbDay < 4 ? 'Heavy' : 'Power user';
   return (
-    <div aria-live="polite" style={{ ...cardSurface(), padding: '14px 16px' }}>
+    <div aria-live="polite" className="q3d-card" style={{ padding: '14px 16px' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
         <span style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 700, color: RC.ink2 }}>Your daily use</span>
         <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color: RC.ink, fontVariantNumeric: 'tabular-nums' }}>{`${gbDay.toFixed(1)} GB`}</span>
       </div>
-      <div style={{ marginTop: 10, height: 12, borderRadius: RADIUS.pill, background: RC.cream, overflow: 'hidden' }}>
-        <div style={{ width: `${Math.max(pct, gbDay > 0 ? 6 : 0)}%`, height: '100%', borderRadius: RADIUS.pill, background: SITE_GRAD, transition: 'width .45s cubic-bezier(.3,.7,.4,1)' }} />
+      <div className="q3d-track" style={{ marginTop: 10, height: 14, borderRadius: RADIUS.pill, overflow: 'hidden' }}>
+        <div className="q3d-fill" style={{ width: `${Math.max(pct, gbDay > 0 ? 6 : 0)}%`, height: '100%', borderRadius: RADIUS.pill, background: SITE_GRAD, transition: 'width .45s cubic-bezier(.3,.7,.4,1)' }} />
       </div>
       <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.ink2 }}>{gbDay > 0 ? label : 'Pick what you will use'}</div>
     </div>
@@ -53,24 +55,25 @@ export function QuizScreen({ onBack, onBrowse }: { onBack: () => void; onBrowse:
   const [uses, setUses] = useState<Use[]>([]);
   const [hop, setHop] = useState<Use | null>(null);
   const [work, setWork] = useState<boolean | null>(null);
-  const [coins, setCoins] = useState<'none' | 'earned' | 'signin'>('none');
+  const [coins, setCoins] = useState<'none' | 'earned' | 'later' | 'signin'>('none');
   const done = step === 3 && work != null;
   const rec = done ? recommend({ days, uses, work: work! }) : null;
 
-  // The coins: once, when the result first shows.
+  // The coins, when the result shows: the site pays once per purchase and
+  // says what it paid (0 when this round was already paid: buy, then come back).
   useEffect(() => {
     if (!done) return;
     const acct = account.get();
     if (!acct) { setCoins('signin'); return; }
-    // The badge pays once (the site stamps the first completion only): a retake shows nothing new.
-    const seen = `ringo_quiz_coins_${acct.userId}`;
-    try { if (localStorage.getItem(seen)) return; } catch { /* ignore */ }
     void fetch(`${SITE}/api/app-quiz`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: acct.userId, t: acct.t }) })
-      .then((r) => {
+      .then(async (r) => {
         if (!r.ok) return;
-        setCoins('earned');
-        try { localStorage.setItem(seen, '1'); } catch { /* ignore */ }
-        void light.profile(acct.userId, acct.t).catch(() => {});
+        const j = (await r.json().catch(() => null)) as { coins?: number } | null;
+        if (j && Number(j.coins) > 0) {
+          setCoins('earned');
+          hapticNotify('success');
+          void light.profile(acct.userId, acct.t).catch(() => {});
+        } else setCoins('later');
       })
       .catch(() => {});
   }, [done]);
@@ -95,16 +98,16 @@ export function QuizScreen({ onBack, onBrowse }: { onBack: () => void; onBrowse:
 
           {step === 0 && (<>
             {title('How long is your trip?')}
-            <div style={{ ...cardSurface(), padding: '22px 18px', textAlign: 'center' }}>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: 56, fontWeight: 800, lineHeight: 1, color: RC.ink, fontVariantNumeric: 'tabular-nums' }}>{days}</div>
+            <div className="q3d-card" style={{ padding: '22px 18px', textAlign: 'center' }}>
+              <div className="q3d-num" style={{ fontFamily: 'var(--font-display)', fontSize: 64, fontWeight: 800, lineHeight: 1, color: RC.ink, fontVariantNumeric: 'tabular-nums' }}>{days}</div>
               <div style={{ marginTop: 4, ...TYPE.small, fontWeight: 700, color: RC.ink2 }}>{days === 1 ? 'day' : 'days'}</div>
               <input type="range" min={1} max={30} value={days} aria-label="Trip length in days"
                 onChange={(e) => { const v = Number(e.target.value); if (v !== days) hapticSelection(); setDays(v); }}
                 style={{ width: '100%', marginTop: 18, accentColor: RC.orangeInk, height: 28 }} />
               <div style={{ marginTop: 10, display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
                 {QUICK_DAYS.map((d) => (
-                  <button key={d} type="button" className="press" onClick={() => { hapticSelection(); setDays(d); }}
-                    style={{ padding: '8px 14px', borderRadius: RADIUS.pill, border: `1.5px solid ${days === d ? RC.orangeInk : RC.line}`, background: days === d ? '#FFF1E8' : '#fff', fontFamily: 'var(--font)', fontSize: 14, fontWeight: 700, color: RC.ink, cursor: 'pointer' }}>
+                  <button key={d} type="button" className={`press q3d${days === d ? ' on' : ''}`} onClick={() => { hapticSelection(); setDays(d); }}
+                    style={{ padding: '9px 14px', marginBottom: 4, borderRadius: RADIUS.pill, fontFamily: 'var(--font)', fontSize: 14, fontWeight: 700, color: days === d ? '#fff' : RC.ink, cursor: 'pointer' }}>
                     {d === 7 ? '1 week' : d === 14 ? '2 weeks' : d === 30 ? '1 month' : `${d} days`}
                   </button>
                 ))}
@@ -119,15 +122,15 @@ export function QuizScreen({ onBack, onBrowse }: { onBack: () => void; onBrowse:
               {USES.map((u) => {
                 const on = uses.includes(u.id);
                 return (
-                  <button key={u.id} type="button" className="press" aria-pressed={on}
+                  <button key={u.id} type="button" className={`press q3d${on ? ' on' : ''}`} aria-pressed={on}
                     onClick={() => { hapticSelection(); setHop(u.id); setUses(on ? uses.filter((x) => x !== u.id) : [...uses, u.id]); }}
-                    style={{ textAlign: 'left', cursor: 'pointer', padding: 14, borderRadius: 18, border: `2px solid ${on ? RC.orangeInk : RC.line}`, background: on ? '#FFF1E8' : '#fff', fontFamily: 'var(--font)' }}>
-                    <span key={hop === u.id ? `h-${u.id}-${String(on)}` : u.id} className={hop === u.id ? 'hop' : undefined}
-                      style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? RC.orangeInk : RC.cream, color: on ? '#fff' : RC.ink2 }}>
+                    style={{ textAlign: 'left', cursor: 'pointer', padding: 14, marginBottom: 5, borderRadius: 20, fontFamily: 'var(--font)' }}>
+                    <span key={hop === u.id ? `h-${u.id}-${String(on)}` : u.id} className={`q3d-icon${hop === u.id ? ' hop' : ''}`}
+                      style={{ width: 44, height: 44, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', color: RC.ink2 }}>
                       <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden>{ICON[u.id]}</svg>
                     </span>
-                    <span style={{ display: 'block', marginTop: 10, fontSize: 16, fontWeight: 700, color: RC.ink }}>{u.label}</span>
-                    <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: RC.ink2 }}>{u.sub}</span>
+                    <span className="q3d-title" style={{ display: 'block', marginTop: 10, fontSize: 16, fontWeight: 700, color: RC.ink }}>{u.label}</span>
+                    <span className="q3d-sub" style={{ display: 'block', marginTop: 2, fontSize: 13, color: RC.ink2 }}>{u.sub}</span>
                   </button>
                 );
               })}
@@ -138,26 +141,29 @@ export function QuizScreen({ onBack, onBrowse }: { onBack: () => void; onBrowse:
             {title('Will you work online?', 'Calls, uploads and a laptop add up.')}
             <DataMeter gbDay={perDayOf(uses, work === true)} />
             {[{ v: true, label: 'Yes, I will work', sub: 'Video meetings, files, a laptop' }, { v: false, label: 'No, just the trip', sub: 'Holiday mode' }].map((o) => (
-              <button key={String(o.v)} type="button" className="press" aria-pressed={work === o.v}
+              <button key={String(o.v)} type="button" className={`press q3d${work === o.v ? ' on' : ''}`} aria-pressed={work === o.v}
                 onClick={() => { hapticNotify('success'); setWork(o.v); window.setTimeout(() => setStep(3), 260); }}
-                style={{ width: '100%', textAlign: 'left', cursor: 'pointer', padding: '16px 18px', borderRadius: 18, border: `2px solid ${work === o.v ? RC.orangeInk : RC.line}`, background: work === o.v ? '#FFF1E8' : '#fff', fontFamily: 'var(--font)' }}>
-                <div style={{ fontSize: 17, fontWeight: 700, color: RC.ink }}>{o.label}</div>
-                <div style={{ marginTop: 2, fontSize: 14, color: RC.ink2 }}>{o.sub}</div>
+                style={{ width: '100%', textAlign: 'left', cursor: 'pointer', padding: '16px 18px', marginBottom: 5, borderRadius: 20, fontFamily: 'var(--font)' }}>
+                <div className="q3d-title" style={{ fontSize: 17, fontWeight: 700, color: RC.ink }}>{o.label}</div>
+                <div className="q3d-sub" style={{ marginTop: 2, fontSize: 14, color: RC.ink2 }}>{o.sub}</div>
               </button>
             ))}
           </>)}
 
           {rec && (<>
-            <div className="rise" style={{ ...cardSurface(), padding: 22, textAlign: 'center' }}>
+            <div className="rise q3d-card" style={{ padding: 22, textAlign: 'center' }}>
               <div style={{ ...TYPE.small, fontWeight: 700, color: RC.orangeInk }}>Your plan</div>
               <div style={{ marginTop: 6, fontFamily: 'var(--font-display)', fontSize: 34, fontWeight: 800, lineHeight: 1.1, color: RC.ink }}>{rec.title}</div>
               <p style={{ margin: '10px 0 0', ...TYPE.body, color: RC.ink2 }}>{rec.line}</p>
             </div>
             {coins === 'earned' && (
-              <div className="rise" role="status" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderRadius: 18, background: 'linear-gradient(135deg,#FFE79A 0%,#F4C64B 50%,#D9982A 100%)', color: '#3B2A05' }}>
-                <span className="hop" aria-hidden style={{ width: 40, height: 40, borderRadius: '50%', background: '#fff8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontWeight: 800 }}>+{COINS}</span>
-                <span style={{ fontFamily: 'var(--font)', fontSize: 15, fontWeight: 700 }}>{`Data smart badge earned: ${COINS} Ringo coins on your account.`}</span>
+              <div className="rise q3d-card" role="status" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', perspective: 400 }}>
+                <span className="q3d-coin" aria-hidden>+{COINS}</span>
+                <span style={{ fontFamily: 'var(--font)', fontSize: 15, fontWeight: 700, color: RC.ink }}>{`${COINS} Ringo coins on your account. Take the quiz again after your next eSIM for ${COINS} more.`}</span>
               </div>
+            )}
+            {coins === 'later' && (
+              <p style={{ margin: 0, ...TYPE.small, color: RC.ink2, textAlign: 'center' }}>{`Quiz coins are paid once per eSIM you buy. Buy your next one and take it again for ${COINS} more.`}</p>
             )}
             {coins === 'signin' && (
               <p style={{ margin: 0, ...TYPE.small, color: RC.ink2, textAlign: 'center' }}>{`Sign in and take the quiz to earn ${COINS} Ringo coins.`}</p>

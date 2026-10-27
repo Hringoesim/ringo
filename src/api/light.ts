@@ -61,6 +61,10 @@ export interface TopUp {
 export interface Catalog {
   currency: Currency;
   destination: { id: string; label: string; kind: string; countries: number; coverage_line: string; data_gb: number };
+  /** This card is the Power Use card of that place (Europe Power Use: 'europe'). */
+  power_of?: string;
+  /** This place's own Power Use card, where it has one ('europe' -> 'europe-heavy'). */
+  power_destination?: string;
   /** Every country a regional plan works in (flag and name). */
   coverage?: { countries: number; list: { iso: string; name: string; flag: string }[] };
   sizes: number[];

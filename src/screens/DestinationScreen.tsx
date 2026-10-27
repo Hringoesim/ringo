@@ -118,7 +118,7 @@ function PlanCard({ p, on, price, onPick }: { p: Plan; on: boolean; price: { tot
   // A Power plan (5 and 10 GB a day) wears its own outline, the sunset
   // colours sliding round it (owner 2026-10-27: "some type of contour where
   // the change changes the colour"), thicker and glowing once chosen.
-  const power = Boolean(p.app_only) && (p.daily_gb ?? 0) >= 5;
+  const power = (Boolean(p.app_only) || p.tier === 'unlimited') && (p.daily_gb ?? 0) >= 5;
   const face = power
     ? { border: `${on ? 2.5 : 2}px solid transparent`, boxShadow: on ? '0 12px 28px -14px rgba(255,66,161,0.65)' : '0 6px 18px -16px rgba(26,15,46,0.25)' }
     : on ? ringOn(unlimited || Boolean(p.app_only)) : ringOff;
@@ -140,6 +140,9 @@ function PlanCard({ p, on, price, onPick }: { p: Plan; on: boolean; price: { tot
     </button>
   );
 }
+
+/** The Power Use tiers by GB a day (owner 2026-10-27: "Power" is 5 GB a day, "Super User" 10). */
+const POWER_TIER_NAME: Record<number, string> = { 3: 'Day plan max', 5: 'Power', 10: 'Super User' };
 
 /**
  * Each plan family wears its own shade (owner 2026-10-24: "power and super
@@ -281,7 +284,7 @@ function GlobalCard({ l, p, price }: { l: Layout; p: Plan; price: { total: strin
   );
 }
 
-export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBack: () => void; onContinue: (s: Selection) => void }) {
+export function DestinationScreen({ id, power = false, onPower, onBack, onContinue }: { id: string; power?: boolean; onPower?: (id: string) => void; onBack: () => void; onContinue: (s: Selection) => void }) {
   const l = useLayout();
   const dest = destinationFrom(useDestinations(), id);
   const acct = useAccount();
@@ -392,27 +395,34 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
   const byDays = (list: Plan[]) => [...list].sort((a, b) => a.days - b.days);
   // A set amount for the trip: data lines only (an unlimited trip line is not one).
   const dataLines = plans.filter((p) => !p.app_only && p.tier === 'data');
-  // Power (owner 2026-10-27): the 5 and 10 GB a day passes, apart from the
-  // regular offer, for vans, hotspots and a secure connection; priced by the
-  // site at a 35% margin floor. 1 to 3 GB a day stay in the Unlimited tab.
+  // Power Use (owner 2026-10-27: "power use is a different card than the data
+  // + unlimited"): the 5 and 10 GB a day passes are a card of their own per
+  // place, never a tab beside Data and Unlimited. A card that IS a place's
+  // Power Use (Europe Power Use, power_of) shows every line it sells by its
+  // GB a day; elsewhere the Power Use card is this screen opened with power.
   const POWER_MIN_GB = 5;
-  const allPower = plans.filter((p) => p.app_only && (p.daily_gb ?? 0) >= POWER_MIN_GB);
+  const isPowerLine = (p: Plan) => (Boolean(p.app_only) && (p.daily_gb ?? 0) >= POWER_MIN_GB) || (Boolean(cat?.power_of) && (p.daily_gb ?? 0) > 0);
+  const ownPower = plans.filter(isPowerLine);
+  const powerMode = (power || quiz?.tab === 'power' || Boolean(cat?.power_of)) && ownPower.length > 0;
+  // The way to this place's Power Use card from its Data and Unlimited.
+  const powerLink = !powerMode && onPower ? (cat?.power_destination ?? (ownPower.length ? id : null)) : null;
+  const allPower = ownPower;
   const powerTiers = [...new Set(allPower.map((p) => p.daily_gb ?? 0))].sort((a, b) => a - b);
   const powerGbShown = powerGb != null && powerTiers.includes(powerGb) ? powerGb : (powerTiers[0] ?? null);
   const powerLines = byDays(allPower.filter((p) => (p.daily_gb ?? 0) === powerGbShown));
   // The day passes; where none is sold, the unlimited trip lines take the tab.
-  const dayPasses = plans.filter((p) => p.app_only && (p.daily_gb ?? 0) < POWER_MIN_GB);
-  const unlLines = dayPasses.length ? dayPasses : plans.filter((p) => !p.app_only && p.tier === 'unlimited');
+  const dayPasses = plans.filter((p) => p.app_only && !isPowerLine(p));
+  const unlLines = dayPasses.length ? dayPasses : plans.filter((p) => !p.app_only && p.tier === 'unlimited' && !isPowerLine(p));
   // The Unlimited tab: the full-speed amount a day, then one card per length.
   // One button per name: an allowance the app has no name for never shows a second "Unlimited".
   const tierOptions = [...new Set(unlLines.map((p) => p.daily_gb ?? 0))].sort((a, b) => a - b).filter((g, i, all) => all.findIndex((x) => tierName(x) === tierName(g)) === i);
   const tierGb = unlGb != null && tierOptions.includes(unlGb) ? unlGb : (tierOptions[0] ?? null);
   const tierLines = unlLines.filter((p) => (p.daily_gb ?? 0) === tierGb).sort((a, b) => a.days - b.days);
-  const tabOptions = (['data', 'unl', 'power'] as PlanTab[]).filter((t) => (t === 'data' ? dataLines : t === 'power' ? powerLines : unlLines).length > 0);
+  const tabOptions = (powerMode ? ['power'] as PlanTab[] : (['data', 'unl'] as PlanTab[]).filter((t) => (t === 'data' ? dataLines : unlLines).length > 0));
   // A tab not sold here (the quiz said Power, the place has none): Unlimited
   // covers a hotspot too, so that tab, and a line saying so.
-  const shownTab: PlanTab = tabOptions.includes(tab) ? tab : (tab === 'power' && tabOptions.includes('unl') ? 'unl' : (tabOptions[0] ?? 'data'));
-  const quizMissing = Boolean(quiz && tab === quiz.tab && plans.length > 0 && !tabOptions.includes(quiz.tab));
+  const shownTab: PlanTab = powerMode ? 'power' : tabOptions.includes(tab) ? tab : (tabOptions.includes('unl') && tab === 'power' ? 'unl' : (tabOptions[0] ?? 'data'));
+  const quizMissing = Boolean(quiz && tab === quiz.tab && plans.length > 0 && !powerMode && !tabOptions.includes(quiz.tab));
   // The Recommended line leads its tab (in both arms), so the plan that keeps
   // Ringo the most is the first thing seen; the rest keep their order.
   const leadFirst = (list: Plan[]) => [...list.filter((p) => p.best_margin), ...list.filter((p) => !p.best_margin)];
@@ -462,7 +472,8 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
     : { background: SUNSET, color: '#FFFFFF', boxShadow: '0 10px 22px -16px rgba(255,66,161,0.8)' };
   const tiers = new Set(cat?.plans.map((p) => p.tier) ?? []);
   const hasBothTiers = onTrip && !unlimitedGlobal && tiers.has('data') && tiers.has('unlimited');
-  const name = dest?.label || cat?.destination.label || id;
+  const placeName = dest?.label || cat?.destination.label || id;
+  const name = powerMode && !/power use/i.test(placeName) ? `${placeName} Power Use` : placeName;
   const coverage = cat ? cat.destination.coverage_line : dest ? (dest.countries > 1 ? `Works in ${dest.countries} countries` : `Works across ${dest.label}`) : '';
 
   const continueTap = () => {
@@ -541,23 +552,33 @@ export function DestinationScreen({ id, onBack, onContinue }: { id: string; onBa
       )}
       {!unlimitedGlobal && shownTab === 'power' && (
         <div>
-          <p style={{ margin: '0 0 10px', fontFamily: 'var(--font)', fontSize: 15, lineHeight: 1.45, color: RC.ink2 }}>
-            Plenty of data every day for a van, a hotspot or a laptop, on a mobile connection that is safer than public Wi-Fi.
+          <p style={{ margin: '0 0 12px', fontFamily: 'var(--font)', fontSize: 15, lineHeight: 1.45, color: RC.ink2 }}>
+            Plenty of data every day for a van, a hotspot or a laptop, on a mobile connection that is safer than public Wi-Fi. Full speed up to your amount each day, then slower, never cut off.
           </p>
-          {powerTiers.length > 1 && (
-            <div style={{ display: 'flex', gap: 8 }}>
-              {powerTiers.map((g) => {
-                const sel = g === powerGbShown;
-                return (
-                  <button key={g} type="button" className="press" onClick={() => { hapticSelection(); setPowerGb(g); setShowAll(false); }}
-                    style={{ flex: 1, cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, padding: '10px 0', borderRadius: 12, color: RC.ink, ...(sel ? ringOn(true) : ringOff) }}>
-                    {tierName(g)}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+          {/* What is what (owner 2026-10-27): each tier says its GB a day. */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            {powerTiers.map((g) => {
+              const sel = g === powerGbShown;
+              return (
+                <button key={g} type="button" className="press" aria-pressed={sel} onClick={() => { hapticSelection(); setPowerGb(g); setShowAll(false); }}
+                  style={{ flex: 1, minWidth: 0, cursor: 'pointer', fontFamily: 'var(--font)', padding: '10px 8px', borderRadius: 14, color: RC.ink, textAlign: 'center', ...(sel ? ringOn(true) : ringOff) }}>
+                  <div style={{ fontSize: 16, fontWeight: 700 }}>{POWER_TIER_NAME[g] ?? tierName(g)}</div>
+                  <div style={{ marginTop: 2, fontSize: 13, color: RC.ink2 }}>{g} GB a day</div>
+                </button>
+              );
+            })}
+          </div>
         </div>
+      )}
+      {!unlimitedGlobal && powerLink && (
+        <button type="button" className="press" onClick={() => { hapticSelection(); onPower?.(powerLink); }}
+          style={{ textAlign: 'left', cursor: 'pointer', padding: '14px 16px', borderRadius: 22, border: 'none', background: 'linear-gradient(160deg,#1A0F2E 0%,#3A1D5C 100%)', fontFamily: 'var(--font)', color: '#fff', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <svg aria-hidden width="24" height="24" viewBox="0 0 24 24" style={{ flexShrink: 0 }}><path fill="#FFB83D" d="M13.4 2.2c.4-.6-.3-1.3-.9-.9L4.6 12.2c-.4.5 0 1.3.6 1.3h5.3l-1.9 8.2c-.2.7.7 1.1 1.1.5l9.6-11.6c.4-.5 0-1.2-.6-1.2h-5.6l.3-7.2z" /></svg>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: 'block', fontSize: 16, fontWeight: 700 }}>{placeName} Power Use</span>
+            <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>Power and Super User plans, for vans, hotspots and a secure connection.</span>
+          </span>
+        </button>
       )}
       {!unlimitedGlobal && visibleLines.map((p) => {
         const key = lineKey(p);

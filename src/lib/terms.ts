@@ -70,7 +70,7 @@ const APP_GROUP_NAME: Record<string, string> = { day: 'Unlimited Day', power: 'U
  * speed 1 GB a day then 1 Mbps, just call it unlimited"); the daily allowance
  * only picks the name, and its terms live in the Terms of Use.
  */
-const TIER_NAME: Record<number, string> = { 1: 'Unlimited', 2: 'Unlimited Plus', 3: 'Unlimited Pro', 5: 'Unlimited Max', 10: 'Unlimited Ultra' };
+const TIER_NAME: Record<number, string> = { 1: 'Unlimited', 2: 'Unlimited Plus', 3: 'Unlimited Pro', 5: 'Power', 10: 'Super User' };
 export function tierName(dailyGb: number | null | undefined): string {
   return (dailyGb && TIER_NAME[dailyGb]) || 'Unlimited';
 }

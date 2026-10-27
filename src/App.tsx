@@ -47,6 +47,8 @@ interface Frame {
   name: string;
   params: {
     destination?: string;
+    /** the destination opens as its Power Use card (owner 2026-10-27) */
+    power?: boolean;
     selection?: Selection;
     install?: { apple_url: string; lpa: string };
     label?: string;
@@ -269,6 +271,8 @@ export function App() {
       body = (
         <DestinationScreen
           id={current.params.destination || 'europe'}
+          power={Boolean(current.params.power)}
+          onPower={(destination) => push('destination', { destination, power: true })}
           onBack={pop}
           onContinue={(selection) => push('checkout', { selection })}
         />

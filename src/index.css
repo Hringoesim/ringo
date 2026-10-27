@@ -510,3 +510,51 @@ button:focus-visible,
   to { background-position: 0 0, -200% 50%; }
 }
 @media (prefers-reduced-motion: reduce) { .power-contour { animation: none; } }
+
+/* The quiz in 3D (owner 2026-10-27: "the quiz feels cheap it should be 3d
+   shaped"): tiles are raised keys with a lit face and a solid edge that sink
+   when pressed, the meter is a carved track with a glossy fill, the coin is a
+   minted gold coin that spins. */
+.q3d {
+  position: relative;
+  border: none !important;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F7F1EB 100%) !important;
+  box-shadow: 0 5px 0 #E3D6CA, 0 14px 22px -12px rgba(26,15,46,0.35), inset 0 1px 0 #FFFFFF;
+  transform: translateY(0);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.q3d:active { transform: translateY(4px); box-shadow: 0 1px 0 #E3D6CA, 0 6px 12px -10px rgba(26,15,46,0.35), inset 0 1px 0 #FFFFFF; }
+.q3d.on {
+  background: linear-gradient(180deg, #FFB37A 0%, #F26122 100%) !important;
+  box-shadow: 0 5px 0 #B8410F, 0 16px 26px -12px rgba(242,97,34,0.65), inset 0 1px 0 rgba(255,255,255,0.55);
+}
+.q3d.on:active { box-shadow: 0 1px 0 #B8410F, 0 6px 12px -10px rgba(242,97,34,0.65), inset 0 1px 0 rgba(255,255,255,0.55); }
+.q3d.on .q3d-title, .q3d.on .q3d-sub { color: #FFFFFF !important; }
+.q3d-icon {
+  background: radial-gradient(120% 120% at 30% 20%, #FFFFFF 0%, #F3E7DC 55%, #E2CFBF 100%) !important;
+  box-shadow: inset 0 -3px 0 rgba(26,15,46,0.10), 0 3px 6px -2px rgba(26,15,46,0.25);
+}
+.q3d.on .q3d-icon {
+  background: radial-gradient(120% 120% at 30% 20%, #FFFFFF 0%, #FFE2CF 45%, #FFB37A 100%) !important;
+  color: #B8410F !important;
+}
+.q3d-card {
+  background: linear-gradient(180deg, #FFFFFF 0%, #FBF6F1 100%);
+  border-radius: 24px;
+  box-shadow: 0 6px 0 #EADFD4, 0 22px 36px -18px rgba(26,15,46,0.35), inset 0 1px 0 #FFFFFF;
+}
+.q3d-num { text-shadow: 0 1px 0 #F2D0BA, 0 2px 0 #E9BFA3, 0 3px 0 #DEAD8D, 0 4px 0 #D29B78, 0 10px 14px rgba(26,15,46,0.25); }
+.q3d-track { background: #EFE4DA; box-shadow: inset 0 2px 4px rgba(26,15,46,0.22), inset 0 -1px 0 #FFFFFF; }
+.q3d-fill { position: relative; box-shadow: 0 2px 6px -1px rgba(242,97,34,0.6); }
+.q3d-fill::after { content: ''; position: absolute; left: 4px; right: 4px; top: 2px; height: 35%; border-radius: 999px; background: rgba(255,255,255,0.55); }
+.q3d-coin {
+  width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 35% 30%, #FFF6C8 0%, #FFD54A 35%, #E2A417 75%, #B07A0C 100%);
+  box-shadow: inset 0 0 0 3px #F7C846, inset 0 0 0 5px #C88F12, 0 4px 0 #8C5F08, 0 10px 16px -6px rgba(120,80,0,0.6);
+  color: #6B4700; font-family: var(--font-display); font-weight: 800; font-size: 15px;
+  text-shadow: 0 1px 0 #FFF2B0;
+  animation: q3dSpin 2.4s ease-in-out infinite;
+}
+@keyframes q3dSpin { 0%, 60%, 100% { transform: rotateY(0deg); } 80% { transform: rotateY(180deg); } }
+@media (prefers-reduced-motion: reduce) { .q3d-coin { animation: none; } .q3d, .q3d:active { transition: none; } }
