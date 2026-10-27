@@ -110,15 +110,17 @@ function PlanCard({ p, on, price, onPick }: { p: Plan; on: boolean; price: { tot
   const sub = p.mode === 'subscription';
   const unlimited = isUnlimitedPlan(p);
   // A data card names its data and length; an unlimited card its length and the day's amount.
-  const title = p.app_only ? termTitle(p) : unlimited ? 'Unlimited' : p.data_gb ? `${p.data_gb} GB` : planName(p);
+  // A Power line reads like every Power line: its length, whatever list it came from.
+  const powerLine = (Boolean(p.app_only) || p.tier === 'unlimited') && (p.daily_gb ?? 0) >= 5;
+  const title = p.app_only || powerLine ? termTitle(p) : unlimited ? 'Unlimited' : p.data_gb ? `${p.data_gb} GB` : planName(p);
   // An unlimited card names only its length; the day's amount is said once above the cards.
-  const length = p.app_only ? '' : sub ? `Every ${periodWord(p)}` : termTitle(p);
+  const length = p.app_only || powerLine ? '' : sub ? `Every ${periodWord(p)}` : termTitle(p);
   // True claim only: the 2-week plan is what most people buy (236 of 316 sales, 2026-10-24).
   const popular = !p.app_only && p.plan === 'rl_14';
   // A Power plan (5 and 10 GB a day) wears its own outline, the sunset
   // colours sliding round it (owner 2026-10-27: "some type of contour where
   // the change changes the colour"), thicker and glowing once chosen.
-  const power = (Boolean(p.app_only) || p.tier === 'unlimited') && (p.daily_gb ?? 0) >= 5;
+  const power = powerLine;
   const face = power
     ? { border: `${on ? 2.5 : 2}px solid transparent`, boxShadow: on ? '0 12px 28px -14px rgba(255,66,161,0.65)' : '0 6px 18px -16px rgba(26,15,46,0.25)' }
     : on ? ringOn(unlimited || Boolean(p.app_only)) : ringOff;
@@ -401,7 +403,8 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   // Power Use (Europe Power Use, power_of) shows every line it sells by its
   // GB a day; elsewhere the Power Use card is this screen opened with power.
   const POWER_MIN_GB = 5;
-  const isPowerLine = (p: Plan) => (Boolean(p.app_only) && (p.daily_gb ?? 0) >= POWER_MIN_GB) || (Boolean(cat?.power_of) && (p.daily_gb ?? 0) > 0);
+  // Power is the 5 and 10 GB a day options only (owner 2026-10-27), wherever they come from.
+  const isPowerLine = (p: Plan) => (Boolean(p.app_only) || p.tier === 'unlimited') && (p.daily_gb ?? 0) >= POWER_MIN_GB;
   const ownPower = plans.filter(isPowerLine);
   const powerMode = (power || quiz?.tab === 'power' || Boolean(cat?.power_of)) && ownPower.length > 0;
   // Power asked for a place that has its own Power Use card (Europe): that card.
