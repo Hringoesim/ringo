@@ -35,9 +35,9 @@ const ICON: Record<Use, ReactNode> = {
 const TRIP_LOOK: Record<Trip, { photo: string }> = {
   backpacker: { photo: bundledPictureFor('vietnam') ?? pictureFor('vietnam') },
   // Blue sky and white sand (owner 2026-10-27), daylight everywhere.
-  // An empty white beach, turquoise water, deep blue sky (owner 2026-10-27:
-  // "a maldive type deserted beach dark blue sky hot"): Nungwi, from the site's guides.
-  beach: { photo: `${SITE}/img/guides/tanzania/nungwi.jpg` },
+  // A deserted island, turquoise lagoon, deep blue sky (owner 2026-10-27:
+  // "french polynesia pic"): Rangiroa, from the site's guides.
+  beach: { photo: `${SITE}/img/guides/french-polynesia/rangiroa.jpg` },
   multi: { photo: bundledPictureFor('switzerland') ?? pictureFor('switzerland') },
   city: { photo: pictureFor('portugal') },
   nomad: { photo: pictureFor('costa-rica') },
