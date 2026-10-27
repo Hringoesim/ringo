@@ -44,6 +44,7 @@ import { haptic, hapticSelection } from '../lib/haptics';
 import { defaultArm, logAb } from '../lib/abtest';
 import { useLayout, contentColumn, type Layout } from '../lib/layout';
 import { requestLightStatusBar } from '../lib/statusBar';
+import dishPhoto from '../assets/store/dish-wide.jpg'; // the store's Power card dish, full width (Unsplash Wj1D-qiOseE)
 
 export interface Selection {
   destination: string;
@@ -616,11 +617,11 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
       )}
       {!unlimitedGlobal && powerLink && (
         <button type="button" className="press" onClick={() => { hapticSelection(); onPower?.(powerLink); }}
-          style={{ textAlign: 'left', cursor: 'pointer', padding: '14px 16px', borderRadius: 22, border: 'none', background: 'linear-gradient(160deg,#1A0F2E 0%,#3A1D5C 100%)', fontFamily: 'var(--font)', color: '#fff', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <svg aria-hidden width="24" height="24" viewBox="0 0 24 24" style={{ flexShrink: 0 }}><path fill="#FFB83D" d="M13.4 2.2c.4-.6-.3-1.3-.9-.9L4.6 12.2c-.4.5 0 1.3.6 1.3h5.3l-1.9 8.2c-.2.7.7 1.1 1.1.5l9.6-11.6c.4-.5 0-1.2-.6-1.2h-5.6l.3-7.2z" /></svg>
+          style={{ textAlign: 'left', cursor: 'pointer', padding: '16px', borderRadius: 22, border: 'none', background: `linear-gradient(90deg, rgba(26,15,46,0.7) 0%, rgba(26,15,46,0.35) 55%, rgba(26,15,46,0) 80%), url(${dishPhoto}) 0 56% / 100% auto, #1A0F2E`, fontFamily: 'var(--font)', color: '#fff', textShadow: '0 2px 12px rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span aria-hidden style={{ width: 40, height: 40, borderRadius: 13, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.28)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}><svg width="22" height="22" viewBox="0 0 24 24"><path fill="#fff" d="M13.4 2.2c.4-.6-.3-1.3-.9-.9L4.6 12.2c-.4.5 0 1.3.6 1.3h5.3l-1.9 8.2c-.2.7.7 1.1 1.1.5l9.6-11.6c.4-.5 0-1.2-.6-1.2h-5.6l.3-7.2z" /></svg></span>
           <span style={{ flex: 1, minWidth: 0 }}>
             <span style={{ display: 'block', fontSize: 16, fontWeight: 700 }}>{placeName} Power Use</span>
-            <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>Power and Super User plans, for vans, hotspots and a secure connection.</span>
+            <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: 'rgba(255,255,255,0.92)' }}>Power and Super User plans.</span>
           </span>
         </button>
       )}
