@@ -27,6 +27,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { PlaceMosaic } from '../components/PlaceMosaic';
 import { SaturnWorld } from '../components/SaturnWorld';
+import { Lock, SecureLine, PayMethods } from '../components/PayMarks';
 import { RC, RADIUS, TYPE, typeFor, cardSurface, LOGO_GRAD, PHOTO_OVERLAY, PHOTO_TEXT_SHADOW } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
@@ -202,7 +203,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   const useSignedIn = () => { setEmail(signedInEmail); setOtherEmail(null); confirmedOther.current = null; };
 
   const planLine = isGlobal && renewing ? 'Unlimited, renews monthly' : `${planName(p)}${renewing ? '' : ', one payment'}`;
-  const buyLabel = renewing ? `Subscribe, ${price.total} a month` : creditHere && useCredit ? `Pay up to ${price.total} by card` : `Pay ${price.total} by card`;
+  const buyLabel = renewing ? `Subscribe securely, ${price.total} a month` : creditHere && useCredit ? `Pay up to ${price.total} securely` : `Pay ${price.total} securely`;
 
   // ── Pieces ────────────────────────────────────────────────────────────────
   const summary = <Summary l={l} selection={selection} planLine={planLine} total={price.total} renewing={renewing} />;
@@ -307,12 +308,14 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
     <>
       {renewLine}
       {terms}
+      <SecureLine />
     </>
   ));
 
   const action: ReactNode = (
     <>
-      {stage === 'email' && <RingoButton onClick={() => void payByCard()} disabled={Boolean(otherEmail)}>{buyLabel}</RingoButton>}
+      {stage === 'email' && <RingoButton onClick={() => void payByCard()} disabled={Boolean(otherEmail)}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Lock size={17} color="#fff" />{buyLabel}</span></RingoButton>}
+      {stage === 'email' && <PayMethods />}
       {(stage === 'issuing' || stage === 'slow' || stage === 'checking' || (stage === 'card' && cardSlow)) && <RingoButton variant="soft" onClick={onReady}>Go to My eSIM</RingoButton>}
       {stage === 'ready' && <RingoButton onClick={onReady}>Install my eSIM</RingoButton>}
     </>
@@ -349,7 +352,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
       {header}
-      <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: `0 ${l.gutter}px ${stage === 'email' ? 260 : 150}px` }}>
+      <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: `0 ${l.gutter}px ${stage === 'email' ? 330 : 150}px` }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           {top}
           {form}
