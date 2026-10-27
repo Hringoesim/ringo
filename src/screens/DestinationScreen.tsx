@@ -149,6 +149,11 @@ function PlanCard({ p, on, price, onPick }: { p: Plan; on: boolean; price: { tot
 const POWER_TIER_NAME: Record<number, string> = { 3: 'Day plan max', 5: 'Power', 10: 'Super User' };
 /** What each Power Use tier is for, under its name (owner 2026-10-27: by use, not by GB). */
 const POWER_TIER_USE: Record<number, string> = { 5: 'Hotspot and laptop', 10: 'Van and streaming' };
+/** What each tier gets on the network (owner 2026-10-27, his words). */
+const POWER_TIER_PERK: Record<number, string> = {
+  5: 'Priority access and speed.',
+  10: 'Priority network access, guaranteed high speed, priority at peak times.',
+};
 /** Each Power Use tier's own dark card (owner 2026-10-27: tell them apart, feel premium): Power deep blue, Super User purple into magenta. */
 const POWER_TIER_BG: Record<number, string> = {
   5: 'linear-gradient(150deg, #13235E 0%, #2F4FC9 100%)',
@@ -620,7 +625,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
             Unlimited data for a van, hotspot or laptop.
           </p>
           {/* What is what (owner 2026-10-27): each tier says what it is for, not its GB a day. */}
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
             {powerTiers.map((g) => {
               const sel = g === powerGbShown;
               return (
@@ -632,6 +637,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
                   <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-0.01em' }}>{POWER_TIER_NAME[g] ?? tierName(g)}</div>
                   <div style={{ marginTop: 2, fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>{POWER_TIER_USE[g] ?? `${g} GB a day`}</div>
                   <PowerMeter gb={g} max={powerTiers[powerTiers.length - 1] ?? g} />
+                  {POWER_TIER_PERK[g] && <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.35, color: 'rgba(255,255,255,0.9)' }}>{POWER_TIER_PERK[g]}</div>}
                 </button>
               );
             })}
