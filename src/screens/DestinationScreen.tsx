@@ -145,6 +145,8 @@ function PlanCard({ p, on, price, onPick }: { p: Plan; on: boolean; price: { tot
 
 /** The Power Use tiers by GB a day (owner 2026-10-27: "Power" is 5 GB a day, "Super User" 10). */
 const POWER_TIER_NAME: Record<number, string> = { 3: 'Day plan max', 5: 'Power', 10: 'Super User' };
+/** What each Power Use tier is for, under its name (owner 2026-10-27: by use, not by GB). */
+const POWER_TIER_USE: Record<number, string> = { 5: 'Hotspot and laptop', 10: 'Van and streaming' };
 
 /**
  * Each plan family wears its own shade (owner 2026-10-24: "power and super
@@ -566,10 +568,10 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
       )}
       {!unlimitedGlobal && shownTab === 'power' && (
         <div>
-          <p style={{ margin: '0 0 12px', fontFamily: 'var(--font)', fontSize: 15, lineHeight: 1.45, color: RC.ink2 }}>
-            Plenty of data every day for a van, a hotspot or a laptop, on a mobile connection that is safer than public Wi-Fi. Full speed up to your amount each day, then slower, never cut off.
+          <p style={{ margin: '0 0 12px', fontFamily: 'var(--font)', fontSize: 16, lineHeight: 1.4, color: RC.ink }}>
+            Unlimited data for a van, hotspot or laptop.
           </p>
-          {/* What is what (owner 2026-10-27): each tier says its GB a day. */}
+          {/* What is what (owner 2026-10-27): each tier says what it is for, not its GB a day. */}
           <div style={{ display: 'flex', gap: 8 }}>
             {powerTiers.map((g) => {
               const sel = g === powerGbShown;
@@ -577,7 +579,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
                 <button key={g} type="button" className="press" aria-pressed={sel} onClick={() => { hapticSelection(); setPowerGb(g); setShowAll(false); }}
                   style={{ flex: 1, minWidth: 0, cursor: 'pointer', fontFamily: 'var(--font)', padding: '10px 8px', borderRadius: 14, color: RC.ink, textAlign: 'center', ...(sel ? ringOn(true) : ringOff) }}>
                   <div style={{ fontSize: 16, fontWeight: 700 }}>{POWER_TIER_NAME[g] ?? tierName(g)}</div>
-                  <div style={{ marginTop: 2, fontSize: 13, color: RC.ink2 }}>{g} GB a day</div>
+                  <div style={{ marginTop: 2, fontSize: 13, color: RC.ink2 }}>{POWER_TIER_USE[g] ?? `${g} GB a day`}</div>
                 </button>
               );
             })}

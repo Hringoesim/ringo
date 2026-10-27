@@ -247,9 +247,9 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
   const open = (id: string) => { haptic('light'); onOpen(id, powerAsk ? { power: true } : undefined); };
   const showPower = (on: boolean) => { hapticSelection(); setPowerAsk(on); setQ(''); scroller.current?.scrollTo({ top: 0 }); };
 
-  // The places that sell Power (an older site names none: every place, unpriced).
+  // The places that sell Power (an older site names none: every place but Global, unpriced).
   const powerFrom = summary?.power_from;
-  const sellsPower = (d: Destination) => !powerFrom || powerFrom[d.id] != null;
+  const sellsPower = (d: Destination) => (powerFrom ? powerFrom[d.id] != null : d.id !== 'global');
   // Apple's price where StoreKit has answered for this destination (the plan
   // screen shows the same), else the catalogue's; on the Power list, its cheapest Power plan.
   const fromOf = (d: Destination): string | null => {
@@ -300,7 +300,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
             {powerAsk ? 'Power plans' : 'Where are you going?'}
           </h1>
           <p style={{ margin: '8px 0 16px', ...TYPE.body, color: RC.ink2 }}>
-            {powerAsk ? '5 GB or 10 GB a day, for vans, hotspots and a secure connection.' : 'Your eSIM is ready in minutes.'}
+            {powerAsk ? 'Unlimited data for a van, hotspot or laptop.' : 'Your eSIM is ready in minutes.'}
           </p>
 
           <div data-store-search style={l.isWide ? { maxWidth: 560 } : undefined}>
