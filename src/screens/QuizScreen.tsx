@@ -16,7 +16,7 @@ import { hapticSelection, hapticNotify } from '../lib/haptics';
 import { useLayout, contentColumn } from '../lib/layout';
 import { recommend, setQuizPick, perDayOf, newQuizId, sendQuizAnswer, USES, TRIPS, type Use, type Trip } from '../lib/quiz';
 import { FEATURED, bundledPictureFor, pictureFor, skyFor } from '../data/destinations';
-import europeOrbit from '../assets/store/europe-orbit.jpg';
+import europeOrbit from '../assets/quiz/europe-orbit.jpg'; // ISS photo iss066e116300, NASA, public domain
 import { useDestinations } from '../store/destinations';
 import { SITE } from '../api/light';
 
@@ -35,7 +35,9 @@ const ICON: Record<Use, ReactNode> = {
 const TRIP_LOOK: Record<Trip, { photo: string }> = {
   backpacker: { photo: bundledPictureFor('vietnam') ?? pictureFor('vietnam') },
   // Blue sky and white sand (owner 2026-10-27), daylight everywhere.
-  beach: { photo: `${SITE}/img/guides/maldives/addu.jpg` }, // Addu atoll, the site's Maldives guide
+  // An empty white beach, turquoise water, deep blue sky (owner 2026-10-27:
+  // "a maldive type deserted beach dark blue sky hot"): Nungwi, from the site's guides.
+  beach: { photo: `${SITE}/img/guides/tanzania/nungwi.jpg` },
   multi: { photo: bundledPictureFor('switzerland') ?? pictureFor('switzerland') },
   city: { photo: pictureFor('portugal') },
   nomad: { photo: pictureFor('costa-rica') },
