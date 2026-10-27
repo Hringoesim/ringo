@@ -30,6 +30,9 @@ public class PaymentSheetPlugin: CAPPlugin, CAPBridgedPlugin {
         config.merchantDisplayName = "Ringo"
         config.returnURL = "ringo://stripe-redirect"
         config.allowsDelayedPaymentMethods = false
+        // No card mandate paragraph in the sheet (owner 2026-10-27): the checkout
+        // screen already says it renews and links the Terms before the button.
+        config.termsDisplay = [.card: .never]
         // Ringo's look: the orange Pay button, the app's cream and ink, 14pt corners.
         var look = PaymentSheet.Appearance()
         look.colors.primary = UIColor(red: 0xD6/255, green: 0x40/255, blue: 0x00/255, alpha: 1)
