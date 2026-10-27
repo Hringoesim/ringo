@@ -47,6 +47,8 @@ import { useLayout, contentColumn, type Layout } from '../lib/layout';
 
 type Stage = 'email' | 'card' | 'checking' | 'issuing' | 'slow' | 'ready';
 
+// The same bright orange as Continue on the plan page (owner 2026-10-27).
+const PAY_STYLE = { background: '#F26122', color: '#FFFFFF', boxShadow: '0 10px 22px -16px rgba(242,97,34,0.8)' };
 const SUCCESS_GRAD = 'linear-gradient(135deg, #5FD49A 0%, #1FA463 100%)';
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 // Retired: the last email typed on this phone, which pre-filled one
@@ -57,7 +59,7 @@ const POLL_TRIES = 40;
 
 // An inline link inside the small print: padded to a 44pt hit area, and the
 // padding taken back with a negative margin so the line keeps its height.
-const inlineLink = (): CSSProperties => ({ border: 'none', background: 'transparent', padding: '14px 0', margin: '-14px 0', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', lineHeight: 'inherit', fontWeight: 700, color: RC.orangeInk, verticalAlign: 'baseline', textDecoration: 'underline', textUnderlineOffset: 2 });
+const inlineLink = (): CSSProperties => ({ border: 'none', background: 'transparent', padding: '14px 0', margin: '-14px 0', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', lineHeight: 'inherit', fontWeight: 700, color: RC.ink, verticalAlign: 'baseline', textDecoration: 'underline', textUnderlineOffset: 2 });
 
 export function CheckoutScreen({ selection, onBack, onReady }: { selection: Selection; onBack: () => void; onReady: () => void }) {
   const l = useLayout();
@@ -208,7 +210,14 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   // ── Pieces ────────────────────────────────────────────────────────────────
   const summary = <Summary l={l} selection={selection} planLine={planLine} total={price.total} renewing={renewing} />;
 
-  const form = stage === 'email' && (
+  const form = stage === 'email' && signedInEmail && !otherEmail && email.trim().toLowerCase() === signedInEmail.toLowerCase() ? (
+    <div>
+      <div style={{ ...TYPE.small, color: RC.ink2, overflowWrap: 'anywhere' }}>
+        {relayEmail ? 'Your eSIM installs here in the app.' : <>Receipt and activation code to <b style={{ color: RC.ink }}>{signedInEmail}</b></>}
+      </div>
+      {err && <ErrorBox style={{ marginTop: 12 }}>{err}</ErrorBox>}
+    </div>
+  ) : stage === 'email' && (
     <div>
       <FieldLabel htmlFor="checkout-email">Your email</FieldLabel>
       <Input
@@ -246,7 +255,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
 
   // Said once, right above the button (the summary and the button already say "monthly").
   const renewLine = stage === 'email' && renewing && (
-    <div style={{ ...TYPE.small, fontWeight: 700, color: RC.ink }}>Renews every {periodWord(p)}. Turn it off any time in My eSIM.</div>
+    <div style={{ ...TYPE.small, fontWeight: 700, color: RC.ink, textAlign: 'center' }}>Renews every {periodWord(p)}. Turn it off any time in My eSIM.</div>
   );
 
   const creditBox = stage === 'email' && creditHere && (
@@ -264,7 +273,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   );
 
   const terms = stage === 'email' && (
-    <div style={{ ...TYPE.caption, color: RC.inkMute }}>
+    <div style={{ ...TYPE.caption, color: RC.inkMute, textAlign: 'center' }}>
       By buying you agree to the{' '}
       <button type="button" onClick={() => void openInSheet(`${SITE}/terms?app=1`)} style={inlineLink()}>Terms of Use</button>
       {' '}and the{' '}
@@ -314,7 +323,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
 
   const action: ReactNode = (
     <>
-      {stage === 'email' && <RingoButton onClick={() => void payByCard()} disabled={Boolean(otherEmail)}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Lock size={17} color="#fff" />{buyLabel}</span></RingoButton>}
+      {stage === 'email' && <RingoButton onClick={() => void payByCard()} disabled={Boolean(otherEmail)} style={PAY_STYLE}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Lock size={17} color="#fff" />{buyLabel}</span></RingoButton>}
       {stage === 'email' && <PayMethods />}
       {(stage === 'issuing' || stage === 'slow' || stage === 'checking' || (stage === 'card' && cardSlow)) && <RingoButton variant="soft" onClick={onReady}>Go to My eSIM</RingoButton>}
       {stage === 'ready' && <RingoButton onClick={onReady}>Install my eSIM</RingoButton>}
