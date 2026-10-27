@@ -15,7 +15,10 @@ import { Confetti } from '../components/Confetti';
 import { hapticSelection, hapticNotify } from '../lib/haptics';
 import { useLayout, contentColumn } from '../lib/layout';
 import { recommend, setQuizPick, perDayOf, USES, TRIPS, type Use, type Trip } from '../lib/quiz';
-import { FEATURED } from '../data/destinations';
+import { FEATURED, bundledPictureFor, pictureFor, skyFor } from '../data/destinations';
+import tent from '../assets/landmarks3d/tent.png';
+import beach from '../assets/landmarks3d/beach.png';
+import plane from '../assets/landmarks3d/plane.png';
 import { useDestinations } from '../store/destinations';
 
 const S = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
@@ -26,11 +29,14 @@ const ICON: Record<Use, ReactNode> = {
   streaming: <><rect x="3" y="5" width="18" height="12" rx="2.5" {...S} /><path d="M10 8.5v5l4.5-2.5z" fill="currentColor" stroke="none" /><path d="M8 20h8" {...S} /></>,
   hotspot: <><path d="M5 9.5a10 10 0 0 1 14 0M8 12.5a5.6 5.6 0 0 1 8 0" {...S} /><circle cx="12" cy="16" r="1.6" fill="currentColor" /></>,
 };
-const TRIP_ICON: Record<Trip, ReactNode> = {
-  backpacker: <><path d="M8 7V5.5A2.5 2.5 0 0 1 10.5 3h3A2.5 2.5 0 0 1 16 5.5V7" {...S} /><rect x="5" y="7" width="14" height="14" rx="4" {...S} /><path d="M9 13h6v4H9z" {...S} /></>,
-  beach: <><circle cx="17" cy="6.5" r="2.5" {...S} /><path d="M3 20c3-2 6-2 9 0s6 2 9 0M5 16l7-9 3 3" {...S} /></>,
-  multi: <><circle cx="12" cy="12" r="9" {...S} /><path d="M3 12h18M12 3c2.6 2.5 4 5.5 4 9s-1.4 6.5-4 9c-2.6-2.5-4-5.5-4-9s1.4-6.5 4-9z" {...S} /></>,
+// More colour (owner 2026-10-27: "a bit more colourful, add pictures or
+// items"): each trip type is a photo with a 3D item, each use its own hue.
+const TRIP_LOOK: Record<Trip, { photo: string; item: string }> = {
+  backpacker: { photo: bundledPictureFor('vietnam') ?? pictureFor('vietnam'), item: tent },
+  beach: { photo: pictureFor('seychelles'), item: beach },
+  multi: { photo: bundledPictureFor('europe') ?? pictureFor('europe'), item: plane },
 };
+const USE_HUE: Record<Use, string> = { maps: '#1FA971', social: '#E4407B', calls: '#2F7BF6', streaming: '#8B5CF6', hotspot: '#F08A24' };
 const QUICK_DAYS = [3, 7, 14, 30];
 
 function DataMeter({ gbDay }: { gbDay: number }) {
@@ -85,19 +91,23 @@ export function QuizScreen({ onBack, onBrowse, onOpen }: { onBack: () => void; o
 
           {step === 0 && (<>
             {title('What kind of trip?')}
-            {TRIPS.map((t) => (
-              <button key={t.id} type="button" className="press" aria-pressed={trip === t.id}
-                onClick={() => { hapticNotify('success'); setTrip(t.id); setDays(t.days); setUses(t.uses); window.setTimeout(() => setStep(1), 260); }}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left', cursor: 'pointer', padding: '14px 16px', borderRadius: 18, border: `2px solid ${trip === t.id ? RC.orangeInk : RC.line}`, background: trip === t.id ? '#FFF1E8' : '#fff', fontFamily: 'var(--font)' }}>
-                <span style={{ flex: 'none', width: 44, height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: trip === t.id ? RC.orangeInk : RC.cream, color: trip === t.id ? '#fff' : RC.ink2 }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden>{TRIP_ICON[t.id]}</svg>
-                </span>
-                <span>
-                  <span style={{ display: 'block', fontSize: 17, fontWeight: 700, color: RC.ink }}>{t.label}</span>
-                  <span style={{ display: 'block', marginTop: 2, fontSize: 14, color: RC.ink2 }}>{t.sub}</span>
-                </span>
-              </button>
-            ))}
+            {TRIPS.map((t) => {
+              const on = trip === t.id;
+              return (
+                <button key={t.id} type="button" className="press" aria-pressed={on}
+                  onClick={() => { hapticNotify('success'); setTrip(t.id); setDays(t.days); setUses(t.uses); window.setTimeout(() => setStep(1), 260); }}
+                  style={{ position: 'relative', width: '100%', minHeight: 112, overflow: 'hidden', display: 'flex', alignItems: 'flex-end', gap: 12, textAlign: 'left', cursor: 'pointer', padding: '14px 16px', borderRadius: 20, border: `3px solid ${on ? RC.orangeInk : 'transparent'}`, background: skyFor(t.id), fontFamily: 'var(--font)' }}>
+                  <img src={TRIP_LOOK[t.id].photo} alt="" aria-hidden decoding="async" onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <span aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(20,10,40,0.05) 20%, rgba(20,10,40,0.72) 100%)' }} />
+                  <span style={{ position: 'relative', flex: 1 }}>
+                    <span style={{ display: 'block', fontSize: 19, fontWeight: 800, color: '#fff', textShadow: '0 1px 6px rgba(0,0,0,0.35)' }}>{t.label}</span>
+                    <span style={{ display: 'block', marginTop: 2, fontSize: 14, color: 'rgba(255,255,255,0.92)' }}>{t.sub}</span>
+                  </span>
+                  <img className={on ? 'hop' : undefined} src={TRIP_LOOK[t.id].item} alt="" aria-hidden style={{ position: 'relative', width: 56, height: 56, objectFit: 'contain', filter: 'drop-shadow(0 6px 10px rgba(0,0,0,0.3))' }} />
+                </button>
+              );
+            })}
           </>)}
 
           {step === 1 && (<>
@@ -128,9 +138,9 @@ export function QuizScreen({ onBack, onBrowse, onOpen }: { onBack: () => void; o
                 return (
                   <button key={u.id} type="button" className="press" aria-pressed={on}
                     onClick={() => { hapticSelection(); setHop(u.id); setUses(on ? uses.filter((x) => x !== u.id) : [...uses, u.id]); }}
-                    style={{ textAlign: 'left', cursor: 'pointer', padding: 14, borderRadius: 18, border: `2px solid ${on ? RC.orangeInk : RC.line}`, background: on ? '#FFF1E8' : '#fff', fontFamily: 'var(--font)' }}>
+                    style={{ textAlign: 'left', cursor: 'pointer', padding: 14, borderRadius: 18, border: `2px solid ${on ? USE_HUE[u.id] : RC.line}`, background: on ? `${USE_HUE[u.id]}14` : '#fff', fontFamily: 'var(--font)' }}>
                     <span key={hop === u.id ? `h-${u.id}-${String(on)}` : u.id} className={hop === u.id ? 'hop' : undefined}
-                      style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? RC.orangeInk : RC.cream, color: on ? '#fff' : RC.ink2 }}>
+                      style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? USE_HUE[u.id] : `${USE_HUE[u.id]}1F`, color: on ? '#fff' : USE_HUE[u.id] }}>
                       <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden>{ICON[u.id]}</svg>
                     </span>
                     <span style={{ display: 'block', marginTop: 10, fontSize: 16, fontWeight: 700, color: RC.ink }}>{u.label}</span>
@@ -156,6 +166,7 @@ export function QuizScreen({ onBack, onBrowse, onOpen }: { onBack: () => void; o
 
           {rec && (<>
             <div className="rise" style={{ ...cardSurface(), padding: 22, textAlign: 'center' }}>
+              {trip && <img className="hop" src={TRIP_LOOK[trip].item} alt="" aria-hidden style={{ display: 'block', margin: '0 auto 6px', width: 72, height: 72, objectFit: 'contain', filter: 'drop-shadow(0 8px 12px rgba(0,0,0,0.18))' }} />}
               <div style={{ ...TYPE.small, fontWeight: 700, color: RC.orangeInk }}>Your plan</div>
               <div style={{ marginTop: 6, fontFamily: 'var(--font-display)', fontSize: 34, fontWeight: 800, lineHeight: 1.1, color: RC.ink }}>{rec.title}</div>
               <p style={{ margin: '10px 0 0', ...TYPE.body, color: RC.ink2 }}>{rec.line}</p>
@@ -164,9 +175,12 @@ export function QuizScreen({ onBack, onBrowse, onOpen }: { onBack: () => void; o
               <div style={{ marginTop: 4, ...TYPE.body, fontWeight: 700, color: RC.ink }}>Pick your region</div>
               {regions.map((d) => (
                 <button key={d.id} type="button" className="press" onClick={() => { hapticSelection(); setQuizPick(rec); onOpen(d.id); }}
-                  style={{ width: '100%', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, textAlign: 'left', cursor: 'pointer', padding: '14px 18px', borderRadius: 18, border: `2px solid ${RC.line}`, background: '#fff', fontFamily: 'var(--font)' }}>
-                  <span style={{ fontSize: 17, fontWeight: 700, color: RC.ink }}>{d.label}</span>
-                  <span style={{ fontSize: 14, color: RC.ink2 }}>{`${d.countries} countries`}</span>
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left', cursor: 'pointer', padding: 10, borderRadius: 18, border: `2px solid ${RC.line}`, background: '#fff', fontFamily: 'var(--font)' }}>
+                  <span aria-hidden style={{ flex: 'none', width: 64, height: 48, borderRadius: 12, overflow: 'hidden', background: skyFor(d.id) }}>
+                    <img src={bundledPictureFor(d.id) ?? pictureFor(d.id)} alt="" decoding="async" onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  </span>
+                  <span style={{ flex: 1, fontSize: 17, fontWeight: 700, color: RC.ink }}>{d.label}</span>
+                  <span style={{ paddingRight: 8, fontSize: 14, color: RC.ink2 }}>{`${d.countries} countries`}</span>
                 </button>
               ))}
             </>)}
