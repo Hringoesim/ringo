@@ -27,7 +27,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { PlaceMosaic } from '../components/PlaceMosaic';
 import { SaturnWorld } from '../components/SaturnWorld';
-import { Lock, SecureLine, PayMethods } from '../components/PayMarks';
+import { Lock, PayMethods } from '../components/PayMarks';
 import { RC, RADIUS, TYPE, typeFor, cardSurface, LOGO_GRAD, PHOTO_OVERLAY, PHOTO_TEXT_SHADOW } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
@@ -69,6 +69,8 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   const [err, setErr] = useState<string | null>(null);
   // Set when the email typed is not the signed-in account's: asked once.
   const [otherEmail, setOtherEmail] = useState<string | null>(null);
+  // Signed in, the email is known: shown as a line, the field only after Edit.
+  const [editingEmail, setEditingEmail] = useState(false);
   const confirmedOther = useRef<string | null>(null);
 
   const mounted = useRef(true);
@@ -210,10 +212,11 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   // ── Pieces ────────────────────────────────────────────────────────────────
   const summary = <Summary l={l} selection={selection} planLine={planLine} total={price.total} renewing={renewing} />;
 
-  const form = stage === 'email' && signedInEmail && !otherEmail && email.trim().toLowerCase() === signedInEmail.toLowerCase() ? (
+  const form = stage === 'email' && signedInEmail && !editingEmail && !otherEmail && email.trim().toLowerCase() === signedInEmail.toLowerCase() ? (
     <div>
       <div style={{ ...TYPE.small, color: RC.ink2, overflowWrap: 'anywhere' }}>
         {relayEmail ? 'Your eSIM installs here in the app.' : <>Receipt and activation code to <b style={{ color: RC.ink }}>{signedInEmail}</b></>}
+        {' '}<button type="button" onClick={() => setEditingEmail(true)} style={inlineLink()}>Edit</button>
       </div>
       {err && <ErrorBox style={{ marginTop: 12 }}>{err}</ErrorBox>}
     </div>
@@ -253,11 +256,6 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
     </div>
   );
 
-  // Said once, right above the button (the summary and the button already say "monthly").
-  const renewLine = stage === 'email' && renewing && (
-    <div style={{ ...TYPE.small, fontWeight: 700, color: RC.ink, textAlign: 'center' }}>Renews every {periodWord(p)}. Turn it off any time in My eSIM.</div>
-  );
-
   const creditBox = stage === 'email' && creditHere && (
     <div style={{ padding: '12px 16px', borderRadius: RADIUS.sm, background: RC.cream, border: `1px solid ${RC.line}`, display: 'flex', alignItems: 'center', gap: 14 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -274,7 +272,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
 
   const terms = stage === 'email' && (
     <div style={{ ...TYPE.caption, color: RC.inkMute, textAlign: 'center' }}>
-      By buying you agree to the{' '}
+      {renewing && `Renews every ${periodWord(p)}, turn it off any time in My eSIM. `}By buying you agree to the{' '}
       <button type="button" onClick={() => void openInSheet(`${SITE}/terms?app=1`)} style={inlineLink()}>Terms of Use</button>
       {' '}and the{' '}
       <button type="button" onClick={() => void openInSheet(`${SITE}/privacy?app=1`)} style={inlineLink()}>Privacy Policy</button>
@@ -313,13 +311,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   // disclaimer within the terms of use"). The right to cancel ending once
   // the eSIM is issued lives in the Terms (section 6), as on the website,
   // where Stripe's Pay button carries the same agreement.
-  const consent = (stage === 'email' && (
-    <>
-      {renewLine}
-      {terms}
-      <SecureLine />
-    </>
-  ));
+  const consent = terms;
 
   const action: ReactNode = (
     <>
@@ -357,23 +349,23 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
     );
   }
 
-  // ── Phone: summary, form, sticky buy bar ──────────────────────────────────
+  // ── Phone: summary, form, then the button; a sticky bar while paying ──────────────────────────────────
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
       {header}
-      <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: `0 ${l.gutter}px ${stage === 'email' ? 330 : 150}px` }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div className="no-bar" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: `0 ${l.gutter}px ${stage === 'email' ? 'calc(32px + env(safe-area-inset-bottom, 0px))' : '150px'}` }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18, minWidth: 0 }}>
           {top}
           {form}
           {waiting}
           {moment}
           {creditBox}
+          {stage === 'email' && <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 6 }}>{consent}{action}</div>}
         </div>
       </div>
-      <div data-kb-hide style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: `12px ${l.gutter}px max(20px, env(safe-area-inset-bottom, 0px))`, background: RC.glass, backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)', borderTop: `1px solid ${RC.line}`, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {consent}
+      {stage !== 'email' && <div data-kb-hide style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: `12px ${l.gutter}px max(20px, env(safe-area-inset-bottom, 0px))`, background: RC.glass, backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)', borderTop: `1px solid ${RC.line}`, display: 'flex', flexDirection: 'column', gap: 10 }}>
         {action}
-      </div>
+      </div>}
     </div>
   );
 }

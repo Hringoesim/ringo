@@ -1,8 +1,6 @@
 // PayMarks: what a buyer sees around the Pay button so the payment reads as
-// safe (owner 2026-10-27, "that does not look secure"): a padlock, the ways to
-// pay, and that card details never reach Ringo. The payment provider itself is
-// never named to buyers.
-import { RC, TYPE } from '../theme';
+// safe (owner 2026-10-27, "that does not look secure"): a padlock and the ways
+// to pay. The payment provider itself is never named to buyers.
 
 export function Lock({ size = 16, color = 'currentColor' }: { size?: number; color?: string }) {
   return (
@@ -10,16 +8,6 @@ export function Lock({ size = 16, color = 'currentColor' }: { size?: number; col
       <rect x="4.5" y="10.5" width="15" height="10" rx="2.5" fill={color} />
       <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" stroke={color} strokeWidth="2.2" strokeLinecap="round" />
     </svg>
-  );
-}
-
-/** Padlock and "encrypted" line, above the button. */
-export function SecureLine() {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, ...TYPE.caption, fontWeight: 700, color: RC.success }}>
-      <Lock size={14} color={RC.success} />
-      <span style={{ color: RC.ink }}>Secure payment, encrypted end to end</span>
-    </div>
   );
 }
 
@@ -68,14 +56,11 @@ function Amex() {
   );
 }
 
-/** The ways to pay, and that the card never reaches Ringo, under the button. */
+/** The ways to pay, under the button (owner 2026-10-27: no extra lines of text). */
 export function PayMethods() {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-      <div style={{ display: 'flex', gap: 8 }}>
-        <ApplePay /><Visa /><Mastercard /><Amex />
-      </div>
-      <div style={{ ...TYPE.caption, color: RC.inkMute }}>Your card details never touch Ringo.</div>
+    <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
+      <ApplePay /><Visa /><Mastercard /><Amex />
     </div>
   );
 }
