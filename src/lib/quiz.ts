@@ -7,6 +7,16 @@
 
 export type Use = 'maps' | 'social' | 'calls' | 'streaming' | 'hotspot';
 export type PlanTab = 'data' | 'unl' | 'power';
+export type Trip = 'backpacker' | 'beach' | 'multi';
+
+// The first question (owner 2026-10-27: "backpacker beacher multi country"):
+// the kind of trip sets a starting length and the usual uses, both still
+// changeable; a multi country trip ends on the region plans, not a country.
+export const TRIPS: { id: Trip; label: string; sub: string; days: number; uses: Use[] }[] = [
+  { id: 'backpacker', label: 'Backpacker', sub: 'Long trip, hostels, on the move', days: 30, uses: ['maps', 'social'] },
+  { id: 'beach', label: 'Beach holiday', sub: 'Sun, photos, a week or two', days: 7, uses: ['social'] },
+  { id: 'multi', label: 'Multi country', sub: 'Several countries, one eSIM', days: 14, uses: ['maps', 'social'] },
+];
 
 /** Kept for older screens; the quiz now uses a slider. */
 export const LENGTHS = [

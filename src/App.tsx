@@ -303,7 +303,7 @@ export function App() {
       body = <InstallScreen install={current.params.install!} label={current.params.label || 'Ringo'} onBack={pop} />;
       break;
     case 'quiz':
-      body = <QuizScreen onBack={pop} onBrowse={() => goTab('store')} />;
+      body = <QuizScreen onBack={pop} onBrowse={() => goTab('store')} onOpen={(id) => push('destination', { destination: id })} />;
       break;
     case 'traveller':
       body = <TravellerScreen onDone={() => goTab('esim')} />;

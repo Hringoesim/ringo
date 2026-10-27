@@ -332,7 +332,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
                   style={{ ...cardSurface(), textAlign: 'left', cursor: 'pointer', padding: 16, border: `1.5px solid ${RC.line}`, fontFamily: 'var(--font)' }}>
                   <svg aria-hidden width="26" height="26" viewBox="0 0 24 24"><g fill={RC.orangeInk}><rect x="3" y="15" width="3.6" height="6" rx="1.2" /><rect x="8.6" y="11" width="3.6" height="10" rx="1.2" /><rect x="14.2" y="7" width="3.6" height="14" rx="1.2" /><rect x="19.4" y="3" width="1.6" height="18" rx=".8" opacity=".35" /></g></svg>
                   <div style={{ marginTop: 6, fontSize: 16, fontWeight: 700, color: RC.ink }}>How much data do I need?</div>
-                  <div style={{ marginTop: 2, fontSize: 13, color: RC.ink2 }}>Three quick questions.</div>
+                  <div style={{ marginTop: 2, fontSize: 13, color: RC.ink2 }}>Four quick questions.</div>
                 </button>
               )}
               <button type="button" className="press"
