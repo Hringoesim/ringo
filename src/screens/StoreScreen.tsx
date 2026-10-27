@@ -21,13 +21,16 @@ import { CITIES } from '../data/cities';
 import { useAccount } from '../store/account';
 import { haptic, hapticSelection } from '../lib/haptics';
 import { useLayout, contentColumn, cardGrid, tileGrid, TABBAR_CLEARANCE, type Layout } from '../lib/layout';
-import plane3d from '../assets/landmarks3d/plane.png';
-import rocket3d from '../assets/landmarks3d/rocket.png';
+import dishPhoto from '../assets/store/dish-sunset.jpg'; // Unsplash xpb438CRUnU (Gilles Rolland-Monnet), Unsplash licence
 
-// The two shortcut cards over the list (quiz, Power): a colour each and a
-// Fluent 3D item, like the quiz's own cards.
-const shortcutCard: CSSProperties = { textAlign: 'left', cursor: 'pointer', padding: 16, borderRadius: 22, border: 'none', fontFamily: 'var(--font)', color: '#fff', boxShadow: '0 8px 20px rgba(26,15,46,0.14)' };
-const shortcutItem: CSSProperties = { display: 'block', width: 44, height: 44, objectFit: 'contain', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.25))' };
+// The two shortcut cards over the list (quiz, Power): a photograph like every
+// other card in the app, a small icon over it, the words at the foot.
+const shortcutCard = (photo: string, place = 'center / cover'): CSSProperties => ({
+  position: 'relative', overflow: 'hidden', minHeight: 150, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+  textAlign: 'left', cursor: 'pointer', padding: 14, borderRadius: 22, border: 'none', fontFamily: 'var(--font)', color: '#fff',
+  background: `${PHOTO_OVERLAY}, url(${photo}) ${place}, ${RC.ink}`, textShadow: PHOTO_TEXT_SHADOW,
+});
+const shortcutIcon: CSSProperties = { width: 36, height: 36, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.22)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' };
 
 // What people actually type. "United States" does not contain "usa", so the
 // most obvious search in an eSIM store returned nothing at all.
@@ -336,18 +339,22 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
             <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: l.cardGap }}>
               {onQuiz && (
                 <button type="button" className="press" onClick={() => { hapticSelection(); onQuiz(); }}
-                  style={{ ...shortcutCard, background: 'linear-gradient(160deg,#FF6A2B 0%,#D63C0A 100%)' }}>
-                  <img src={plane3d} alt="" aria-hidden style={shortcutItem} />
-                  <div style={{ marginTop: 8, fontSize: 16, fontWeight: 700 }}>How much data do I need?</div>
-                  <div style={{ marginTop: 2, fontSize: 13, color: 'rgba(255,255,255,0.9)' }}>Four quick questions.</div>
+                  style={shortcutCard(bundledPictureFor('switzerland') ?? pictureFor('switzerland'))}>
+                  <span style={shortcutIcon}><svg aria-hidden width="20" height="20" viewBox="0 0 24 24"><g fill="#fff"><rect x="3" y="15" width="3.6" height="6" rx="1.2" /><rect x="8.6" y="11" width="3.6" height="10" rx="1.2" /><rect x="14.2" y="7" width="3.6" height="14" rx="1.2" /><rect x="19.4" y="3" width="1.6" height="18" rx=".8" opacity=".5" /></g></svg></span>
+                  <span style={{ display: 'block', marginTop: 12 }}>
+                    <span style={{ display: 'block', fontSize: 16, fontWeight: 700 }}>How much data do I need?</span>
+                    <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: 'rgba(255,255,255,0.92)' }}>Four quick questions.</span>
+                  </span>
                 </button>
               )}
               <button type="button" className="press"
                 onClick={() => showPower(true)}
-                style={{ ...shortcutCard, background: 'linear-gradient(160deg,#2A1650 0%,#6B2FC4 100%)' }}>
-                <img src={rocket3d} alt="" aria-hidden style={shortcutItem} />
-                <div style={{ marginTop: 8, fontSize: 16, fontWeight: 700 }}>Power plans</div>
-                <div style={{ marginTop: 2, fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>For vans, hotspots and a secure connection.</div>
+                style={shortcutCard(dishPhoto, '35% center / cover')}>
+                <span style={shortcutIcon}><svg aria-hidden width="20" height="20" viewBox="0 0 24 24"><path fill="#fff" d="M13.4 2.2c.4-.6-.3-1.3-.9-.9L4.6 12.2c-.4.5 0 1.3.6 1.3h5.3l-1.9 8.2c-.2.7.7 1.1 1.1.5l9.6-11.6c.4-.5 0-1.2-.6-1.2h-5.6l.3-7.2z" /></svg></span>
+                <span style={{ display: 'block', marginTop: 12 }}>
+                  <span style={{ display: 'block', fontSize: 16, fontWeight: 700 }}>Power plans</span>
+                  <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: 'rgba(255,255,255,0.92)' }}>For vans, hotspots and a secure connection.</span>
+                </span>
               </button>
             </div>
           )}
