@@ -28,6 +28,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import { PlaceMosaic } from '../components/PlaceMosaic';
 import { SaturnWorld } from '../components/SaturnWorld';
 import { Lock, PayMethods } from '../components/PayMarks';
+import { InlinePay, inlineAvailable, useNativeSlot, useInlineCleanup } from '../lib/inlinePay';
 import { RC, RADIUS, TYPE, typeFor, cardSurface, LOGO_GRAD, PHOTO_OVERLAY, PHOTO_TEXT_SHADOW } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
@@ -159,7 +160,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   };
 
   // Card: Stripe's payment sheet inside the app; Stripe says when it is paid.
-  const payByCard = async () => {
+  const payByCard = async (via: 'card' | 'applePay' = 'card') => {
     // One payment at a time: Enter and a tap, or two quick taps, start one sheet.
     if (stageRef.current !== 'email') return;
     const e = checkedEmail();
@@ -179,7 +180,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
       });
     };
     try {
-      const pay = await startCard({ plan: p.plan, destination: selection.destination, data_gb: selection.data_gb, email: e, currency: p.currency, useCredit: creditHere && useCredit });
+      const pay = await startCard({ plan: p.plan, destination: selection.destination, data_gb: selection.data_gb, email: e, currency: p.currency, useCredit: creditHere && useCredit, via: inline ? via : 'sheet' });
       cardStop.current = pay.stop;
       const out = await pay.done;
       cardStop.current = null;
@@ -202,6 +203,28 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
       setStageBoth('email');
     }
   };
+
+  // The card field and Apple Pay sit on this page (owner 2026-10-27), drawn natively over two slots.
+  const inline = inlineAvailable();
+  const [cardComplete, setCardComplete] = useState(false);
+  const [applePay, setApplePay] = useState(false);
+  const appleSlot = useRef<HTMLDivElement>(null);
+  const cardSlot = useRef<HTMLDivElement>(null);
+  const payRef = useRef(payByCard);
+  payRef.current = payByCard;
+  useInlineCleanup();
+  useEffect(() => {
+    if (!inline) return;
+    void InlinePay.canApplePay().then((r) => { if (mounted.current) setApplePay(r.available); }).catch(() => {});
+    const subs = [
+      InlinePay.addListener('cardChange', (e) => { if (mounted.current) setCardComplete(e.complete); }),
+      InlinePay.addListener('applePayTap', () => { void payRef.current('applePay'); }),
+    ];
+    return () => { subs.forEach((h) => void h.then((x) => x.remove())); };
+  }, [inline]);
+  const slotsShown = inline && stage === 'email' && !otherEmail;
+  useNativeSlot('applePay', appleSlot, slotsShown && applePay);
+  useNativeSlot('card', cardSlot, slotsShown);
 
   const confirmOther = () => { if (otherEmail) { confirmedOther.current = otherEmail; void payByCard(); } };
   const useSignedIn = () => { setEmail(signedInEmail); setOtherEmail(null); confirmedOther.current = null; };
@@ -233,7 +256,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
         inputMode="email"
         autoComplete="email"
         invalid={Boolean(err) && !EMAIL_RE.test(email.trim())}
-        onEnter={() => void payByCard()}
+        onEnter={() => { if (!inline) void payByCard(); }}
       />
       <HelpText style={{ fontSize: 15, color: RC.ink2, lineHeight: 1.45 }}>
         {relayEmail
@@ -280,12 +303,16 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
     </div>
   );
 
+  // One loading screen from paying to ready (owner 2026-10-27): the same journey, never restarted.
+  const journeySub = stage === 'card'
+    ? (cardSlow ? 'Still confirming your payment. Your eSIM appears under My eSIM the moment it goes through.' : 'Your eSIM starts the moment your payment goes through.')
+    : stage === 'issuing'
+      ? (relayEmail ? 'Under a minute. It lands under My eSIM, here in the app.' : 'Under a minute. It lands under My eSIM and in your email.')
+      : (relayEmail ? 'It is taking a little longer than usual. It appears under My eSIM as soon as it is ready.' : 'It is taking a little longer than usual. It appears under My eSIM and in your email as soon as it is ready.');
   const status = (
     <>
-      {stage === 'card' && <Journey key="card" leg="card" sub={cardSlow ? 'Still confirming your payment. Your eSIM appears under My eSIM the moment it goes through.' : 'Your eSIM starts the moment your payment goes through.'} />}
+      {(stage === 'card' || stage === 'issuing' || stage === 'slow') && <Journey key="go" leg={stage} sub={journeySub} />}
       {stage === 'checking' && <Waiting title="Checking your payment" sub="Your payment is not confirmed yet. If it went through, your eSIM appears under My eSIM. Look there before paying again." />}
-      {stage === 'issuing' && <Journey key="issuing" leg="issuing" sub={relayEmail ? 'Under a minute. It lands under My eSIM, here in the app.' : 'Under a minute. It lands under My eSIM and in your email.'} />}
-      {stage === 'slow' && <Journey key="slow" leg="slow" sub={relayEmail ? 'It is taking a little longer than usual. It appears under My eSIM as soon as it is ready.' : 'It is taking a little longer than usual. It appears under My eSIM and in your email as soon as it is ready.'} />}
     </>
   );
 
@@ -313,9 +340,21 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   // where Stripe's Pay button carries the same agreement.
   const consent = terms;
 
+  const payFields = stage === 'email' && inline && !otherEmail && (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {applePay && <div ref={appleSlot} aria-label="Apple Pay" style={{ height: 50, borderRadius: 14, background: '#000' }} />}
+      {applePay && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, ...TYPE.caption, color: RC.inkMute }}>
+          <div style={{ flex: 1, height: 1, background: RC.line }} />or pay by card<div style={{ flex: 1, height: 1, background: RC.line }} />
+        </div>
+      )}
+      <div ref={cardSlot} aria-label="Card number, expiry and CVC" style={{ height: 52, borderRadius: 14, background: '#fff', border: `1.5px solid ${RC.line}` }} />
+    </div>
+  );
+
   const action: ReactNode = (
     <>
-      {stage === 'email' && <RingoButton onClick={() => void payByCard()} disabled={Boolean(otherEmail)} style={PAY_STYLE}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Lock size={17} color="#fff" />{buyLabel}</span></RingoButton>}
+      {stage === 'email' && <RingoButton onClick={() => void payByCard('card')} disabled={Boolean(otherEmail) || (inline && !cardComplete)} style={PAY_STYLE}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Lock size={17} color="#fff" />{buyLabel}</span></RingoButton>}
       {stage === 'email' && <PayMethods />}
       {(stage === 'issuing' || stage === 'slow' || stage === 'checking' || (stage === 'card' && cardSlow)) && <RingoButton variant="soft" onClick={onReady}>Go to My eSIM</RingoButton>}
       {stage === 'ready' && <RingoButton onClick={onReady}>Install my eSIM</RingoButton>}
@@ -340,6 +379,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
               {waiting}
               {moment}
               {creditBox}
+              {payFields}
               {consent}
               {action}
             </div>
@@ -360,6 +400,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
           {waiting}
           {moment}
           {creditBox}
+          {payFields}
           {stage === 'email' && <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 6 }}>{consent}{action}</div>}
         </div>
       </div>
@@ -484,7 +525,10 @@ function Journey({ leg, sub }: { leg: Leg; sub: string }) {
   }, []);
   // Eases towards the leg's end and stays just short of it.
   const progress = L.from + (L.to - L.from) * (1 - Math.exp(-t / 12));
-  const line = L.lines[Math.floor(t / TIP_S) % L.lines.length];
+  // The lines start from the first one on each leg; the bar and the timer carry on.
+  const legAt = useRef({ leg, at: 0 });
+  if (legAt.current.leg !== leg) legAt.current = { leg, at: t };
+  const line = L.lines[Math.floor((t - legAt.current.at) / TIP_S) % L.lines.length];
   const step = leg === 'card' ? 0 : 1;
   return (
     <div role="status" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>

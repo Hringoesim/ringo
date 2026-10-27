@@ -7,6 +7,7 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { light } from '../api/light';
 import { account } from '../store/account';
+import { InlinePay } from './inlinePay';
 
 interface SheetResult { status: 'completed' | 'canceled' | 'failed'; message?: string }
 const Sheet = registerPlugin<{ present(o: { clientSecret: string; publishableKey: string; email?: string; buttonLabel?: string }): Promise<SheetResult> }>('PaymentSheet');
@@ -17,7 +18,7 @@ const POLL_MS = 2500;
 const OWNER_WAIT_MS = 90_000;
 
 export type StatusQuery = { pi: string } | { sub: string };
-export interface CardOrder { plan: string; destination: string; data_gb?: number | null; email: string; currency?: string; topUp?: boolean; subscription?: string; /** Spend the account's Ringo credit (the site decides how much, never under cost). */ useCredit?: boolean }
+export interface CardOrder { plan: string; destination: string; data_gb?: number | null; email: string; currency?: string; topUp?: boolean; subscription?: string; /** Spend the account's Ringo credit (the site decides how much, never under cost). */ useCredit?: boolean; /** How it is confirmed: the sheet (default), the card field on the Checkout page, or Apple Pay from that page. */ via?: 'sheet' | 'card' | 'applePay' }
 export type CardOutcome =
   | { state: 'paid'; session: string; userId: string; t: string }
   /** Stripe says paid; the account is not named yet (or a top-up, which has none to name). */
@@ -72,7 +73,7 @@ async function start(order: CardOrder): Promise<CardPayment> {
   const acct = account.get();
   // A top-up always needs it; a plan for someone else's email is at list price.
   const mine = acct && (order.topUp || !acct.email || acct.email.toLowerCase() === order.email.toLowerCase());
-  const { useCredit, ...rest } = order;
+  const { useCredit, via = 'sheet', ...rest } = order;
   const r = await light.appPay({ ...rest, ...(acct && mine ? { user: acct.userId, t: acct.t, ...(useCredit ? { use_credit: true } : {}) } : {}) });
   const ref = r.payment_intent_id || r.subscription_id || '';
   if (!r.client_secret || !r.publishable_key || !ref) throw new Error('The payment could not be started. Nothing was charged.');
@@ -81,7 +82,10 @@ async function start(order: CardOrder): Promise<CardPayment> {
   let stopped = false;
   const stop = () => { stopped = true; };
   const done = (async (): Promise<CardOutcome> => {
-    const out = await Sheet.present({ clientSecret: r.client_secret, publishableKey: r.publishable_key!, email: order.email });
+    const secret = { clientSecret: r.client_secret, publishableKey: r.publishable_key! };
+    const out = via === 'card' ? await InlinePay.confirmCard({ ...secret, email: order.email })
+      : via === 'applePay' ? await InlinePay.payApple({ ...secret, amount: r.amount, currency: r.currency, label: r.label || 'Ringo eSIM', monthly: r.mode === 'subscription' })
+      : await Sheet.present({ ...secret, email: order.email });
     if (out.status === 'canceled') return { state: 'left' };
     if (out.status === 'failed') throw new Error(out.message || NOT_THROUGH);
     // The sheet says confirmed; Stripe's own record says paid before the buyer is told.

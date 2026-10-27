@@ -12,6 +12,7 @@ class MainViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(NotifyPlugin())
         bridge?.registerPluginInstance(LocationPlugin())
         bridge?.registerPluginInstance(PaymentSheetPlugin())
+        bridge?.registerPluginInstance(InlinePayPlugin())
         bridge?.registerPluginInstance(StoreKitPlugin())
         bridge?.registerPluginInstance(GoogleSignInPlugin())
         // Every screen scrolls inside its own column; the page itself never
