@@ -16,13 +16,9 @@ import { hapticSelection, hapticNotify } from '../lib/haptics';
 import { useLayout, contentColumn } from '../lib/layout';
 import { recommend, setQuizPick, perDayOf, newQuizId, sendQuizAnswer, USES, TRIPS, type Use, type Trip } from '../lib/quiz';
 import { FEATURED, bundledPictureFor, pictureFor, skyFor } from '../data/destinations';
-import tent from '../assets/landmarks3d/tent.png';
-import beach from '../assets/landmarks3d/beach.png';
-import plane from '../assets/landmarks3d/plane.png';
-import cityscape from '../assets/landmarks3d/cityscape.png';
-import palmtree from '../assets/landmarks3d/palmtree.png';
 import europeOrbit from '../assets/store/europe-orbit.jpg';
 import { useDestinations } from '../store/destinations';
+import { SITE } from '../api/light';
 
 const S = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
 const ICON: Record<Use, ReactNode> = {
@@ -33,21 +29,24 @@ const ICON: Record<Use, ReactNode> = {
   hotspot: <><path d="M5 9.5a10 10 0 0 1 14 0M8 12.5a5.6 5.6 0 0 1 8 0" {...S} /><circle cx="12" cy="16" r="1.6" fill="currentColor" /></>,
 };
 // More colour (owner 2026-10-27: "a bit more colourful, add pictures or
-// items"): each trip type is a photo with a 3D item, each use its own hue.
+// items"): each trip type is a photo, each use its own hue. The 3D items
+// on the photos were taken off again (owner 2026-10-27: "delete").
 // No coloured rim around the photos (owner: "the contour does not need this shine").
-const TRIP_LOOK: Record<Trip, { photo: string; item: string }> = {
-  backpacker: { photo: bundledPictureFor('vietnam') ?? pictureFor('vietnam'), item: tent },
+const TRIP_LOOK: Record<Trip, { photo: string }> = {
+  backpacker: { photo: bundledPictureFor('vietnam') ?? pictureFor('vietnam') },
   // Blue sky and white sand (owner 2026-10-27), daylight everywhere.
-  beach: { photo: pictureFor('maldives'), item: beach },
-  multi: { photo: bundledPictureFor('switzerland') ?? pictureFor('switzerland'), item: plane },
-  city: { photo: pictureFor('portugal'), item: cityscape },
-  nomad: { photo: pictureFor('costa-rica'), item: palmtree },
+  beach: { photo: `${SITE}/img/guides/maldives/addu.jpg` }, // Addu atoll, the site's Maldives guide
+  multi: { photo: bundledPictureFor('switzerland') ?? pictureFor('switzerland') },
+  city: { photo: pictureFor('portugal') },
+  nomad: { photo: pictureFor('costa-rica') },
 };
 // The regions on a multi country result (owner 2026-10-27): Europe from space,
 // the others their landmark photos (Angkor Wat, Machu Picchu, Petra).
 const REGION_PHOTO: Record<string, string> = { europe: europeOrbit };
 const USE_HUE: Record<Use, string> = { maps: '#1FA971', social: '#E4407B', calls: '#2F7BF6', streaming: '#8B5CF6', hotspot: '#F08A24' };
-const QUICK_DAYS = [3, 7, 14, 30];
+// 1 month plus (owner 2026-10-27): any trip past 30 days, kept as 60.
+const LONG = 60;
+const QUICK_DAYS = [3, 7, 14, 30, LONG];
 
 function DataMeter({ gbDay }: { gbDay: number }) {
   const pct = Math.min(100, (gbDay / 6) * 100);
@@ -120,7 +119,6 @@ export function QuizScreen({ onBack, onBrowse, onOpen }: { onBack: () => void; o
                     <span style={{ display: 'block', fontSize: 19, fontWeight: 800, color: '#fff', textShadow: '0 1px 6px rgba(0,0,0,0.35)' }}>{t.label}</span>
                     <span style={{ display: 'block', marginTop: 2, fontSize: 14, color: 'rgba(255,255,255,0.92)' }}>{t.sub}</span>
                   </span>
-                  <img className={on ? 'hop' : undefined} src={TRIP_LOOK[t.id].item} alt="" aria-hidden style={{ position: 'relative', width: 56, height: 56, objectFit: 'contain', filter: 'drop-shadow(0 6px 10px rgba(0,0,0,0.3))' }} />
                 </button>
               );
             })}
@@ -129,16 +127,16 @@ export function QuizScreen({ onBack, onBrowse, onOpen }: { onBack: () => void; o
           {step === 1 && (<>
             {title('How long is your trip?')}
             <div style={{ ...cardSurface(), padding: '22px 18px', textAlign: 'center' }}>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: 56, fontWeight: 800, lineHeight: 1, color: RC.ink, fontVariantNumeric: 'tabular-nums' }}>{days}</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 56, fontWeight: 800, lineHeight: 1, color: RC.ink, fontVariantNumeric: 'tabular-nums' }}>{days > 30 ? '30+' : days}</div>
               <div style={{ marginTop: 4, ...TYPE.small, fontWeight: 700, color: RC.ink2 }}>{days === 1 ? 'day' : 'days'}</div>
-              <input type="range" min={1} max={30} value={days} aria-label="Trip length in days"
+              <input type="range" min={1} max={30} value={Math.min(days, 30)} aria-label="Trip length in days"
                 onChange={(e) => { const v = Number(e.target.value); if (v !== days) hapticSelection(); setDays(v); }}
                 style={{ width: '100%', marginTop: 18, accentColor: RC.orangeInk, height: 28 }} />
               <div style={{ marginTop: 10, display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
                 {QUICK_DAYS.map((d) => (
                   <button key={d} type="button" className="press" onClick={() => { hapticSelection(); setDays(d); }}
                     style={{ padding: '8px 14px', borderRadius: RADIUS.pill, border: `1.5px solid ${days === d ? RC.orangeInk : RC.line}`, background: days === d ? '#FFF1E8' : '#fff', fontFamily: 'var(--font)', fontSize: 14, fontWeight: 700, color: RC.ink, cursor: 'pointer' }}>
-                    {d === 7 ? '1 week' : d === 14 ? '2 weeks' : d === 30 ? '1 month' : `${d} days`}
+                    {d === 7 ? '1 week' : d === 14 ? '2 weeks' : d === 30 ? '1 month' : d === LONG ? '1 month plus' : `${d} days`}
                   </button>
                 ))}
               </div>
@@ -182,7 +180,6 @@ export function QuizScreen({ onBack, onBrowse, onOpen }: { onBack: () => void; o
 
           {rec && (<>
             <div className="rise" style={{ ...cardSurface(), padding: 22, textAlign: 'center' }}>
-              {trip && <img className="hop" src={TRIP_LOOK[trip].item} alt="" aria-hidden style={{ display: 'block', margin: '0 auto 6px', width: 72, height: 72, objectFit: 'contain', filter: 'drop-shadow(0 8px 12px rgba(0,0,0,0.18))' }} />}
               <div style={{ ...TYPE.small, fontWeight: 700, color: RC.orangeInk }}>Your plan</div>
               <div style={{ marginTop: 6, fontFamily: 'var(--font-display)', fontSize: 34, fontWeight: 800, lineHeight: 1.1, color: RC.ink }}>{rec.title}</div>
               <p style={{ margin: '10px 0 0', ...TYPE.body, color: RC.ink2 }}>{rec.line}</p>

@@ -64,9 +64,10 @@ export function recommend({ days, uses, work }: { days: number; uses: Use[]; wor
   if (perDay >= 1.5 || (perDay >= 1 && days > 7)) {
     return { tab: 'unl', days: len, title: `Unlimited, ${lenText}`, line: 'Use it as much as you like for the whole trip, never cut off.' };
   }
-  const need = Math.max(1, perDay * days * 1.2);
+  // Data plans run up to a month; a longer trip buys a month and tops up.
+  const need = Math.max(1, perDay * Math.min(days, 30) * 1.2);
   const size = DATA_SIZES.find((g) => g >= need) ?? 50;
-  return { tab: 'data', days, gb: size, title: `${size} GB of data`, line: `Covers ${days === 1 ? 'a day' : `${days} days`} of ${uses.length ? 'what you picked' : 'light use'}, with some to spare. You can add more any time.` };
+  return { tab: 'data', days, gb: size, title: `${size} GB of data`, line: `Covers ${days === 1 ? 'a day' : days > 30 ? 'a month' : `${days} days`} of ${uses.length ? 'what you picked' : 'light use'}, with some to spare. You can add more any time.` };
 }
 
 // The quiz's plan, read once by the next plan screen (then cleared, so it
