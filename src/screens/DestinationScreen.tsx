@@ -44,6 +44,7 @@ import { haptic, hapticSelection } from '../lib/haptics';
 import { defaultArm, logAb } from '../lib/abtest';
 import { useLayout, contentColumn, type Layout } from '../lib/layout';
 import { requestLightStatusBar } from '../lib/statusBar';
+import europeOrbitPhoto from '../assets/store/europe-orbit.jpg'; // NASA iss066e116300, public domain
 import dishPhoto from '../assets/store/dish-wide.jpg'; // the store's Power card dish, full width (Unsplash Wj1D-qiOseE)
 
 export interface Selection {
@@ -73,11 +74,11 @@ const UNLIMITED_TICKS = ['Unlimited data', 'Hotspot included', 'Data only, next 
 
 
 /** The destination's photograph (the Global mosaic for Global), filling its positioned parent. */
-function Photo({ id, eager = true }: { id: string; eager?: boolean }) {
-  if (hasMosaic(id)) return <PlaceMosaic id={id} />;
+function Photo({ id, eager = true, src }: { id: string; eager?: boolean; src?: string }) {
+  if (hasMosaic(id) && !src) return <PlaceMosaic id={id} />;
   return (
     <img
-      src={pictureFor(id)}
+      src={src ?? pictureFor(id)}
       alt=""
       loading={eager ? 'eager' : 'lazy'}
       decoding="async"
@@ -148,12 +149,29 @@ function PlanCard({ p, on, price, onPick }: { p: Plan; on: boolean; price: { tot
 const POWER_TIER_NAME: Record<number, string> = { 3: 'Day plan max', 5: 'Power', 10: 'Super User' };
 /** What each Power Use tier is for, under its name (owner 2026-10-27: by use, not by GB). */
 const POWER_TIER_USE: Record<number, string> = { 5: 'Hotspot and laptop', 10: 'Van and streaming' };
-/** Each Power Use tier's icon (owner 2026-10-27), as the plan tabs draw theirs: a laptop for Power, a van for Super User. */
-function PowerTierIcon({ gb, on }: { gb: number; on: boolean }) {
-  const fill = on ? '#D6247A' : RC.ink;
+/** Each Power Use tier's own dark card (owner 2026-10-27: tell them apart, feel premium): Power deep blue, Super User purple into magenta. */
+const POWER_TIER_BG: Record<number, string> = {
+  5: 'linear-gradient(150deg, #13235E 0%, #2F4FC9 100%)',
+  10: 'linear-gradient(150deg, #24093A 0%, #6E2496 55%, #C2367F 100%)',
+};
+const POWER_TIER_RING: Record<number, string> = { 5: '#3F63E0', 10: '#C2367F' };
+/** How much each tier carries, as a bar meter rather than GB: Super User fills it, Power half. */
+function PowerMeter({ gb, max }: { gb: number; max: number }) {
+  const lit = Math.max(1, Math.round((gb / Math.max(max, 1)) * 4));
   return (
-    <span aria-hidden style={{ width: 34, height: 34, borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 6px',
-      background: 'linear-gradient(135deg, rgba(242,97,34,0.12), rgba(255,66,161,0.12), rgba(134,82,224,0.14))' }}>
+    <span aria-hidden style={{ display: 'flex', gap: 4, marginTop: 10 }}>
+      {[0, 1, 2, 3].map((i) => (
+        <span key={i} style={{ flex: 1, height: 5, borderRadius: 3, background: i < lit ? '#FFC94D' : 'rgba(255,255,255,0.22)' }} />
+      ))}
+    </span>
+  );
+}
+/** Each Power Use tier's icon (owner 2026-10-27), as the plan tabs draw theirs: a laptop for Power, a van for Super User. */
+function PowerTierIcon({ gb }: { gb: number; on: boolean }) {
+  const fill = '#fff';
+  return (
+    <span aria-hidden style={{ width: 36, height: 36, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10,
+      background: 'rgba(255,255,255,0.16)', border: '1px solid rgba(255,255,255,0.28)' }}>
       <svg width="20" height="20" viewBox="0 0 24 24">
         {gb >= 10
           ? <g fill={fill}><path fillRule="evenodd" d="M2 8a2 2 0 0 1 2-2h10.6a2 2 0 0 1 1.5.7l3.6 4.1 1.6.5a1 1 0 0 1 .7 1V16a1 1 0 0 1-1 1h-1.1a2.6 2.6 0 0 0-5.1 0H9.2a2.6 2.6 0 0 0-5.1 0H3a1 1 0 0 1-1-1V8zm12 0v3h3.6L15 8h-1zM4.5 8v3H8V8H4.5zm5 0v3h3V8h-3z" /><circle cx="6.6" cy="17.4" r="1.9" /><circle cx="17.4" cy="17.4" r="1.9" /></g>
@@ -426,6 +444,8 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   const isPowerLine = (p: Plan) => (Boolean(p.app_only) || p.tier === 'unlimited') && (p.daily_gb ?? 0) >= POWER_MIN_GB;
   const ownPower = plans.filter(isPowerLine);
   const powerMode = (power || quiz?.tab === 'power' || Boolean(cat?.power_of)) && ownPower.length > 0;
+  // A Power Use page opens on a satellite picture, not the place's photographs: Europe from orbit, elsewhere the radio dish.
+  const powerHero = powerMode ? (/europe/.test(`${id} ${cat?.power_of ?? ''}`) ? europeOrbitPhoto : dishPhoto) : undefined;
   // Power asked for a place that has its own Power Use card (Europe): that card.
   useEffect(() => {
     if ((power || quiz?.tab === 'power') && cat?.power_destination && onPower) {
@@ -605,10 +625,13 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
               const sel = g === powerGbShown;
               return (
                 <button key={g} type="button" className="press" aria-pressed={sel} onClick={() => { hapticSelection(); setPowerGb(g); setShowAll(false); }}
-                  style={{ flex: 1, minWidth: 0, cursor: 'pointer', fontFamily: 'var(--font)', padding: '10px 8px', borderRadius: 14, color: RC.ink, textAlign: 'center', ...(sel ? ringOn(true) : ringOff) }}>
+                  style={{ flex: 1, minWidth: 0, cursor: 'pointer', fontFamily: 'var(--font)', padding: '14px 14px 12px', borderRadius: 18, border: 'none', color: '#fff', textAlign: 'left',
+                    background: POWER_TIER_BG[g] ?? POWER_TIER_BG[5], opacity: sel ? 1 : 0.62, transform: sel ? 'scale(1)' : 'scale(0.97)', transition: 'opacity .2s, transform .2s, box-shadow .2s',
+                    boxShadow: sel ? `0 0 0 3px ${RC.bg}, 0 0 0 5px ${POWER_TIER_RING[g] ?? POWER_TIER_RING[5]}, 0 14px 28px -12px rgba(26,15,46,0.55)` : 'none' }}>
                   <PowerTierIcon gb={g} on={sel} />
-                  <div style={{ fontSize: 16, fontWeight: 700 }}>{POWER_TIER_NAME[g] ?? tierName(g)}</div>
-                  <div style={{ marginTop: 2, fontSize: 13, color: RC.ink2 }}>{POWER_TIER_USE[g] ?? `${g} GB a day`}</div>
+                  <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-0.01em' }}>{POWER_TIER_NAME[g] ?? tierName(g)}</div>
+                  <div style={{ marginTop: 2, fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>{POWER_TIER_USE[g] ?? `${g} GB a day`}</div>
+                  <PowerMeter gb={g} max={powerTiers[powerTiers.length - 1] ?? g} />
                 </button>
               );
             })}
@@ -659,7 +682,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
           <div style={{ ...contentColumn(l), display: 'grid', gridTemplateColumns: 'minmax(0, 1.05fr) minmax(0, 1fr)', gap: 28, alignItems: 'start' }}>
             <div style={{ position: 'sticky', top: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
               <div style={{ position: 'relative', aspectRatio: '4 / 3', borderRadius: RADIUS.card, overflow: 'hidden', background: skyFor(id), border: `1.5px solid ${RC.line}`, boxShadow: SHADOW_CARD }}>
-                <Photo id={id} />
+                <Photo id={id} src={powerHero} />
                 <div aria-hidden style={{ position: 'absolute', inset: 0, background: PHOTO_OVERLAY }} />
                 <div style={{ position: 'absolute', left: 22, right: 22, bottom: 20 }}>
                   <PhotoTitle l={l} dest={dest} name={name} coverage={coverage} />
@@ -694,7 +717,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
       <div style={{ position: 'relative', height: heroH, flexShrink: 0, background: skyFor(id), overflow: 'hidden' }}>
-        <Photo id={id} />
+        <Photo id={id} src={powerHero} />
         <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(26,15,46,0.30) 0%, rgba(26,15,46,0) 32%, rgba(26,15,46,0.78) 100%)' }} />
         <div style={{ position: 'absolute', left: 0, right: 0, top: 0 }}>
           <RingoHeader leading={<BackBtn onClick={onBack} />} />
