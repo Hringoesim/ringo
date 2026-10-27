@@ -22,11 +22,10 @@ import { useAccount } from '../store/account';
 import { haptic, hapticSelection } from '../lib/haptics';
 import { useLayout, contentColumn, cardGrid, tileGrid, TABBAR_CLEARANCE, type Layout } from '../lib/layout';
 import europeOrbitPhoto from '../assets/store/europe-orbit.jpg'; // NASA iss066e116300, public domain
-import signpostPhoto from '../assets/store/blue-signpost.jpg'; // Unsplash RZo9TnwsYhQ (Anne Rosly), Unsplash licence
 import dishPhoto from '../assets/store/dish-blue.jpg'; // Unsplash Wj1D-qiOseE, Unsplash licence
 
-// The two shortcut cards over the list (quiz, Power): a photograph like every
-// other card in the app, a small icon over it, the words at the foot.
+// The Power shortcut card over the list: a photograph like every other card
+// in the app, a small icon over it, the words at the foot.
 const shortcutCard = (photo: string, place = 'center / cover'): CSSProperties => ({
   position: 'relative', overflow: 'hidden', minHeight: 150, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
   textAlign: 'left', cursor: 'pointer', padding: 14, borderRadius: 22, border: 'none', fontFamily: 'var(--font)', color: '#fff',
@@ -352,12 +351,10 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
             <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: l.cardGap }}>
               {onQuiz && (
                 <button type="button" className="press" onClick={() => { hapticSelection(); onQuiz(); }}
-                  style={shortcutCard(signpostPhoto, 'center -82px / 100% auto no-repeat')}>
-                  <span style={shortcutIcon}><svg aria-hidden width="20" height="20" viewBox="0 0 24 24"><g fill="#fff"><rect x="3" y="15" width="3.6" height="6" rx="1.2" /><rect x="8.6" y="11" width="3.6" height="10" rx="1.2" /><rect x="14.2" y="7" width="3.6" height="14" rx="1.2" /><rect x="19.4" y="3" width="1.6" height="18" rx=".8" opacity=".5" /></g></svg></span>
-                  <span style={{ display: 'block', marginTop: 12 }}>
-                    <span style={{ display: 'block', fontSize: 16, fontWeight: 700 }}>How much data do I need?</span>
-                    <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: 'rgba(255,255,255,0.92)' }}>Four questions.</span>
-                  </span>
+                  style={{ ...cardSurface(), textAlign: 'left', cursor: 'pointer', padding: 16, border: `1.5px solid ${RC.line}`, fontFamily: 'var(--font)' }}>
+                  <svg aria-hidden width="26" height="26" viewBox="0 0 24 24"><g fill={RC.orangeInk}><rect x="3" y="15" width="3.6" height="6" rx="1.2" /><rect x="8.6" y="11" width="3.6" height="10" rx="1.2" /><rect x="14.2" y="7" width="3.6" height="14" rx="1.2" /><rect x="19.4" y="3" width="1.6" height="18" rx=".8" opacity=".35" /></g></svg>
+                  <div style={{ marginTop: 6, fontSize: 16, fontWeight: 700, color: RC.ink }}>How much data do I need?</div>
+                  <div style={{ marginTop: 2, fontSize: 13, color: RC.ink2 }}>Four quick questions.</div>
                 </button>
               )}
               <button type="button" className="press"
