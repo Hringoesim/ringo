@@ -18,6 +18,7 @@ import { light, money, SITE, type Profile, type SubscriptionRead, type TopUp, ty
 import { UsageSection } from '../components/UsageCard';
 import { useAccount, account, pendingPurchase } from '../store/account';
 import { openInSheet } from '../lib/browser';
+import { askForReview, shouldAskForReview } from '../lib/review';
 import { iapAvailable, loadProducts, purchase, finish, restoreTransactions, manageSubscriptions, type IapProduct, type SignedOffer } from '../lib/iap';
 import { CARD_PAYMENTS, payByCard } from '../lib/cardPay';
 import { haptic, hapticNotify } from '../lib/haptics';
@@ -72,6 +73,13 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
   const clearNoteIn = (ms: number) => { if (noteTimer.current) window.clearTimeout(noteTimer.current); noteTimer.current = window.setTimeout(() => setNote(null), ms); };
   useEffect(() => () => { if (noteTimer.current) window.clearTimeout(noteTimer.current); }, []);
   const [usageAll, setUsageAll] = useState<Usage | null>(null);
+  // The rating ask, once per phone, when a delivered eSIM shows data in use;
+  // a short pause so it never covers the screen while it is still drawing.
+  useEffect(() => {
+    if (!shouldAskForReview(usageAll)) return;
+    const id = window.setTimeout(() => { void askForReview(); }, 2500);
+    return () => window.clearTimeout(id);
+  }, [usageAll]);
   const [pioneer, setPioneer] = useState<Pioneer | null>(null);
   // Ringo Rewards: Global's cheaper month, offered once the site has signed it.
   const [globalOffer, setGlobalOffer] = useState<{ pct: number; productId: string; offer: SignedOffer } | null>(null);

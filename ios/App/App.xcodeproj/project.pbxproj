@@ -16,6 +16,7 @@
 		AAAA000100000000000000B3 /* BiometricAuthPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000100000000000000A3 /* BiometricAuthPlugin.swift */; };
 		AAAA000100000000000000B4 /* NotifyPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000100000000000000A4 /* NotifyPlugin.swift */; };
 		AAAA0001000000000000C0B1 /* LocationPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA0001000000000000C0A1 /* LocationPlugin.swift */; };
+		AAAA0001000000000000E0B1 /* ReviewPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA0001000000000000E0A1 /* ReviewPlugin.swift */; };
 		AAAA0001000000000000D0B1 /* PaymentSheetPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA0001000000000000D0A1 /* PaymentSheetPlugin.swift */; };
 		AAAA0001000000000000D0C1 /* StripePaymentSheet in Frameworks */ = {isa = PBXBuildFile; productRef = AAAA0001000000000000D0E1 /* StripePaymentSheet */; };
 		AAAA000100000000000000B7 /* GoogleSignInPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAAA000100000000000000A7 /* GoogleSignInPlugin.swift */; };
@@ -37,6 +38,7 @@
 		AAAA000100000000000000A4 /* NotifyPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotifyPlugin.swift; sourceTree = "<group>"; };
 		AAAA0001000000000000D0A1 /* PaymentSheetPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentSheetPlugin.swift; sourceTree = "<group>"; };
 		AAAA0001000000000000C0A1 /* LocationPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPlugin.swift; sourceTree = "<group>"; };
+		AAAA0001000000000000E0A1 /* ReviewPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewPlugin.swift; sourceTree = "<group>"; };
 		AAAA000100000000000000A7 /* GoogleSignInPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleSignInPlugin.swift; sourceTree = "<group>"; };
 		AAAA000100000000000000A5 /* StoreKitPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreKitPlugin.swift; sourceTree = "<group>"; };
 		504EC30C1FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
@@ -85,6 +87,7 @@
 				AAAA000100000000000000A3 /* BiometricAuthPlugin.swift */,
 				AAAA000100000000000000A4 /* NotifyPlugin.swift */,
 				AAAA0001000000000000C0A1 /* LocationPlugin.swift */,
+				AAAA0001000000000000E0A1 /* ReviewPlugin.swift */,
 				AAAA0001000000000000D0A1 /* PaymentSheetPlugin.swift */,
 				AAAA000100000000000000A7 /* GoogleSignInPlugin.swift */,
 				AAAA000100000000000000A5 /* StoreKitPlugin.swift */,
@@ -188,6 +191,7 @@
 				AAAA000100000000000000B3 /* BiometricAuthPlugin.swift in Sources */,
 				AAAA000100000000000000B4 /* NotifyPlugin.swift in Sources */,
 				AAAA0001000000000000C0B1 /* LocationPlugin.swift in Sources */,
+				AAAA0001000000000000E0B1 /* ReviewPlugin.swift in Sources */,
 				AAAA0001000000000000D0B1 /* PaymentSheetPlugin.swift in Sources */,
 				AAAA000100000000000000B7 /* GoogleSignInPlugin.swift in Sources */,
 				AAAA000100000000000000B5 /* StoreKitPlugin.swift in Sources */,
