@@ -21,8 +21,9 @@ import { CITIES } from '../data/cities';
 import { useAccount } from '../store/account';
 import { haptic, hapticSelection } from '../lib/haptics';
 import { useLayout, contentColumn, cardGrid, tileGrid, TABBAR_CLEARANCE, type Layout } from '../lib/layout';
+import europeOrbitPhoto from '../assets/store/europe-orbit.jpg'; // NASA iss066e116300, public domain
 import signpostPhoto from '../assets/store/blue-signpost.jpg'; // Unsplash RZo9TnwsYhQ (Anne Rosly), Unsplash licence
-import dishPhoto from '../assets/store/dish-sunset.jpg'; // Unsplash xpb438CRUnU (Gilles Rolland-Monnet), Unsplash licence
+import dishPhoto from '../assets/store/dish-blue.jpg'; // Unsplash Wj1D-qiOseE, Unsplash licence
 
 // The two shortcut cards over the list (quiz, Power): a photograph like every
 // other card in the app, a small icon over it, the words at the foot.
@@ -31,6 +32,11 @@ const shortcutCard = (photo: string, place = 'center / cover'): CSSProperties =>
   textAlign: 'left', cursor: 'pointer', padding: 14, borderRadius: 22, border: 'none', fontFamily: 'var(--font)', color: '#fff',
   background: `linear-gradient(180deg, rgba(26,15,46,0) 28%, rgba(26,15,46,0.88) 100%), url(${photo}) ${place}, ${RC.ink}`, textShadow: PHOTO_TEXT_SHADOW,
 });
+// The Power list gets a sky gradient behind it, so it is plain which list is open.
+const POWER_TOP = '#BFD3FF';
+const POWER_BG = `linear-gradient(180deg, ${POWER_TOP} 0%, #D6D2FA 240px, #EEE6FB 520px, ${RC.bg} 900px)`;
+// On the Power list a region can show a satellite picture instead of its usual photographs.
+const POWER_PHOTOS: Record<string, string> = { europe: europeOrbitPhoto };
 const shortcutIcon: CSSProperties = { width: 36, height: 36, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(26,15,46,0.32)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' };
 
 // What people actually type. "United States" does not contain "usa", so the
@@ -78,15 +84,15 @@ const REGION_ORDER = ['Europe', 'North America', 'Latin America', 'Caribbean', '
  * Global mosaic for Global), the site's dark overlay, the flag and the name.
  * A photo that fails tries the bundled copy, then shows the sky.
  */
-export function Picture({ d, size = 'big', eager = false, chip }: { d: Destination; size?: 'big' | 'tile'; eager?: boolean; chip?: string | null }) {
+export function Picture({ d, size = 'big', eager = false, chip, photo }: { d: Destination; size?: 'big' | 'tile'; eager?: boolean; chip?: string | null; photo?: string }) {
   const big = size === 'big';
   return (
     <div style={{ position: 'relative', aspectRatio: big ? '16 / 9' : '4 / 3', background: skyFor(d.id), overflow: 'hidden' }}>
-      {hasMosaic(d.id)
+      {hasMosaic(d.id) && !photo
         ? <PlaceMosaic id={d.id} />
         : (
           <img
-            src={pictureFor(d.id)}
+            src={photo ?? pictureFor(d.id)}
             alt=""
             loading={eager ? 'eager' : 'lazy'}
             decoding="async"
@@ -120,7 +126,7 @@ function whatLine(d: Destination): string {
   return 'One payment, no renewal';
 }
 
-function Card({ d, from, onOpen, onPeek, size, eager = false }: { d: Destination; from: string | null; onOpen: (id: string) => void; onPeek?: (d: Destination) => void; size: 'big' | 'tile'; eager?: boolean }) {
+function Card({ d, from, onOpen, onPeek, size, eager = false, photo }: { d: Destination; from: string | null; onOpen: (id: string) => void; onPeek?: (d: Destination) => void; size: 'big' | 'tile'; eager?: boolean; photo?: string }) {
   // Press and hold: a quick look at the price without leaving the store
   // (owner 2026-10-24, long-press preview); the tap that ends the hold does not open it.
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -145,7 +151,7 @@ function Card({ d, from, onOpen, onPeek, size, eager = false }: { d: Destination
       aria-label={from != null ? `${d.label}, from ${from}` : d.label}
       style={{ ...cardSurface(), textAlign: 'left', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', font: 'inherit', color: 'inherit', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
     >
-      <Picture d={d} size={size} eager={eager} chip={chip} />
+      <Picture d={d} size={size} eager={eager} chip={chip} photo={photo} />
       <div style={{ padding: big ? '14px 16px 16px' : '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: 4, width: '100%', boxSizing: 'border-box' }}>
         <div style={{ fontFamily: 'var(--font)', fontSize: big ? 17 : 15, fontWeight: 700, lineHeight: 1.3, letterSpacing: '-0.01em', color: RC.ink, fontVariantNumeric: 'tabular-nums', minHeight: big ? 22 : 20 }}>{priceText}</div>
         {big && <div style={{ ...TYPE.small, color: RC.ink2 }}>{whatLine(d)}</div>}
@@ -256,6 +262,12 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
   // After the Power plans card, the place opens on its Power plans (passed
   // with the navigation: the screen mounts twice in the slide, a one-time note would be read by the wrong one).
   const open = (id: string) => { haptic('light'); onOpen(id, powerAsk ? { power: true } : undefined); };
+  // The strip under the clock (App.tsx) takes the Power wash's top colour while that list is open.
+  useEffect(() => {
+    if (!powerAsk) return;
+    document.documentElement.style.setProperty('--status-strip', POWER_TOP);
+    return () => { document.documentElement.style.removeProperty('--status-strip'); };
+  }, [powerAsk]);
   const showPower = (on: boolean) => { hapticSelection(); setPowerAsk(on); setQ(''); scroller.current?.scrollTo({ top: 0 }); };
 
   // The places that sell Power (an older site names none: every place but Global, unpriced).
@@ -292,7 +304,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', background: powerAsk ? POWER_BG : undefined }}>
       <div ref={scroller} className="no-bar" style={{ flex: 1, overflowY: 'auto', paddingTop: 'max(54px, calc(env(safe-area-inset-top, 0px) + 12px))', paddingBottom: `calc(${TABBAR_CLEARANCE} + 24px)` }}>
         <div style={contentColumn(l)}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: TAP }}>
@@ -344,17 +356,17 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
                   <span style={shortcutIcon}><svg aria-hidden width="20" height="20" viewBox="0 0 24 24"><g fill="#fff"><rect x="3" y="15" width="3.6" height="6" rx="1.2" /><rect x="8.6" y="11" width="3.6" height="10" rx="1.2" /><rect x="14.2" y="7" width="3.6" height="14" rx="1.2" /><rect x="19.4" y="3" width="1.6" height="18" rx=".8" opacity=".5" /></g></svg></span>
                   <span style={{ display: 'block', marginTop: 12 }}>
                     <span style={{ display: 'block', fontSize: 16, fontWeight: 700 }}>How much data do I need?</span>
-                    <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: 'rgba(255,255,255,0.92)' }}>Four quick questions.</span>
+                    <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: 'rgba(255,255,255,0.92)' }}>Four questions.</span>
                   </span>
                 </button>
               )}
               <button type="button" className="press"
                 onClick={() => showPower(true)}
-                style={shortcutCard(dishPhoto, '35% center / cover')}>
+                style={shortcutCard(dishPhoto, 'center top / cover')}>
                 <span style={shortcutIcon}><svg aria-hidden width="20" height="20" viewBox="0 0 24 24"><path fill="#fff" d="M13.4 2.2c.4-.6-.3-1.3-.9-.9L4.6 12.2c-.4.5 0 1.3.6 1.3h5.3l-1.9 8.2c-.2.7.7 1.1 1.1.5l9.6-11.6c.4-.5 0-1.2-.6-1.2h-5.6l.3-7.2z" /></svg></span>
                 <span style={{ display: 'block', marginTop: 12 }}>
                   <span style={{ display: 'block', fontSize: 16, fontWeight: 700 }}>Power plans</span>
-                  <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: 'rgba(255,255,255,0.92)' }}>For vans, hotspots and a secure connection.</span>
+                  <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: 'rgba(255,255,255,0.92)' }}>Vans and hotspots.</span>
                 </span>
               </button>
             </div>
@@ -374,7 +386,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
               {!query && <SectionHead title={powerAsk ? 'Regions' : 'Popular plans'} sub="Many countries, one eSIM." />}
               <div style={cardGrid(l)}>
                 {featured.map((d, i) => (
-                  <Card key={d.id} d={d} from={fromOf(d)} onOpen={open} onPeek={setPeek} size="big" eager={i < (l.isWide ? 2 : 1)} />
+                  <Card key={d.id} d={d} from={fromOf(d)} onOpen={open} onPeek={setPeek} size="big" eager={i < (l.isWide ? 2 : 1)} photo={powerAsk ? POWER_PHOTOS[d.id] : undefined} />
                 ))}
               </div>
             </section>

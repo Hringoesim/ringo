@@ -342,7 +342,7 @@ export function App() {
       </ScreenHost>
       {/* The tab screens scroll under the clock; without this strip a heading
           scrolled up runs straight through the time and battery. */}
-      {showTabs && <div aria-hidden style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 'env(safe-area-inset-top, 0px)', background: RC.bg, zIndex: 5, pointerEvents: 'none' }} />}
+      {showTabs && <div aria-hidden style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 'env(safe-area-inset-top, 0px)', background: `var(--status-strip, ${RC.bg})`, zIndex: 5, pointerEvents: 'none' }} />}
       {showTabs && <RingoTabBar active={current.name} onChange={goTab} />}
       {pushAsk && showTabs && (
         <PushSheet
