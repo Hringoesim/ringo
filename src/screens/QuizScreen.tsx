@@ -19,6 +19,9 @@ import { FEATURED, bundledPictureFor, pictureFor, skyFor } from '../data/destina
 import tent from '../assets/landmarks3d/tent.png';
 import beach from '../assets/landmarks3d/beach.png';
 import plane from '../assets/landmarks3d/plane.png';
+import cityscape from '../assets/landmarks3d/cityscape.png';
+import palmtree from '../assets/landmarks3d/palmtree.png';
+import europeOrbit from '../assets/store/europe-orbit.jpg';
 import { useDestinations } from '../store/destinations';
 
 const S = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
@@ -31,11 +34,18 @@ const ICON: Record<Use, ReactNode> = {
 };
 // More colour (owner 2026-10-27: "a bit more colourful, add pictures or
 // items"): each trip type is a photo with a 3D item, each use its own hue.
+// No coloured rim around the photos (owner: "the contour does not need this shine").
 const TRIP_LOOK: Record<Trip, { photo: string; item: string }> = {
   backpacker: { photo: bundledPictureFor('vietnam') ?? pictureFor('vietnam'), item: tent },
-  beach: { photo: pictureFor('seychelles'), item: beach },
-  multi: { photo: bundledPictureFor('europe') ?? pictureFor('europe'), item: plane },
+  // Blue sky and white sand (owner 2026-10-27), daylight everywhere.
+  beach: { photo: pictureFor('maldives'), item: beach },
+  multi: { photo: bundledPictureFor('switzerland') ?? pictureFor('switzerland'), item: plane },
+  city: { photo: pictureFor('portugal'), item: cityscape },
+  nomad: { photo: pictureFor('costa-rica'), item: palmtree },
 };
+// The regions on a multi country result (owner 2026-10-27): Europe from space,
+// the others their landmark photos (Angkor Wat, Machu Picchu, Petra).
+const REGION_PHOTO: Record<string, string> = { europe: europeOrbit };
 const USE_HUE: Record<Use, string> = { maps: '#1FA971', social: '#E4407B', calls: '#2F7BF6', streaming: '#8B5CF6', hotspot: '#F08A24' };
 const QUICK_DAYS = [3, 7, 14, 30];
 
@@ -96,16 +106,16 @@ export function QuizScreen({ onBack, onBrowse, onOpen }: { onBack: () => void; o
           )}
 
           {step === 0 && (<>
-            {title('What kind of trip?')}
+            {title('What kind of trip?', 'Tap and pick one.')}
             {TRIPS.map((t) => {
               const on = trip === t.id;
               return (
                 <button key={t.id} type="button" className="press" aria-pressed={on}
                   onClick={() => { hapticNotify('success'); setTrip(t.id); setDays(t.days); setUses(t.uses); window.setTimeout(() => setStep(1), 260); }}
-                  style={{ position: 'relative', width: '100%', minHeight: 112, overflow: 'hidden', display: 'flex', alignItems: 'flex-end', gap: 12, textAlign: 'left', cursor: 'pointer', padding: '14px 16px', borderRadius: 20, border: `3px solid ${on ? RC.orangeInk : 'transparent'}`, background: skyFor(t.id), fontFamily: 'var(--font)' }}>
+                  style={{ position: 'relative', width: '100%', minHeight: 112, overflow: 'hidden', display: 'flex', alignItems: 'flex-end', gap: 12, textAlign: 'left', cursor: 'pointer', padding: '14px 16px', borderRadius: 20, border: 'none', outline: on ? `3px solid ${RC.orangeInk}` : 'none', outlineOffset: 2, background: '#2a1d3d', fontFamily: 'var(--font)' }}>
                   <img src={TRIP_LOOK[t.id].photo} alt="" aria-hidden decoding="async" onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
                     style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <span aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(20,10,40,0.05) 20%, rgba(20,10,40,0.72) 100%)' }} />
+                  <span aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(20,10,40,0) 35%, rgba(20,10,40,0.6) 100%)' }} />
                   <span style={{ position: 'relative', flex: 1 }}>
                     <span style={{ display: 'block', fontSize: 19, fontWeight: 800, color: '#fff', textShadow: '0 1px 6px rgba(0,0,0,0.35)' }}>{t.label}</span>
                     <span style={{ display: 'block', marginTop: 2, fontSize: 14, color: 'rgba(255,255,255,0.92)' }}>{t.sub}</span>
@@ -183,7 +193,7 @@ export function QuizScreen({ onBack, onBrowse, onOpen }: { onBack: () => void; o
                 <button key={d.id} type="button" className="press" onClick={() => { hapticSelection(); setQuizPick({ ...rec, quizId }); onOpen(d.id); }}
                   style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left', cursor: 'pointer', padding: 10, borderRadius: 18, border: `2px solid ${RC.line}`, background: '#fff', fontFamily: 'var(--font)' }}>
                   <span aria-hidden style={{ flex: 'none', width: 64, height: 48, borderRadius: 12, overflow: 'hidden', background: skyFor(d.id) }}>
-                    <img src={bundledPictureFor(d.id) ?? pictureFor(d.id)} alt="" decoding="async" onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    <img src={REGION_PHOTO[d.id] ?? bundledPictureFor(d.id) ?? pictureFor(d.id)} alt="" decoding="async" onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                   </span>
                   <span style={{ flex: 1, fontSize: 17, fontWeight: 700, color: RC.ink }}>{d.label}</span>
                   <span style={{ paddingRight: 8, fontSize: 14, color: RC.ink2 }}>{`${d.countries} countries`}</span>

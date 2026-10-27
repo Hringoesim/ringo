@@ -11,15 +11,18 @@ import { SITE } from '../api/light';
 
 export type Use = 'maps' | 'social' | 'calls' | 'streaming' | 'hotspot';
 export type PlanTab = 'data' | 'unl' | 'power';
-export type Trip = 'backpacker' | 'beach' | 'multi';
+export type Trip = 'backpacker' | 'beach' | 'multi' | 'city' | 'nomad';
 
-// The first question (owner 2026-10-27: "backpacker beacher multi country"):
+// The first question (owner 2026-10-27: "backpacker beacher multi country",
+// then "add city trip to the mix! and add digital nomad"):
 // the kind of trip sets a starting length and the usual uses, both still
 // changeable; a multi country trip ends on the region plans, not a country.
 export const TRIPS: { id: Trip; label: string; sub: string; days: number; uses: Use[] }[] = [
   { id: 'backpacker', label: 'Backpacker', sub: 'Long trip, hostels, on the move', days: 30, uses: ['maps', 'social'] },
   { id: 'beach', label: 'Beach holiday', sub: 'Sun, photos, a week or two', days: 7, uses: ['social'] },
   { id: 'multi', label: 'Multi country', sub: 'Several countries, one eSIM', days: 14, uses: ['maps', 'social'] },
+  { id: 'city', label: 'City trip', sub: 'A few days, maps and photos', days: 4, uses: ['maps', 'social'] },
+  { id: 'nomad', label: 'Digital nomad', sub: 'Working online from anywhere', days: 30, uses: ['maps', 'calls', 'social'] },
 ];
 
 /** Kept for older screens; the quiz now uses a slider. */
