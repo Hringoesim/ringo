@@ -21,6 +21,7 @@ import { CITIES } from '../data/cities';
 import { useAccount } from '../store/account';
 import { haptic, hapticSelection } from '../lib/haptics';
 import { useLayout, contentColumn, cardGrid, tileGrid, TABBAR_CLEARANCE, type Layout } from '../lib/layout';
+import { requestLightStatusBar } from '../lib/statusBar';
 import europeOrbitPhoto from '../assets/store/europe-orbit.jpg'; // NASA iss066e116300, public domain
 import dishPhoto from '../assets/store/dish-blue.jpg'; // Unsplash Wj1D-qiOseE, Unsplash licence
 
@@ -31,9 +32,21 @@ const shortcutCard = (photo: string, place = 'center / cover'): CSSProperties =>
   textAlign: 'left', cursor: 'pointer', padding: 14, borderRadius: 22, border: 'none', fontFamily: 'var(--font)', color: '#fff',
   background: `linear-gradient(180deg, rgba(26,15,46,0) 28%, rgba(26,15,46,0.88) 100%), url(${photo}) ${place}, ${RC.ink}`, textShadow: PHOTO_TEXT_SHADOW,
 });
-// The Power list gets a sky gradient behind it, so it is plain which list is open.
-const POWER_TOP = '#BFD3FF';
-const POWER_BG = `linear-gradient(180deg, ${POWER_TOP} 0%, #D6D2FA 240px, #EEE6FB 520px, ${RC.bg} 900px)`;
+// The Power list gets a night sky behind it, so it is plain which list is open.
+const POWER_TOP = '#0B0820';
+// A night sky of small stars (owner 2026-10-27), drawn once as a tile: a fixed seed, so it never jumps.
+const STARS = (() => {
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const dots = Array.from({ length: 90 }, () => {
+    const r = rnd() < 0.85 ? 0.6 + rnd() * 0.6 : 1.3 + rnd() * 0.7;
+    return `<circle cx='${(rnd() * 400).toFixed(1)}' cy='${(rnd() * 900).toFixed(1)}' r='${r.toFixed(2)}' fill='%23fff' fill-opacity='${(0.35 + rnd() * 0.65).toFixed(2)}'/>`;
+  }).join('');
+  return `url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='900'>${dots}</svg>")`;
+})();
+const POWER_BG = `${STARS} center top / 400px 900px repeat, radial-gradient(120% 60% at 80% 0%, rgba(110,60,200,0.35), rgba(110,60,200,0) 70%), linear-gradient(180deg, ${POWER_TOP} 0%, #161036 45%, #24164A 100%)`;
+// On the night sky the headings and lines turn white; the cards keep their own colours.
+const POWER_SKY_CSS = '.power-sky h1,.power-sky h2{color:#fff!important}.power-sky p,.power-sky .sky-text{color:rgba(255,255,255,0.78)!important}';
 // On the Power list a region can show a satellite picture instead of its usual photographs.
 const POWER_PHOTOS: Record<string, string> = { europe: europeOrbitPhoto };
 const shortcutIcon: CSSProperties = { width: 36, height: 36, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(26,15,46,0.32)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' };
@@ -261,11 +274,12 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
   // After the Power plans card, the place opens on its Power plans (passed
   // with the navigation: the screen mounts twice in the slide, a one-time note would be read by the wrong one).
   const open = (id: string) => { haptic('light'); onOpen(id, powerAsk ? { power: true } : undefined); };
-  // The strip under the clock (App.tsx) takes the Power wash's top colour while that list is open.
+  // The strip under the clock (App.tsx) takes the night sky's top colour while that list is open, with light clock text.
   useEffect(() => {
     if (!powerAsk) return;
     document.documentElement.style.setProperty('--status-strip', POWER_TOP);
-    return () => { document.documentElement.style.removeProperty('--status-strip'); };
+    requestLightStatusBar(true);
+    return () => { document.documentElement.style.removeProperty('--status-strip'); requestLightStatusBar(false); };
   }, [powerAsk]);
   const showPower = (on: boolean) => { hapticSelection(); setPowerAsk(on); setQ(''); scroller.current?.scrollTo({ top: 0 }); };
 
@@ -303,7 +317,8 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', background: powerAsk ? POWER_BG : undefined }}>
+    <div className={powerAsk ? 'power-sky' : undefined} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', background: powerAsk ? POWER_BG : undefined }}>
+      {powerAsk && <style>{POWER_SKY_CSS}</style>}
       <div ref={scroller} className="no-bar" style={{ flex: 1, overflowY: 'auto', paddingTop: 'max(54px, calc(env(safe-area-inset-top, 0px) + 12px))', paddingBottom: `calc(${TABBAR_CLEARANCE} + 24px)` }}>
         <div style={contentColumn(l)}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: TAP }}>
@@ -400,8 +415,8 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
 
           {nothing && (
             <div style={{ marginTop: l.sectionGap, textAlign: 'center' }}>
-              <div style={{ ...TYPE.h3, color: RC.ink }}>Nothing matches “{q.trim()}”</div>
-              <div style={{ marginTop: 6, ...TYPE.small, color: RC.ink2 }}>{powerAsk ? 'Try a country or region name.' : 'Try a country name, or Global for everywhere.'}</div>
+              <div className="sky-text" style={{ ...TYPE.h3, color: RC.ink }}>Nothing matches “{q.trim()}”</div>
+              <div className="sky-text" style={{ marginTop: 6, ...TYPE.small, color: RC.ink2 }}>{powerAsk ? 'Try a country or region name.' : 'Try a country name, or Global for everywhere.'}</div>
             </div>
           )}
           {all.length === 0 && <Skeleton l={l} />}
