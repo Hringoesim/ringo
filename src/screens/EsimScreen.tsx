@@ -372,7 +372,12 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
 
         {sub.esim_attached && (
           <div style={{ marginTop: 16 }}>
-            {data?.install ? (
+            {usage?.installed ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 16, borderRadius: RADIUS.md, background: RC.cream }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="11" fill={RC.ink} /><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                <div style={{ ...TYPE.h3, color: RC.ink }}>Installed on your iPhone</div>
+              </div>
+            ) : data?.install ? (
               <RingoButton onClick={() => { haptic('medium'); onInstall(data.install!, place); }}>Install on this iPhone</RingoButton>
             ) : (
               <div style={{ padding: 16, borderRadius: RADIUS.md, background: RC.cream }}>

@@ -183,7 +183,7 @@ export interface SubscriptionRead {
   subscription: Subscription | null;
   destination?: { id: string; label: string; kind: string };
   top_ups?: TopUp[];
-  usage?: { data_remaining_mb: number | null; unlimited: boolean; package_status: string | null; expires_at: string | null } | { unavailable: true };
+  usage?: { data_remaining_mb: number | null; unlimited: boolean; package_status: string | null; expires_at: string | null; installed?: boolean } | { unavailable: true };
   install?: { apple_url: string; lpa: string };
   /** Ringo Rewards: Global kept long enough to earn a cheaper month. */
   rewards_global?: { pct: number; months: number; product_id: string | null };
