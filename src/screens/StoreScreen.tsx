@@ -22,7 +22,7 @@ import { useAccount } from '../store/account';
 import { haptic, hapticSelection } from '../lib/haptics';
 import { useLayout, contentColumn, cardGrid, tileGrid, TABBAR_CLEARANCE, type Layout } from '../lib/layout';
 import { requestLightStatusBar } from '../lib/statusBar';
-import europeOrbitPhoto from '../assets/store/europe-orbit.jpg'; // NASA iss066e116300, public domain
+import { POWER_PHOTOS } from '../data/powerPhotos';
 import dishPhoto from '../assets/store/dish-blue.jpg'; // Unsplash Wj1D-qiOseE, Unsplash licence
 
 // The Power shortcut card over the list: a photograph like every other card
@@ -39,19 +39,21 @@ const STARS = (() => {
   let seed = 7;
   const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
   const dots = Array.from({ length: 70 }, () => {
-    const y = Math.pow(rnd(), 1.6) * 560;
+    const y = Math.pow(rnd(), 1.4) * 380;
     const r = rnd() < 0.85 ? 0.6 + rnd() * 0.6 : 1.3 + rnd() * 0.7;
-    const fade = 1 - y / 640;
+    const fade = 1 - y / 460;
     return `<circle cx='${(rnd() * 400).toFixed(1)}' cy='${y.toFixed(1)}' r='${r.toFixed(2)}' fill='%23fff' fill-opacity='${((0.35 + rnd() * 0.65) * fade).toFixed(2)}'/>`;
   }).join('');
-  return `url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='600'>${dots}</svg>")`;
+  // One shooting star across the top right: a fading tail and a bright head. Drawn, not animated (an animation over this sky crashed the web view).
+  const shooting = "<defs><linearGradient id='t' x1='0' y1='0' x2='1' y2='0'><stop offset='0' stop-color='%23fff' stop-opacity='0'/><stop offset='1' stop-color='%23fff' stop-opacity='0.95'/></linearGradient></defs>"
+    + "<g transform='translate(225 150) rotate(24)'><rect x='0' y='-1' width='120' height='2' rx='1' fill='url(%23t)'/><circle cx='120' cy='0' r='2.4' fill='%23fff'/></g>";
+  return `url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='420'>${shooting}${dots}</svg>")`;
 })();
-// Night at the top, a sunrise further down, the store's cream at the end: it scrolls with the list.
-const POWER_BG = `${STARS} center top / 400px 600px repeat-x, linear-gradient(180deg, ${POWER_TOP} 0px, #3A2C7E 300px, #7B4AA6 520px, #D9708F 760px, #FFB27A 980px, #FFE3C4 1240px, ${RC.bg} 1600px)`;
-// White headings and lines where the sky is dark; further down, on the sunrise, the text keeps its own colours.
+// Night at the top (the same colour as the strip under the clock, so the two meet without a line),
+// lighter towards Regions, then plain white for the list (owner 2026-10-27). It scrolls with the list.
+const POWER_BG = `${STARS} center top / 400px 420px repeat-x, linear-gradient(180deg, ${POWER_TOP} 0px, ${POWER_TOP} 110px, #34296F 300px, #4A3488 440px, #FFFFFF 540px, #FFFFFF 100%)`;
+// White headings on the night sky.
 const POWER_SKY_CSS = '.power-sky h1,.power-sky .sky-top h2{color:#fff!important}.power-sky h1+p,.power-sky .sky-top p,.power-sky [role=status]{color:rgba(255,255,255,0.82)!important}';
-// On the Power list a region can show a satellite picture instead of its usual photographs.
-const POWER_PHOTOS: Record<string, string> = { europe: europeOrbitPhoto };
 const shortcutIcon: CSSProperties = { width: 36, height: 36, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(26,15,46,0.32)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' };
 
 // What people actually type. "United States" does not contain "usa", so the
@@ -320,7 +322,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
   };
 
   return (
-    <div className={powerAsk ? 'power-sky' : undefined} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', background: powerAsk ? RC.bg : undefined }}>
+    <div className={powerAsk ? 'power-sky' : undefined} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', background: powerAsk ? '#FFFFFF' : undefined }}>
       {powerAsk && <style>{POWER_SKY_CSS}</style>}
       <div ref={scroller} className="no-bar" style={{ flex: 1, overflowY: 'auto', ...(powerAsk ? { background: POWER_BG, backgroundAttachment: 'local' } : {}), paddingTop: 'max(54px, calc(env(safe-area-inset-top, 0px) + 12px))', paddingBottom: `calc(${TABBAR_CLEARANCE} + 24px)` }}>
         <div style={contentColumn(l)}>

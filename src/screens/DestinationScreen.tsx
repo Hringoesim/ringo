@@ -44,7 +44,7 @@ import { haptic, hapticSelection } from '../lib/haptics';
 import { defaultArm, logAb } from '../lib/abtest';
 import { useLayout, contentColumn, type Layout } from '../lib/layout';
 import { requestLightStatusBar } from '../lib/statusBar';
-import europeOrbitPhoto from '../assets/store/europe-orbit.jpg'; // NASA iss066e116300, public domain
+import { powerPhotoFor } from '../data/powerPhotos';
 import dishPhoto from '../assets/store/dish-wide.jpg'; // the store's Power card dish, full width (Unsplash Wj1D-qiOseE)
 
 export interface Selection {
@@ -156,10 +156,10 @@ const POWER_TIER_PERK: Record<number, string> = {
 };
 /** Each Power Use tier's own dark card (owner 2026-10-27: tell them apart, feel premium): Power deep blue, Super User purple into magenta. */
 const POWER_TIER_BG: Record<number, string> = {
-  5: 'linear-gradient(150deg, #13235E 0%, #2F4FC9 100%)',
-  10: 'linear-gradient(150deg, #24093A 0%, #6E2496 55%, #C2367F 100%)',
+  5: 'linear-gradient(150deg, #1534C4 0%, #2F6BFF 100%)',
+  10: 'linear-gradient(150deg, #6A12C9 0%, #B02AB8 55%, #F0388A 100%)',
 };
-const POWER_TIER_RING: Record<number, string> = { 5: '#3F63E0', 10: '#C2367F' };
+const POWER_TIER_RING: Record<number, string> = { 5: '#2F6BFF', 10: '#E0368F' };
 /** How much each tier carries, as a bar meter rather than GB: Super User fills it, Power half. */
 function PowerMeter({ gb, max }: { gb: number; max: number }) {
   const lit = Math.max(1, Math.round((gb / Math.max(max, 1)) * 4));
@@ -449,8 +449,8 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   const isPowerLine = (p: Plan) => (Boolean(p.app_only) || p.tier === 'unlimited') && (p.daily_gb ?? 0) >= POWER_MIN_GB;
   const ownPower = plans.filter(isPowerLine);
   const powerMode = (power || quiz?.tab === 'power' || Boolean(cat?.power_of)) && ownPower.length > 0;
-  // A Power Use page opens on a satellite picture, not the place's photographs: Europe from orbit, elsewhere the radio dish.
-  const powerHero = powerMode ? (/europe/.test(`${id} ${cat?.power_of ?? ''}`) ? europeOrbitPhoto : dishPhoto) : undefined;
+  // A Power Use page opens on a satellite picture, not the place's photographs: its region from orbit, else the radio dish.
+  const powerHero = powerMode ? (powerPhotoFor(id, cat?.power_of) ?? dishPhoto) : undefined;
   // Power asked for a place that has its own Power Use card (Europe): that card.
   useEffect(() => {
     if ((power || quiz?.tab === 'power') && cat?.power_destination && onPower) {
@@ -631,17 +631,22 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
               return (
                 <button key={g} type="button" className="press" aria-pressed={sel} onClick={() => { hapticSelection(); setPowerGb(g); setShowAll(false); }}
                   style={{ flex: 1, minWidth: 0, cursor: 'pointer', fontFamily: 'var(--font)', padding: '14px 14px 12px', borderRadius: 18, border: 'none', color: '#fff', textAlign: 'left',
-                    background: POWER_TIER_BG[g] ?? POWER_TIER_BG[5], opacity: sel ? 1 : 0.62, transform: sel ? 'scale(1)' : 'scale(0.97)', transition: 'opacity .2s, transform .2s, box-shadow .2s',
-                    boxShadow: sel ? `0 0 0 3px ${RC.bg}, 0 0 0 5px ${POWER_TIER_RING[g] ?? POWER_TIER_RING[5]}, 0 14px 28px -12px rgba(26,15,46,0.55)` : 'none' }}>
+                    position: 'relative', background: POWER_TIER_BG[g] ?? POWER_TIER_BG[5], transition: 'box-shadow .2s',
+                    boxShadow: sel ? `0 0 0 3px ${RC.bg}, 0 0 0 5px ${POWER_TIER_RING[g] ?? POWER_TIER_RING[5]}, 0 14px 28px -12px rgba(26,15,46,0.55)` : '0 6px 16px -10px rgba(26,15,46,0.5)' }}>
+                  {sel && <span aria-hidden style={{ position: 'absolute', top: 12, right: 12, width: 22, height: 22, borderRadius: 11, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><svg width="13" height="13" viewBox="0 0 24 24"><path fill="none" stroke={POWER_TIER_RING[g] ?? POWER_TIER_RING[5]} strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" d="M5 12.5l4.5 4.5L19 7.5" /></svg></span>}
                   <PowerTierIcon gb={g} on={sel} />
                   <div style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-0.01em' }}>{POWER_TIER_NAME[g] ?? tierName(g)}</div>
                   <div style={{ marginTop: 2, fontSize: 13, color: 'rgba(255,255,255,0.85)' }}>{POWER_TIER_USE[g] ?? `${g} GB a day`}</div>
                   <PowerMeter gb={g} max={powerTiers[powerTiers.length - 1] ?? g} />
-                  {POWER_TIER_PERK[g] && <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.35, color: 'rgba(255,255,255,0.9)' }}>{POWER_TIER_PERK[g]}</div>}
                 </button>
               );
             })}
           </div>
+          {powerGbShown != null && POWER_TIER_PERK[powerGbShown] && (
+            <p style={{ margin: '12px 2px 0', fontFamily: 'var(--font)', fontSize: 15, lineHeight: 1.4, fontWeight: 600, color: POWER_TIER_RING[powerGbShown] ?? RC.ink }}>
+              {POWER_TIER_PERK[powerGbShown]}
+            </p>
+          )}
         </div>
       )}
       {/* Power Use is offered from Unlimited only (owner 2026-10-27: on Data it confuses). */}
