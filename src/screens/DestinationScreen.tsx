@@ -161,17 +161,6 @@ const POWER_TIER_PERK: Record<number, string> = {
 const POWER_GLASS = 'linear-gradient(160deg, rgba(255,255,255,0.85), rgba(240,236,244,0.75))';
 const POWER_SUNSET = 'linear-gradient(120deg, #FF7A3D 0%, #FF4FA1 50%, #8B5CF6 100%)';
 const POWER_PULSE_CSS = '@keyframes superPulse{0%,100%{opacity:.45}50%{opacity:1}}.super-pulse{animation:superPulse 2.8s ease-in-out infinite}@media (prefers-reduced-motion: reduce){.super-pulse{animation:none;opacity:.8}}';
-/** How much each tier carries, as a bar meter rather than GB: Super User fills it, Power half. */
-function PowerMeter({ gb, max }: { gb: number; max: number }) {
-  const lit = Math.max(1, Math.round((gb / Math.max(max, 1)) * 4));
-  return (
-    <span aria-hidden style={{ display: 'flex', gap: 4, marginTop: 10 }}>
-      {[0, 1, 2, 3].map((i) => (
-        <span key={i} style={{ flex: 1, height: 5, borderRadius: 3, background: i < lit ? POWER_SUNSET : 'rgba(26,15,46,0.10)' }} />
-      ))}
-    </span>
-  );
-}
 /** Each Power Use tier's icon (owner 2026-10-27), as the plan tabs draw theirs: a laptop for Power, a van for Super User. */
 function PowerTierIcon({ gb }: { gb: number; on: boolean }) {
   const fill = RC.ink;
@@ -575,7 +564,14 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   const countryList = selected?.coverage?.list ?? (cat?.coverage?.list && cat.coverage.list.length > 1 ? cat.coverage.list : null);
   const ticks = !unlimitedGlobal && cat && !loadingPrices && plans.length > 0 && (
     <>
-      <TickList items={selected && selected.app_only ? DAY_TICKS : selected && selected.tier === 'unlimited' ? UNLIMITED_TICKS : DATA_TICKS} />
+      {/* On Power the chosen tier's network line follows "Never cut off" (owner 2026-10-27). */}
+      <TickList items={(() => {
+        const base = selected && selected.app_only ? DAY_TICKS : selected && selected.tier === 'unlimited' ? UNLIMITED_TICKS : DATA_TICKS;
+        const perk = shownTab === 'power' && powerGbShown != null ? POWER_TIER_PERK[powerGbShown] : undefined;
+        if (!perk) return base;
+        const at = base.indexOf('Never cut off');
+        return at < 0 ? [...base, perk] : [...base.slice(0, at + 1), perk, ...base.slice(at + 1)];
+      })()} />
       {countryList && <CountryList list={countryList} />}
     </>
   );
@@ -640,17 +636,11 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
                     <PowerTierIcon gb={g} on={sel} />
                     <span style={{ display: 'block', fontSize: 17, fontWeight: 800, letterSpacing: '-0.01em' }}>{POWER_TIER_NAME[g] ?? tierName(g)}</span>
                     <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: RC.ink2 }}>{POWER_TIER_USE[g] ?? `${g} GB a day`}</span>
-                    <PowerMeter gb={g} max={powerTiers[powerTiers.length - 1] ?? g} />
                   </span>
                 </button>
               );
             })}
           </div>
-          {powerGbShown != null && POWER_TIER_PERK[powerGbShown] && (
-            <p style={{ margin: '12px 2px 0', fontFamily: 'var(--font)', fontSize: 15, lineHeight: 1.4, fontWeight: 600, color: RC.ink }}>
-              {POWER_TIER_PERK[powerGbShown]}
-            </p>
-          )}
         </div>
       )}
       {/* Power Use is offered from Unlimited only (owner 2026-10-27: on Data it confuses). */}
