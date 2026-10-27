@@ -615,7 +615,8 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
           </div>
         </div>
       )}
-      {!unlimitedGlobal && powerLink && (
+      {/* Power Use is offered from Unlimited only (owner 2026-10-27: on Data it confuses). */}
+      {!unlimitedGlobal && powerLink && shownTab === 'unl' && (
         <button type="button" className="press" onClick={() => { hapticSelection(); onPower?.(powerLink); }}
           style={{ textAlign: 'left', cursor: 'pointer', padding: '16px', borderRadius: 22, border: 'none', background: `linear-gradient(90deg, rgba(26,15,46,0.7) 0%, rgba(26,15,46,0.35) 55%, rgba(26,15,46,0) 80%), url(${dishPhoto}) 0 56% / 100% auto, #1A0F2E`, fontFamily: 'var(--font)', color: '#fff', textShadow: '0 2px 12px rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', gap: 12 }}>
           <span aria-hidden style={{ width: 40, height: 40, borderRadius: 13, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.28)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}><svg width="22" height="22" viewBox="0 0 24 24"><path fill="#fff" d="M13.4 2.2c.4-.6-.3-1.3-.9-.9L4.6 12.2c-.4.5 0 1.3.6 1.3h5.3l-1.9 8.2c-.2.7.7 1.1 1.1.5l9.6-11.6c.4-.5 0-1.2-.6-1.2h-5.6l.3-7.2z" /></svg></span>
