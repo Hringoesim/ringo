@@ -6,7 +6,7 @@
 // single plan", no coins). The plan rides to the plan screen (quizPick in
 // lib/quiz.ts), which opens with that line picked; a multi country trip
 // picks a region plan right on the result.
-import { useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { RC, TYPE, RADIUS, SITE_GRAD, cardSurface } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
@@ -14,7 +14,7 @@ import { BackBtn } from '../components/ui';
 import { Confetti } from '../components/Confetti';
 import { hapticSelection, hapticNotify } from '../lib/haptics';
 import { useLayout, contentColumn } from '../lib/layout';
-import { recommend, setQuizPick, perDayOf, USES, TRIPS, type Use, type Trip } from '../lib/quiz';
+import { recommend, setQuizPick, perDayOf, newQuizId, sendQuizAnswer, USES, TRIPS, type Use, type Trip } from '../lib/quiz';
 import { FEATURED, bundledPictureFor, pictureFor, skyFor } from '../data/destinations';
 import tent from '../assets/landmarks3d/tent.png';
 import beach from '../assets/landmarks3d/beach.png';
@@ -66,12 +66,18 @@ export function QuizScreen({ onBack, onBrowse, onOpen }: { onBack: () => void; o
   const [hop, setHop] = useState<Use | null>(null);
   const [work, setWork] = useState<boolean | null>(null);
   const done = step === 4 && work != null;
-  const rec = done ? recommend({ days, uses, work: work! }) : null;
+  const rec = useMemo(() => (done ? recommend({ days, uses, work: work! }) : null), [done, days, uses, work]);
+  // Each finished quiz is one answer kept on the site (lib/quiz.ts sendQuizAnswer).
+  const [quizId, setQuizId] = useState(newQuizId);
+  useEffect(() => {
+    if (rec) sendQuizAnswer({ id: quizId, trip, days, uses, work: work!, gbDay: perDayOf(uses, work!), rec });
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- once per result
+  }, [rec, quizId]);
   // A multi country trip picks a region plan (owner 2026-10-27), the store's
   // order; Global is its own monthly plan, so it is left out here.
   const regions = FEATURED.map((id) => all.find((d) => d.id === id)).filter((d): d is NonNullable<typeof d> => Boolean(d) && d!.kind === 'region' && d!.countries > 1 && d!.id !== 'global');
 
-  const restart = () => { setStep(0); setTrip(null); setDays(7); setUses([]); setWork(null); };
+  const restart = () => { setQuizId(newQuizId()); setStep(0); setTrip(null); setDays(7); setUses([]); setWork(null); };
   const title = (t: string, sub?: string) => (<>
     <h2 className="rise" style={{ margin: '4px 0 0', ...TYPE.h1, color: RC.ink }}>{t}</h2>
     {sub && <p style={{ margin: '0 0 4px', ...TYPE.small, color: RC.ink2 }}>{sub}</p>}
@@ -174,7 +180,7 @@ export function QuizScreen({ onBack, onBrowse, onOpen }: { onBack: () => void; o
             {trip === 'multi' && regions.length > 0 && (<>
               <div style={{ marginTop: 4, ...TYPE.body, fontWeight: 700, color: RC.ink }}>Pick your region</div>
               {regions.map((d) => (
-                <button key={d.id} type="button" className="press" onClick={() => { hapticSelection(); setQuizPick(rec); onOpen(d.id); }}
+                <button key={d.id} type="button" className="press" onClick={() => { hapticSelection(); setQuizPick({ ...rec, quizId }); onOpen(d.id); }}
                   style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left', cursor: 'pointer', padding: 10, borderRadius: 18, border: `2px solid ${RC.line}`, background: '#fff', fontFamily: 'var(--font)' }}>
                   <span aria-hidden style={{ flex: 'none', width: 64, height: 48, borderRadius: 12, overflow: 'hidden', background: skyFor(d.id) }}>
                     <img src={bundledPictureFor(d.id) ?? pictureFor(d.id)} alt="" decoding="async" onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
@@ -195,7 +201,7 @@ export function QuizScreen({ onBack, onBrowse, onOpen }: { onBack: () => void; o
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: `12px ${l.gutter}px max(20px, env(safe-area-inset-bottom, 0px))`, background: RC.glass, backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)', borderTop: `1px solid ${RC.line}` }}>
           {step === 1 && <RingoButton onClick={() => { hapticSelection(); setStep(2); }}>Next</RingoButton>}
           {step === 2 && <RingoButton onClick={() => { hapticSelection(); setStep(3); }} disabled={uses.length === 0}>Next</RingoButton>}
-          {rec && <RingoButton onClick={() => { setQuizPick(rec); onBrowse(); }}>Pick my destination</RingoButton>}
+          {rec && <RingoButton onClick={() => { setQuizPick({ ...rec, quizId }); onBrowse(); }}>Pick my destination</RingoButton>}
         </div>
       )}
     </div>

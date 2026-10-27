@@ -30,7 +30,7 @@ import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { BackBtn, TickList, ErrorBox } from '../components/ui';
 import { termTitle, planName, periodWord, lineKey, tierName } from '../lib/terms';
-import { takeQuizPick, setQuizPick } from '../lib/quiz';
+import { takeQuizPick, setQuizPick, sendQuizPicked } from '../lib/quiz';
 import { hasMosaic, pictureFor, skyFor, bundledPictureFor, type Destination } from '../data/destinations';
 import { useDestinations, destinationFrom } from '../store/destinations';
 import { useAccount } from '../store/account';
@@ -319,6 +319,8 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   // Unlimited first, each explained in one line, then that tab's plans.
   // The data quiz's plan opens its tab with its line picked (lib/quiz.ts), once.
   const [quiz] = useState(() => takeQuizPick());
+  // The place opened after the quiz is kept with its answer (once, not on the Power hop).
+  useEffect(() => { if (quiz?.quizId && !power) sendQuizPicked(quiz.quizId, id); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [tab, setTab] = useState<PlanTab>(quiz?.tab ?? 'data');
   const [powerGb, setPowerGb] = useState<number | null>(quiz?.tab === 'power' ? quiz.dailyGb ?? null : null);
   const arm = useMemo(() => defaultArm(), []);

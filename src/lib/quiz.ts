@@ -5,6 +5,10 @@
 // 2026-10-27: "the quiz should recommend a single plan"): its type, its
 // amount and its length, never a promise about the network.
 
+import { Capacitor } from '@capacitor/core';
+import { account } from '../store/account';
+import { SITE } from '../api/light';
+
 export type Use = 'maps' | 'social' | 'calls' | 'streaming' | 'hotspot';
 export type PlanTab = 'data' | 'unl' | 'power';
 export type Trip = 'backpacker' | 'beach' | 'multi';
@@ -66,10 +70,10 @@ export function recommend({ days, uses, work }: { days: number; uses: Use[]; wor
 // never steers later destinations): the tab, the length, and the size (data)
 // or the GB a day (Power) that pick the line.
 const KEY = 'ringo_quiz_pick';
-export interface QuizPick { tab: PlanTab; days?: number; gb?: number; dailyGb?: number }
+export interface QuizPick { tab: PlanTab; days?: number; gb?: number; dailyGb?: number; quizId?: string }
 export function setQuizPick(pick: QuizPick): void {
-  const { tab, days, gb, dailyGb } = pick;
-  try { sessionStorage.setItem(KEY, JSON.stringify({ tab, days, gb, dailyGb })); } catch { /* ignore */ }
+  const { tab, days, gb, dailyGb, quizId } = pick;
+  try { sessionStorage.setItem(KEY, JSON.stringify({ tab, days, gb, dailyGb, quizId })); } catch { /* ignore */ }
 }
 export function takeQuizPick(): QuizPick | null {
   try {
@@ -77,6 +81,35 @@ export function takeQuizPick(): QuizPick | null {
     sessionStorage.removeItem(KEY);
     const v = raw ? JSON.parse(raw) : null;
     const num = (n: unknown) => (Number(n) > 0 ? Number(n) : undefined);
-    return v && (v.tab === 'data' || v.tab === 'unl' || v.tab === 'power') ? { tab: v.tab, days: num(v.days), gb: num(v.gb), dailyGb: num(v.dailyGb) } : null;
+    return v && (v.tab === 'data' || v.tab === 'unl' || v.tab === 'power') ? { tab: v.tab, days: num(v.days), gb: num(v.gb), dailyGb: num(v.dailyGb), quizId: typeof v.quizId === 'string' ? v.quizId : undefined } : null;
   } catch { return null; }
+}
+
+// Every answer is kept (owner 2026-10-27: "keep it and store and learn and
+// have it to see who our buyers are"): /api/app-quiz-answer upserts one row
+// per quiz taken, keyed by its id, and the place picked after it lands on the
+// same row. Never blocks the quiz; a failed send is dropped.
+export interface QuizAnswer { id: string; trip: string | null; days: number; uses: Use[]; work: boolean; gbDay: number; rec: QuizPlan }
+const sent = new Map<string, QuizAnswer>();
+export function newQuizId(): string {
+  try { return crypto.randomUUID(); } catch { return 'xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'.replace(/x/g, () => Math.floor(Math.random() * 16).toString(16)); }
+}
+function post(a: QuizAnswer, picked?: string): void {
+  const acct = account.get();
+  const { tab, days, gb, dailyGb, title } = a.rec;
+  void fetch(`${SITE}/api/app-quiz-answer`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id: a.id, ...(acct ? { user: acct.userId, t: acct.t } : {}),
+      trip: a.trip, days: a.days, uses: a.uses, work: a.work, gb_day: Math.round(a.gbDay * 10) / 10,
+      rec: { tab, days, gb, dailyGb, title }, client: Capacitor.getPlatform(), ...(picked ? { picked } : {}),
+    }),
+  }).catch(() => {});
+}
+export function sendQuizAnswer(a: QuizAnswer): void { sent.set(a.id, a); post(a); }
+/** The place opened after the quiz (a region on the result, or the store's pick). */
+export function sendQuizPicked(id: string | undefined, destination: string): void {
+  const a = id ? sent.get(id) : undefined;
+  if (a) post(a, destination);
 }
