@@ -44,10 +44,7 @@ const STARS = (() => {
     const fade = 1 - y / 460;
     return `<circle cx='${(rnd() * 400).toFixed(1)}' cy='${y.toFixed(1)}' r='${r.toFixed(2)}' fill='%23fff' fill-opacity='${((0.35 + rnd() * 0.65) * fade).toFixed(2)}'/>`;
   }).join('');
-  // One shooting star across the top right: a fading tail and a bright head. Drawn, not animated (an animation over this sky crashed the web view).
-  const shooting = "<defs><linearGradient id='t' x1='0' y1='0' x2='1' y2='0'><stop offset='0' stop-color='%23fff' stop-opacity='0'/><stop offset='1' stop-color='%23fff' stop-opacity='0.95'/></linearGradient></defs>"
-    + "<g transform='translate(225 150) rotate(24)'><rect x='0' y='-1' width='120' height='2' rx='1' fill='url(%23t)'/><circle cx='120' cy='0' r='2.4' fill='%23fff'/></g>";
-  return `url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='420'>${shooting}${dots}</svg>")`;
+  return `url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='420'>${dots}</svg>")`;
 })();
 // Night at the top (the same colour as the strip under the clock, so the two meet without a line),
 // lighter towards Regions, then plain white for the list (owner 2026-10-27). It scrolls with the list.
@@ -245,6 +242,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
   // cheapest Power plan (owner 2026-10-27: browse them all without searching);
   // a place opens on its Power plans.
   const [powerAsk, setPowerAsk] = useState(false);
+  const star = useRef<HTMLSpanElement | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const query = q.trim().toLowerCase();
   const [peek, setPeek] = useState<Destination | null>(null);
@@ -279,6 +277,24 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
   // After the Power plans card, the place opens on its Power plans (passed
   // with the navigation: the screen mounts twice in the slide, a one-time note would be read by the wrong one).
   const open = (id: string) => { haptic('light'); onOpen(id, powerAsk ? { power: true } : undefined); };
+  // Now and then a shooting star crosses the night sky (owner 2026-10-27), only while the top is in view
+  // and not when the phone asks for reduced motion.
+  useEffect(() => {
+    if (!powerAsk || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const fly = () => {
+      const el = star.current;
+      if (!el || (scroller.current?.scrollTop ?? 0) > 200 || typeof el.animate !== 'function') return;
+      const x = 120 + Math.random() * 160;
+      el.animate([
+        { transform: `translate(${x}px, 0px) rotate(22deg)`, opacity: 0 },
+        { transform: `translate(${x + 30}px, 12px) rotate(22deg)`, opacity: 1, offset: 0.15 },
+        { transform: `translate(${x + 230}px, 95px) rotate(22deg)`, opacity: 0 },
+      ], { duration: 900, easing: 'ease-in' });
+    };
+    const first = setTimeout(fly, 1200);
+    const every = setInterval(fly, 6500);
+    return () => { clearTimeout(first); clearInterval(every); };
+  }, [powerAsk]);
   // The strip under the clock (App.tsx) takes the night sky's top colour while that list is open, with light clock text.
   useEffect(() => {
     if (!powerAsk) return;
@@ -324,6 +340,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
   return (
     <div className={powerAsk ? 'power-sky' : undefined} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', background: powerAsk ? '#FFFFFF' : undefined }}>
       {powerAsk && <style>{POWER_SKY_CSS}</style>}
+      {powerAsk && <span aria-hidden ref={star} style={{ position: 'absolute', zIndex: 1, top: 'calc(env(safe-area-inset-top, 0px) + 70px)', left: 0, width: 120, height: 2, borderRadius: 2, opacity: 0, pointerEvents: 'none', background: 'linear-gradient(90deg, rgba(255,255,255,0), #fff)', boxShadow: '0 0 6px rgba(255,255,255,0.8)' }} />}
       <div ref={scroller} className="no-bar" style={{ flex: 1, overflowY: 'auto', ...(powerAsk ? { background: POWER_BG, backgroundAttachment: 'local' } : {}), paddingTop: 'max(54px, calc(env(safe-area-inset-top, 0px) + 12px))', paddingBottom: `calc(${TABBAR_CLEARANCE} + 24px)` }}>
         <div style={contentColumn(l)}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: TAP }}>

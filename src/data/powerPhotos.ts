@@ -1,11 +1,10 @@
-// The Power Use regions seen from space (owner 2026-10-27: Power plans wear
-// satellite pictures, a different one per region). NASA photographs taken
-// from the International Space Station, public domain.
-import europe from '../assets/store/europe-orbit.jpg'; // iss066e116300
-import latam from '../assets/store/latam-orbit.jpg'; // iss058e006004, the Andes
-import africa from '../assets/store/africa-orbit.jpg'; // iss047e022280, Sahara dunes
-import northAmerica from '../assets/store/north-america-orbit.jpg'; // iss070e062746, city lights
-import caribbean from '../assets/store/caribbean-orbit.jpg'; // iss065e023015
+// The Power Use regions as satellite dishes (owner 2026-10-27: Power plans
+// wear satellite pictures, a different one per region). Unsplash licence.
+import europe from '../assets/store/europe-dish.jpg'; // 1PP0Fc-KSd4, Stellan Johansson
+import latam from '../assets/store/latam-dish.jpg'; // L3gq2u2H6Us, Yifu Wu
+import africa from '../assets/store/africa-dish.jpg'; // FGvx38Jx4z4, Raychel Sanner
+import northAmerica from '../assets/store/north-america-dish.jpg'; // 3YAIvBNlZM4, Stephan Widua
+import caribbean from '../assets/store/caribbean-dish.jpg'; // FIdxhTGKmps, Bernd Dittrich
 
 export const POWER_PHOTOS: Record<string, string> = {
   europe, latam, africa, 'north-america': northAmerica, caribbean,
