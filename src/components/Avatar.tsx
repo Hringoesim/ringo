@@ -359,7 +359,7 @@ export function TravellerSheet({ userId, seed, level, pioneer = false, onClose }
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div role="dialog" aria-modal="true" aria-labelledby={titleId} className="rise"
-        style={{ width: '100%', maxWidth: 560, maxHeight: '86vh', overflowY: 'auto', boxSizing: 'border-box', background: RC.paper, borderRadius: '24px 24px 0 0', padding: '20px 20px max(24px, calc(env(safe-area-inset-bottom, 0px) + 16px))' }}>
+        style={{ width: '100%', maxWidth: 560, maxHeight: 'calc(86vh - var(--kb, 0px))', overflowY: 'auto', boxSizing: 'border-box', background: RC.paper, borderRadius: '24px 24px 0 0', padding: '20px 20px max(24px, calc(env(safe-area-inset-bottom, 0px) + 16px))' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
           <div id={titleId} style={{ fontFamily: 'var(--font)', fontSize: 22, fontWeight: 800, color: RC.ink }}>Your traveller</div>
           <button type="button" className="press" onClick={onClose} style={{ border: 'none', background: RC.cream, borderRadius: 999, padding: '10px 16px', fontFamily: 'var(--font)', fontSize: 15, fontWeight: 700, color: RC.ink, cursor: 'pointer' }}>Done</button>

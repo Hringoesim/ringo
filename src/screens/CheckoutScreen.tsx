@@ -159,6 +159,18 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
     if (!e) return;
     haptic('medium');
     setStageBoth('card');
+    // The account this checkout started under: a late answer never switches
+    // the app to the buyer's account once someone else has signed in.
+    const startedAs = account.get()?.userId ?? null;
+    const sameAccount = () => (account.get()?.userId ?? null) === startedAs;
+    // Paid (or still being confirmed): the account follows the moment the site names it.
+    const follow = (query: Parameters<typeof waitForOwner>[0], session: string) => {
+      void waitForOwner(query, sameAccount).then((o) => {
+        if (!o || !sameAccount()) return;
+        account.set({ userId: o.userId, t: o.t, email: e, purchaseRef: session });
+        if (mounted.current && (stageRef.current === 'slow' || stageRef.current === 'checking')) waitForEsim();
+      });
+    };
     try {
       const pay = await startCard({ plan: p.plan, destination: selection.destination, data_gb: selection.data_gb, email: e, currency: p.currency, useCredit: creditHere && useCredit });
       cardStop.current = pay.stop;
@@ -166,16 +178,12 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
       cardStop.current = null;
       if (!mounted.current) return;
       if (out.state === 'left') { setStageBoth('email'); return; }
-      if (out.state === 'unconfirmed') { setStageBoth('checking'); return; }
+      // Not confirmed yet: keep asking, like a received payment, instead of stopping on "checking".
+      if (out.state === 'unconfirmed') { setStageBoth('checking'); follow(out.query, out.session); return; }
       if (out.state === 'received') {
         hapticNotify('success');
         setStageBoth('slow');
-        // The account follows: name it here the moment the site has it, so My eSIM shows this eSIM.
-        void waitForOwner(out.query).then((o) => {
-          if (!o) return;
-          account.set({ userId: o.userId, t: o.t, email: e, purchaseRef: out.session });
-          if (mounted.current && stageRef.current === 'slow') waitForEsim();
-        });
+        follow(out.query, out.session);
         return;
       }
       account.set({ userId: out.userId, t: out.t, email: e, purchaseRef: out.session });
@@ -192,7 +200,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   const useSignedIn = () => { setEmail(signedInEmail); setOtherEmail(null); confirmedOther.current = null; };
 
   const planLine = isGlobal && renewing ? 'Unlimited, renews monthly' : `${planName(p)}${renewing ? '' : ', one payment'}`;
-  const buyLabel = renewing ? `Subscribe, ${price.total} a month` : creditHere && useCredit ? 'Pay by card with credit' : `Pay ${price.total} by card`;
+  const buyLabel = renewing ? `Subscribe, ${price.total} a month` : creditHere && useCredit ? `Pay up to ${price.total} by card` : `Pay ${price.total} by card`;
 
   // ── Pieces ────────────────────────────────────────────────────────────────
   const summary = <Summary l={l} selection={selection} planLine={planLine} total={price.total} renewing={renewing} />;

@@ -502,6 +502,8 @@ function Survey({ l, user, userId, t, onAnswered }: { l: Layout; user: WaitlistU
     if (sig === auto.current.sig) return;
     const delay = picks === auto.current.picks ? AUTOSAVE_TEXT_MS : 0;
     const timer = window.setTimeout(() => {
+      // Already sent by Save answers: no second identical save.
+      if (auto.current.sig === sig) return;
       auto.current = { first: false, sig, picks };
       queue(payload);
     }, delay);

@@ -434,7 +434,9 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   // The Recommended line leads its tab (in both arms), so the plan that keeps
   // Ringo the most is the first thing seen; the rest keep their order.
   const leadFirst = (list: Plan[]) => [...list.filter((p) => p.best_margin), ...list.filter((p) => !p.best_margin)];
-  const tabLines = leadFirst(shownTab === 'data' ? dataLines : shownTab === 'power' ? powerLines : tierLines);
+  // Power reads shortest first and opens on its cheapest line (owner
+  // 2026-10-27: not on the 30 days); the other tabs lead with the Recommended one.
+  const tabLines = shownTab === 'power' ? powerLines : leadFirst(shownTab === 'data' ? dataLines : tierLines);
   // Three on screen: the Recommended one, then the shortest lengths; the chosen
   // line always stays in view.
   const firstThree = tabLines.slice(0, 3);
@@ -454,7 +456,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
     if (list.some((p) => lineKey(p) === planId)) return;
     // The quiz's data size: the smallest line that covers it.
     const fit = quiz?.gb && shownTab === 'data' ? [...list].filter((p) => (p.data_gb ?? 0) >= quiz.gb!).sort((a, b) => (a.data_gb ?? 0) - (b.data_gb ?? 0) || a.days - b.days)[0] : undefined;
-    setPlanId(lineKey(fit ?? defaultOf(list)));
+    setPlanId(lineKey(fit ?? (shownTab === 'power' ? cheapestOf(list) : defaultOf(list))));
   // eslint-disable-next-line react-hooks/exhaustive-deps -- defaultOf follows arm
   }, [plans, tabLines, planId, unlimitedGlobal]);
   // One view per screen for the test.
