@@ -148,6 +148,8 @@ export interface Summary {
   currency: Currency;
   /** Per destination, the App Store product ids of its cheapest offer on each term (absent on an older site). */
   from_lines?: Record<string, string[]>;
+  /** Per place that sells Power plans (5 or 10 GB a day), its cheapest one (absent on an older site). */
+  power_from?: Record<string, number>;
 }
 
 export interface PurchaseRecord {

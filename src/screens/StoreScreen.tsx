@@ -207,8 +207,11 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
   const apple = useAppleFrom(summary);
   const all = useDestinations();
   const [q, setQ] = useState('');
-  // The Power plans card asks where (owner 2026-10-27: Power opens only from there).
+  // The Power plans card lists every place that sells Power, priced at its
+  // cheapest Power plan (owner 2026-10-27: browse them all without searching);
+  // a place opens on its Power plans.
   const [powerAsk, setPowerAsk] = useState(false);
+  const scroller = useRef<HTMLDivElement>(null);
   const query = q.trim().toLowerCase();
   const [peek, setPeek] = useState<Destination | null>(null);
   const acct = useAccount();
@@ -241,23 +244,35 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
   }, [all, visited, summary]);
   // After the Power plans card, the place opens on its Power plans (passed
   // with the navigation: the screen mounts twice in the slide, a one-time note would be read by the wrong one).
-  const open = (id: string) => { haptic('light'); onOpen(id, powerAsk ? { power: true } : undefined); setPowerAsk(false); };
+  const open = (id: string) => { haptic('light'); onOpen(id, powerAsk ? { power: true } : undefined); };
+  const showPower = (on: boolean) => { hapticSelection(); setPowerAsk(on); setQ(''); scroller.current?.scrollTo({ top: 0 }); };
 
+  // The places that sell Power (an older site names none: every place, unpriced).
+  const powerFrom = summary?.power_from;
+  const sellsPower = (d: Destination) => !powerFrom || powerFrom[d.id] != null;
   // Apple's price where StoreKit has answered for this destination (the plan
-  // screen shows the same), else the catalogue's.
+  // screen shows the same), else the catalogue's; on the Power list, its cheapest Power plan.
   const fromOf = (d: Destination): string | null => {
+    if (powerAsk) { const p = powerFrom?.[d.id]; return p != null && summary ? money(p, summary.currency) : null; }
     const c = summary?.from?.[d.id];
     return apple[d.id] ?? (c != null && summary ? money(c, summary.currency) : null);
   };
 
-  const featured = useMemo(() => FEATURED.map((id) => all.find((d) => d.id === id)).filter((d): d is Destination => Boolean(d) && matches(d!, query)), [all, query]);
+  // On the Power list, the regions that sell Power, the store's order first.
+  const featured = useMemo(() => {
+    if (!powerAsk) return FEATURED.map((id) => all.find((d) => d.id === id)).filter((d): d is Destination => Boolean(d) && matches(d!, query));
+    const rank = (d: Destination) => (FEATURED.indexOf(d.id) + 1) || 99;
+    return all.filter((d) => d.kind === 'region' && sellsPower(d) && matches(d, query)).sort((a, b) => rank(a) - rank(b) || a.label.localeCompare(b.label));
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- sellsPower reads powerFrom
+  }, [all, query, powerAsk, powerFrom]);
   const grouped = useMemo(() => {
-    const countries = all.filter((d) => d.kind === 'country' && !FEATURED.includes(d.id) && matches(d, query));
+    const countries = all.filter((d) => d.kind === 'country' && (powerAsk ? sellsPower(d) : !FEATURED.includes(d.id)) && matches(d, query));
     const by = new Map<string, Destination[]>();
     for (const d of countries) { const k = d.region || 'More places'; if (!by.has(k)) by.set(k, []); by.get(k)!.push(d); }
     for (const list of by.values()) list.sort((a, b) => a.label.localeCompare(b.label));
     return [...by.entries()].sort((a, b) => (REGION_ORDER.indexOf(a[0]) + 1 || 99) - (REGION_ORDER.indexOf(b[0]) + 1 || 99));
-  }, [all, query]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- sellsPower reads powerFrom
+  }, [all, query, powerAsk, powerFrom]);
 
   const nothing = all.length > 0 && featured.length === 0 && grouped.length === 0;
   const accountBtn: CSSProperties = {
@@ -267,7 +282,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
-      <div className="no-bar" style={{ flex: 1, overflowY: 'auto', paddingTop: 'max(54px, calc(env(safe-area-inset-top, 0px) + 12px))', paddingBottom: `calc(${TABBAR_CLEARANCE} + 24px)` }}>
+      <div ref={scroller} className="no-bar" style={{ flex: 1, overflowY: 'auto', paddingTop: 'max(54px, calc(env(safe-area-inset-top, 0px) + 12px))', paddingBottom: `calc(${TABBAR_CLEARANCE} + 24px)` }}>
         <div style={contentColumn(l)}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: TAP }}>
             <img src={LOGO_SRC} alt="Ringo" style={{ height: l.isWide ? 34 : 30, width: 'auto', display: 'block' }} />
@@ -276,17 +291,24 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
             </button>
           </div>
 
-          <h1 style={{ margin: '20px 0 0', ...typeFor('display', l.size), color: RC.ink, textWrap: 'balance' } as CSSProperties}>
-            Where are you going?
+          {powerAsk && (
+            <button type="button" className="press" onClick={() => showPower(false)} style={{ ...accountBtn, marginTop: 16, color: RC.ink, fontWeight: 600 }}>
+              All plans
+            </button>
+          )}
+          <h1 style={{ margin: powerAsk ? '14px 0 0' : '20px 0 0', ...typeFor('display', l.size), color: RC.ink, textWrap: 'balance' } as CSSProperties}>
+            {powerAsk ? 'Power plans' : 'Where are you going?'}
           </h1>
-          <p style={{ margin: '8px 0 16px', ...TYPE.body, color: RC.ink2 }}>Your eSIM is ready in minutes.</p>
+          <p style={{ margin: '8px 0 16px', ...TYPE.body, color: RC.ink2 }}>
+            {powerAsk ? '5 GB or 10 GB a day, for vans, hotspots and a secure connection.' : 'Your eSIM is ready in minutes.'}
+          </p>
 
           <div data-store-search style={l.isWide ? { maxWidth: 560 } : undefined}>
             <SearchField value={q} onChange={setQ} placeholder={powerAsk ? 'Where do you need Power?' : undefined} />
-            {powerAsk && !q && (
+            {powerAsk && !q && !powerFrom && (
               <p role="status" style={{ margin: '8px 2px 0', ...TYPE.small, color: RC.ink2 }}>Pick a country or region to see its Power and Super User plans.</p>
             )}
-            {suggestions.length > 0 && (
+            {!powerAsk && suggestions.length > 0 && (
               <div role="listbox" aria-label="Suggestions" style={{ marginTop: 8, ...cardSurface(), padding: 0, overflow: 'hidden' }}>
                 {suggestions.map((sg, i) => (
                   <button key={sg.key} type="button" role="option" aria-selected={false} className="press" onClick={() => open(sg.d.id)}
@@ -303,7 +325,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
             )}
           </div>
 
-          {!query && (
+          {!query && !powerAsk && (
             <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: l.cardGap }}>
               {onQuiz && (
                 <button type="button" className="press" onClick={() => { hapticSelection(); onQuiz(); }}
@@ -314,11 +336,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
                 </button>
               )}
               <button type="button" className="press"
-                onClick={() => {
-                  hapticSelection();
-                  setPowerAsk(true);
-                  document.querySelector<HTMLInputElement>('[data-store-search] input')?.focus();
-                }}
+                onClick={() => showPower(true)}
                 style={{ textAlign: 'left', cursor: 'pointer', padding: 16, borderRadius: 22, border: 'none', background: 'linear-gradient(160deg,#1A0F2E 0%,#3A1D5C 100%)', fontFamily: 'var(--font)', color: '#fff' }}>
                 <svg aria-hidden width="26" height="26" viewBox="0 0 24 24"><path fill="#FFB83D" d="M13.4 2.2c.4-.6-.3-1.3-.9-.9L4.6 12.2c-.4.5 0 1.3.6 1.3h5.3l-1.9 8.2c-.2.7.7 1.1 1.1.5l9.6-11.6c.4-.5 0-1.2-.6-1.2h-5.6l.3-7.2z" /></svg>
                 <div style={{ marginTop: 6, fontSize: 16, fontWeight: 700 }}>Power plans</div>
@@ -327,7 +345,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
             </div>
           )}
 
-          {!query && nextTrips.length > 0 && (
+          {!query && !powerAsk && nextTrips.length > 0 && (
             <section style={{ marginTop: l.sectionGap }}>
               <SectionHead title="Your next trip" sub="Close to where you have been." />
               <div style={tileGrid(l)}>
@@ -338,7 +356,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
 
           {featured.length > 0 && (
             <section style={{ marginTop: l.sectionGap }}>
-              {!query && <SectionHead title="Popular plans" sub="Many countries, one eSIM." />}
+              {!query && <SectionHead title={powerAsk ? 'Regions' : 'Popular plans'} sub="Many countries, one eSIM." />}
               <div style={cardGrid(l)}>
                 {featured.map((d, i) => (
                   <Card key={d.id} d={d} from={fromOf(d)} onOpen={open} onPeek={setPeek} size="big" eager={i < (l.isWide ? 2 : 1)} />
@@ -359,7 +377,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
           {nothing && (
             <div style={{ marginTop: l.sectionGap, textAlign: 'center' }}>
               <div style={{ ...TYPE.h3, color: RC.ink }}>Nothing matches “{q.trim()}”</div>
-              <div style={{ marginTop: 6, ...TYPE.small, color: RC.ink2 }}>Try a country name, or Global for everywhere.</div>
+              <div style={{ marginTop: 6, ...TYPE.small, color: RC.ink2 }}>{powerAsk ? 'Try a country or region name.' : 'Try a country name, or Global for everywhere.'}</div>
             </div>
           )}
           {all.length === 0 && <Skeleton l={l} />}
