@@ -265,7 +265,7 @@ export function App() {
       body = <LandingScreen onSignedIn={signedIn} onEmail={() => push('login', { email: true })} />;
       break;
     case 'store':
-      body = <StoreScreen onOpen={(id) => push('destination', { destination: id })} onMyEsim={() => goTab('esim')} onLogin={() => push('login')} loggedIn={Boolean(account.get())} onQuiz={() => push('quiz')} />;
+      body = <StoreScreen onOpen={(id, opts) => push('destination', { destination: id, ...(opts?.power ? { power: true } : {}) })} onMyEsim={() => goTab('esim')} onLogin={() => push('login')} loggedIn={Boolean(account.get())} onQuiz={() => push('quiz')} />;
       break;
     case 'destination':
       body = (

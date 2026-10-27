@@ -296,7 +296,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   const [group, setGroup] = useState<Group>('trip');
   // The Saily way (owner 2026-10-24: "look at how apps do this and do the
   // same"): one list, Unlimited as one card with its days and daily amount.
-  const [unlGb, setUnlGb] = useState<number | null>(null);
+  const [, setUnlGb] = useState<number | null>(null);
   // Screen 1, the tabs (owner 2026-10-24, after the choice research): Data or
   // Unlimited first, each explained in one line, then that tab's plans.
   // The data quiz's answer opens its tab (lib/quiz.ts), once.
@@ -404,6 +404,11 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   const isPowerLine = (p: Plan) => (Boolean(p.app_only) && (p.daily_gb ?? 0) >= POWER_MIN_GB) || (Boolean(cat?.power_of) && (p.daily_gb ?? 0) > 0);
   const ownPower = plans.filter(isPowerLine);
   const powerMode = (power || quiz?.tab === 'power' || Boolean(cat?.power_of)) && ownPower.length > 0;
+  // Power asked for a place that has its own Power Use card (Europe): that card.
+  useEffect(() => {
+    if ((power || quiz?.tab === 'power') && cat?.power_destination && onPower) onPower(cat.power_destination);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when the catalogue arrives
+  }, [cat?.power_destination]);
   // The way to this place's Power Use card from its Data and Unlimited.
   const powerLink = !powerMode && onPower ? (cat?.power_destination ?? (ownPower.length ? id : null)) : null;
   const allPower = ownPower;
@@ -415,8 +420,11 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   const unlLines = dayPasses.length ? dayPasses : plans.filter((p) => !p.app_only && p.tier === 'unlimited' && !isPowerLine(p));
   // The Unlimited tab: the full-speed amount a day, then one card per length.
   // One button per name: an allowance the app has no name for never shows a second "Unlimited".
-  const tierOptions = [...new Set(unlLines.map((p) => p.daily_gb ?? 0))].sort((a, b) => a - b).filter((g, i, all) => all.findIndex((x) => tierName(x) === tierName(g)) === i);
-  const tierGb = unlGb != null && tierOptions.includes(unlGb) ? unlGb : (tierOptions[0] ?? null);
+  // One Unlimited (owner 2026-10-27: "We have Data and Unlimited", Unlimited
+  // Plus added no value): the base daily allowance only, no tier picker;
+  // heavier use is the Power suggestion below.
+  const tierOptions = [...new Set(unlLines.map((p) => p.daily_gb ?? 0))].sort((a, b) => a - b).slice(0, 1);
+  const tierGb = tierOptions[0] ?? null;
   const tierLines = unlLines.filter((p) => (p.daily_gb ?? 0) === tierGb).sort((a, b) => a.days - b.days);
   const tabOptions = (powerMode ? ['power'] as PlanTab[] : (['data', 'unl'] as PlanTab[]).filter((t) => (t === 'data' ? dataLines : unlLines).length > 0));
   // A tab not sold here (the quiz said Power, the place has none): Unlimited

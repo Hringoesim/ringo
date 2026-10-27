@@ -8,7 +8,6 @@
 // Layout follows the live width (iPhone Duo: about 360pt closed, about 744pt
 // open): the popular plans are one column on a phone and two on a wide
 // screen; the country tiles are two up on a phone and three to four up wide.
-import { setQuizPick } from '../lib/quiz';
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { PlaceMosaic } from '../components/PlaceMosaic';
 import { RC, RADIUS, TAP, TYPE, cardSurface, typeFor, hexA, PHOTO_OVERLAY, PHOTO_TEXT_SHADOW } from '../theme';
@@ -144,7 +143,7 @@ function Card({ d, from, onOpen, onPeek, size, eager = false }: { d: Destination
   );
 }
 
-function SearchField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function SearchField({ value, onChange, placeholder = 'Search a country, city or region' }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
   const [focused, setFocused] = useState(false);
   return (
     <div style={{ position: 'relative' }}>
@@ -163,7 +162,7 @@ function SearchField({ value, onChange }: { value: string; onChange: (v: string)
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        placeholder="Search a country, city or region"
+        placeholder={placeholder}
         aria-label="Search destinations"
         className="ringo-input"
         style={{
@@ -202,12 +201,14 @@ function Skeleton({ l }: { l: Layout }) {
   );
 }
 
-export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { onOpen: (id: string) => void; onMyEsim: () => void; onLogin: () => void; loggedIn: boolean; onQuiz?: () => void }) {
+export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { onOpen: (id: string, opts?: { power?: boolean }) => void; onMyEsim: () => void; onLogin: () => void; loggedIn: boolean; onQuiz?: () => void }) {
   const l = useLayout();
   const summary = useSummary();
   const apple = useAppleFrom(summary);
   const all = useDestinations();
   const [q, setQ] = useState('');
+  // The Power plans card asks where (owner 2026-10-27: Power opens only from there).
+  const [powerAsk, setPowerAsk] = useState(false);
   const query = q.trim().toLowerCase();
   const [peek, setPeek] = useState<Destination | null>(null);
   const acct = useAccount();
@@ -238,7 +239,9 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
       .sort((a, b) => (summary?.from?.[a.id] ?? 1e9) - (summary?.from?.[b.id] ?? 1e9))
       .slice(0, 4);
   }, [all, visited, summary]);
-  const open = (id: string) => { haptic('light'); onOpen(id); };
+  // After the Power plans card, the place opens on its Power plans (passed
+  // with the navigation: the screen mounts twice in the slide, a one-time note would be read by the wrong one).
+  const open = (id: string) => { haptic('light'); onOpen(id, powerAsk ? { power: true } : undefined); setPowerAsk(false); };
 
   // Apple's price where StoreKit has answered for this destination (the plan
   // screen shows the same), else the catalogue's.
@@ -279,7 +282,10 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
           <p style={{ margin: '8px 0 16px', ...TYPE.body, color: RC.ink2 }}>Your eSIM is ready in minutes.</p>
 
           <div data-store-search style={l.isWide ? { maxWidth: 560 } : undefined}>
-            <SearchField value={q} onChange={setQ} />
+            <SearchField value={q} onChange={setQ} placeholder={powerAsk ? 'Where do you need Power?' : undefined} />
+            {powerAsk && !q && (
+              <p role="status" style={{ margin: '8px 2px 0', ...TYPE.small, color: RC.ink2 }}>Pick a country or region to see its Power and Super User plans.</p>
+            )}
             {suggestions.length > 0 && (
               <div role="listbox" aria-label="Suggestions" style={{ marginTop: 8, ...cardSurface(), padding: 0, overflow: 'hidden' }}>
                 {suggestions.map((sg, i) => (
@@ -310,7 +316,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
               <button type="button" className="press"
                 onClick={() => {
                   hapticSelection();
-                  setQuizPick('power');
+                  setPowerAsk(true);
                   document.querySelector<HTMLInputElement>('[data-store-search] input')?.focus();
                 }}
                 style={{ textAlign: 'left', cursor: 'pointer', padding: 16, borderRadius: 22, border: 'none', background: 'linear-gradient(160deg,#1A0F2E 0%,#3A1D5C 100%)', fontFamily: 'var(--font)', color: '#fff' }}>
