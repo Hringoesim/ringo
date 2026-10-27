@@ -358,6 +358,28 @@ button:focus-visible,
   100% { transform: scale(1); }
 }
 
+/* Payment complete: the tick springs in, draws itself, and two halos ripple out once. */
+@keyframes ringoSuccessIn {
+  0% { opacity: 0; transform: scale(0.5); }
+  60% { opacity: 1; transform: scale(1.08); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes ringoTickDraw {
+  from { stroke-dashoffset: 24; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes ringoHalo {
+  0% { opacity: 0.55; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.9); }
+}
+.success-in { animation: ringoSuccessIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.success-tick { stroke-dasharray: 24; animation: ringoTickDraw 0.4s 0.35s ease-out both; }
+.success-halo { animation: ringoHalo 1.4s 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .success-in, .success-tick { animation-duration: 0.01ms; animation-delay: 0s; }
+  .success-halo { display: none; }
+}
+
 /* Loading spinner (buttons, fetches). */
 @keyframes ringoSpin {
   to { transform: rotate(360deg); }
