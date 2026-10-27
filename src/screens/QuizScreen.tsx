@@ -1,13 +1,10 @@
-// QuizScreen: "How much data do I need?" (owner 2026-10-27), made to play
-// (owner: "focus on the quiz that makes it interactive, and completing the
-// quiz gives you coins"). Three steps: a trip length slider, tiles for what
-// the trip needs with a live data meter that fills as they are picked, and
-// work online or not; then a reveal with confetti and the plan type. A
-// signed-in member earns the Data smart badge and 25 Ringo coins once per
-// purchase (owner 2026-10-27: "once per purchase, it gives an incentive for
-// people to come back"; /api/app-quiz says what it paid). The answer
-// rides to the plan screen (quizPick in lib/quiz.ts), which opens on that tab.
-import { useEffect, useState, type ReactNode } from 'react';
+// QuizScreen: "How much data do I need?" (owner 2026-10-27), made to play.
+// Three steps: a trip length slider, tiles for what the trip needs with a
+// live data meter that fills as they are picked, and work online or not;
+// then a reveal with confetti and one plan (owner 2026-10-27: "the quiz
+// should recommend a single plan", no coins). The plan rides to the plan
+// screen (quizPick in lib/quiz.ts), which opens with that line picked.
+import { useState, type ReactNode } from 'react';
 import { RC, TYPE, RADIUS, SITE_GRAD, cardSurface } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
@@ -16,8 +13,6 @@ import { Confetti } from '../components/Confetti';
 import { hapticSelection, hapticNotify } from '../lib/haptics';
 import { useLayout, contentColumn } from '../lib/layout';
 import { recommend, setQuizPick, perDayOf, USES, type Use } from '../lib/quiz';
-import { account } from '../store/account';
-import { light, SITE } from '../api/light';
 
 const S = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
 const ICON: Record<Use, ReactNode> = {
@@ -28,7 +23,6 @@ const ICON: Record<Use, ReactNode> = {
   hotspot: <><path d="M5 9.5a10 10 0 0 1 14 0M8 12.5a5.6 5.6 0 0 1 8 0" {...S} /><circle cx="12" cy="16" r="1.6" fill="currentColor" /></>,
 };
 const QUICK_DAYS = [3, 7, 14, 30];
-const COINS = 25;
 
 function DataMeter({ gbDay }: { gbDay: number }) {
   const pct = Math.min(100, (gbDay / 6) * 100);
@@ -54,29 +48,10 @@ export function QuizScreen({ onBack, onBrowse }: { onBack: () => void; onBrowse:
   const [uses, setUses] = useState<Use[]>([]);
   const [hop, setHop] = useState<Use | null>(null);
   const [work, setWork] = useState<boolean | null>(null);
-  const [coins, setCoins] = useState<'none' | 'earned' | 'later' | 'signin'>('none');
   const done = step === 3 && work != null;
   const rec = done ? recommend({ days, uses, work: work! }) : null;
 
-  // The coins, when the result shows: the site pays once per purchase and
-  // says what it paid (0 when this round was already paid: buy, then come back).
-  useEffect(() => {
-    if (!done) return;
-    const acct = account.get();
-    if (!acct) { setCoins('signin'); return; }
-    void fetch(`${SITE}/api/app-quiz`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: acct.userId, t: acct.t }) })
-      .then(async (r) => {
-        if (!r.ok) return;
-        const j = (await r.json().catch(() => null)) as { coins?: number } | null;
-        if (j && Number(j.coins) > 0) {
-          setCoins('earned');
-          void light.profile(acct.userId, acct.t).catch(() => {});
-        } else setCoins('later');
-      })
-      .catch(() => {});
-  }, [done]);
-
-  const restart = () => { setStep(0); setDays(7); setUses([]); setWork(null); setCoins('none'); };
+  const restart = () => { setStep(0); setDays(7); setUses([]); setWork(null); };
   const title = (t: string, sub?: string) => (<>
     <h2 className="rise" style={{ margin: '4px 0 0', ...TYPE.h1, color: RC.ink }}>{t}</h2>
     {sub && <p style={{ margin: '0 0 4px', ...TYPE.small, color: RC.ink2 }}>{sub}</p>}
@@ -154,18 +129,6 @@ export function QuizScreen({ onBack, onBrowse }: { onBack: () => void; onBrowse:
               <div style={{ marginTop: 6, fontFamily: 'var(--font-display)', fontSize: 34, fontWeight: 800, lineHeight: 1.1, color: RC.ink }}>{rec.title}</div>
               <p style={{ margin: '10px 0 0', ...TYPE.body, color: RC.ink2 }}>{rec.line}</p>
             </div>
-            {coins === 'earned' && (
-              <div className="rise" role="status" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderRadius: 18, background: 'linear-gradient(135deg,#FFE79A 0%,#F4C64B 50%,#D9982A 100%)', color: '#3B2A05' }}>
-                <span className="hop" aria-hidden style={{ width: 40, height: 40, borderRadius: '50%', background: '#fff8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontWeight: 800 }}>+{COINS}</span>
-                <span style={{ fontFamily: 'var(--font)', fontSize: 15, fontWeight: 700 }}>{`${COINS} Ringo coins on your account. Take the quiz again after your next eSIM for ${COINS} more.`}</span>
-              </div>
-            )}
-            {coins === 'later' && (
-              <p style={{ margin: 0, ...TYPE.small, color: RC.ink2, textAlign: 'center' }}>{`Quiz coins are paid once per eSIM you buy. Buy your next one and take it again for ${COINS} more.`}</p>
-            )}
-            {coins === 'signin' && (
-              <p style={{ margin: 0, ...TYPE.small, color: RC.ink2, textAlign: 'center' }}>{`Sign in and take the quiz to earn ${COINS} Ringo coins.`}</p>
-            )}
             <button type="button" className="press" onClick={restart}
               style={{ alignSelf: 'center', border: 'none', background: 'none', padding: 8, cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 15, fontWeight: 700, color: RC.ink2, textDecoration: 'underline', textUnderlineOffset: 3 }}>
               Take it again
@@ -177,7 +140,7 @@ export function QuizScreen({ onBack, onBrowse }: { onBack: () => void; onBrowse:
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: `12px ${l.gutter}px max(20px, env(safe-area-inset-bottom, 0px))`, background: RC.glass, backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)', borderTop: `1px solid ${RC.line}` }}>
           {step === 0 && <RingoButton onClick={() => { hapticSelection(); setStep(1); }}>Next</RingoButton>}
           {step === 1 && <RingoButton onClick={() => { hapticSelection(); setStep(2); }} disabled={uses.length === 0}>Next</RingoButton>}
-          {rec && <RingoButton onClick={() => { setQuizPick(rec.tab, rec.gb); onBrowse(); }}>Pick my destination</RingoButton>}
+          {rec && <RingoButton onClick={() => { setQuizPick(rec); onBrowse(); }}>Pick my destination</RingoButton>}
         </div>
       )}
     </div>

@@ -30,7 +30,7 @@ import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { BackBtn, TickList, ErrorBox } from '../components/ui';
 import { termTitle, planName, periodWord, lineKey, tierName } from '../lib/terms';
-import { takeQuizPick } from '../lib/quiz';
+import { takeQuizPick, setQuizPick } from '../lib/quiz';
 import { hasMosaic, pictureFor, skyFor, bundledPictureFor, type Destination } from '../data/destinations';
 import { useDestinations, destinationFrom } from '../store/destinations';
 import { useAccount } from '../store/account';
@@ -317,10 +317,10 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   const [, setUnlGb] = useState<number | null>(null);
   // Screen 1, the tabs (owner 2026-10-24, after the choice research): Data or
   // Unlimited first, each explained in one line, then that tab's plans.
-  // The data quiz's answer opens its tab (lib/quiz.ts), once.
+  // The data quiz's plan opens its tab with its line picked (lib/quiz.ts), once.
   const [quiz] = useState(() => takeQuizPick());
   const [tab, setTab] = useState<PlanTab>(quiz?.tab ?? 'data');
-  const [powerGb, setPowerGb] = useState<number | null>(null);
+  const [powerGb, setPowerGb] = useState<number | null>(quiz?.tab === 'power' ? quiz.dailyGb ?? null : null);
   const arm = useMemo(() => defaultArm(), []);
   // At most three plans on screen (choice overload), the rest one tap away.
   const [showAll, setShowAll] = useState(false);
@@ -425,7 +425,11 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   const powerMode = (power || quiz?.tab === 'power' || Boolean(cat?.power_of)) && ownPower.length > 0;
   // Power asked for a place that has its own Power Use card (Europe): that card.
   useEffect(() => {
-    if ((power || quiz?.tab === 'power') && cat?.power_destination && onPower) onPower(cat.power_destination);
+    if ((power || quiz?.tab === 'power') && cat?.power_destination && onPower) {
+      // The quiz's plan goes on to that card, which picks its line.
+      if (quiz?.tab === 'power') setQuizPick(quiz);
+      onPower(cat.power_destination);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when the catalogue arrives
   }, [cat?.power_destination]);
   // The way to this place's Power Use card from its Data and Unlimited.
@@ -473,8 +477,15 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
     const list = unlimitedGlobal ? plans : tabLines;
     if (!list.length) return;
     if (list.some((p) => lineKey(p) === planId)) return;
-    // The quiz's data size: the smallest line that covers it.
-    const fit = quiz?.gb && shownTab === 'data' ? [...list].filter((p) => (p.data_gb ?? 0) >= quiz.gb!).sort((a, b) => (a.data_gb ?? 0) - (b.data_gb ?? 0) || a.days - b.days)[0] : undefined;
+    // The quiz's plan: data, the smallest line that covers its size (and the
+    // trip, where one does); Unlimited and Power, the shortest line that covers the trip.
+    const days = quiz?.days ?? 0;
+    const covers = (p: Plan) => p.days >= days;
+    const bySize = (a: Plan, b: Plan) => (a.data_gb ?? 0) - (b.data_gb ?? 0) || a.days - b.days;
+    const big = quiz?.gb && shownTab === 'data' ? list.filter((p) => (p.data_gb ?? 0) >= quiz.gb!) : [];
+    const fit = !quiz ? undefined
+      : shownTab === 'data' ? ([...big.filter(covers)].sort(bySize)[0] ?? [...big].sort(bySize)[0])
+      : days ? (byDays(list).find(covers) ?? byDays(list)[list.length - 1]) : undefined;
     setPlanId(lineKey(fit ?? (shownTab === 'power' ? cheapestOf(list) : defaultOf(list))));
   // eslint-disable-next-line react-hooks/exhaustive-deps -- defaultOf follows arm
   }, [plans, tabLines, planId, unlimitedGlobal]);
