@@ -33,8 +33,8 @@ import { termTitle, planName, periodWord, lineKey, tierName } from '../lib/terms
 import { takeQuizPick, setQuizPick, sendQuizPicked } from '../lib/quiz';
 import { hasMosaic, pictureFor, skyFor, bundledPictureFor, type Destination } from '../data/destinations';
 import { useDestinations, destinationFrom } from '../store/destinations';
-import { useAccount } from '../store/account';
-import { light, type Catalog, type Plan } from '../api/light';
+import { useAccount, account } from '../store/account';
+import { light, money, type Catalog, type Plan } from '../api/light';
 import { loadProducts, iapAvailable, type IapProduct } from '../lib/iap';
 import { CARD_PAYMENTS } from '../lib/cardPay';
 import { rememberAppleLines } from '../store/summary';
@@ -75,6 +75,45 @@ const DAY_GROUPS: { id: Exclude<Group, 'trip'>; label: string; line: string }[] 
 const DAY_TICKS = [tk('Unlimited data'), tk('Never cut off'), tk('Data only, next to your own SIM')];
 
 const SHEET_RADIUS = 28;
+
+// The site's billing rates per euro (api/_light-currency.js PER_EUR) and its
+// minimum charge, for the price after credit shown on the button; the sheet
+// itself charges the site's exact figure.
+const PER_EUR: Record<string, number> = { eur: 1, usd: 1.15, gbp: 0.86, cad: 1.65, zar: 21.5 };
+const MIN_CHARGE_CENTS = 50;
+/** What the sheet asks once `creditEurCents` comes off `cents` in `currency`: down to the minimum charge, no further. */
+function afterCredit(cents: number, currency: string, creditEurCents: number): number {
+  const rate = PER_EUR[String(currency || 'eur').toLowerCase()];
+  const room = cents - MIN_CHARGE_CENTS;
+  if (!rate || creditEurCents <= 0 || room <= 0) return cents;
+  return cents - Math.min(Math.floor(creditEurCents * rate + 1e-9), room);
+}
+
+// A price that counts to its new value when it changes (owner 2026-10-28: "when
+// toggle the credit the purchase price goes down ... a nice smooth simulation
+// where the numbers count down fast").
+function CountingPrice({ cents, currency }: { cents: number; currency: string }) {
+  const [shown, setShown] = useState(cents);
+  const at = useRef(cents);
+  useEffect(() => {
+    const start = at.current;
+    if (start === cents) return;
+    const t0 = performance.now();
+    const ms = 650;
+    let raf = 0;
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - t0) / ms);
+      const eased = 1 - Math.pow(1 - p, 3);
+      const v = Math.round(start + (cents - start) * eased);
+      at.current = v;
+      setShown(v);
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [cents]);
+  return <span style={{ fontVariantNumeric: 'tabular-nums' }}>{money(shown, currency)}</span>;
+}
 const GLOBAL_TICKS = [tk('Unlimited data'), tk('One plan, renews until you cancel'), tk('One price, no roaming bills'), tk('Data only, next to your own SIM and number')];
 const DATA_TICKS = [tk('Full speed, no daily cap'), tk('Hotspot included'), tk('Data only, next to your own SIM')];
 const UNLIMITED_TICKS = [tk('Unlimited data'), tk('Hotspot included'), tk('Data only, next to your own SIM')];
@@ -355,6 +394,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   const [payErr, setPayErr] = useState<string | null>(null);
   // Ringo credit on the account: spent in the sheet on a one-payment plan (the site decides how much).
   const [creditCents, setCreditCents] = useState(0);
+  const loadCredit = () => { const a = account.get(); if (a) light.profile(a.userId, a.t).then((pr) => setCreditCents(pr.credit?.balance_cents || 0)).catch(() => {}); };
   // Whether to spend it here: the toggle Checkout had (owner 2026-10-28, TestFlight 90: "where is the use credit toggle?").
   const [useCredit, setUseCredit] = useState(true);
   useEffect(() => {
@@ -563,6 +603,10 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   const payHere = CARD_PAYMENTS && Boolean(acct?.email);
   // Ringo credit can come off a one-payment plan (never Global's month); the site decides how much.
   const creditHere = payHere && creditCents > 0 && Boolean(selected) && selected?.mode !== 'subscription';
+  // A balance that reads zero still asks the site for credit on a one-payment
+  // plan: a sheet closed without paying leaves its credit held until the next
+  // credit request releases it (api/app-pay.js releaseUnpaidHolds), so without
+  // this the credit would stay hidden for good.
   const continueTap = async () => {
     const s = selectionNow();
     if (!s || paying) return;
@@ -572,10 +616,11 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
     setPaying(true);
     setPayErr(null);
     try {
-      const pay = await startCard({ plan: s.plan.plan, destination: id, data_gb: s.data_gb, email: e, currency: s.plan.currency, useCredit: creditHere && useCredit, via: 'sheet' });
+      const pay = await startCard({ plan: s.plan.plan, destination: id, data_gb: s.data_gb, email: e, currency: s.plan.currency, useCredit: creditHere ? useCredit : s.plan.mode !== 'subscription', via: 'sheet' });
       const out = await pay.done;
       setPaying(false);
-      if (out.state === 'left') return;
+      // Closed without paying: the balance again, once the site has released the hold.
+      if (out.state === 'left') { loadCredit(); return; }
       onContinue(s, { out, email: e });
     } catch (ex) {
       setPaying(false);
@@ -607,9 +652,11 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
     </div>
   );
   const payPrice = selected ? priceOf(selected, productFor(selected)).total : '';
-  const payLabel = !selected ? '' : selected.mode === 'subscription' ? t('Subscribe securely, {price} a month', { price: payPrice }) : creditHere && useCredit ? t('Pay up to {price} securely', { price: payPrice }) : t('Pay {price} securely', { price: payPrice });
+  // A one-payment plan shows what the sheet will ask, credit off, counting down as the toggle flips.
+  const payCents = selected ? afterCredit(selected.billed_upfront_amount, selected.currency, creditHere && useCredit ? creditCents : 0) : 0;
+  const payLabel: ReactNode = !selected ? '' : selected.mode === 'subscription' ? t('Subscribe securely, {price} a month', { price: payPrice }) : tn('Pay {price} securely', { price: <CountingPrice cents={payCents} currency={selected.currency} /> });
   const payButton = (
-    <RingoButton onClick={() => void continueTap()} disabled={paying} style={ctaStyle}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Lock size={17} color="#fff" />{payLabel}</span></RingoButton>
+    <RingoButton onClick={() => void continueTap()} disabled={paying} style={ctaStyle}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Lock size={17} color="#fff" /><span>{payLabel}</span></span></RingoButton>
   );
   const retry = () => { setErr(null); setProducts(null); setReloadKey((k) => k + 1); };
   const loadingPrices = native && cat && !products;
