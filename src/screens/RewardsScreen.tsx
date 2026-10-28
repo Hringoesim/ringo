@@ -27,6 +27,7 @@ import { BadgeGrid, BadgeEmpty, BadgeSkeleton } from '../components/profile/Badg
 import { TravelMap } from '../components/profile/TravelMap';
 import { EarnBadges } from '../components/profile/EarnBadges';
 import { ShareFriends } from '../components/profile/ShareFriends';
+import { NotifyCard } from '../components/profile/NotifyCard';
 import { monthYear, levelColor, pioneerTitle } from '../components/profile/format';
 import { isLead, isPioneer, placeFrom, fmt } from '../lib/waitlist';
 
@@ -327,6 +328,7 @@ export function RewardsScreen({ onBack, onBrowse, onLogin, onWaitlist }: { onBac
                   : !err && <div aria-hidden style={{ minHeight: 260, borderRadius: RADIUS.card, background: RC.cream }} />}
               </div>
               {err && !profile && <ErrorBox>{err}</ErrorBox>}
+              <NotifyCard l={l} />
 
               {/* Where they have travelled comes first (owner 2026-10-23). */}
               {!(err && !profile) && (
