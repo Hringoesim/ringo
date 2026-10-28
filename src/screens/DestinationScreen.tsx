@@ -44,11 +44,12 @@ import { haptic, hapticSelection } from '../lib/haptics';
 import { logAb } from '../lib/abtest';
 import { payByCard as startCard, type CardOutcome } from '../lib/cardPay';
 import { openInSheet } from '../lib/browser';
+import { Lock, PayMethods } from '../components/PayMarks';
 import { SITE } from '../api/light';
 import { useLayout, contentColumn, type Layout } from '../lib/layout';
 import { requestLightStatusBar } from '../lib/statusBar';
 import { powerPhotoFor } from '../data/powerPhotos';
-import { t, t as tr, tk, tn, plural, placeName as placeLabel, currentLocale } from '../lib/i18n';
+import { t, t as tr, tk, tn, plural, placeName as placeLabel, currentLocale, isRtl, fmtMoney } from '../lib/i18n';
 import dishPhoto from '../assets/store/dish-wide.jpg'; // the store's Power card dish, full width (Unsplash Wj1D-qiOseE)
 import { i18n } from '../lib/i18n';
 
@@ -354,6 +355,8 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   const [payErr, setPayErr] = useState<string | null>(null);
   // Ringo credit on the account: spent in the sheet on a one-payment plan (the site decides how much).
   const [creditCents, setCreditCents] = useState(0);
+  // Whether to spend it here: the toggle Checkout had (owner 2026-10-28, TestFlight 90: "where is the use credit toggle?").
+  const [useCredit, setUseCredit] = useState(true);
   useEffect(() => {
     if (!acct) { setCreditCents(0); return; }
     let alive = true;
@@ -558,6 +561,8 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   // previous page"), and the app moves on only once the payment is confirmed.
   // Without an account, Checkout still asks for the email first.
   const payHere = CARD_PAYMENTS && Boolean(acct?.email);
+  // Ringo credit can come off a one-payment plan (never Global's month); the site decides how much.
+  const creditHere = payHere && creditCents > 0 && Boolean(selected) && selected?.mode !== 'subscription';
   const continueTap = async () => {
     const s = selectionNow();
     if (!s || paying) return;
@@ -567,7 +572,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
     setPaying(true);
     setPayErr(null);
     try {
-      const pay = await startCard({ plan: s.plan.plan, destination: id, data_gb: s.data_gb, email: e, currency: s.plan.currency, useCredit: creditCents > 0 && s.plan.mode !== 'subscription', via: 'sheet' });
+      const pay = await startCard({ plan: s.plan.plan, destination: id, data_gb: s.data_gb, email: e, currency: s.plan.currency, useCredit: creditHere && useCredit, via: 'sheet' });
       const out = await pay.done;
       setPaying(false);
       if (out.state === 'left') return;
@@ -586,6 +591,25 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
         privacy: <button type="button" onClick={() => void openInSheet(`${SITE}/privacy?app=1`)} style={linkStyle}>{t('Privacy Policy')}</button>,
       })}
     </div>
+  );
+  // The credit toggle and the lock line Checkout had, now that the sheet opens here (owner 2026-10-28, TestFlight 90).
+  const creditBox = creditHere && (
+    <div style={{ padding: '10px 14px', borderRadius: RADIUS.sm, background: RC.cream, border: `1px solid ${RC.line}`, display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ ...TYPE.bodyStrong, color: RC.ink }}>{t('Use Ringo credit')}</div>
+        <div style={{ ...TYPE.small, color: RC.ink2, marginTop: 2 }}>{t('{amount} available', { amount: fmtMoney(creditCents / 100, 'EUR') })}</div>
+      </div>
+      <button type="button" role="switch" aria-checked={useCredit} aria-label={t('Use Ringo credit')} className="press"
+        onClick={() => { hapticSelection(); setUseCredit(!useCredit); }}
+        style={{ width: 51, height: 31, borderRadius: 16, border: 'none', cursor: 'pointer', padding: 2, flexShrink: 0, background: useCredit ? RC.tick : RC.lineStrong, transition: 'background .2s' }}>
+        <span style={{ display: 'block', width: 27, height: 27, borderRadius: '50%', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', transform: useCredit ? `translateX(${isRtl() ? -20 : 20}px)` : 'none', transition: 'transform .2s' }} />
+      </button>
+    </div>
+  );
+  const payPrice = selected ? priceOf(selected, productFor(selected)).total : '';
+  const payLabel = !selected ? '' : selected.mode === 'subscription' ? t('Subscribe securely, {price} a month', { price: payPrice }) : creditHere && useCredit ? t('Pay up to {price} securely', { price: payPrice }) : t('Pay {price} securely', { price: payPrice });
+  const payButton = (
+    <RingoButton onClick={() => void continueTap()} disabled={paying} style={ctaStyle}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Lock size={17} color="#fff" />{payLabel}</span></RingoButton>
   );
   const retry = () => { setErr(null); setProducts(null); setReloadKey((k) => k + 1); };
   const loadingPrices = native && cat && !products;
@@ -749,8 +773,10 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
               {selected && selectedPrice && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {payErr && <ErrorBox>{payErr}</ErrorBox>}
+                  {creditBox}
                   {terms}
-                  <RingoButton onClick={() => void continueTap()} disabled={paying} style={ctaStyle}>{selected.mode === 'subscription' ? t('Continue, {price} today', { price: selectedPrice.total }) : t('Continue, {price}', { price: selectedPrice.total })}</RingoButton>
+                  {payHere ? payButton : <RingoButton onClick={() => void continueTap()} disabled={paying} style={ctaStyle}>{selected.mode === 'subscription' ? t('Continue, {price} today', { price: selectedPrice.total }) : t('Continue, {price}', { price: selectedPrice.total })}</RingoButton>}
+                  {payHere && <PayMethods />}
                 </div>
               )}
               {notes}
@@ -765,7 +791,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   const heroH = l.isCover ? 220 : 248;
   const footer: CSSProperties = {
     position: 'absolute', left: 12, right: 12, bottom: 'max(12px, env(safe-area-inset-bottom, 0px))',
-    padding: 8, paddingInlineStart: 18, borderRadius: SHEET_RADIUS + 4, background: CREAM, border: `1.5px solid ${LINE}`,
+    padding: payHere ? 12 : 8, paddingInlineStart: payHere ? 12 : 18, borderRadius: SHEET_RADIUS + 4, background: CREAM, border: `1.5px solid ${LINE}`,
     boxShadow: '0 2px 8px rgba(26,15,46,0.06), 0 18px 40px -16px rgba(26,15,46,0.30)', display: 'flex', flexDirection: 'column', gap: 8,
   };
   return (
@@ -782,7 +808,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
       </div>
 
       {/* The content sheet rides up over the photo so the screen reads as layers. */}
-      <div className="no-bar" style={{ flex: 1, overflowY: 'auto', position: 'relative', marginTop: -SHEET_RADIUS, borderRadius: `${SHEET_RADIUS}px ${SHEET_RADIUS}px 0 0`, background: RC.bg, boxShadow: '0 -10px 24px -16px rgba(26,15,46,0.45)', padding: `22px ${l.gutter}px 160px`, display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div className="no-bar" style={{ flex: 1, overflowY: 'auto', position: 'relative', marginTop: -SHEET_RADIUS, borderRadius: `${SHEET_RADIUS}px ${SHEET_RADIUS}px 0 0`, background: RC.bg, boxShadow: '0 -10px 24px -16px rgba(26,15,46,0.45)', padding: `22px ${l.gutter}px ${payHere ? 330 : 160}px`, display: 'flex', flexDirection: 'column', gap: 20 }}>
         {errorBlock}
         {skeleton}
         {planList}
@@ -793,8 +819,9 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
       {cat && selected && selectedPrice && (
         <div style={footer}>
           {payErr && <ErrorBox>{payErr}</ErrorBox>}
-          {terms && <div style={{ paddingTop: 4, paddingInlineEnd: 10 }}>{terms}</div>}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {creditBox}
+          {terms && <div style={{ paddingTop: 2 }}>{terms}</div>}
+          {payHere ? payButton : <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ flexShrink: 1, minWidth: 0, fontFamily: 'var(--font)' }}>
             <div style={{ ...TYPE.caption, color: RC.inkMute, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{planName(selected)}</div>
             <div style={{ marginTop: 2, fontSize: 19, fontWeight: 800, lineHeight: 1.2, color: RC.ink, letterSpacing: '-0.02em', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
@@ -804,7 +831,8 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
           <div style={{ flex: 1, minWidth: 132 }}>
             <RingoButton round onClick={() => void continueTap()} disabled={paying} style={ctaStyle}>{t('Continue')}</RingoButton>
           </div>
-          </div>
+          </div>}
+          {payHere && <PayMethods />}
         </div>
       )}
     </div>
