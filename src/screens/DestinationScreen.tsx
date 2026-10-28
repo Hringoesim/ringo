@@ -652,9 +652,11 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
     </div>
   );
   const payPrice = selected ? priceOf(selected, productFor(selected)).total : '';
-  // A one-payment plan shows what the sheet will ask, credit off, counting down as the toggle flips.
+  // A one-payment plan shows what the sheet will ask, credit off. It counts
+  // down as the toggle flips only; another plan shows its price at once (the
+  // key remounts the counter), owner 2026-10-28.
   const payCents = selected ? afterCredit(selected.billed_upfront_amount, selected.currency, creditHere && useCredit ? creditCents : 0) : 0;
-  const payLabel: ReactNode = !selected ? '' : selected.mode === 'subscription' ? t('Subscribe securely, {price} a month', { price: payPrice }) : tn('Pay {price} securely', { price: <CountingPrice cents={payCents} currency={selected.currency} /> });
+  const payLabel: ReactNode = !selected ? '' : selected.mode === 'subscription' ? t('Subscribe securely, {price} a month', { price: payPrice }) : tn('Pay {price} securely', { price: <CountingPrice key={lineKey(selected)} cents={payCents} currency={selected.currency} /> });
   const payButton = (
     <RingoButton onClick={() => void continueTap()} disabled={paying} style={ctaStyle}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Lock size={17} color="#fff" /><span>{payLabel}</span></span></RingoButton>
   );
