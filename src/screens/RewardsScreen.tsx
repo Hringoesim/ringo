@@ -21,6 +21,7 @@ import { BackBtn, ScreenTitle, SectionHead, TickList, PioneerBadge, ErrorBox } f
 import { light, type Profile, type RewardLevel } from '../api/light';
 import { useAccount } from '../store/account';
 import { useLiveTick } from '../store/live';
+import { useScreenActive } from '../components/ScreenHost';
 import { useLayout, twoColumn, cardGrid, TABBAR_CLEARANCE, type Layout } from '../lib/layout';
 import { RingoAvatar, TravellerSheet } from '../components/Avatar';
 import { BadgeGrid, BadgeEmpty, BadgeSkeleton } from '../components/profile/BadgeGrid';
@@ -285,6 +286,11 @@ export function RewardsScreen({ onBack, onBrowse, onLogin, onWaitlist }: { onBac
   const l = useLayout();
   const acct = useAccount();
   const tick = useLiveTick();
+  // Read again each time the tab comes on show and whenever a purchase lands on
+  // the account (owner 2026-10-28, TestFlight 90: "once using your credit it
+  // should show balance"): the credit figure is the balance as it is now.
+  const { shown } = useScreenActive();
+  const purchaseRef = acct?.purchaseRef ?? null;
   const [profile, setProfile] = useState<Profile | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const userId = acct?.userId, tok = acct?.t;
@@ -300,7 +306,7 @@ export function RewardsScreen({ onBack, onBrowse, onLogin, onWaitlist }: { onBac
       .then((p) => { if (alive) { setProfile(p); setErr(null); } })
       .catch((e) => { if (alive) setErr((e as Error).message || t('Could not load your rewards.')); });
     return () => { alive = false; };
-  }, [userId, tok, tick]);
+  }, [userId, tok, tick, shown, purchaseRef]);
 
   const rewards = profile?.rewards;
   const badges = profile?.badges || [];
