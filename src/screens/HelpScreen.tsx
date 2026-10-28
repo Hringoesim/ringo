@@ -17,7 +17,7 @@ import { bundledPictureFor, pictureFor } from '../data/destinations';
 import { useDestinations, destinationFrom } from '../store/destinations';
 import { hapticNotify, hapticSelection } from '../lib/haptics';
 import { PushSwitches } from '../components/PushControls';
-import { pushAvailable, unregisterPush } from '../lib/push';
+import { pushAvailable, unregisterPush, openPushSettings } from '../lib/push';
 import { useLayout, contentColumn, cardGrid, TABBAR_CLEARANCE } from '../lib/layout';
 import { t, tn, tk, i18n, LANGS, useLang } from '../lib/i18n';
 
@@ -206,6 +206,12 @@ export function HelpScreen({ onLogin, onProfile, onWaitlist }: { onLogin: () => 
                   </button>
                 );
               })}
+              {/* The same choice lives in iOS Settings for Ringo; a change there wins (owner 2026-10-28). */}
+              {langOpen && pushAvailable() && (
+                <div style={{ borderTop: `1px solid ${RC.line}` }}>
+                  <HelpRow label={t('Change it in iPhone Settings')} sub={t('Settings, Ringo, Language')} onClick={() => void openPushSettings()} last />
+                </div>
+              )}
             </Group>
 
             <Group title={t('Account')}>

@@ -3,7 +3,8 @@
 // in the site's sunset colours, the rest muted with how to earn them and how
 // far along the member is. Each badge pays Ringo coins once, by rarity
 // (owner 2026-10-26; 100 coins = EUR 1 credit, credited by /api/app-profile);
-// Pioneer is super rare, in gold.
+// Pioneer is super rare, in gold. Year round (global-12) is legendary,
+// 2000 coins, its medal in the brand's sunset (owner 2026-10-28).
 import type { ReactNode } from 'react';
 import { RC, RADIUS, TYPE, SITE_GRAD, cardSurface } from '../../theme';
 import type { Layout } from '../../lib/layout';
@@ -16,7 +17,10 @@ const RARITY: Record<string, { label: string; color: string }> = {
   rare: { label: tk('Rare'), color: '#2F6FEB' },
   epic: { label: tk('Epic'), color: '#8652E0' },
   super: { label: tk('Super rare'), color: '#B7791F' },
+  legendary: { label: tk('Legendary'), color: '#E0457B' },
 };
+
+const SUNSET = 'linear-gradient(110deg, #F26122, #FF42A1 55%, #8652E0)';
 
 const S = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
 const GLYPH: Record<string, ReactNode> = {
@@ -41,7 +45,7 @@ function Medal({ a, size }: { a: Achievement; size: number }) {
   return (
     <div aria-hidden style={{
       width: size, height: size, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: a.earned ? (a.rarity === 'super' ? PIONEER_GOLD : SITE_GRAD) : RC.cream, color: a.earned ? '#fff' : RC.inkMute,
+      background: a.earned ? (a.rarity === 'super' ? PIONEER_GOLD : a.rarity === 'legendary' ? SUNSET : SITE_GRAD) : RC.cream, color: a.earned ? '#fff' : RC.inkMute,
       boxShadow: a.earned ? '0 6px 16px rgba(249,60,31,.28), inset 0 0 0 3px rgba(255,255,255,.35)' : `inset 0 0 0 2px ${RC.line}`,
     }}>
       <svg width={size * 0.5} height={size * 0.5} viewBox="0 0 24 24">{GLYPH[a.id] || GLYPH.explorer}</svg>

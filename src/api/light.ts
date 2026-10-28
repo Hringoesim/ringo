@@ -104,7 +104,7 @@ export interface TravelBadge {
 export interface LoyaltyTier { id: string; name: string; min: number; perk: string }
 export interface RewardLevel { id: string; name: string; min: number; credit_pct?: number; discount_pct: number; topup_pct?: number; free_esims_per_year: number; perks: string[] }
 /** An earnable badge: earned, or how far along (have of need). Recognition only. */
-export interface Achievement { id: string; group: string; name: string; how: string; have: number; need: number; earned: boolean; /** Ringo coins (owner 2026-10-26): paid once when earned, 100 coins = EUR 1 credit. */ rarity?: 'common' | 'rare' | 'epic' | 'super'; coins?: number }
+export interface Achievement { id: string; group: string; name: string; how: string; have: number; need: number; earned: boolean; /** Ringo coins (owner 2026-10-26): paid once when earned, 100 coins = EUR 1 credit. */ rarity?: 'common' | 'rare' | 'epic' | 'super' | 'legendary'; coins?: number }
 export interface Profile {
   email: string;
   member_since: string | null;

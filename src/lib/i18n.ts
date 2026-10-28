@@ -8,7 +8,8 @@
 //
 // The language is the one iOS picked for the app (navigator.languages in the
 // WKWebView follows the app's localizations and the per-app language in
-// Settings), unless the buyer chose one in the app (Help > Language).
+// Settings), unless the buyer chose one in the app (Help > Language). A later
+// change in iOS Settings wins over the in-app pick (owner 2026-10-28).
 // Arabic and Hebrew turn the whole document right to left.
 import { createElement, Fragment, useSyncExternalStore, type ReactNode } from 'react';
 import es from '../i18n/es';
@@ -52,6 +53,9 @@ const RTL = new Set<Lang>(['ar', 'he']);
 // Intl locale per language: zh is Simplified Chinese, pt follows the phone's
 // region (Brazil or Portugal) for dates and money, as does every other one.
 const STORE_KEY = 'ringo_lang';
+// The phone's language when the buyer picked one in the app: a different one
+// later means they changed it in iOS Settings, and that change wins.
+const DEVICE_KEY = 'ringo_lang_device';
 
 function supported(tag: string | undefined | null): Lang | null {
   if (!tag) return null;
@@ -62,7 +66,17 @@ function supported(tag: string | undefined | null): Lang | null {
 }
 
 function chosen(): Lang | null {
-  try { return supported(localStorage.getItem(STORE_KEY)); } catch { return null; }
+  try {
+    const picked = supported(localStorage.getItem(STORE_KEY));
+    if (!picked) return null;
+    const then = localStorage.getItem(DEVICE_KEY);
+    if (then && then !== (deviceTags()[0] || '')) {
+      localStorage.removeItem(STORE_KEY);
+      localStorage.removeItem(DEVICE_KEY);
+      return null;
+    }
+    return picked;
+  } catch { return null; }
 }
 
 function deviceTags(): string[] {
@@ -107,8 +121,8 @@ export const i18n = {
   /** 'auto' goes back to following the phone's language. */
   set(next: Lang | 'auto') {
     try {
-      if (next === 'auto') localStorage.removeItem(STORE_KEY);
-      else localStorage.setItem(STORE_KEY, next);
+      if (next === 'auto') { localStorage.removeItem(STORE_KEY); localStorage.removeItem(DEVICE_KEY); }
+      else { localStorage.setItem(STORE_KEY, next); localStorage.setItem(DEVICE_KEY, deviceTags()[0] || ''); }
     } catch { /* ignore */ }
     lang = next === 'auto' ? (deviceTags().map(supported).find(Boolean) ?? 'en') : next;
     locale = localeFor(lang);
