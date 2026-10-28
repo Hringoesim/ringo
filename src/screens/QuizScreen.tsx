@@ -19,6 +19,7 @@ import { FEATURED, bundledPictureFor, pictureFor, skyFor } from '../data/destina
 import europeOrbit from '../assets/quiz/europe-orbit.jpg'; // ISS photo iss066e116300, NASA, public domain
 import { useDestinations } from '../store/destinations';
 import { SITE } from '../api/light';
+import { t as tr, plural, fmtNumber, placeName } from '../lib/i18n';
 
 const S = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
 const ICON: Record<Use, ReactNode> = {
@@ -52,17 +53,17 @@ const QUICK_DAYS = [3, 7, 14, 30, LONG];
 
 function DataMeter({ gbDay }: { gbDay: number }) {
   const pct = Math.min(100, (gbDay / 6) * 100);
-  const label = gbDay < 0.6 ? 'Light' : gbDay < 1.5 ? 'Moderate' : gbDay < 4 ? 'Heavy' : 'Power user';
+  const label = gbDay < 0.6 ? tr('Light') : gbDay < 1.5 ? tr('Moderate') : gbDay < 4 ? tr('Heavy') : tr('Power user');
   return (
     <div aria-live="polite" style={{ ...cardSurface(), padding: '14px 16px' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
-        <span style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 700, color: RC.ink2 }}>Your daily use</span>
-        <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color: RC.ink, fontVariantNumeric: 'tabular-nums' }}>{`${gbDay.toFixed(1)} GB`}</span>
+        <span style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 700, color: RC.ink2 }}>{tr('Your daily use')}</span>
+        <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color: RC.ink, fontVariantNumeric: 'tabular-nums' }}>{tr('{gb} GB', { gb: fmtNumber(gbDay, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) })}</span>
       </div>
       <div style={{ marginTop: 10, height: 12, borderRadius: RADIUS.pill, background: RC.cream, overflow: 'hidden' }}>
         <div style={{ width: `${Math.max(pct, gbDay > 0 ? 6 : 0)}%`, height: '100%', borderRadius: RADIUS.pill, background: SITE_GRAD, transition: 'width .45s cubic-bezier(.3,.7,.4,1)' }} />
       </div>
-      <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.ink2 }}>{gbDay > 0 ? label : 'Pick what you will use'}</div>
+      <div style={{ marginTop: 6, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.ink2 }}>{gbDay > 0 ? label : tr('Pick what you will use')}</div>
     </div>
   );
 }
@@ -97,29 +98,29 @@ export function QuizScreen({ onBack, onBrowse, onOpen }: { onBack: () => void; o
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
       {done && <Confetti count={36} />}
-      <RingoHeader title="How much data?" leading={<BackBtn onClick={step > 0 && !done ? () => setStep(step - 1) : onBack} />} />
+      <RingoHeader title={tr('How much data?')} leading={<BackBtn onClick={step > 0 && !done ? () => setStep(step - 1) : onBack} />} />
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: `0 ${l.gutter}px 150px` }}>
         <div style={{ ...contentColumn(l), display: 'flex', flexDirection: 'column', gap: 14 }}>
           {!done && (
-            <div aria-label={`Step ${step + 1} of 4`} style={{ display: 'flex', gap: 6 }}>
+            <div aria-label={tr('Step {n} of {total}', { n: step + 1, total: 4 })} style={{ display: 'flex', gap: 6 }}>
               {[0, 1, 2, 3].map((i) => <span key={i} style={{ flex: 1, height: 6, borderRadius: RADIUS.pill, background: i <= step ? SITE_GRAD : RC.line, transition: 'background .3s' }} />)}
             </div>
           )}
 
           {step === 0 && (<>
-            {title('What kind of trip?', 'Tap and pick one.')}
+            {title(tr('What kind of trip?'), tr('Tap and pick one.'))}
             {TRIPS.map((t) => {
               const on = trip === t.id;
               return (
                 <button key={t.id} type="button" className="press" aria-pressed={on}
                   onClick={() => { hapticNotify('success'); setTrip(t.id); setDays(t.days); setUses(t.uses); window.setTimeout(() => setStep(1), 260); }}
-                  style={{ position: 'relative', width: '100%', minHeight: 112, overflow: 'hidden', display: 'flex', alignItems: 'flex-end', gap: 12, textAlign: 'left', cursor: 'pointer', padding: '14px 16px', borderRadius: 20, border: 'none', outline: on ? `3px solid ${RC.orangeInk}` : 'none', outlineOffset: 2, background: '#2a1d3d', fontFamily: 'var(--font)' }}>
+                  style={{ position: 'relative', width: '100%', minHeight: 112, overflow: 'hidden', display: 'flex', alignItems: 'flex-end', gap: 12, textAlign: 'start', cursor: 'pointer', padding: '14px 16px', borderRadius: 20, border: 'none', outline: on ? `3px solid ${RC.orangeInk}` : 'none', outlineOffset: 2, background: '#2a1d3d', fontFamily: 'var(--font)' }}>
                   <img src={TRIP_LOOK[t.id].photo} alt="" aria-hidden decoding="async" onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
                     style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
                   <span aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(20,10,40,0) 35%, rgba(20,10,40,0.6) 100%)' }} />
                   <span style={{ position: 'relative', flex: 1 }}>
-                    <span style={{ display: 'block', fontSize: 19, fontWeight: 800, color: '#fff', textShadow: '0 1px 6px rgba(0,0,0,0.35)' }}>{t.label}</span>
-                    <span style={{ display: 'block', marginTop: 2, fontSize: 14, color: 'rgba(255,255,255,0.92)' }}>{t.sub}</span>
+                    <span style={{ display: 'block', fontSize: 19, fontWeight: 800, color: '#fff', textShadow: '0 1px 6px rgba(0,0,0,0.35)' }}>{tr(t.label)}</span>
+                    <span style={{ display: 'block', marginTop: 2, fontSize: 14, color: 'rgba(255,255,255,0.92)' }}>{tr(t.sub)}</span>
                   </span>
                 </button>
               );
@@ -127,18 +128,18 @@ export function QuizScreen({ onBack, onBrowse, onOpen }: { onBack: () => void; o
           </>)}
 
           {step === 1 && (<>
-            {title('How long is your trip?')}
+            {title(tr('How long is your trip?'))}
             <div style={{ ...cardSurface(), padding: '22px 18px', textAlign: 'center' }}>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: 56, fontWeight: 800, lineHeight: 1, color: RC.ink, fontVariantNumeric: 'tabular-nums' }}>{days > 30 ? '30+' : days}</div>
-              <div style={{ marginTop: 4, ...TYPE.small, fontWeight: 700, color: RC.ink2 }}>{days === 1 ? 'day' : 'days'}</div>
-              <input type="range" min={1} max={30} value={Math.min(days, 30)} aria-label="Trip length in days"
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 56, fontWeight: 800, lineHeight: 1, color: RC.ink, fontVariantNumeric: 'tabular-nums' }}>{days > 30 ? `${fmtNumber(30)}+` : fmtNumber(days)}</div>
+              <div style={{ marginTop: 4, ...TYPE.small, fontWeight: 700, color: RC.ink2 }}>{plural(days > 30 ? 31 : days, 'day', 'days')}</div>
+              <input type="range" min={1} max={30} value={Math.min(days, 30)} aria-label={tr('Trip length in days')}
                 onChange={(e) => { const v = Number(e.target.value); if (v !== days) hapticSelection(); setDays(v); }}
                 style={{ width: '100%', marginTop: 18, accentColor: RC.orangeInk, height: 28 }} />
               <div style={{ marginTop: 10, display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
                 {QUICK_DAYS.map((d) => (
                   <button key={d} type="button" className="press" onClick={() => { hapticSelection(); setDays(d); }}
                     style={{ padding: '8px 14px', borderRadius: RADIUS.pill, border: `1.5px solid ${days === d ? RC.orangeInk : RC.line}`, background: days === d ? '#FFF1E8' : '#fff', fontFamily: 'var(--font)', fontSize: 14, fontWeight: 700, color: RC.ink, cursor: 'pointer' }}>
-                    {d === 7 ? '1 week' : d === 14 ? '2 weeks' : d === 30 ? '1 month' : d === LONG ? '1 month plus' : `${d} days`}
+                    {d === 7 ? tr('1 week') : d === 14 ? tr('2 weeks') : d === 30 ? tr('1 month') : d === LONG ? tr('1 month plus') : plural(d, '{n} day', '{n} days')}
                   </button>
                 ))}
               </div>
@@ -146,7 +147,7 @@ export function QuizScreen({ onBack, onBrowse, onOpen }: { onBack: () => void; o
           </>)}
 
           {step === 2 && (<>
-            {title('What will you use it for?', 'Tap all that fit.')}
+            {title(tr('What will you use it for?'), tr('Tap all that fit.'))}
             <DataMeter gbDay={perDayOf(uses, false)} />
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
               {USES.map((u) => {
@@ -154,13 +155,13 @@ export function QuizScreen({ onBack, onBrowse, onOpen }: { onBack: () => void; o
                 return (
                   <button key={u.id} type="button" className="press" aria-pressed={on}
                     onClick={() => { hapticSelection(); setHop(u.id); setUses(on ? uses.filter((x) => x !== u.id) : [...uses, u.id]); }}
-                    style={{ textAlign: 'left', cursor: 'pointer', padding: 14, borderRadius: 18, border: `2px solid ${on ? USE_HUE[u.id] : RC.line}`, background: on ? `${USE_HUE[u.id]}14` : '#fff', fontFamily: 'var(--font)' }}>
+                    style={{ textAlign: 'start', cursor: 'pointer', padding: 14, borderRadius: 18, border: `2px solid ${on ? USE_HUE[u.id] : RC.line}`, background: on ? `${USE_HUE[u.id]}14` : '#fff', fontFamily: 'var(--font)' }}>
                     <span key={hop === u.id ? `h-${u.id}-${String(on)}` : u.id} className={hop === u.id ? 'hop' : undefined}
                       style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? USE_HUE[u.id] : `${USE_HUE[u.id]}1F`, color: on ? '#fff' : USE_HUE[u.id] }}>
                       <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden>{ICON[u.id]}</svg>
                     </span>
-                    <span style={{ display: 'block', marginTop: 10, fontSize: 16, fontWeight: 700, color: RC.ink }}>{u.label}</span>
-                    <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: RC.ink2 }}>{u.sub}</span>
+                    <span style={{ display: 'block', marginTop: 10, fontSize: 16, fontWeight: 700, color: RC.ink }}>{tr(u.label)}</span>
+                    <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: RC.ink2 }}>{tr(u.sub)}</span>
                   </button>
                 );
               })}
@@ -168,12 +169,12 @@ export function QuizScreen({ onBack, onBrowse, onOpen }: { onBack: () => void; o
           </>)}
 
           {step === 3 && (<>
-            {title('Will you work online?', 'Calls, uploads and a laptop add up.')}
+            {title(tr('Will you work online?'), tr('Calls, uploads and a laptop add up.'))}
             <DataMeter gbDay={perDayOf(uses, work === true)} />
-            {[{ v: true, label: 'Yes, I will work', sub: 'Video meetings, files, a laptop' }, { v: false, label: 'No, just the trip', sub: 'Holiday mode' }].map((o) => (
+            {[{ v: true, label: tr('Yes, I will work'), sub: tr('Video meetings, files, a laptop') }, { v: false, label: tr('No, just the trip'), sub: tr('Holiday mode') }].map((o) => (
               <button key={String(o.v)} type="button" className="press" aria-pressed={work === o.v}
                 onClick={() => { hapticNotify('success'); setWork(o.v); window.setTimeout(() => setStep(4), 260); }}
-                style={{ width: '100%', textAlign: 'left', cursor: 'pointer', padding: '16px 18px', borderRadius: 18, border: `2px solid ${work === o.v ? RC.orangeInk : RC.line}`, background: work === o.v ? '#FFF1E8' : '#fff', fontFamily: 'var(--font)' }}>
+                style={{ width: '100%', textAlign: 'start', cursor: 'pointer', padding: '16px 18px', borderRadius: 18, border: `2px solid ${work === o.v ? RC.orangeInk : RC.line}`, background: work === o.v ? '#FFF1E8' : '#fff', fontFamily: 'var(--font)' }}>
                 <div style={{ fontSize: 17, fontWeight: 700, color: RC.ink }}>{o.label}</div>
                 <div style={{ marginTop: 2, fontSize: 14, color: RC.ink2 }}>{o.sub}</div>
               </button>
@@ -182,35 +183,35 @@ export function QuizScreen({ onBack, onBrowse, onOpen }: { onBack: () => void; o
 
           {rec && (<>
             <div className="rise" style={{ ...cardSurface(), padding: 22, textAlign: 'center' }}>
-              <div style={{ ...TYPE.small, fontWeight: 700, color: RC.orangeInk }}>Your plan</div>
-              <div style={{ marginTop: 6, fontFamily: 'var(--font-display)', fontSize: 34, fontWeight: 800, lineHeight: 1.1, color: RC.ink }}>{rec.title}</div>
+              <div style={{ ...TYPE.small, fontWeight: 700, color: RC.orangeInk }}>{tr('Your plan')}</div>
+              <div style={{ marginTop: 6, fontFamily: 'var(--font-display)', fontSize: 34, fontWeight: 800, lineHeight: 1.1, color: RC.ink }}>{rec.shown}</div>
               <p style={{ margin: '10px 0 0', ...TYPE.body, color: RC.ink2 }}>{rec.line}</p>
             </div>
             {trip === 'multi' && regions.length > 0 && (<>
-              <div style={{ marginTop: 4, ...TYPE.body, fontWeight: 700, color: RC.ink }}>Pick your region</div>
+              <div style={{ marginTop: 4, ...TYPE.body, fontWeight: 700, color: RC.ink }}>{tr('Pick your region')}</div>
               {regions.map((d) => (
                 <button key={d.id} type="button" className="press" onClick={() => { hapticSelection(); setQuizPick({ ...rec, quizId }); onOpen(d.id); }}
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left', cursor: 'pointer', padding: 10, borderRadius: 18, border: `2px solid ${RC.line}`, background: '#fff', fontFamily: 'var(--font)' }}>
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, textAlign: 'start', cursor: 'pointer', padding: 10, borderRadius: 18, border: `2px solid ${RC.line}`, background: '#fff', fontFamily: 'var(--font)' }}>
                   <span aria-hidden style={{ flex: 'none', width: 64, height: 48, borderRadius: 12, overflow: 'hidden', background: skyFor(d.id) }}>
                     <img src={REGION_PHOTO[d.id] ?? bundledPictureFor(d.id) ?? pictureFor(d.id)} alt="" decoding="async" onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                   </span>
-                  <span style={{ flex: 1, fontSize: 17, fontWeight: 700, color: RC.ink }}>{d.label}</span>
-                  <span style={{ paddingRight: 8, fontSize: 14, color: RC.ink2 }}>{`${d.countries} countries`}</span>
+                  <span style={{ flex: 1, fontSize: 17, fontWeight: 700, color: RC.ink }}>{placeName(d.label, d.flag)}</span>
+                  <span style={{ paddingInlineEnd: 8, fontSize: 14, color: RC.ink2 }}>{plural(d.countries, '{n} country', '{n} countries')}</span>
                 </button>
               ))}
             </>)}
             <button type="button" className="press" onClick={restart}
               style={{ alignSelf: 'center', border: 'none', background: 'none', padding: 8, cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 15, fontWeight: 700, color: RC.ink2, textDecoration: 'underline', textUnderlineOffset: 3 }}>
-              Take it again
+              {tr('Take it again')}
             </button>
           </>)}
         </div>
       </div>
       {(step === 1 || step === 2 || rec) && (
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: `12px ${l.gutter}px max(20px, env(safe-area-inset-bottom, 0px))`, background: RC.glass, backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)', borderTop: `1px solid ${RC.line}` }}>
-          {step === 1 && <RingoButton onClick={() => { hapticSelection(); setStep(2); }}>Next</RingoButton>}
-          {step === 2 && <RingoButton onClick={() => { hapticSelection(); setStep(3); }} disabled={uses.length === 0}>Next</RingoButton>}
-          {rec && <RingoButton onClick={() => { setQuizPick({ ...rec, quizId }); onBrowse(); }}>Pick my destination</RingoButton>}
+          {step === 1 && <RingoButton onClick={() => { hapticSelection(); setStep(2); }}>{tr('Next')}</RingoButton>}
+          {step === 2 && <RingoButton onClick={() => { hapticSelection(); setStep(3); }} disabled={uses.length === 0}>{tr('Next')}</RingoButton>}
+          {rec && <RingoButton onClick={() => { setQuizPick({ ...rec, quizId }); onBrowse(); }}>{tr('Pick my destination')}</RingoButton>}
         </div>
       )}
     </div>

@@ -16,6 +16,8 @@ export interface Destination {
   flag?: string;
   /** the store section a country sits in (from the site's catalogue) */
   region?: string | null;
+  /** the name as shown, already in the app's language (the Power list's "Europe Power") */
+  shown?: string;
 }
 
 /** The tiles at the top of the store, in order: the plans that cover many countries. */

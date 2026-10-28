@@ -1,0 +1,5 @@
+/* Permission prompts and the home screen name, he. */
+"CFBundleDisplayName" = "Ringo";
+"NSLocationWhenInUseUsageDescription" = "Ringo משתמשת במדינה שבה אתם נמצאים, לעולם לא במיקום המדויק, כדי לשלוח עדכונים על המקומות שאליהם אתם נוסעים.";
+"NSCameraUsageDescription" = "Ringo משתמשת במצלמה רק אם מצלמים תמונה לפרופיל.";
+"NSPhotoLibraryUsageDescription" = "Ringo פותחת את התמונות שלכם רק אם בוחרים תמונה לפרופיל.";

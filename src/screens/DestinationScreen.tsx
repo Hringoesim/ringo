@@ -45,7 +45,9 @@ import { defaultArm, logAb } from '../lib/abtest';
 import { useLayout, contentColumn, type Layout } from '../lib/layout';
 import { requestLightStatusBar } from '../lib/statusBar';
 import { powerPhotoFor } from '../data/powerPhotos';
+import { t, t as tr, tk, plural, placeName as placeLabel, currentLocale } from '../lib/i18n';
 import dishPhoto from '../assets/store/dish-wide.jpg'; // the store's Power card dish, full width (Unsplash Wj1D-qiOseE)
+import { i18n } from '../lib/i18n';
 
 export interface Selection {
   destination: string;
@@ -63,12 +65,12 @@ const DAY_GROUPS: { id: Exclude<Group, 'trip'>; label: string; line: string }[] 
   { id: 'power', label: 'Power user', line: 'Unlimited Pro, for heavy use' },
   { id: 'super', label: 'Super user', line: 'Unlimited Ultra, for van travel or a hotspot for friends' },
 ];
-const DAY_TICKS = ['Unlimited data', 'Never cut off', 'Data only, next to your own SIM'];
+const DAY_TICKS = [tk('Unlimited data'), tk('Never cut off'), tk('Data only, next to your own SIM')];
 
 const SHEET_RADIUS = 28;
-const GLOBAL_TICKS = ['Unlimited data', 'One plan, renews until you cancel', 'One price, no roaming bills', 'Data only, next to your own SIM and number'];
-const DATA_TICKS = ['Full speed, no daily cap', 'Hotspot included', 'Data only, next to your own SIM'];
-const UNLIMITED_TICKS = ['Unlimited data', 'Hotspot included', 'Data only, next to your own SIM'];
+const GLOBAL_TICKS = [tk('Unlimited data'), tk('One plan, renews until you cancel'), tk('One price, no roaming bills'), tk('Data only, next to your own SIM and number')];
+const DATA_TICKS = [tk('Full speed, no daily cap'), tk('Hotspot included'), tk('Data only, next to your own SIM')];
+const UNLIMITED_TICKS = [tk('Unlimited data'), tk('Hotspot included'), tk('Data only, next to your own SIM')];
 
 
 
@@ -114,9 +116,9 @@ function PlanCard({ p, on, price, onPick }: { p: Plan; on: boolean; price: { tot
   // A data card names its data and length; an unlimited card its length and the day's amount.
   // A Power line reads like every Power line: its length, whatever list it came from.
   const powerLine = (Boolean(p.app_only) || p.tier === 'unlimited') && (p.daily_gb ?? 0) >= 5;
-  const title = p.app_only || powerLine ? termTitle(p) : unlimited ? 'Unlimited' : p.data_gb ? `${p.data_gb} GB` : planName(p);
+  const title = p.app_only || powerLine ? termTitle(p) : unlimited ? t('Unlimited') : p.data_gb ? t('{gb} GB', { gb: p.data_gb }) : planName(p);
   // An unlimited card names only its length; the day's amount is said once above the cards.
-  const length = p.app_only || powerLine ? '' : sub ? `Every ${periodWord(p)}` : termTitle(p);
+  const length = p.app_only || powerLine ? '' : sub ? periodWord(p) : termTitle(p);
   // True claim only: the 2-week plan is what most people buy (236 of 316 sales, 2026-10-24).
   const popular = !p.app_only && p.plan === 'rl_14';
   // A Power plan (5 and 10 GB a day) wears its own outline, the sunset
@@ -128,8 +130,8 @@ function PlanCard({ p, on, price, onPick }: { p: Plan; on: boolean; price: { tot
     : on ? ringOn(unlimited || Boolean(p.app_only)) : ringOff;
   return (
     <button type="button" className={power ? 'press power-contour' : 'press'} onClick={onPick} aria-pressed={on}
-      style={{ textAlign: 'left', cursor: 'pointer', width: '100%', font: 'inherit', padding: 0, borderRadius: RADIUS.card, position: 'relative', overflow: 'hidden', ...face }}>
-      <div style={{ display: 'flex', gap: 14, padding: '16px 18px 16px 16px' }}>
+      style={{ textAlign: 'start', cursor: 'pointer', width: '100%', font: 'inherit', padding: 0, borderRadius: RADIUS.card, position: 'relative', overflow: 'hidden', ...face }}>
+      <div style={{ display: 'flex', gap: 14, paddingBlock: 16, paddingInlineStart: 16, paddingInlineEnd: 18 }}>
         <Radio on={on} shade={unlimited || p.app_only ? '#FF42A1' : ORANGE} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
@@ -137,8 +139,8 @@ function PlanCard({ p, on, price, onPick }: { p: Plan; on: boolean; price: { tot
             <span style={{ fontFamily: 'var(--font)', fontSize: 18, fontWeight: 600, color: RC.ink, fontVariantNumeric: 'tabular-nums' }}>{sub ? price.monthly : price.total}</span>
           </div>
           {length && <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 15, color: RC.ink2 }}>{length}</div>}
-          {popular && <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: ORANGE }}>Most popular</div>}
-          {p.member_pct ? <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.purpleInk }}>Your Rewards price</div> : null}
+          {popular && <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: ORANGE }}>{t('Most popular')}</div>}
+          {p.member_pct ? <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: RC.purpleInk }}>{t('Your Rewards price')}</div> : null}
         </div>
       </div>
     </button>
@@ -146,13 +148,13 @@ function PlanCard({ p, on, price, onPick }: { p: Plan; on: boolean; price: { tot
 }
 
 /** The Power Use tiers by GB a day (owner 2026-10-27: "Power" is 5 GB a day, "Super User" 10). */
-const POWER_TIER_NAME: Record<number, string> = { 3: 'Day plan max', 5: 'Power', 10: 'Super User' };
+const POWER_TIER_NAME: Record<number, string> = { 3: tk('Day plan max'), 5: tk('Power'), 10: tk('Super User') };
 /** What each Power Use tier is for, under its name (owner 2026-10-27: by use, not by GB). */
-const POWER_TIER_USE: Record<number, string> = { 5: 'Hotspot and laptop', 10: 'Van and streaming' };
+const POWER_TIER_USE: Record<number, string> = { 5: tk('Hotspot and laptop'), 10: tk('Van and streaming') };
 /** What each tier gets on the network (owner 2026-10-27, his words). */
 const POWER_TIER_PERK: Record<number, string> = {
-  5: 'Priority access and speed.',
-  10: 'Priority network access, guaranteed high speed, priority at peak times.',
+  5: tk('Priority access and speed.'),
+  10: tk('Priority network access, guaranteed high speed, priority at peak times.'),
 };
 /**
  * Power Use tiers on light grey glass (owner 2026-10-27: no blue or purple fills). Super User alone
@@ -245,17 +247,17 @@ function PlanTabs({ value, options, onChange }: { value: PlanTab; options: PlanT
     </span>
   );
   const tabs: { id: PlanTab; label: string; line: string }[] = [
-    { id: 'data', label: 'Data', line: 'A set amount for your whole trip' },
-    { id: 'unl', label: 'Unlimited', line: 'Unlimited data, never cut off' },
-    { id: 'power', label: 'Power', line: 'For vans, hotspots and a secure connection' },
+    { id: 'data', label: tr('Data'), line: tr('A set amount for your whole trip') },
+    { id: 'unl', label: tr('Unlimited'), line: tr('Unlimited data, never cut off') },
+    { id: 'power', label: tr('Power'), line: tr('For vans, hotspots and a secure connection') },
   ];
   return (
-    <div role="tablist" aria-label="Plan type" style={{ display: 'grid', gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))`, gap: options.length > 2 ? 8 : 10 }}>
+    <div role="tablist" aria-label={tr('Plan type')} style={{ display: 'grid', gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))`, gap: options.length > 2 ? 8 : 10 }}>
       {tabs.filter((t) => options.includes(t.id)).map((t) => {
         const on = t.id === value;
         return (
           <button key={t.id} type="button" role="tab" aria-selected={on} className="press" onClick={() => { if (!on) onChange(t.id); }}
-            style={{ cursor: 'pointer', textAlign: 'left', minWidth: 0, padding: options.length > 2 ? '10px 10px' : '12px 14px', borderRadius: 18, ...(on ? ringOn(t.id !== 'data') : ringOff) }}>
+            style={{ cursor: 'pointer', textAlign: 'start', minWidth: 0, padding: options.length > 2 ? '10px 10px' : '12px 14px', borderRadius: 18, ...(on ? ringOn(t.id !== 'data') : ringOff) }}>
             {icon(t.id, on)}
             <span style={{ display: 'block', fontFamily: 'var(--font)', fontSize: options.length > 2 ? 15 : 17, fontWeight: 600, color: RC.ink, overflowWrap: 'anywhere' }}>{t.label}</span>
             {/* Three tabs leave no room for a line on a phone or the Duo's column: name and icon only. */}
@@ -279,13 +281,13 @@ function CountryList({ list }: { list: { iso: string; name: string; flag: string
   return (
     <div style={{ marginTop: 14, flexShrink: 0, borderRadius: 16, border: `1.5px solid ${RC.line}`, background: '#fff', overflow: 'hidden' }}>
       <button type="button" className="press" aria-expanded={open} onClick={() => { hapticSelection(); setOpen(!open); }}
-        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 16px', minHeight: 48, background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 16, fontWeight: 600, color: RC.ink, textAlign: 'left' }}>
-        <span>{`Works in ${list.length} countries`}</span>
+        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 16px', minHeight: 48, background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 16, fontWeight: 600, color: RC.ink, textAlign: 'start' }}>
+        <span>{plural(list.length, 'Works in {n} country', 'Works in {n} countries')}</span>
         <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}><path d="M2 5l5 5 5-5" fill="none" stroke={RC.ink2} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
       </button>
       {open && (
         <ul style={{ listStyle: 'none', margin: 0, padding: '0 16px 12px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', columnGap: 12 }}>
-          {list.filter((c) => c && c.name).sort((a, b) => a.name.localeCompare(b.name)).map((c) => (
+          {list.filter((c) => c && c.name).map((c) => ({ ...c, name: placeLabel(c.name, c.flag) })).sort((a, b) => a.name.localeCompare(b.name, currentLocale())).map((c) => (
             <li key={c.iso || c.name} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 0', fontFamily: 'var(--font)', fontSize: 15, color: RC.ink, borderTop: `1px solid ${RC.line}` }}>
               <span aria-hidden style={{ fontSize: 18 }}>{c.flag}</span>{c.name}
             </li>
@@ -301,17 +303,17 @@ function GlobalCard({ l, p, price }: { l: Layout; p: Plan; price: { total: strin
   return (
     <div style={{ background: SKINS.unlimited, borderRadius: RADIUS.card, border: `1px solid ${ON_DARK.line}`, boxShadow: '0 18px 40px -20px rgba(147,33,79,0.55)', padding: l.isWide ? 28 : 20, color: '#fff' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-        <div style={{ ...TYPE.h1, color: '#fff' }}>Unlimited</div>
+        <div style={{ ...TYPE.h1, color: '#fff' }}>{t('Unlimited')}</div>
         {p.member_pct ? (
-          <span style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, color: 'hsl(142,70%,64%)', background: 'hsla(142,60%,45%,0.20)', borderRadius: RADIUS.pill, padding: '5px 11px' }}>Your Rewards price</span>
+          <span style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, color: 'hsl(142,70%,64%)', background: 'hsla(142,60%,45%,0.20)', borderRadius: RADIUS.pill, padding: '5px 11px' }}>{t('Your Rewards price')}</span>
         ) : null}
       </div>
-      <div style={{ marginTop: 4, ...TYPE.small, color: ON_DARK.text2 }}>One plan, everywhere you go</div>
+      <div style={{ marginTop: 4, ...TYPE.small, color: ON_DARK.text2 }}>{t('One plan, everywhere you go')}</div>
       <div style={{ marginTop: 18, display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
         <span style={{ ...typeFor('priceHero', l.size), color: '#fff', fontVariantNumeric: 'tabular-nums' }}>{price.monthly}</span>
-        <span style={{ ...TYPE.small, color: ON_DARK.text2 }}>a month</span>
+        <span style={{ ...TYPE.small, color: ON_DARK.text2 }}>{t('a month')}</span>
       </div>
-      <TickList items={GLOBAL_TICKS} onDark size={16} style={{ marginTop: 18 }} />
+      <TickList items={GLOBAL_TICKS.map((x) => t(x))} onDark size={16} style={{ marginTop: 18 }} />
     </div>
   );
 }
@@ -373,7 +375,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
       if (alive) setProducts(map);
       // The store cards read this destination's "From" from Apple from now on.
       rememberAppleLines([id, c.destination.id], c.plans);
-    }).catch((e: Error) => { if (alive) setErr(e.message || 'Could not load the plans.'); });
+    }).catch((e: Error) => { if (alive) setErr(e.message || t('Could not load the plans.')); });
     return () => { alive = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `member` follows memberKey
   }, [id, reloadKey, memberKey]);
@@ -530,15 +532,16 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
     : { background: SUNSET, color: '#FFFFFF', boxShadow: '0 10px 22px -16px rgba(255,66,161,0.8)' };
   const tiers = new Set(cat?.plans.map((p) => p.tier) ?? []);
   const hasBothTiers = onTrip && !unlimitedGlobal && tiers.has('data') && tiers.has('unlimited');
-  const placeName = dest?.label || cat?.destination.label || id;
-  const name = powerMode && !/power use/i.test(placeName) ? `${placeName} Power Use` : placeName;
+  const placeName = dest ? placeLabel(dest.label, dest.flag) : cat ? placeLabel(cat.destination.label) : id;
+  const enLabel = dest?.label || cat?.destination.label || id;
+  const name = powerMode && !/power use/i.test(enLabel) ? t('{place} Power Use', { place: placeName }) : placeName;
   // A line whose package connects in its own countries (Latin America's Power plans: no Mexico, US or Canada) says so.
-  const coverage = selected?.coverage ? `Works in ${selected.coverage.countries} countries` : cat ? cat.destination.coverage_line : dest ? (dest.countries > 1 ? `Works in ${dest.countries} countries` : `Works across ${dest.label}`) : '';
+  const coverage = selected?.coverage ? plural(selected.coverage.countries, 'Works in {n} country', 'Works in {n} countries') : cat ? (i18n.get() === 'en' ? cat.destination.coverage_line : cat.destination.countries > 1 ? plural(cat.destination.countries, 'Works in {n} country', 'Works in {n} countries') : t('Works across {place}', { place: placeName })) : dest ? (dest.countries > 1 ? plural(dest.countries, 'Works in {n} country', 'Works in {n} countries') : t('Works across {place}', { place: placeName })) : '';
 
   const continueTap = () => {
     if (!cat || !selected) return;
     haptic('medium');
-    onContinue({ destination: id, destinationLabel: cat.destination.id === id ? cat.destination.label : `${dest?.label || id} (${cat.destination.label} plan)`, plan: selected, data_gb: selected.tier === 'data' ? selected.data_gb : null, product: productFor(selected) });
+    onContinue({ destination: id, destinationLabel: cat.destination.id === id ? placeLabel(cat.destination.label) : t('{place} ({region} plan)', { place: dest ? placeLabel(dest.label, dest.flag) : id, region: placeLabel(cat.destination.label) }), plan: selected, data_gb: selected.tier === 'data' ? selected.data_gb : null, product: productFor(selected) });
   };
   const retry = () => { setErr(null); setProducts(null); setReloadKey((k) => k + 1); };
   const loadingPrices = native && cat && !products;
@@ -548,15 +551,15 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   // ── Pieces shared by both layouts ────────────────────────────────────────
   const errorBlock = err && (
     <div>
-      <ErrorBox>{err} Check your connection and try again.</ErrorBox>
+      <ErrorBox>{err} {t('Check your connection and try again.')}</ErrorBox>
       <div style={{ marginTop: 12 }}>
-        <RingoButton variant="soft" onClick={retry}>Try again</RingoButton>
+        <RingoButton variant="soft" onClick={retry}>{t('Try again')}</RingoButton>
       </div>
     </div>
   );
 
   const skeleton = loading && (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: l.cardGap }} aria-busy="true" aria-label="Loading plans">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: l.cardGap }} aria-busy="true" aria-label={t('Loading plans')}>
       {[0, 1, 2].map((i) => <div key={i} style={{ height: 96, borderRadius: RADIUS.card, background: RC.cream, border: `1.5px solid ${RC.line}`, animation: 'ringoSheen 1.4s ease-in-out infinite' }} />)}
     </div>
   );
@@ -568,9 +571,9 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
       <TickList items={(() => {
         const base = selected && selected.app_only ? DAY_TICKS : selected && selected.tier === 'unlimited' ? UNLIMITED_TICKS : DATA_TICKS;
         const perk = shownTab === 'power' && powerGbShown != null ? POWER_TIER_PERK[powerGbShown] : undefined;
-        if (!perk) return base;
         const at = base.indexOf('Never cut off');
-        return at < 0 ? [...base, perk] : [...base.slice(0, at + 1), perk, ...base.slice(at + 1)];
+        const all = !perk ? base : at < 0 ? [...base, perk] : [...base.slice(0, at + 1), perk, ...base.slice(at + 1)];
+        return all.map((x) => t(x));
       })()} />
       {countryList && <CountryList list={countryList} />}
     </>
@@ -583,11 +586,11 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
           {native && products && products.size === 0
             ? (
               <>
-                <div style={{ ...TYPE.body, color: RC.ink }}>The App Store did not answer just now.</div>
-                <div style={{ marginTop: 12 }}><RingoButton size="sm" variant="soft" full={false} onClick={retry}>Try again</RingoButton></div>
+                <div style={{ ...TYPE.body, color: RC.ink }}>{t('The App Store did not answer just now.')}</div>
+                <div style={{ marginTop: 12 }}><RingoButton size="sm" variant="soft" full={false} onClick={retry}>{t('Try again')}</RingoButton></div>
               </>
             )
-            : <div style={{ ...TYPE.body, color: RC.ink }}>Not sold here yet.{hasBothTiers ? ' Try the other plan type.' : ''}</div>}
+            : <div style={{ ...TYPE.body, color: RC.ink }}>{t('Not sold here yet.')}{hasBothTiers ? ` ${t('Try the other plan type.')}` : ''}</div>}
         </div>
       )}
       {unlimitedGlobal && plans[0] && (
@@ -598,7 +601,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
       )}
       {!unlimitedGlobal && quizMissing && (
         <p style={{ margin: 0, fontFamily: 'var(--font)', fontSize: 14, color: RC.ink2 }}>
-          {quiz?.tab === 'power' ? 'Power plans are not sold here yet. Unlimited covers a hotspot too.' : 'That plan type is not sold here. Here is what is.'}
+          {quiz?.tab === 'power' ? t('Power plans are not sold here yet. Unlimited covers a hotspot too.') : t('That plan type is not sold here. Here is what is.')}
         </p>
       )}
       {!unlimitedGlobal && shownTab === 'unl' && tierOptions.length > 1 && (
@@ -619,7 +622,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
       {!unlimitedGlobal && shownTab === 'power' && (
         <div>
           <p style={{ margin: '0 0 12px', fontFamily: 'var(--font)', fontSize: 16, lineHeight: 1.4, color: RC.ink }}>
-            Unlimited data for a van, hotspot or laptop.
+            {t('Unlimited data for a van, hotspot or laptop.')}
           </p>
           <style>{POWER_PULSE_CSS}</style>
           {/* What is what (owner 2026-10-27): each tier says what it is for, not its GB a day. */}
@@ -628,14 +631,14 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
               const sel = g === powerGbShown;
               return (
                 <button key={g} type="button" className="press" aria-pressed={sel} onClick={() => { hapticSelection(); setPowerGb(g); setShowAll(false); }}
-                  style={{ flex: 1, minWidth: 0, cursor: 'pointer', fontFamily: 'var(--font)', padding: 2, borderRadius: 20, border: 'none', textAlign: 'left', position: 'relative',
+                  style={{ flex: 1, minWidth: 0, cursor: 'pointer', fontFamily: 'var(--font)', padding: 2, borderRadius: 20, border: 'none', textAlign: 'start', position: 'relative',
                     background: sel ? RC.ink : 'rgba(26,15,46,0.10)', boxShadow: sel ? '0 12px 26px -14px rgba(26,15,46,0.45)' : 'none', transition: 'box-shadow .2s, background .2s' }}>
                   {g >= 10 && <span aria-hidden className="super-pulse" style={{ position: 'absolute', inset: 0, borderRadius: 20, background: POWER_SUNSET }} />}
                   <span style={{ position: 'relative', display: 'block', height: '100%', boxSizing: 'border-box', padding: '12px 12px 12px', borderRadius: 18, background: POWER_GLASS, backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', color: RC.ink }}>
-                    {sel && <span aria-hidden style={{ position: 'absolute', top: 12, right: 12, width: 22, height: 22, borderRadius: 11, background: RC.ink, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><svg width="13" height="13" viewBox="0 0 24 24"><path fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" d="M5 12.5l4.5 4.5L19 7.5" /></svg></span>}
+                    {sel && <span aria-hidden style={{ position: 'absolute', top: 12, insetInlineEnd: 12, width: 22, height: 22, borderRadius: 11, background: RC.ink, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><svg width="13" height="13" viewBox="0 0 24 24"><path fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" d="M5 12.5l4.5 4.5L19 7.5" /></svg></span>}
                     <PowerTierIcon gb={g} on={sel} />
-                    <span style={{ display: 'block', fontSize: 17, fontWeight: 800, letterSpacing: '-0.01em' }}>{POWER_TIER_NAME[g] ?? tierName(g)}</span>
-                    <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: RC.ink2 }}>{POWER_TIER_USE[g] ?? `${g} GB a day`}</span>
+                    <span style={{ display: 'block', fontSize: 17, fontWeight: 800, letterSpacing: '-0.01em' }}>{POWER_TIER_NAME[g] ? t(POWER_TIER_NAME[g]) : tierName(g)}</span>
+                    <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: RC.ink2 }}>{POWER_TIER_USE[g] ? t(POWER_TIER_USE[g]) : t('{gb} GB a day', { gb: g })}</span>
                   </span>
                 </button>
               );
@@ -646,11 +649,11 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
       {/* Power Use is offered from Unlimited only (owner 2026-10-27: on Data it confuses). */}
       {!unlimitedGlobal && powerLink && shownTab === 'unl' && (
         <button type="button" className="press" onClick={() => { hapticSelection(); onPower?.(powerLink); }}
-          style={{ textAlign: 'left', cursor: 'pointer', padding: '16px', borderRadius: 22, border: 'none', background: `linear-gradient(90deg, rgba(26,15,46,0.7) 0%, rgba(26,15,46,0.35) 55%, rgba(26,15,46,0) 80%), url(${dishPhoto}) 0 56% / 100% auto, #1A0F2E`, fontFamily: 'var(--font)', color: '#fff', textShadow: '0 2px 12px rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          style={{ textAlign: 'start', cursor: 'pointer', padding: '16px', borderRadius: 22, border: 'none', background: `linear-gradient(90deg, rgba(26,15,46,0.7) 0%, rgba(26,15,46,0.35) 55%, rgba(26,15,46,0) 80%), url(${dishPhoto}) 0 56% / 100% auto, #1A0F2E`, fontFamily: 'var(--font)', color: '#fff', textShadow: '0 2px 12px rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', gap: 12 }}>
           <span aria-hidden style={{ width: 40, height: 40, borderRadius: 13, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.28)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}><svg width="22" height="22" viewBox="0 0 24 24"><path fill="#fff" d="M13.4 2.2c.4-.6-.3-1.3-.9-.9L4.6 12.2c-.4.5 0 1.3.6 1.3h5.3l-1.9 8.2c-.2.7.7 1.1 1.1.5l9.6-11.6c.4-.5 0-1.2-.6-1.2h-5.6l.3-7.2z" /></svg></span>
           <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ display: 'block', fontSize: 16, fontWeight: 700 }}>{placeName} Power Use</span>
-            <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: 'rgba(255,255,255,0.92)' }}>Power and Super User plans.</span>
+            <span style={{ display: 'block', fontSize: 16, fontWeight: 700 }}>{t('{place} Power Use', { place: placeName })}</span>
+            <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: 'rgba(255,255,255,0.92)' }}>{t('Power and Super User plans.')}</span>
           </span>
         </button>
       )}
@@ -661,7 +664,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
       {!unlimitedGlobal && hiddenCount > 0 && (
         <button type="button" className="press" onClick={() => { hapticSelection(); setShowAll(true); }}
           style={{ alignSelf: 'center', cursor: 'pointer', background: 'transparent', border: 'none', padding: '6px 10px', fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, color: RC.ink2, textDecoration: 'underline', textUnderlineOffset: 3 }}>
-          {`More lengths (${hiddenCount})`}
+          {t('More lengths ({n})', { n: hiddenCount })}
         </button>
       )}
     </div>
@@ -669,10 +672,10 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
 
   const notes = cat && !loadingPrices && (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {unlimitedGlobal && <p style={{ margin: 0, ...TYPE.small, color: RC.ink2 }}>Use a lot? Add a top-up from My eSIM in one tap.</p>}
+      {unlimitedGlobal && <p style={{ margin: 0, ...TYPE.small, color: RC.ink2 }}>{t('Use a lot? Add a top-up from My eSIM in one tap.')}</p>}
       {selected && selected.mode === 'subscription' && selectedPrice && (
         <p style={{ margin: 0, ...TYPE.caption, color: RC.inkMute }}>
-          Renews at {selectedPrice.total} every {periodWord(selected)} until you turn renewal off under My eSIM. No minimum term.
+          {t('Renews at {price} {every} until you turn renewal off under My eSIM. No minimum term.', { price: selectedPrice.total, every: periodWord(selected) })}
         </p>
       )}
     </div>
@@ -689,7 +692,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
               <div style={{ position: 'relative', aspectRatio: '4 / 3', borderRadius: RADIUS.card, overflow: 'hidden', background: skyFor(id), border: `1.5px solid ${RC.line}`, boxShadow: SHADOW_CARD }}>
                 <Photo id={id} src={powerHero} />
                 <div aria-hidden style={{ position: 'absolute', inset: 0, background: PHOTO_OVERLAY }} />
-                <div style={{ position: 'absolute', left: 22, right: 22, bottom: 20 }}>
+                <div style={{ position: 'absolute', insetInline: 22, bottom: 20 }}>
                   <PhotoTitle l={l} dest={dest} name={name} coverage={coverage} />
                 </div>
               </div>
@@ -701,7 +704,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
               {planList}
               {selected && selectedPrice && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <RingoButton onClick={continueTap} style={ctaStyle}>{`Continue, ${selectedPrice.total}${selected.mode === 'subscription' ? ' today' : ''}`}</RingoButton>
+                  <RingoButton onClick={continueTap} style={ctaStyle}>{selected.mode === 'subscription' ? t('Continue, {price} today', { price: selectedPrice.total }) : t('Continue, {price}', { price: selectedPrice.total })}</RingoButton>
                 </div>
               )}
               {notes}
@@ -716,7 +719,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   const heroH = l.isCover ? 220 : 248;
   const footer: CSSProperties = {
     position: 'absolute', left: 12, right: 12, bottom: 'max(12px, env(safe-area-inset-bottom, 0px))',
-    padding: 8, paddingLeft: 18, borderRadius: SHEET_RADIUS + 4, background: CREAM, border: `1.5px solid ${LINE}`,
+    padding: 8, paddingInlineStart: 18, borderRadius: SHEET_RADIUS + 4, background: CREAM, border: `1.5px solid ${LINE}`,
     boxShadow: '0 2px 8px rgba(26,15,46,0.06), 0 18px 40px -16px rgba(26,15,46,0.30)', display: 'flex', alignItems: 'center', gap: 12,
   };
   return (
@@ -746,11 +749,11 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
           <div style={{ flexShrink: 1, minWidth: 0, fontFamily: 'var(--font)' }}>
             <div style={{ ...TYPE.caption, color: RC.inkMute, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{planName(selected)}</div>
             <div style={{ marginTop: 2, fontSize: 19, fontWeight: 800, lineHeight: 1.2, color: RC.ink, letterSpacing: '-0.02em', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-              {selectedPrice.total}{selected.mode === 'subscription' ? ' today' : ''}
+              {selected.mode === 'subscription' ? t('{price} today', { price: selectedPrice.total }) : selectedPrice.total}
             </div>
           </div>
           <div style={{ flex: 1, minWidth: 132 }}>
-            <RingoButton round onClick={continueTap} style={ctaStyle}>Continue</RingoButton>
+            <RingoButton round onClick={continueTap} style={ctaStyle}>{t('Continue')}</RingoButton>
           </div>
         </div>
       )}

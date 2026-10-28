@@ -45,6 +45,7 @@ import { logAb } from '../lib/abtest';
 import { type Selection } from './DestinationScreen';
 import { planName, periodWord } from '../lib/terms';
 import { useLayout, contentColumn, type Layout } from '../lib/layout';
+import { t, t as tr, tk, tn, isRtl, fmtMoney } from '../lib/i18n';
 
 type Stage = 'email' | 'card' | 'checking' | 'issuing' | 'slow' | 'ready';
 
@@ -152,7 +153,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   // The email checks both buttons share; the address, or null after saying why.
   const checkedEmail = (): string | null => {
     const e = email.trim().toLowerCase();
-    if (!EMAIL_RE.test(e)) { setErr('Enter the email your eSIM should be sent to.'); return null; }
+    if (!EMAIL_RE.test(e)) { setErr(t('Enter the email your eSIM should be sent to.')); return null; }
     if (signedInEmail && e !== signedInEmail.toLowerCase() && confirmedOther.current !== e) { setErr(null); setOtherEmail(e); return null; }
     setErr(null);
     setOtherEmail(null);
@@ -199,7 +200,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
       waitForEsim();
     } catch (ex) {
       if (!mounted.current) return;
-      setErr((ex as Error).message || 'The payment could not be started. Nothing was charged.');
+      setErr((ex as Error).message || t('The payment could not be started. Nothing was charged.'));
       setStageBoth('email');
     }
   };
@@ -229,8 +230,8 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   const confirmOther = () => { if (otherEmail) { confirmedOther.current = otherEmail; void payByCard(); } };
   const useSignedIn = () => { setEmail(signedInEmail); setOtherEmail(null); confirmedOther.current = null; };
 
-  const planLine = isGlobal && renewing ? 'Unlimited, renews monthly' : `${planName(p)}${renewing ? '' : ', one payment'}`;
-  const buyLabel = renewing ? `Subscribe securely, ${price.total} a month` : creditHere && useCredit ? `Pay up to ${price.total} securely` : `Pay ${price.total} securely`;
+  const planLine = isGlobal && renewing ? t('Unlimited, renews monthly') : renewing ? planName(p) : t('{plan}, one payment', { plan: planName(p) });
+  const buyLabel = renewing ? t('Subscribe securely, {price} a month', { price: price.total }) : creditHere && useCredit ? t('Pay up to {price} securely', { price: price.total }) : t('Pay {price} securely', { price: price.total });
 
   // ── Pieces ────────────────────────────────────────────────────────────────
   const summary = <Summary l={l} selection={selection} planLine={planLine} total={price.total} renewing={renewing} />;
@@ -238,20 +239,20 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   const form = stage === 'email' && signedInEmail && !editingEmail && !otherEmail && email.trim().toLowerCase() === signedInEmail.toLowerCase() ? (
     <div>
       <div style={{ ...TYPE.small, color: RC.ink2, overflowWrap: 'anywhere' }}>
-        {relayEmail ? 'Your eSIM installs here in the app.' : <>Receipt and activation code to <b style={{ color: RC.ink }}>{signedInEmail}</b></>}
-        {' '}<button type="button" onClick={() => setEditingEmail(true)} style={inlineLink()}>Edit</button>
+        {relayEmail ? t('Your eSIM installs here in the app.') : tn('Receipt and activation code to {email}', { email: <b style={{ color: RC.ink }}>{signedInEmail}</b> })}
+        {' '}<button type="button" onClick={() => setEditingEmail(true)} style={inlineLink()}>{t('Edit')}</button>
       </div>
       {err && <ErrorBox style={{ marginTop: 12 }}>{err}</ErrorBox>}
     </div>
   ) : stage === 'email' && (
     <div>
-      <FieldLabel htmlFor="checkout-email">Your email</FieldLabel>
+      <FieldLabel htmlFor="checkout-email">{t('Your email')}</FieldLabel>
       <Input
         id="checkout-email"
         name="email"
         value={email}
         onChange={(v) => { setEmail(v); setOtherEmail(null); if (err) setErr(null); }}
-        placeholder="you@example.com"
+        placeholder={t('you@example.com')}
         type="email"
         inputMode="email"
         autoComplete="email"
@@ -260,18 +261,18 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
       />
       <HelpText style={{ fontSize: 15, color: RC.ink2, lineHeight: 1.45 }}>
         {relayEmail
-          ? 'Your eSIM installs here in the app. Apple hides this address, so use a real one if you also want it by email.'
-          : 'Your activation code and receipt go here.'}
+          ? t('Your eSIM installs here in the app. Apple hides this address, so use a real one if you also want it by email.')
+          : t('Your activation code and receipt go here.')}
       </HelpText>
       {otherEmail && (
         <div role="alert" style={{ marginTop: 14, ...cardSurface(), padding: 16 }}>
-          <div style={{ ...TYPE.bodyStrong, color: RC.ink }}>Buy for {otherEmail}?</div>
+          <div style={{ ...TYPE.bodyStrong, color: RC.ink }}>{t('Buy for {email}?', { email: otherEmail })}</div>
           <div style={{ marginTop: 6, ...TYPE.small, color: RC.ink2, overflowWrap: 'anywhere' }}>
-            You are signed in as {signedInEmail}. This eSIM will belong to the account for {otherEmail}, and the app will switch to it.
+            {t('You are signed in as {mine}. This eSIM will belong to the account for {other}, and the app will switch to it.', { mine: signedInEmail, other: otherEmail })}
           </div>
           <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <RingoButton onClick={confirmOther}>Yes, use this email</RingoButton>
-            <RingoButton variant="secondary" onClick={useSignedIn}>Use my account email</RingoButton>
+            <RingoButton onClick={confirmOther}>{t('Yes, use this email')}</RingoButton>
+            <RingoButton variant="secondary" onClick={useSignedIn}>{t('Use my account email')}</RingoButton>
           </div>
         </div>
       )}
@@ -282,37 +283,37 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   const creditBox = stage === 'email' && creditHere && (
     <div style={{ padding: '12px 16px', borderRadius: RADIUS.sm, background: RC.cream, border: `1px solid ${RC.line}`, display: 'flex', alignItems: 'center', gap: 14 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ ...TYPE.bodyStrong, color: RC.ink }}>Use Ringo credit</div>
-        <div style={{ ...TYPE.small, color: RC.ink2, marginTop: 2 }}>{`€${(creditCents / 100).toFixed(2)} available`}</div>
+        <div style={{ ...TYPE.bodyStrong, color: RC.ink }}>{t('Use Ringo credit')}</div>
+        <div style={{ ...TYPE.small, color: RC.ink2, marginTop: 2 }}>{t('{amount} available', { amount: fmtMoney(creditCents / 100, 'EUR') })}</div>
       </div>
-      <button type="button" role="switch" aria-checked={useCredit} aria-label="Use Ringo credit" className="press"
+      <button type="button" role="switch" aria-checked={useCredit} aria-label={t('Use Ringo credit')} className="press"
         onClick={() => { hapticSelection(); setUseCredit(!useCredit); }}
         style={{ width: 51, height: 31, borderRadius: 16, border: 'none', cursor: 'pointer', padding: 2, flexShrink: 0, background: useCredit ? RC.tick : RC.lineStrong, transition: 'background .2s' }}>
-        <span style={{ display: 'block', width: 27, height: 27, borderRadius: '50%', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', transform: useCredit ? 'translateX(20px)' : 'none', transition: 'transform .2s' }} />
+        <span style={{ display: 'block', width: 27, height: 27, borderRadius: '50%', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', transform: useCredit ? `translateX(${isRtl() ? -20 : 20}px)` : 'none', transition: 'transform .2s' }} />
       </button>
     </div>
   );
 
   const terms = stage === 'email' && (
     <div style={{ ...TYPE.caption, color: RC.inkMute, textAlign: 'center' }}>
-      {renewing && `Renews every ${periodWord(p)}, turn it off any time in My eSIM. `}By buying you agree to the{' '}
-      <button type="button" onClick={() => void openInSheet(`${SITE}/terms?app=1`)} style={inlineLink()}>Terms of Use</button>
-      {' '}and the{' '}
-      <button type="button" onClick={() => void openInSheet(`${SITE}/privacy?app=1`)} style={inlineLink()}>Privacy Policy</button>
-      .
+      {renewing && `${t('Renews {every}, turn it off any time in My eSIM.', { every: periodWord(p) })} `}
+      {tn('By buying you agree to the {terms} and the {privacy}.', {
+        terms: <button type="button" onClick={() => void openInSheet(`${SITE}/terms?app=1`)} style={inlineLink()}>{t('Terms of Use')}</button>,
+        privacy: <button type="button" onClick={() => void openInSheet(`${SITE}/privacy?app=1`)} style={inlineLink()}>{t('Privacy Policy')}</button>,
+      })}
     </div>
   );
 
   // One loading screen from paying to ready (owner 2026-10-27): the same journey, never restarted.
   const journeySub = stage === 'card'
-    ? (cardSlow ? 'Still confirming your payment. Your eSIM appears under My eSIM the moment it goes through.' : 'Your eSIM starts the moment your payment goes through.')
+    ? (cardSlow ? t('Still confirming your payment. Your eSIM appears under My eSIM the moment it goes through.') : t('Your eSIM starts the moment your payment goes through.'))
     : stage === 'issuing'
-      ? (relayEmail ? 'Under a minute. It lands under My eSIM, here in the app.' : 'Under a minute. It lands under My eSIM and in your email.')
-      : (relayEmail ? 'It is taking a little longer than usual. It appears under My eSIM as soon as it is ready.' : 'It is taking a little longer than usual. It appears under My eSIM and in your email as soon as it is ready.');
+      ? (relayEmail ? t('Under a minute. It lands under My eSIM, here in the app.') : t('Under a minute. It lands under My eSIM and in your email.'))
+      : (relayEmail ? t('It is taking a little longer than usual. It appears under My eSIM as soon as it is ready.') : t('It is taking a little longer than usual. It appears under My eSIM and in your email as soon as it is ready.'));
   const status = (
     <>
       {(stage === 'card' || stage === 'issuing' || stage === 'slow') && <Journey key="go" leg={stage} sub={journeySub} />}
-      {stage === 'checking' && <Waiting title="Checking your payment" sub="Your payment is not confirmed yet. If it went through, your eSIM appears under My eSIM. Look there before paying again." />}
+      {stage === 'checking' && <Waiting title={t('Checking your payment')} sub={t('Your payment is not confirmed yet. If it went through, your eSIM appears under My eSIM. Look there before paying again.')} />}
     </>
   );
 
@@ -326,8 +327,8 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
           <svg width="52" height="52" viewBox="0 0 24 24" fill="none" aria-hidden><path className="success-tick" d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </div>
       </div>
-      <h2 className="rise" style={{ margin: '26px 0 0', ...typeFor('display', l.size), color: RC.ink, animationDelay: '0.2s' }}>Your eSIM is ready</h2>
-      <p className="rise" style={{ margin: '10px 0 0', ...TYPE.body, color: RC.ink2, maxWidth: 340, animationDelay: '0.28s' }}>Payment received. Install it now, or any time later from My eSIM.</p>
+      <h2 className="rise" style={{ margin: '26px 0 0', ...typeFor('display', l.size), color: RC.ink, animationDelay: '0.2s' }}>{t('Your eSIM is ready')}</h2>
+      <p className="rise" style={{ margin: '10px 0 0', ...TYPE.body, color: RC.ink2, maxWidth: 340, animationDelay: '0.28s' }}>{t('Payment received. Install it now, or any time later from My eSIM.')}</p>
       <div className="rise" style={{ width: '100%', marginTop: 28, animationDelay: '0.36s' }}>
         <Recap l={l} selection={selection} planLine={planLine} total={price.total} renewing={renewing} period={periodWord(p)} email={relayEmail ? null : email.trim()} />
       </div>
@@ -342,13 +343,13 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
 
   const payFields = stage === 'email' && inline && !otherEmail && (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {applePay && <div ref={appleSlot} aria-label="Apple Pay" style={{ height: 50, borderRadius: 14, background: '#000' }} />}
+      {applePay && <div ref={appleSlot} aria-label={t('Apple Pay')} style={{ height: 50, borderRadius: 14, background: '#000' }} />}
       {applePay && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, ...TYPE.caption, color: RC.inkMute }}>
-          <div style={{ flex: 1, height: 1, background: RC.line }} />or pay by card<div style={{ flex: 1, height: 1, background: RC.line }} />
+          <div style={{ flex: 1, height: 1, background: RC.line }} />{t('or pay by card')}<div style={{ flex: 1, height: 1, background: RC.line }} />
         </div>
       )}
-      <div ref={cardSlot} aria-label="Card number, expiry and CVC" style={{ height: 52, borderRadius: 14, background: '#fff', border: `1.5px solid ${RC.line}` }} />
+      <div ref={cardSlot} aria-label={t('Card number, expiry and CVC')} style={{ height: 52, borderRadius: 14, background: '#fff', border: `1.5px solid ${RC.line}` }} />
     </div>
   );
 
@@ -356,12 +357,12 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
     <>
       {stage === 'email' && <RingoButton onClick={() => void payByCard('card')} disabled={Boolean(otherEmail) || (inline && !cardComplete)} style={PAY_STYLE}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Lock size={17} color="#fff" />{buyLabel}</span></RingoButton>}
       {stage === 'email' && <PayMethods />}
-      {(stage === 'issuing' || stage === 'slow' || stage === 'checking' || (stage === 'card' && cardSlow)) && <RingoButton variant="soft" onClick={onReady}>Go to My eSIM</RingoButton>}
-      {stage === 'ready' && <RingoButton onClick={onReady}>Install my eSIM</RingoButton>}
+      {(stage === 'issuing' || stage === 'slow' || stage === 'checking' || (stage === 'card' && cardSlow)) && <RingoButton variant="soft" onClick={onReady}>{t('Go to My eSIM')}</RingoButton>}
+      {stage === 'ready' && <RingoButton onClick={onReady}>{t('Install my eSIM')}</RingoButton>}
     </>
   );
 
-  const header = <RingoHeader title={stage === 'ready' ? undefined : 'Checkout'} leading={stage === 'email' ? <BackBtn onClick={onBack} /> : null} />;
+  const header = <RingoHeader title={stage === 'ready' ? undefined : t('Checkout')} leading={stage === 'email' ? <BackBtn onClick={onBack} /> : null} />;
   // Paid or paying: the plan shrinks to one row, the status takes the screen.
   const top = stage === 'email' ? summary : stage === 'ready' ? null : <Compact l={l} selection={selection} planLine={planLine} total={price.total} />;
   const waiting = stage !== 'email' && stage !== 'ready' && <div style={{ paddingTop: l.isWide ? 0 : 36 }}>{status}</div>;
@@ -434,18 +435,18 @@ function Summary({ l, selection, planLine, total, renewing }: { l: Layout; selec
             />
           )}
         <div aria-hidden style={{ position: 'absolute', inset: 0, background: PHOTO_OVERLAY }} />
-        <div style={{ position: 'absolute', left: 16, right: 16, bottom: 14, fontFamily: 'var(--font-display)', fontSize: l.isWide ? 28 : 22, fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.02em', color: '#fff', textShadow: PHOTO_TEXT_SHADOW, overflowWrap: 'anywhere' }}>
+        <div style={{ position: 'absolute', insetInline: 16, bottom: 14, fontFamily: 'var(--font-display)', fontSize: l.isWide ? 28 : 22, fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.02em', color: '#fff', textShadow: PHOTO_TEXT_SHADOW, overflowWrap: 'anywhere' }}>
           {selection.destinationLabel}
         </div>
       </div>
       <div style={{ padding: `14px ${l.cardPad}px 16px`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ ...TYPE.h3, color: RC.ink }}>{planLine}</div>
-          {selection.plan.member_pct ? <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 15, fontWeight: 700, color: RC.purpleInk }}>Your Rewards price</div> : null}
+          {selection.plan.member_pct ? <div style={{ marginTop: 4, fontFamily: 'var(--font)', fontSize: 15, fontWeight: 700, color: RC.purpleInk }}>{t('Your Rewards price')}</div> : null}
         </div>
-        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+        <div style={{ textAlign: 'end', flexShrink: 0 }}>
           <div style={{ ...TYPE.price, color: RC.ink, fontVariantNumeric: 'tabular-nums' }}>{total}</div>
-          {renewing && <div style={{ marginTop: 2, ...TYPE.caption, color: RC.inkMute }}>today</div>}
+          {renewing && <div style={{ marginTop: 2, ...TYPE.caption, color: RC.inkMute }}>{t('today')}</div>}
         </div>
       </div>
     </div>
@@ -482,11 +483,11 @@ function Recap({ l, selection, planLine, total, renewing, period, email }: { l: 
   const row = (label: string, value: ReactNode) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 16, padding: '12px 0', borderTop: `1px solid ${RC.line}` }}>
       <div style={{ ...TYPE.small, color: RC.ink2, flexShrink: 0 }}>{label}</div>
-      <div style={{ ...TYPE.small, fontWeight: 700, color: RC.ink, textAlign: 'right', minWidth: 0, overflowWrap: 'anywhere' }}>{value}</div>
+      <div style={{ ...TYPE.small, fontWeight: 700, color: RC.ink, textAlign: 'end', minWidth: 0, overflowWrap: 'anywhere' }}>{value}</div>
     </div>
   );
   return (
-    <div style={{ ...cardSurface(), padding: `16px ${l.cardPad}px 4px`, textAlign: 'left' }}>
+    <div style={{ ...cardSurface(), padding: `16px ${l.cardPad}px 4px`, textAlign: 'start' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, paddingBottom: 14 }}>
         <Thumb id={selection.destination} size={60} />
         <div style={{ minWidth: 0 }}>
@@ -494,9 +495,9 @@ function Recap({ l, selection, planLine, total, renewing, period, email }: { l: 
           <div style={{ marginTop: 2, ...TYPE.small, color: RC.ink2 }}>{planLine}</div>
         </div>
       </div>
-      {row('Paid', <span style={{ fontVariantNumeric: 'tabular-nums' }}>{total}</span>)}
-      {renewing && row('Renews', `Every ${period}, turn off in My eSIM`)}
-      {email && row('Receipt sent to', email)}
+      {row(t('Paid'), <span style={{ fontVariantNumeric: 'tabular-nums' }}>{total}</span>)}
+      {renewing && row(t('Renews'), t('{every}, turn off in My eSIM', { every: period }))}
+      {email && row(t('Receipt sent to'), email)}
     </div>
   );
 }
@@ -507,11 +508,11 @@ function Recap({ l, selection, planLine, total, renewing, period, email }: { l: 
 // facts (where it lands, how long) stay in the line underneath.
 type Leg = 'card' | 'issuing' | 'slow';
 const LEGS: Record<Leg, { from: number; to: number; title: string; lines: string[] }> = {
-  card: { from: 0.04, to: 0.3, title: 'Confirming your payment', lines: ['Shaking hands with your bank', 'Counting the coins twice', 'Getting the green light'] },
-  issuing: { from: 0.34, to: 0.9, title: 'Preparing your eSIM', lines: ['Packing your eSIM', 'Rushing to the airport', 'Queuing at check in', 'Through security', 'Boarding now', 'Almost there'] },
-  slow: { from: 0.9, to: 0.97, title: 'Your eSIM is on its way', lines: ['Stuck in a bit of traffic', 'Still queuing, nearly at the front', 'Taking the scenic route', 'Almost there'] },
+  card: { from: 0.04, to: 0.3, title: tk('Confirming your payment'), lines: [tk('Shaking hands with your bank'), tk('Counting the coins twice'), tk('Getting the green light')] },
+  issuing: { from: 0.34, to: 0.9, title: tk('Preparing your eSIM'), lines: [tk('Packing your eSIM'), tk('Rushing to the airport'), tk('Queuing at check in'), tk('Through security'), tk('Boarding now'), tk('Almost there')] },
+  slow: { from: 0.9, to: 0.97, title: tk('Your eSIM is on its way'), lines: [tk('Stuck in a bit of traffic'), tk('Still queuing, nearly at the front'), tk('Taking the scenic route'), tk('Almost there')] },
 };
-const STEPS = ['Payment', 'Preparing', 'Ready'];
+const STEPS = [tk('Payment'), tk('Preparing'), tk('Ready')];
 // Long enough to read each line without rushing (owner 2026-10-27).
 const TIP_S = 6;
 
@@ -533,8 +534,8 @@ function Journey({ leg, sub }: { leg: Leg; sub: string }) {
   return (
     <div role="status" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
       <SaturnWorld size={132} satellite />
-      <div style={{ marginTop: 18, ...TYPE.h2, color: RC.ink }}>{L.title}</div>
-      <div style={{ position: 'relative', width: '100%', maxWidth: 360, height: 28, marginTop: 20 }}>
+      <div style={{ marginTop: 18, ...TYPE.h2, color: RC.ink }}>{tr(L.title)}</div>
+      <div style={{ position: 'relative', width: '100%', maxWidth: 360, height: 28, marginTop: 20, transform: isRtl() ? 'scaleX(-1)' : undefined }}>
         <div style={{ position: 'absolute', left: 0, right: 0, top: 9, height: 10, borderRadius: 5, background: RC.line }} />
         {/* The logo's gradient across the whole track, uncovered as the bar fills. */}
         <div style={{ position: 'absolute', left: 0, top: 9, height: 10, borderRadius: 5, width: `${progress * 100}%`, background: LOGO_GRAD, backgroundSize: `${100 / progress}% 100%`, transition: 'width .25s linear, background-size .25s linear' }} />
@@ -546,9 +547,9 @@ function Journey({ leg, sub }: { leg: Leg; sub: string }) {
         </div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: 360, marginTop: 8 }}>
-        {STEPS.map((s, i) => <div key={s} style={{ ...TYPE.caption, fontWeight: i <= step ? 700 : 500, color: i <= step ? RC.ink : RC.inkMute }}>{s}</div>)}
+        {STEPS.map((s, i) => <div key={s} style={{ ...TYPE.caption, fontWeight: i <= step ? 700 : 500, color: i <= step ? RC.ink : RC.inkMute }}>{tr(s)}</div>)}
       </div>
-      <div key={line} className="rise" style={{ marginTop: 22, ...TYPE.bodyStrong, color: RC.orangeInk }}>{line}</div>
+      <div key={line} className="rise" style={{ marginTop: 22, ...TYPE.bodyStrong, color: RC.orangeInk }}>{tr(line)}</div>
       <div style={{ marginTop: 6, ...TYPE.small, color: RC.ink2, maxWidth: 420 }}>{sub}</div>
     </div>
   );

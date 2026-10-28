@@ -30,12 +30,13 @@ import { ShareFriends } from '../components/profile/ShareFriends';
 import { NotifyCard } from '../components/profile/NotifyCard';
 import { monthYear, levelColor, pioneerTitle } from '../components/profile/format';
 import { isLead, isPioneer, placeFrom, fmt } from '../lib/waitlist';
+import { t, t as tr, tn, plural, i18n, fmtMoney, fmtNumber } from '../lib/i18n';
 
 type Rewards = NonNullable<Profile['rewards']>;
 type Pioneer = NonNullable<Profile['pioneer']>;
 
 const PHOTO = (id: string) => `${import.meta.env.BASE_URL}img/rewards/${id}.jpg`;
-const destinations = (n: number) => `${n} ${n === 1 ? 'destination' : 'destinations'}`;
+const destinations = (n: number) => plural(n, '{n} destination', '{n} destinations');
 const PHOTO_IDS = new Set(['bronze', 'silver', 'gold', 'diamond', 'aurora']);
 
 // A photograph with the level's name on it, the way the site's destination cards carry theirs.
@@ -60,19 +61,19 @@ function Member({ l, userId, email, since, level, pioneer }: { l: Layout; userId
   const size = l.isWide ? 104 : l.isCover ? 80 : 88;
   const [sheet, setSheet] = useState(false);
   return (
-    <section aria-label="Your membership" style={{ ...cardSurface(), padding: l.cardPad, display: 'flex', flexDirection: 'column', gap: 16, height: '100%', boxSizing: 'border-box' }}>
+    <section aria-label={t('Your membership')} style={{ ...cardSurface(), padding: l.cardPad, display: 'flex', flexDirection: 'column', gap: 16, height: '100%', boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <button type="button" className="press" aria-label="Change your traveller" onClick={() => setSheet(true)}
+        <button type="button" className="press" aria-label={t('Change your traveller')} onClick={() => setSheet(true)}
           style={{ position: 'relative', padding: 0, border: 'none', background: 'none', cursor: 'pointer', flexShrink: 0 }}>
           <RingoAvatar seed={email || userId} userId={userId} level={level?.id ?? null} size={size} pioneer={!!pioneer} />
-          <span aria-hidden style={{ position: 'absolute', right: -2, bottom: -2, width: 30, height: 30, borderRadius: '50%', background: RC.orangeInk, border: `3px solid ${RC.paper}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span aria-hidden style={{ position: 'absolute', insetInlineEnd: -2, bottom: -2, width: 30, height: 30, borderRadius: '50%', background: RC.orangeInk, border: `3px solid ${RC.paper}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg width="14" height="14" viewBox="0 0 24 24"><path fill="#fff" d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25zm17.7-10.2a1 1 0 000-1.42l-2.33-2.33a1 1 0 00-1.42 0l-1.83 1.83 3.75 3.75 1.83-1.83z" /></svg>
           </span>
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ ...TYPE.h1, fontSize: l.isCover ? 20 : 22, color: RC.ink }}>{level ? `${level.name} member` : 'Ringo member'}</div>
+          <div style={{ ...TYPE.h1, fontSize: l.isCover ? 20 : 22, color: RC.ink }}>{level ? t('{level} member', { level: t(level.name) }) : t('Ringo member')}</div>
           {pioneer && <PioneerBadge tone="gold" label={pioneerTitle(pioneer)} style={{ marginTop: 8, maxWidth: '100%', whiteSpace: 'normal' }} />}
-          {month && <div style={{ marginTop: 8, ...TYPE.caption, color: RC.inkMute }}>Member since {month}</div>}
+          {month && <div style={{ marginTop: 8, ...TYPE.caption, color: RC.inkMute }}>{t('Member since {month}', { month })}</div>}
         </div>
       </div>
       {email && <div title={email} style={{ ...TYPE.small, color: RC.ink2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{email}</div>}
@@ -89,28 +90,30 @@ function Current({ l, rewards, credit }: { l: Layout; rewards: Rewards; credit?:
   const span = next ? Math.max(1, next.min - from) : 1;
   const pct = next ? Math.max(0, Math.min(100, ((n - from) / span) * 100)) : 100;
   return (
-    <section aria-label="Your level" style={{ ...cardSurface(), overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <section aria-label={t('Your level')} style={{ ...cardSurface(), overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <LevelPhoto id={shownId} aspect="16 / 9" eager>
-        <div style={{ ...typeFor('hero', l.size) }}>{level ? level.name : 'Your first trip'}</div>
-        <div style={{ marginTop: 4, ...TYPE.small, fontWeight: 700 }}>{destinations(n)} booked{rewards.window_months ? ` in ${rewards.window_months} months` : ''}</div>
+        <div style={{ ...typeFor('hero', l.size) }}>{level ? t(level.name) : t('Your first trip')}</div>
+        <div style={{ marginTop: 4, ...TYPE.small, fontWeight: 700 }}>{rewards.window_months ? plural(n, '{n} destination booked in {months} months', '{n} destinations booked in {months} months', { months: rewards.window_months }) : plural(n, '{n} destination booked', '{n} destinations booked')}</div>
       </LevelPhoto>
       <div style={{ padding: l.cardPad }}>
-        <div role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pct)} aria-label={next ? `Progress to ${next.name}` : 'Top level'}
+        <div role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pct)} aria-label={next ? t('Progress to {level}', { level: t(next.name) }) : t('Top level')}
           style={{ height: 10, borderRadius: RADIUS.pill, background: RC.cream, border: `1px solid ${RC.line}`, overflow: 'hidden' }}>
           <div style={{ width: `${Math.max(pct, next ? 4 : 100)}%`, height: '100%', borderRadius: RADIUS.pill, background: SITE_GRAD, transition: 'width .8s ease' }} />
         </div>
         <p style={{ margin: '12px 0 0', ...TYPE.body, color: RC.ink }}>
           {next
-            ? <><b>{next.to_go === 1 ? 'One more destination' : `${next.to_go} more destinations`}</b> to {next.name}{nextLevel?.perks[0] ? `: ${lower(nextLevel.perks[0])}.` : '.'}</>
-            : <b>You reached the top. Thank you for travelling with Ringo.</b>}
+            ? (i18n.get() === 'en'
+              ? <><b>{next.to_go === 1 ? 'One more destination' : `${next.to_go} more destinations`}</b> to {next.name}{nextLevel?.perks[0] ? `: ${lower(nextLevel.perks[0])}.` : '.'}</>
+              : tn('{count} to {level}.', { count: <b>{plural(next.to_go, 'One more destination', '{n} more destinations')}</b>, level: t(next.name) }))
+            : <b>{t('You reached the top. Thank you for travelling with Ringo.')}</b>}
         </p>
         {credit && (
-          <div aria-label="Ringo credit" style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${RC.line}`, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+          <div aria-label={t('Ringo credit')} style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${RC.line}`, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
             <div>
-              <div style={{ ...TYPE.small, color: RC.ink2 }}>Ringo credit, lasts 12 months</div>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 800, color: RC.ink }}>{`€${(credit.balance_cents / 100).toFixed(2)}`}</div>
+              <div style={{ ...TYPE.small, color: RC.ink2 }}>{t('Ringo credit, lasts 12 months')}</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 800, color: RC.ink }}>{fmtMoney(credit.balance_cents / 100, 'EUR')}</div>
             </div>
-            {credit.pct > 0 && <div style={{ ...TYPE.small, fontWeight: 700, color: RC.ink2 }}>{`${credit.pct}% back in the app`}</div>}
+            {credit.pct > 0 && <div style={{ ...TYPE.small, fontWeight: 700, color: RC.ink2 }}>{t('{pct}% back in the app', { pct: credit.pct })}</div>}
           </div>
         )}
       </div>
@@ -132,13 +135,13 @@ function LevelCard({ l, level, here, reached, scroller }: { l: Layout; level: Re
       }}
     >
       <LevelPhoto id={level.id} aspect="16 / 9">
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{level.name}</div>
-        <div style={{ marginTop: 2, ...TYPE.small, fontWeight: 700 }}>From {destinations(level.min)}</div>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{t(level.name)}</div>
+        <div style={{ marginTop: 2, ...TYPE.small, fontWeight: 700 }}>{t('From {count}', { count: destinations(level.min) })}</div>
       </LevelPhoto>
       <div style={{ padding: '14px 16px 16px', flex: 1 }}>
         {(here || reached) && (
           <div style={{ marginBottom: 10, ...TYPE.small, fontWeight: 800, color: here ? RC.orangeInk : RC.success }}>
-            {here ? 'Your level' : 'Reached'}
+            {here ? t('Your level') : t('Reached')}
           </div>
         )}
         <TickList items={level.perks} size={15} gap={8} />
@@ -167,7 +170,7 @@ export function Levels({ rewards }: { rewards: Rewards }) {
       ref={row}
       className="no-bar"
       role="region"
-      aria-label="Rewards levels"
+      aria-label={t('Rewards levels')}
       style={{ position: 'relative', display: 'flex', gap: l.cardGap, overflowX: 'auto', scrollSnapType: 'x mandatory', scrollPaddingInline: l.gutter, margin: `0 -${l.gutter}px`, padding: `2px ${l.gutter}px 8px` }}
     >
       {cards}
@@ -181,8 +184,8 @@ function GlobalTenure({ l, rewards }: { l: Layout; rewards: Rewards }) {
   return (
     <section>
       <SectionHead
-        title="Global gets cheaper"
-        sub={months ? `You have kept Global ${months} ${months === 1 ? 'month' : 'months'}.` : 'The longer you keep Global, the less each month costs.'}
+        title={t('Global gets cheaper')}
+        sub={months ? plural(months, 'You have kept Global {n} month.', 'You have kept Global {n} months.') : t('The longer you keep Global, the less each month costs.')}
       />
       <div style={{ ...twoColumn(l, 1, 1), alignItems: 'stretch' }}>
         <div style={{ ...cardSurface(), overflow: 'hidden' }}>
@@ -191,7 +194,7 @@ function GlobalTenure({ l, rewards }: { l: Layout; rewards: Rewards }) {
         <RingoCard padding={l.cardPad}>
           <TickList
             items={(rewards.global_tenure || []).map((t) => (
-              <><b style={{ color: RC.ink }}>{t.pct}% off</b> every month after {t.months} paid months{months >= t.months ? ', yours now' : ''}</>
+              tn(months >= t.months ? '{off} every month after {n} paid months, yours now' : '{off} every month after {n} paid months', { off: <b style={{ color: RC.ink }}>{tr('{pct}% off', { pct: t.pct })}</b>, n: fmtNumber(t.months) })
             ))}
           />
         </RingoCard>
@@ -208,7 +211,7 @@ function PhotoBanner({ id }: { id: string }) {
       {!broken && <img src={`${import.meta.env.BASE_URL}img/destinations/${id}.jpg`} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)}
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
       <div aria-hidden style={{ position: 'absolute', inset: 0, background: PHOTO_OVERLAY }} />
-      <div style={{ position: 'absolute', left: 16, right: 16, bottom: 14, color: '#fff', textShadow: PHOTO_TEXT_SHADOW, fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, letterSpacing: '-0.02em' }}>Global</div>
+      <div style={{ position: 'absolute', insetInline: 16, bottom: 14, color: '#fff', textShadow: PHOTO_TEXT_SHADOW, fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, letterSpacing: '-0.02em' }}>{t('Global')}</div>
     </div>
   );
 }
@@ -218,20 +221,20 @@ function PhotoBanner({ id }: { id: string }) {
 function WaitlistCard({ l, onOpen }: { l: Layout; onOpen: () => void }) {
   const acct = useAccount();
   const tick = useLiveTick();
-  const [line, setLine] = useState<string>('Join the waitlist');
+  const [line, setLine] = useState<string>(() => tr('Join the waitlist'));
   const userId = acct?.userId, t = acct?.t;
   useEffect(() => {
-    setLine('Join the waitlist');
+    setLine(tr('Join the waitlist'));
     if (!userId || !t) return;
     let alive = true;
     light.dashboard(userId, t)
       .then((d) => {
         if (!alive) return;
         const u = d.user;
-        if (!u || isLead(u.status)) { setLine('Join the waitlist'); return; }
-        if (isPioneer(u.status)) { setLine("You're a Ringo Pioneer"); return; }
+        if (!u || isLead(u.status)) { setLine(tr('Join the waitlist')); return; }
+        if (isPioneer(u.status)) { setLine(tr("You're a Ringo Pioneer")); return; }
         const { ahead } = placeFrom(u);
-        setLine(ahead == null ? "You're on the waitlist" : `You're #${fmt(ahead + 1)} in line`);
+        setLine(ahead == null ? tr("You're on the waitlist") : tr("You're #{n} in line", { n: fmt(ahead + 1) }));
       })
       .catch(() => { /* the card still opens the waitlist */ });
     return () => { alive = false; };
@@ -243,9 +246,9 @@ function WaitlistCard({ l, onOpen }: { l: Layout; onOpen: () => void }) {
       type="button"
       className="card-press"
       onClick={onOpen}
-      aria-label={`Ringo waitlist. ${line}`}
+      aria-label={tr('Ringo waitlist. {line}', { line })}
       style={{
-        width: '100%', textAlign: 'left', border: 'none', cursor: 'pointer', padding: `${l.cardPad}px ${l.cardPad}px ${l.cardPad}px ${l.cardPad - 4}px`,
+        width: '100%', textAlign: 'start', border: 'none', cursor: 'pointer', paddingBlock: l.cardPad, paddingInlineEnd: l.cardPad, paddingInlineStart: l.cardPad - 4,
         position: 'relative', overflow: 'hidden', borderRadius: 24, display: 'flex', alignItems: 'center', gap: 14,
         background: 'radial-gradient(120% 90% at 20% 0%, #3B1F5E 0%, #1A0F2E 62%), #1A0F2E',
         boxShadow: '0 18px 36px -20px rgba(88,24,72,0.7)', font: 'inherit',
@@ -256,8 +259,8 @@ function WaitlistCard({ l, onOpen }: { l: Layout; onOpen: () => void }) {
         <SaturnWorld size={globe} />
       </span>
       <span style={{ position: 'relative', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <span style={{ fontFamily: 'var(--font-display)', fontSize: l.isCover ? 19 : 21, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.15, color: '#FFFFFF' }}>Ringo, one number for every country</span>
-        <span style={{ ...TYPE.small, color: 'rgba(255,255,255,0.86)' }}>Your own number on one plan that works everywhere.</span>
+        <span style={{ fontFamily: 'var(--font-display)', fontSize: l.isCover ? 19 : 21, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.15, color: '#FFFFFF' }}>{tr('Ringo, one number for every country')}</span>
+        <span style={{ ...TYPE.small, color: 'rgba(255,255,255,0.86)' }}>{tr('Your own number on one plan that works everywhere.')}</span>
         <span style={{ alignSelf: 'flex-start', marginTop: 2, padding: '6px 12px', borderRadius: RADIUS.pill, background: '#FFFFFF', fontFamily: 'var(--font)', fontSize: 14, fontWeight: 800, color: '#1A0F2E' }}>{line}</span>
       </span>
     </button>
@@ -268,11 +271,11 @@ function SignedOut({ l, onLogin }: { l: Layout; onLogin: () => void }) {
   return (
     <section style={{ ...cardSurface(), overflow: 'hidden' }}>
       <LevelPhoto id="aurora" aspect={l.isWide ? '21 / 9' : '4 / 3'} eager>
-        <div style={{ ...typeFor('hero', l.size) }}>Ringo Rewards</div>
+        <div style={{ ...typeFor('hero', l.size) }}>{t('Ringo Rewards')}</div>
       </LevelPhoto>
       <div style={{ padding: l.cardPad }}>
-        <p style={{ margin: 0, ...TYPE.body, color: RC.ink2 }}>Every trip moves you up. Up to 15% off plans.</p>
-        <div style={{ marginTop: 16 }}><RingoButton capped onClick={onLogin}>Sign in</RingoButton></div>
+        <p style={{ margin: 0, ...TYPE.body, color: RC.ink2 }}>{t('Every trip moves you up. Up to 15% off plans.')}</p>
+        <div style={{ marginTop: 16 }}><RingoButton capped onClick={onLogin}>{t('Sign in')}</RingoButton></div>
       </div>
     </section>
   );
@@ -284,20 +287,20 @@ export function RewardsScreen({ onBack, onBrowse, onLogin, onWaitlist }: { onBac
   const tick = useLiveTick();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const userId = acct?.userId, t = acct?.t;
+  const userId = acct?.userId, tok = acct?.t;
   useEffect(() => {
     // A different account (or signing out) never shows the last one's rewards.
     setProfile(null);
     setErr(null);
   }, [userId]);
   useEffect(() => {
-    if (!userId || !t) return;
+    if (!userId || !tok) return;
     let alive = true;
-    light.profile(userId, t)
+    light.profile(userId, tok)
       .then((p) => { if (alive) { setProfile(p); setErr(null); } })
-      .catch((e) => { if (alive) setErr((e as Error).message || 'Could not load your rewards.'); });
+      .catch((e) => { if (alive) setErr((e as Error).message || t('Could not load your rewards.')); });
     return () => { alive = false; };
-  }, [userId, t, tick]);
+  }, [userId, tok, tick]);
 
   const rewards = profile?.rewards;
   const badges = profile?.badges || [];
@@ -306,7 +309,7 @@ export function RewardsScreen({ onBack, onBrowse, onLogin, onWaitlist }: { onBac
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {onBack && <RingoHeader title="Rewards" leading={<BackBtn onClick={onBack} />} />}
+      {onBack && <RingoHeader title={t('Rewards')} leading={<BackBtn onClick={onBack} />} />}
       <div
         className="no-bar"
         style={{
@@ -315,7 +318,7 @@ export function RewardsScreen({ onBack, onBrowse, onLogin, onWaitlist }: { onBac
         }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: l.sectionGap }}>
-          {tabRoot && <ScreenTitle style={{ marginBottom: -12 }}>Rewards</ScreenTitle>}
+          {tabRoot && <ScreenTitle style={{ marginBottom: -12 }}>{t('Rewards')}</ScreenTitle>}
           {onWaitlist && <WaitlistCard l={l} onOpen={onWaitlist} />}
           {!acct ? (
             <SignedOut l={l} onLogin={onLogin} />
@@ -334,8 +337,8 @@ export function RewardsScreen({ onBack, onBrowse, onLogin, onWaitlist }: { onBac
               {!(err && !profile) && (
                 <section>
                   <SectionHead
-                    title="Where you've been"
-                    sub={badges.length ? destinations(badges.length) : pioneer ? 'Your Pioneer badge, and a photo for every trip.' : undefined}
+                    title={t("Where you've been")}
+                    sub={badges.length ? destinations(badges.length) : pioneer ? t('Your Pioneer badge, and a photo for every trip.') : undefined}
                   />
                   {!profile ? <BadgeSkeleton /> : badges.length === 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: l.cardGap }}>
@@ -356,8 +359,10 @@ export function RewardsScreen({ onBack, onBrowse, onLogin, onWaitlist }: { onBac
               {profile?.achievements && profile.achievements.length > 0 && (
                 <section>
                   <SectionHead
-                    title="Badges to earn"
-                    sub={`${profile.achievements.filter((a) => a.earned).length} of ${profile.achievements.length} earned${profile.achievements.some((a) => a.coins) ? `, ${profile.achievements.filter((a) => a.earned).reduce((n, a) => n + (a.coins || 0), 0)} coins. 100 coins are €1 of credit` : ''}.`}
+                    title={t('Badges to earn')}
+                    sub={profile.achievements.some((a) => a.coins)
+                      ? t('{have} of {total} earned, {coins} coins. 100 coins are €1 of credit.', { have: profile.achievements.filter((a) => a.earned).length, total: profile.achievements.length, coins: profile.achievements.filter((a) => a.earned).reduce((n, a) => n + (a.coins || 0), 0) })
+                      : t('{have} of {total} earned.', { have: profile.achievements.filter((a) => a.earned).length, total: profile.achievements.length })}
                   />
                   <EarnBadges items={profile.achievements} l={l} />
                 </section>
@@ -365,12 +370,12 @@ export function RewardsScreen({ onBack, onBrowse, onLogin, onWaitlist }: { onBac
 
               {rewards && rewards.levels.length > 0 && (
                 <section>
-                  <SectionHead title="Your rewards" sub="Book more destinations to move up." />
+                  <SectionHead title={t('Your rewards')} sub={t('Book more destinations to move up.')} />
                   <Levels rewards={rewards} />
                 </section>
               )}
               {rewards?.global_tenure && rewards.global_tenure.length > 0 && <GlobalTenure l={l} rewards={rewards} />}
-              {badges.length > 0 && <RingoButton variant="soft" capped onClick={onBrowse}>Book your next destination</RingoButton>}
+              {badges.length > 0 && <RingoButton variant="soft" capped onClick={onBrowse}>{t('Book your next destination')}</RingoButton>}
             </>
           )}
         </div>

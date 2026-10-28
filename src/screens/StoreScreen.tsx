@@ -30,9 +30,10 @@ import dishPhoto from '../assets/store/dish-blue.jpg'; // Unsplash Wj1D-qiOseE, 
 // in the app, a small icon over it, the words at the foot.
 const shortcutCard = (photo: string, place = 'center / cover'): CSSProperties => ({
   position: 'relative', overflow: 'hidden', minHeight: 150, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-  textAlign: 'left', cursor: 'pointer', padding: 14, borderRadius: 22, border: 'none', fontFamily: 'var(--font)', color: '#fff',
+  textAlign: 'start', cursor: 'pointer', padding: 14, borderRadius: 22, border: 'none', fontFamily: 'var(--font)', color: '#fff',
   background: `linear-gradient(180deg, rgba(26,15,46,0) 28%, rgba(26,15,46,0.88) 100%), url(${photo}) ${place}, ${RC.ink}`, textShadow: PHOTO_TEXT_SHADOW,
 });
+import { t, tk, plural, placeName, currentLocale } from '../lib/i18n';
 // The Power list gets a night sky into sunrise behind it, so it is plain which list is open.
 const POWER_TOP = '#1B1446';
 // Stars at the top only (owner 2026-10-27), drawn once as a tile with a fixed seed so it never jumps; they thin out as the sky lightens.
@@ -53,7 +54,9 @@ const POWER_BG = `${STARS} center top / 400px 420px repeat-x, linear-gradient(18
 // White headings on the night sky.
 const POWER_SKY_CSS = '.power-sky h1,.power-sky .sky-top h2{color:#fff!important}.power-sky h1+p,.power-sky .sky-top p,.power-sky [role=status]{color:rgba(255,255,255,0.82)!important}';
 // On the Power list every card's title says Power (owner 2026-10-28): "Europe Power".
-const asPower = (d: Destination): Destination => ({ ...d, label: `${d.label} Power` });
+const asPower = (d: Destination): Destination => ({ ...d, label: `${d.label} Power`, shown: t('{place} Power', { place: placeName(d.label, d.flag) }) });
+/** A card's name in the app's language. */
+const nameOf = (d: Destination): string => d.shown ?? placeName(d.label, d.flag);
 const shortcutIcon: CSSProperties = { width: 36, height: 36, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(26,15,46,0.32)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' };
 
 // What people actually type. "United States" does not contain "usa", so the
@@ -89,12 +92,12 @@ const cityIsos = (q: string) => {
 };
 const matches = (d: Destination, q: string) => {
   if (!q) return true;
-  if (fold(d.label).includes(fold(q)) || d.id.includes(q) || ALIASES[q] === d.id) return true;
+  if (fold(d.label).includes(fold(q)) || fold(placeName(d.label, d.flag)).includes(fold(q)) || d.id.includes(q) || ALIASES[q] === d.id) return true;
   const iso = isoOf(d);
   return Boolean(iso) && cityIsos(q).has(iso!);
 };
 
-const REGION_ORDER = ['Europe', 'North America', 'Latin America', 'Caribbean', 'Asia-Pacific', 'Oceania', 'Middle East', 'Africa', 'Central Asia and Caucasus'];
+const REGION_ORDER = [tk('Europe'), tk('North America'), tk('Latin America'), tk('Caribbean'), tk('Asia-Pacific'), tk('Oceania'), tk('Middle East'), tk('Africa'), tk('Central Asia and Caucasus')];
 
 /**
  * The picture every card opens with: the photograph over a sunset sky (the
@@ -124,13 +127,13 @@ export function Picture({ d, size = 'big', eager = false, chip, photo }: { d: De
         )}
       <div aria-hidden style={{ position: 'absolute', inset: 0, background: PHOTO_OVERLAY }} />
       {chip && (
-        <span style={{ position: 'absolute', top: 10, right: 10, padding: '5px 10px', borderRadius: RADIUS.pill, background: 'rgba(14,7,24,0.55)', border: '1px solid rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', color: '#fff', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>
+        <span style={{ position: 'absolute', top: 10, insetInlineEnd: 10, padding: '5px 10px', borderRadius: RADIUS.pill, background: 'rgba(14,7,24,0.55)', border: '1px solid rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', color: '#fff', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>
           {chip}
         </span>
       )}
       <div style={{ position: 'absolute', left: big ? 16 : 12, right: big ? 16 : 12, bottom: big ? 14 : 10, display: 'flex', alignItems: 'center', gap: big ? 10 : 7, minWidth: 0, color: '#fff', textShadow: PHOTO_TEXT_SHADOW }}>
         {d.flag && <span aria-hidden style={{ fontSize: big ? 26 : 18, lineHeight: 1, flexShrink: 0 }}>{d.flag}</span>}
-        <span style={{ fontFamily: 'var(--font-display)', fontSize: big ? 24 : 17, fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.02em', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.label}</span>
+        <span style={{ fontFamily: 'var(--font-display)', fontSize: big ? 24 : 17, fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.02em', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nameOf(d)}</span>
       </div>
     </div>
   );
@@ -138,9 +141,9 @@ export function Picture({ d, size = 'big', eager = false, chip, photo }: { d: De
 
 /** One short line under a popular plan's price. Global is the only plan that renews. */
 function whatLine(d: Destination): string {
-  if (d.id === 'global') return 'Unlimited data, one monthly plan';
-  if (d.kind === 'region' && d.countries > 1) return `Works in ${d.countries} countries`;
-  return 'One payment, no renewal';
+  if (d.id === 'global') return t('Unlimited data, one monthly plan');
+  if (d.kind === 'region' && d.countries > 1) return plural(d.countries, 'Works in {n} country', 'Works in {n} countries');
+  return t('One payment, no renewal');
 }
 
 function Card({ d, from, onOpen, onPeek, size, eager = false, photo }: { d: Destination; from: string | null; onOpen: (id: string) => void; onPeek?: (d: Destination) => void; size: 'big' | 'tile'; eager?: boolean; photo?: string }) {
@@ -151,8 +154,8 @@ function Card({ d, from, onOpen, onPeek, size, eager = false, photo }: { d: Dest
   const startY = useRef(0);
   const stop = () => { if (timer.current) { clearTimeout(timer.current); timer.current = null; } };
   const big = size === 'big';
-  const chip = big && d.kind === 'region' && d.countries > 1 && d.id !== 'global' ? `${d.countries} countries` : null;
-  const priceText = from != null ? `From ${from}` : '';
+  const chip = big && d.kind === 'region' && d.countries > 1 && d.id !== 'global' ? plural(d.countries, '{n} country', '{n} countries') : null;
+  const priceText = from != null ? t('From {price}', { price: from }) : '';
   return (
     <button
       type="button"
@@ -165,8 +168,8 @@ function Card({ d, from, onOpen, onPeek, size, eager = false, photo }: { d: Dest
       onTouchEnd={(e) => { stop(); if (peeked.current) e.preventDefault(); }}
       onTouchCancel={stop}
       onContextMenu={(e) => e.preventDefault()}
-      aria-label={from != null ? `${d.label}, from ${from}` : d.label}
-      style={{ ...cardSurface(), textAlign: 'left', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', font: 'inherit', color: 'inherit', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
+      aria-label={from != null ? t('{place}, from {price}', { place: nameOf(d), price: from }) : nameOf(d)}
+      style={{ ...cardSurface(), textAlign: 'start', cursor: 'pointer', padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', width: '100%', font: 'inherit', color: 'inherit', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
     >
       <Picture d={d} size={size} eager={eager} chip={chip} photo={photo} />
       <div style={{ padding: big ? '14px 16px 16px' : '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: 4, width: '100%', boxSizing: 'border-box' }}>
@@ -177,11 +180,11 @@ function Card({ d, from, onOpen, onPeek, size, eager = false, photo }: { d: Dest
   );
 }
 
-function SearchField({ value, onChange, placeholder = 'Search a country, city or region' }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+function SearchField({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
   const [focused, setFocused] = useState(false);
   return (
     <div style={{ position: 'relative' }}>
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden style={{ position: 'absolute', insetInlineStart: 16, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
         <circle cx="11" cy="11" r="7" stroke={RC.inkMute} strokeWidth="2" />
         <path d="M20 20l-3.5-3.5" stroke={RC.inkMute} strokeWidth="2" strokeLinecap="round" />
       </svg>
@@ -196,11 +199,11 @@ function SearchField({ value, onChange, placeholder = 'Search a country, city or
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        placeholder={placeholder}
-        aria-label="Search destinations"
+        placeholder={placeholder ?? t('Search a country, city or region')}
+        aria-label={t('Search destinations')}
         className="ringo-input"
         style={{
-          width: '100%', height: 54, padding: value ? '0 52px 0 46px' : '0 16px 0 46px', boxSizing: 'border-box',
+          width: '100%', height: 54, paddingBlock: 0, paddingInlineStart: 46, paddingInlineEnd: value ? 52 : 16, boxSizing: 'border-box',
           borderRadius: RADIUS.control, background: RC.paper,
           border: `1.5px solid ${focused ? RC.inkStrong : RC.lineStrong}`,
           boxShadow: focused ? `0 0 0 3px ${hexA('#FF5724', 0.14)}` : 'none',
@@ -212,9 +215,9 @@ function SearchField({ value, onChange, placeholder = 'Search a country, city or
       {value && (
         <button
           type="button"
-          aria-label="Clear search"
+          aria-label={t('Clear search')}
           onClick={() => onChange('')}
-          style={{ position: 'absolute', right: 5, top: '50%', transform: 'translateY(-50%)', width: TAP, height: TAP, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+          style={{ position: 'absolute', insetInlineEnd: 5, top: '50%', transform: 'translateY(-50%)', width: TAP, height: TAP, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
         >
           <span aria-hidden style={{ width: 22, height: 22, borderRadius: '50%', background: RC.cream, border: `1px solid ${RC.line}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2l-8 8" stroke={RC.ink2} strokeWidth="2" strokeLinecap="round" /></svg>
@@ -266,8 +269,8 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
     if (query.length < 2) return [] as { key: string; label: string; sub: string; d: Destination }[];
     const byIso = new Map(all.filter((d) => d.kind === 'country').map((d) => [isoOf(d), d] as const));
     const out: { key: string; label: string; sub: string; d: Destination }[] = [];
-    for (const d of all) if (fold(d.label).startsWith(fold(query))) out.push({ key: d.id, label: d.label, sub: d.kind === 'region' ? `${d.countries} countries` : 'Country', d });
-    for (const [name, iso] of citiesFor(query)) { const d = byIso.get(iso); if (d && !out.some((o) => o.key === `${name}|${d.id}`)) out.push({ key: `${name}|${d.id}`, label: name, sub: d.label, d }); }
+    for (const d of all) if (fold(d.label).startsWith(fold(query)) || fold(placeName(d.label, d.flag)).startsWith(fold(query))) out.push({ key: d.id, label: placeName(d.label, d.flag), sub: d.kind === 'region' ? plural(d.countries, '{n} country', '{n} countries') : t('Country'), d });
+    for (const [name, iso] of citiesFor(query)) { const d = byIso.get(iso); if (d && !out.some((o) => o.key === `${name}|${d.id}`)) out.push({ key: `${name}|${d.id}`, label: name, sub: placeName(d.label, d.flag), d }); }
     return out.slice(0, 6);
   }, [all, query]);
   // Your next trip: countries near the ones you have been to, cheapest first.
@@ -325,14 +328,14 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
   const featured = useMemo(() => {
     if (!powerAsk) return FEATURED.map((id) => all.find((d) => d.id === id)).filter((d): d is Destination => Boolean(d) && matches(d!, query));
     const rank = (d: Destination) => (FEATURED.indexOf(d.id) + 1) || 99;
-    return all.filter((d) => d.kind === 'region' && sellsPower(d) && matches(d, query)).sort((a, b) => rank(a) - rank(b) || a.label.localeCompare(b.label));
+    return all.filter((d) => d.kind === 'region' && sellsPower(d) && matches(d, query)).sort((a, b) => rank(a) - rank(b) || placeName(a.label, a.flag).localeCompare(placeName(b.label, b.flag), currentLocale()));
   // eslint-disable-next-line react-hooks/exhaustive-deps -- sellsPower reads powerFrom
   }, [all, query, powerAsk, powerFrom]);
   const grouped = useMemo(() => {
     const countries = all.filter((d) => d.kind === 'country' && (powerAsk ? sellsPower(d) : !FEATURED.includes(d.id)) && matches(d, query));
     const by = new Map<string, Destination[]>();
-    for (const d of countries) { const k = d.region || 'More places'; if (!by.has(k)) by.set(k, []); by.get(k)!.push(d); }
-    for (const list of by.values()) list.sort((a, b) => a.label.localeCompare(b.label));
+    for (const d of countries) { const k = d.region || tk('More places'); if (!by.has(k)) by.set(k, []); by.get(k)!.push(d); }
+    for (const list of by.values()) list.sort((a, b) => placeName(a.label, a.flag).localeCompare(placeName(b.label, b.flag), currentLocale()));
     return [...by.entries()].sort((a, b) => (REGION_ORDER.indexOf(a[0]) + 1 || 99) - (REGION_ORDER.indexOf(b[0]) + 1 || 99));
   // eslint-disable-next-line react-hooks/exhaustive-deps -- sellsPower reads powerFrom
   }, [all, query, powerAsk, powerFrom]);
@@ -352,38 +355,38 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: TAP }}>
             <img src={LOGO_SRC} alt="Ringo" style={{ height: l.isWide ? 34 : 30, width: 'auto', display: 'block' }} />
             <button type="button" className="press" onClick={loggedIn ? onMyEsim : onLogin} style={accountBtn}>
-              {loggedIn ? 'My eSIM' : 'Sign in'}
+              {loggedIn ? t('My eSIM') : t('Sign in')}
             </button>
           </div>
 
           {powerAsk && (
             <button type="button" className="press" onClick={() => showPower(false)} style={{ ...accountBtn, marginTop: 16, color: RC.ink, fontWeight: 600 }}>
-              All plans
+              {t('All plans')}
             </button>
           )}
           <h1 style={{ margin: powerAsk ? '14px 0 0' : '20px 0 0', ...typeFor('display', l.size), color: RC.ink, textWrap: 'balance' } as CSSProperties}>
-            {powerAsk ? 'Power plans' : 'Where are you going?'}
+            {powerAsk ? t('Power plans') : t('Where are you going?')}
           </h1>
           <p style={{ margin: '8px 0 16px', ...TYPE.body, color: RC.ink2 }}>
-            {powerAsk ? 'Unlimited data for a van, hotspot or laptop.' : 'Your eSIM is ready in minutes.'}
+            {powerAsk ? t('Unlimited data for a van, hotspot or laptop.') : t('Your eSIM is ready in minutes.')}
           </p>
 
           <div data-store-search style={l.isWide ? { maxWidth: 560 } : undefined}>
-            <SearchField value={q} onChange={setQ} placeholder={powerAsk ? 'Where do you need Power?' : undefined} />
+            <SearchField value={q} onChange={setQ} placeholder={powerAsk ? t('Where do you need Power?') : undefined} />
             {powerAsk && !q && !powerFrom && (
-              <p role="status" style={{ margin: '8px 2px 0', ...TYPE.small, color: RC.ink2 }}>Pick a country or region to see its Power and Super User plans.</p>
+              <p role="status" style={{ margin: '8px 2px 0', ...TYPE.small, color: RC.ink2 }}>{t('Pick a country or region to see its Power and Super User plans.')}</p>
             )}
             {!powerAsk && suggestions.length > 0 && (
-              <div role="listbox" aria-label="Suggestions" style={{ marginTop: 8, ...cardSurface(), padding: 0, overflow: 'hidden' }}>
+              <div role="listbox" aria-label={t('Suggestions')} style={{ marginTop: 8, ...cardSurface(), padding: 0, overflow: 'hidden' }}>
                 {suggestions.map((sg, i) => (
                   <button key={sg.key} type="button" role="option" aria-selected={false} className="press" onClick={() => open(sg.d.id)}
-                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'transparent', border: 'none', borderTop: i ? `1px solid ${RC.line}` : 'none', textAlign: 'left', cursor: 'pointer', font: 'inherit' }}>
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'transparent', border: 'none', borderTop: i ? `1px solid ${RC.line}` : 'none', textAlign: 'start', cursor: 'pointer', font: 'inherit' }}>
                     <span aria-hidden style={{ fontSize: 20, width: 24, textAlign: 'center' }}>{sg.d.flag || '🌍'}</span>
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ display: 'block', fontFamily: 'var(--font)', fontSize: 16, fontWeight: 600, color: RC.ink }}>{sg.label}</span>
                       <span style={{ display: 'block', fontFamily: 'var(--font)', fontSize: 13, color: RC.ink2 }}>{sg.sub}</span>
                     </span>
-                    {fromOf(sg.d) && <span style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, color: RC.ink2 }}>{`From ${fromOf(sg.d)}`}</span>}
+                    {fromOf(sg.d) && <span style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 600, color: RC.ink2 }}>{t('From {price}', { price: fromOf(sg.d) })}</span>}
                   </button>
                 ))}
               </div>
@@ -394,10 +397,10 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
             <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: l.cardGap }}>
               {onQuiz && (
                 <button type="button" className="press" onClick={() => { hapticSelection(); onQuiz(); }}
-                  style={{ ...cardSurface(), textAlign: 'left', cursor: 'pointer', padding: 16, border: `1.5px solid ${RC.line}`, fontFamily: 'var(--font)' }}>
+                  style={{ ...cardSurface(), textAlign: 'start', cursor: 'pointer', padding: 16, border: `1.5px solid ${RC.line}`, fontFamily: 'var(--font)' }}>
                   <svg aria-hidden width="26" height="26" viewBox="0 0 24 24"><g fill={RC.orangeInk}><rect x="3" y="15" width="3.6" height="6" rx="1.2" /><rect x="8.6" y="11" width="3.6" height="10" rx="1.2" /><rect x="14.2" y="7" width="3.6" height="14" rx="1.2" /><rect x="19.4" y="3" width="1.6" height="18" rx=".8" opacity=".35" /></g></svg>
-                  <div style={{ marginTop: 6, fontSize: 16, fontWeight: 700, color: RC.ink }}>How much data do I need?</div>
-                  <div style={{ marginTop: 2, fontSize: 13, color: RC.ink2 }}>Four quick questions.</div>
+                  <div style={{ marginTop: 6, fontSize: 16, fontWeight: 700, color: RC.ink }}>{t('How much data do I need?')}</div>
+                  <div style={{ marginTop: 2, fontSize: 13, color: RC.ink2 }}>{t('Four quick questions.')}</div>
                 </button>
               )}
               <button type="button" className="press"
@@ -405,8 +408,8 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
                 style={shortcutCard(dishPhoto, 'center top / cover')}>
                 <span style={shortcutIcon}><svg aria-hidden width="20" height="20" viewBox="0 0 24 24"><path fill="#fff" d="M13.4 2.2c.4-.6-.3-1.3-.9-.9L4.6 12.2c-.4.5 0 1.3.6 1.3h5.3l-1.9 8.2c-.2.7.7 1.1 1.1.5l9.6-11.6c.4-.5 0-1.2-.6-1.2h-5.6l.3-7.2z" /></svg></span>
                 <span style={{ display: 'block', marginTop: 12 }}>
-                  <span style={{ display: 'block', fontSize: 16, fontWeight: 700 }}>Power plans</span>
-                  <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: 'rgba(255,255,255,0.92)' }}>Vans and hotspots.</span>
+                  <span style={{ display: 'block', fontSize: 16, fontWeight: 700 }}>{t('Power plans')}</span>
+                  <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: 'rgba(255,255,255,0.92)' }}>{t('Vans and hotspots.')}</span>
                 </span>
               </button>
             </div>
@@ -414,7 +417,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
 
           {!query && !powerAsk && nextTrips.length > 0 && (
             <section style={{ marginTop: l.sectionGap }}>
-              <SectionHead title="Your next trip" sub="Close to where you have been." />
+              <SectionHead title={t('Your next trip')} sub={t('Close to where you have been.')} />
               <div style={tileGrid(l)}>
                 {nextTrips.map((d) => <Card key={d.id} d={d} from={fromOf(d)} onOpen={open} onPeek={setPeek} size="tile" />)}
               </div>
@@ -423,7 +426,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
 
           {featured.length > 0 && (
             <section style={{ marginTop: l.sectionGap }}>
-              {!query && <div className="sky-top"><SectionHead title={powerAsk ? 'Regions' : 'Popular plans'} sub="Many countries, one eSIM." /></div>}
+              {!query && <div className="sky-top"><SectionHead title={powerAsk ? t('Regions') : t('Popular plans')} sub={t('Many countries, one eSIM.')} /></div>}
               <div style={cardGrid(l)}>
                 {featured.map((d, i) => (
                   <Card key={d.id} d={powerAsk ? asPower(d) : d} from={fromOf(d)} onOpen={open} onPeek={setPeek} size="big" eager={i < (l.isWide ? 2 : 1)} photo={powerAsk ? POWER_PHOTOS[d.id] : undefined} />
@@ -434,7 +437,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
 
           {grouped.map(([region, list]) => (
             <section key={region} style={{ marginTop: l.sectionGap }}>
-              <SectionHead title={region} />
+              <SectionHead title={t(region)} />
               <div style={tileGrid(l)}>
                 {list.map((d) => <Card key={d.id} d={powerAsk ? asPower(d) : d} from={fromOf(d)} onOpen={open} onPeek={setPeek} size="tile" />)}
               </div>
@@ -443,23 +446,23 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
 
           {nothing && (
             <div style={{ marginTop: l.sectionGap, textAlign: 'center' }}>
-              <div style={{ ...TYPE.h3, color: RC.ink }}>Nothing matches “{q.trim()}”</div>
-              <div style={{ marginTop: 6, ...TYPE.small, color: RC.ink2 }}>{powerAsk ? 'Try a country or region name.' : 'Try a country name, or Global for everywhere.'}</div>
+              <div style={{ ...TYPE.h3, color: RC.ink }}>{t('Nothing matches “{q}”', { q: q.trim() })}</div>
+              <div style={{ marginTop: 6, ...TYPE.small, color: RC.ink2 }}>{powerAsk ? t('Try a country or region name.') : t('Try a country name, or Global for everywhere.')}</div>
             </div>
           )}
           {all.length === 0 && <Skeleton l={l} />}
         </div>
       </div>
       {peek && (
-        <div role="dialog" aria-modal="true" aria-label={peek.label} onClick={() => setPeek(null)}
+        <div role="dialog" aria-modal="true" aria-label={nameOf(peek)} onClick={() => setPeek(null)}
           style={{ position: 'absolute', inset: 0, zIndex: 50, background: 'rgba(26,15,46,0.35)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, animation: 'ringoFadeIn 0.18s ease both' }}>
           <div onClick={(e) => e.stopPropagation()} className="rise" style={{ width: '100%', maxWidth: 360, ...cardSurface(), padding: 0, overflow: 'hidden' }}>
             <Picture d={peek} size="big" />
             <div style={{ padding: '14px 16px 16px' }}>
-              <div style={{ fontFamily: 'var(--font)', fontSize: 18, fontWeight: 600, color: RC.ink }}>{fromOf(peek) ? `From ${fromOf(peek)}` : peek.label}</div>
+              <div style={{ fontFamily: 'var(--font)', fontSize: 18, fontWeight: 600, color: RC.ink }}>{fromOf(peek) ? t('From {price}', { price: fromOf(peek) }) : nameOf(peek)}</div>
               <div style={{ marginTop: 2, ...TYPE.small, color: RC.ink2 }}>{whatLine(peek)}</div>
               <button type="button" className="press" onClick={() => { const id = peek.id; setPeek(null); open(id); }}
-                style={{ marginTop: 14, width: '100%', minHeight: 48, borderRadius: 14, border: 'none', background: '#F26122', color: '#fff', fontFamily: 'var(--font)', fontSize: 16, fontWeight: 600, cursor: 'pointer' }}>See plans</button>
+                style={{ marginTop: 14, width: '100%', minHeight: 48, borderRadius: 14, border: 'none', background: '#F26122', color: '#fff', fontFamily: 'var(--font)', fontSize: 16, fontWeight: 600, cursor: 'pointer' }}>{t('See plans')}</button>
             </div>
           </div>
         </div>

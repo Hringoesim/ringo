@@ -11,6 +11,7 @@ import { TextLink } from './ui';
 import { hapticNotify, hapticSelection } from '../lib/haptics';
 import { useLayout } from '../lib/layout';
 import { usePush, askPermission, dismissPrompt, setPushPref, openPushSettings, pushAvailable } from '../lib/push';
+import { t, isRtl } from '../lib/i18n';
 
 /** Retired: the ask lives in PushSheet, shown by App.tsx only. Renders nothing. */
 export function PushPrompt(): null {
@@ -86,7 +87,7 @@ export function PushSheet({ photo, place, onClose }: { photo?: string | null; pl
           <div
             aria-hidden
             style={{
-              position: 'absolute', left: 20, bottom: -26, width: 56, height: 56, borderRadius: '50%',
+              position: 'absolute', insetInlineStart: 20, bottom: -26, width: 56, height: 56, borderRadius: '50%',
               background: RC.paper, boxShadow: '0 8px 22px -8px rgba(26,15,46,0.35)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
@@ -96,16 +97,16 @@ export function PushSheet({ photo, place, onClose }: { photo?: string | null; pl
         </div>
         <div style={{ padding: `40px ${l.isWide ? 28 : 22}px 22px` }}>
           <h2 id={titleId} style={{ margin: 0, ...typeFor('h1', l.size), color: RC.ink }}>
-            Know before your data runs out
+            {t('Know before your data runs out')}
           </h2>
           <p id={lineId} style={{ margin: '8px 0 0', ...TYPE.body, color: RC.ink2 }}>
-            We tell you when data runs low or your eSIM needs you. Nothing else unless you choose it.
+            {t('We tell you when data runs low or your eSIM needs you. Nothing else unless you choose it.')}
           </p>
           <div ref={btnRef} style={{ marginTop: 22 }}>
-            <RingoButton loading={busy} onClick={() => void turnOn()}>Turn on notifications</RingoButton>
+            <RingoButton loading={busy} onClick={() => void turnOn()}>{t('Turn on notifications')}</RingoButton>
           </div>
           <div style={{ marginTop: 18, marginBottom: 4, textAlign: 'center' }}>
-            <TextLink onClick={notNow} disabled={busy} color={RC.ink2}>Not now</TextLink>
+            <TextLink onClick={notNow} disabled={busy} color={RC.ink2}>{t('Not now')}</TextLink>
           </div>
         </div>
       </div>
@@ -127,7 +128,7 @@ function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) =
         boxShadow: on ? 'none' : 'inset 0 0 0 1px rgba(26,15,46,0.08)',
       }}
     >
-      <span style={{ display: 'block', width: 27, height: 27, borderRadius: '50%', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', transform: on ? 'translateX(20px)' : 'none', transition: 'transform .2s' }} />
+      <span style={{ display: 'block', width: 27, height: 27, borderRadius: '50%', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', transform: on ? `translateX(${isRtl() ? -20 : 20}px)` : 'none', transition: 'transform .2s' }} />
     </button>
   );
 }
@@ -157,13 +158,13 @@ export function PushSwitches() {
       {push.permission === 'denied' && (
         <div style={{ padding: '14px 16px', borderBottom: `1px solid ${RC.line}`, display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{ flex: 1, minWidth: 0, ...TYPE.small, color: RC.ink2 }}>
-            Notifications are off for Ringo in your iPhone settings.
+            {t('Notifications are off for Ringo in your iPhone settings.')}
           </div>
-          <RingoButton size="sm" variant="soft" full={false} onClick={() => void openPushSettings()}>Open Settings</RingoButton>
+          <RingoButton size="sm" variant="soft" full={false} onClick={() => void openPushSettings()}>{t('Open Settings')}</RingoButton>
         </div>
       )}
-      <SwitchRow label="Service alerts" sub="eSIM ready, data running low" on={allowed && push.prefs.service} onChange={(v) => void setPushPref('service', v)} />
-      <SwitchRow label="Offers and Rewards" sub="Member prices and new levels" on={allowed && push.prefs.offers} onChange={(v) => void setPushPref('offers', v)} last />
+      <SwitchRow label={t('Service alerts')} sub={t('eSIM ready, data running low')} on={allowed && push.prefs.service} onChange={(v) => void setPushPref('service', v)} />
+      <SwitchRow label={t('Offers and Rewards')} sub={t('Member prices and new levels')} on={allowed && push.prefs.offers} onChange={(v) => void setPushPref('offers', v)} last />
     </>
   );
 }

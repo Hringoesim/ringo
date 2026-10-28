@@ -532,3 +532,9 @@ button:focus-visible,
   to { background-position: 0 0, -200% 50%; }
 }
 @media (prefers-reduced-motion: reduce) { .power-contour { animation: none; } }
+
+/* Right-to-left (Arabic, Hebrew): arrows and chevrons that point "forward"
+   or "back" turn round; i18n.ts sets dir on <html>. */
+[dir='rtl'] .flip-rtl {
+  transform: scaleX(-1);
+}

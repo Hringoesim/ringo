@@ -16,6 +16,7 @@ import { useLayout, type Layout } from '../../lib/layout';
 import { RingoCard } from '../Card';
 import { RingoButton } from '../Button';
 import { monthYear, pioneerTitle, pioneerPerk, PIONEER_GOLD, PIONEER_INK } from './format';
+import { t, placeName } from '../../lib/i18n';
 
 const TILE_RATIO = '4 / 5';
 const STAR = 'M12 2.8l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.1 6.4 20l1.1-6.2L3 9.4l6.2-.9z';
@@ -36,13 +37,13 @@ function Tile({ b }: { b: TravelBadge }) {
       />
       <div aria-hidden style={{ position: 'absolute', inset: 0, background: PHOTO_OVERLAY }} />
       {b.active && (
-        <span style={{ position: 'absolute', top: 8, left: 8, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 9px 4px 8px', borderRadius: RADIUS.pill, background: 'rgba(14,7,24,0.62)', border: '1px solid rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', color: '#fff', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>
+        <span style={{ position: 'absolute', top: 8, insetInlineStart: 8, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 9px 4px 8px', borderRadius: RADIUS.pill, background: 'rgba(14,7,24,0.62)', border: '1px solid rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', color: '#fff', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>
           <span aria-hidden style={{ width: 7, height: 7, borderRadius: RADIUS.pill, background: '#63E392' }} />
-          Active
+          {t('Active')}
         </span>
       )}
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '0 10px 10px', color: '#fff', textShadow: PHOTO_TEXT_SHADOW }}>
-        <div style={{ fontFamily: 'var(--font)', fontSize: 15, fontWeight: 800, letterSpacing: '-0.01em', lineHeight: 1.2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', overflowWrap: 'anywhere' }}>{b.label}</div>
+        <div style={{ fontFamily: 'var(--font)', fontSize: 15, fontWeight: 800, letterSpacing: '-0.01em', lineHeight: 1.2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', overflowWrap: 'anywhere' }}>{placeName(b.label, b.flag)}</div>
         {first && <div style={{ marginTop: 2, fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>{first}</div>}
       </div>
     </li>
@@ -62,7 +63,7 @@ export function PioneerTile({ pioneer, as = 'li' }: { pioneer: NonNullable<Profi
       }}
     >
       {/* A large soft star behind, and a twinkle, so it reads as a medal at a glance. */}
-      <svg aria-hidden width="130" height="130" viewBox="0 0 24 24" style={{ position: 'absolute', right: -22, top: -18, opacity: 0.28 }}><path d={STAR} fill="#FFF7D6" /></svg>
+      <svg aria-hidden width="130" height="130" viewBox="0 0 24 24" style={{ position: 'absolute', insetInlineEnd: -22, top: -18, opacity: 0.28 }}><path d={STAR} fill="#FFF7D6" /></svg>
       <span aria-hidden style={{ width: 44, height: 44, borderRadius: '50%', background: GRAD_PREMIUM, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 16px -8px rgba(26,15,46,0.6)', position: 'relative' }}>
         <svg width="24" height="24" viewBox="0 0 24 24"><path d={STAR} fill="#FFCC33" /></svg>
       </span>
@@ -77,7 +78,7 @@ export function PioneerTile({ pioneer, as = 'li' }: { pioneer: NonNullable<Profi
 export function BadgeGrid({ badges, pioneer }: { badges: TravelBadge[]; pioneer?: Profile['pioneer'] }) {
   const l = useLayout();
   return (
-    <ul aria-label="Your badges" style={{ ...grid(l), listStyle: 'none', margin: 0, padding: 0 }}>
+    <ul aria-label={t('Your badges')} style={{ ...grid(l), listStyle: 'none', margin: 0, padding: 0 }}>
       {pioneer && <PioneerTile pioneer={pioneer} />}
       {badges.map((b) => <Tile key={b.destination} b={b} />)}
     </ul>
@@ -111,9 +112,9 @@ export function BadgeEmpty({ onBrowse }: { onBrowse: () => void }) {
           </div>
         ))}
       </div>
-      <h3 style={{ margin: '16px 0 0', ...TYPE.h2, color: RC.ink }}>Your first badge is one trip away</h3>
-      <p style={{ margin: '8px 0 0', ...TYPE.small, color: RC.ink2 }}>Every destination you connect in adds its photo here.</p>
-      <div style={{ marginTop: 16 }}><RingoButton variant="soft" capped onClick={onBrowse}>See destinations</RingoButton></div>
+      <h3 style={{ margin: '16px 0 0', ...TYPE.h2, color: RC.ink }}>{t('Your first badge is one trip away')}</h3>
+      <p style={{ margin: '8px 0 0', ...TYPE.small, color: RC.ink2 }}>{t('Every destination you connect in adds its photo here.')}</p>
+      <div style={{ marginTop: 16 }}><RingoButton variant="soft" capped onClick={onBrowse}>{t('See destinations')}</RingoButton></div>
     </RingoCard>
   );
 }

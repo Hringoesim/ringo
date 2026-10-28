@@ -14,6 +14,7 @@
 //   GET  app-usage?user&t                  data used per eSIM and per day
 //   POST app-push-register?user&t          this phone's APNs token and the two push switches
 import { log } from '../lib/log';
+import { t, tk, i18n, currentLocale } from '../lib/i18n';
 
 export const SITE = 'https://ringoesim.com';
 const API = `${SITE}/api`;
@@ -217,19 +218,19 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       cache: 'no-store',
       ...init,
       signal: AbortSignal.timeout(TIMEOUT_MS),
-      headers: { Accept: 'application/json', ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...(init.headers || {}) },
+      headers: { Accept: 'application/json', 'Accept-Language': i18n.get(), ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...(init.headers || {}) },
     });
   } catch (err) {
     const timedOut = (err as Error)?.name === 'TimeoutError';
     log.warn('api', `${path} -> ${timedOut ? 'timed out' : 'no connection'}`);
     throw new ApiError(
-      timedOut ? 'Ringo took too long to answer. Try again in a moment.' : 'No connection to Ringo. Check your internet and try again.',
+      timedOut ? t('Ringo took too long to answer. Try again in a moment.') : t('No connection to Ringo. Check your internet and try again.'),
       0,
     );
   }
   const body = (await res.json().catch(() => null)) as (T & { error?: string; message?: string }) | null;
   if (!res.ok) {
-    const msg = (body && (body.message || body.error)) || `Request failed (${res.status})`;
+    const msg = (body && (body.message || body.error)) || t('Request failed ({status})', { status: res.status });
     log.warn('api', `${path} -> ${res.status} ${msg}`);
     throw new ApiError(msg, res.status);
   }
@@ -392,18 +393,18 @@ export interface WaitlistDashboard {
 // Mirrors REASONS in the site's api/_cy-support.js: the ids are what the
 // endpoint accepts.
 export const PROBLEM_REASONS: { id: string; label: string }[] = [
-  { id: 'no_service', label: 'Installed, but no data connection' },
-  { id: 'install_failed', label: 'The eSIM will not install' },
-  { id: 'slow', label: 'Data works but is very slow' },
-  { id: 'data_missing', label: 'Data bought is not showing or has stopped' },
-  { id: 'other', label: 'Something else' },
+  { id: 'no_service', label: tk('Installed, but no data connection') },
+  { id: 'install_failed', label: tk('The eSIM will not install') },
+  { id: 'slow', label: tk('Data works but is very slow') },
+  { id: 'data_missing', label: tk('Data bought is not showing or has stopped') },
+  { id: 'other', label: tk('Something else') },
 ];
 
 /** "€12.99" / "$14.99" from minor units. */
 export function money(minor: number, currency: Currency | string = 'eur'): string {
   const cur = String(currency || 'eur').toUpperCase();
   try {
-    return new Intl.NumberFormat('en', { style: 'currency', currency: cur, minimumFractionDigits: 2 }).format(minor / 100);
+    return new Intl.NumberFormat(currentLocale(), { style: 'currency', currency: cur, minimumFractionDigits: 2 }).format(minor / 100);
   } catch {
     return `${cur} ${(minor / 100).toFixed(2)}`;
   }

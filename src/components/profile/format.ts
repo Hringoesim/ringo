@@ -1,16 +1,18 @@
 // Small helpers the profile's pieces share.
 import type { Profile } from '../../api/light';
+import { t, fmtDate, plural as countOf } from '../../lib/i18n';
 
-/** "Sep 2026" from an ISO date (always English); empty when there is none. */
+/** "Sep 2026" from an ISO date, in the app's language; empty when there is none. */
 export function monthYear(iso: string | null | undefined): string {
   if (!iso) return '';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  return fmtDate(d, { month: 'short', year: 'numeric' });
 }
 
+/** "3 countries": `one` and `many` are the English nouns, counted in the app's language. */
 export function plural(n: number, one: string, many: string): string {
-  return `${n} ${n === 1 ? one : many}`;
+  return countOf(n, `{n} ${one}`, `{n} ${many}`);
 }
 
 // The colour of each Rewards level: the avatar ring, the card outline.
@@ -35,10 +37,10 @@ type Pioneer = NonNullable<Profile['pioneer']>;
 /** "Ringo Pioneer", or "Ringo Pioneer, Patron" for a backing rung. Never the Pioneer number. */
 export function pioneerTitle(p: Pioneer): string {
   const tier = (p.tier || '').trim();
-  return !tier || tier.toLowerCase() === 'pioneer' ? 'Ringo Pioneer' : `Ringo Pioneer, ${tier}`;
+  return !tier || tier.toLowerCase() === 'pioneer' ? 'Ringo Pioneer' : `Ringo Pioneer, ${t(tier)}`;
 }
 
 /** The Pioneer's own reward, in the words the website's dashboard uses. */
 export function pioneerPerk(p: Pioneer): string {
-  return p.kind === 'global' ? `€${p.credit_eur || 5} off your first Ringo bill` : 'Founding pricing locked in';
+  return p.kind === 'global' ? t('{amount} off your first Ringo bill', { amount: `€${p.credit_eur || 5}` }) : t('Founding pricing locked in');
 }

@@ -31,6 +31,7 @@ import { BUTTON_MAX, TYPE, typeFor } from '../theme';
 import { requestLightStatusBar } from '../lib/statusBar';
 import { useLayout } from '../lib/layout';
 import { ACCOUNT_DELETED_KEY } from './HelpScreen';
+import { t } from '../lib/i18n';
 
 type Hero = 'a' | 'b' | 'c';
 const SHIPPED: Hero = 'a';
@@ -324,7 +325,7 @@ export function LandingScreen({
             ...heroText,
           }}
         >
-          Data for every trip.
+          {t('Data for every trip.')}
         </h1>
         <p
           style={{
@@ -333,7 +334,7 @@ export function LandingScreen({
             maxWidth: 420, position: 'relative',
           }}
         >
-          196 countries, one app.
+          {t('196 countries, one app.')}
         </p>
       </div>
 
@@ -348,11 +349,11 @@ export function LandingScreen({
       >
         {deleted && (
           <div role="status" style={{ padding: '12px 14px', borderRadius: 12, background: '#FFFFFF', ...TYPE.small, fontWeight: 600, color: '#1F7A40', textAlign: 'center' }}>
-            Your account has been deleted.
+            {t('Your account has been deleted.')}
           </div>
         )}
         <p style={{ margin: 0, textAlign: 'center', ...TYPE.small, fontWeight: 600, color: onCream ? '#1A0F2E' : '#FFFFFF', textShadow: onCream ? 'none' : '0 1px 6px rgba(40,10,50,0.45)' }}>
-          Sign in or create an account
+          {t('Sign in or create an account')}
         </p>
         <AuthButtons onSignedIn={onSignedIn} onEmail={onEmail} onDark />
       </div>

@@ -3,6 +3,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { log } from '../lib/log';
 import { RADIUS } from '../theme';
+import { t } from '../lib/i18n';
 
 interface Props {
   children: ReactNode;
@@ -40,10 +41,10 @@ export class ErrorBoundary extends Component<Props, State> {
       >
         <div style={{ fontSize: 40 }}>🧭</div>
         <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--rc-ink, #241A22)' }}>
-          Something went sideways
+          {t('Something went sideways')}
         </div>
         <div style={{ fontSize: 14, color: 'var(--rc-ink-mute, #7A6E75)', lineHeight: 1.5, maxWidth: 280 }}>
-          Ringo hit an unexpected error. Reloading usually sorts it. Your account and plan are safe.
+          {t('Ringo hit an unexpected error. Reloading usually sorts it. Your account and plan are safe.')}
         </div>
         <button
           onClick={this.reload}
@@ -53,7 +54,7 @@ export class ErrorBoundary extends Component<Props, State> {
             background: 'linear-gradient(120deg, #FF9A4D, #FF4D8D 55%, #A55BFF)',
           }}
         >
-          Reload Ringo
+          {t('Reload Ringo')}
         </button>
       </div>
     );

@@ -25,26 +25,28 @@ import { haptic, hapticNotify } from '../lib/haptics';
 import { useLiveTick } from '../store/live';
 import { useScreenActive } from '../components/ScreenHost';
 import { useLayout, twoColumn, TABBAR_CLEARANCE, type Layout } from '../lib/layout';
+import { t as tr, tn, fmtDate as fmtWhen, fmtNumber, placeName, plural } from '../lib/i18n';
 
 const SUNSET_PHOTO = `${SITE}/img/dashboard-sunset.jpg`;
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '';
-  try { return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); } catch { return iso; }
+  return fmtWhen(iso, { day: 'numeric', month: 'short', year: 'numeric' }) || iso;
 }
 function fmtGb(mb: number): string {
-  return mb >= 1024 ? `${(mb / 1024).toFixed(mb >= 10240 ? 0 : 1)} GB` : `${Math.round(mb)} MB`;
+  const digits = mb >= 10240 ? 0 : 1;
+  return mb >= 1024 ? `${fmtNumber(mb / 1024, { minimumFractionDigits: digits, maximumFractionDigits: digits })} GB` : `${fmtNumber(Math.round(mb))} MB`;
 }
 // The carrier's package states, in the traveller's words. A package sits
 // "not active" until the eSIM first connects at the destination; that is
 // the normal state of a plan bought before the trip, not a problem.
 function statusWord(pkg: string | null | undefined, sub: string): string {
   const p = String(pkg || '').toLowerCase();
-  if (p === 'active') return 'Active';
-  if (p === 'not_active' || p === 'non_active' || p === 'queued') return 'Ready to use';
-  if (p === 'terminated' || p === 'expired') return 'Ended';
+  if (p === 'active') return tr('Active');
+  if (p === 'not_active' || p === 'non_active' || p === 'queued') return tr('Ready to use');
+  if (p === 'terminated' || p === 'expired') return tr('Ended');
   if (p) return p.charAt(0).toUpperCase() + p.slice(1).replace(/_/g, ' ');
-  if (sub === 'completed') return 'Ready to use';
+  if (sub === 'completed') return tr('Ready to use');
   const s = sub.replace(/_/g, ' ');
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
@@ -120,7 +122,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
     } catch (e) {
       const status = (e as { status?: number }).status;
       if (status === 401) { account.forget(); setData(null); }
-      else setErr('Could not reach Ringo. Check your connection and try again.');
+      else setErr(tr('Could not reach Ringo. Check your connection and try again.'));
     } finally {
       setLoading(false);
     }
@@ -161,10 +163,10 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
     haptic('light');
     try {
       const r = await light.resendInstall(acct.userId, acct.t);
-      setResent(r.throttled ? `Already sent. Try again in ${Math.ceil((r.retry_after_seconds || 60) / 60)} min.` : `Sent to ${r.sent_to || 'your email'}.`);
+      setResent(r.throttled ? tr('Already sent. Try again in {n} min.', { n: Math.ceil((r.retry_after_seconds || 60) / 60) }) : tr('Sent to {email}.', { email: r.sent_to || tr('your email') }));
       hapticNotify('success');
     } catch {
-      setResent('Could not send right now.');
+      setResent(tr('Could not send right now.'));
     }
     setTimeout(() => setResent(null), 4000);
   };
@@ -174,9 +176,9 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
   const topUp = async (t: TopUp) => {
     if (CARD_PAYMENTS) { void topUpByCard(t); return; }
     if (!acct || !data?.destination || !t.apple_product_id) return;
-    if (!iapAvailable()) { setErr('Top-ups are bought in the Ringo iPhone app.'); return; }
+    if (!iapAvailable()) { setErr(tr('Top-ups are bought in the Ringo iPhone app.')); return; }
     const email = acct.email || '';
-    if (!email) { setErr('Sign in with the email this eSIM was bought with before adding data.'); return; }
+    if (!email) { setErr(tr('Sign in with the email this eSIM was bought with before adding data.')); return; }
     setErr(null);
     setTopping(t.plan);
     haptic('medium');
@@ -188,16 +190,16 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
         await finish(out.transactionId);
         pendingPurchase.clear(t.apple_product_id, ctx.startedAt);
         hapticNotify('success');
-        setNote(r.environment === 'Sandbox' ? 'Sandbox top-up recorded.' : 'Allowance top-up added to your eSIM.');
+        setNote(r.environment === 'Sandbox' ? 'Sandbox top-up recorded.' : tr('Allowance top-up added to your eSIM.'));
         clearNoteIn(5000);
         void load(true);
       } else if (out.state === 'pending') {
-        setNote('Waiting for approval (Ask to Buy). The data lands once it is approved.');
+        setNote(tr('Waiting for approval (Ask to Buy). The data lands once it is approved.'));
       } else {
         pendingPurchase.clear(t.apple_product_id, ctx.startedAt);
       }
     } catch (e) {
-      setErr((e as Error).message || 'Could not complete the top-up.');
+      setErr((e as Error).message || tr('Could not complete the top-up.'));
     } finally {
       setTopping(null);
     }
@@ -211,7 +213,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
   const topUpByCard = async (t: TopUp) => {
     if (!acct || !data?.destination || topUpBusy.current) return;
     const email = acct.email || '';
-    if (!email) { setErr('Sign in with the email this eSIM was bought with before adding data.'); return; }
+    if (!email) { setErr(tr('Sign in with the email this eSIM was bought with before adding data.')); return; }
     setErr(null);
     topUpBusy.current = true;
     setTopping(t.plan);
@@ -223,15 +225,15 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
       topUpStop.current = null;
       if (out.state === 'paid' || out.state === 'received') {
         hapticNotify('success');
-        setNote('Payment received. The data lands on your eSIM within a minute or two.');
+        setNote(tr('Payment received. The data lands on your eSIM within a minute or two.'));
         clearNoteIn(6000);
         void load(true);
       } else if (out.state === 'unconfirmed') {
-        setNote('Your payment is not confirmed yet. If it went through, the data lands shortly.');
+        setNote(tr('Your payment is not confirmed yet. If it went through, the data lands shortly.'));
         clearNoteIn(8000);
       }
     } catch (e) {
-      setErr((e as Error).message || 'Could not complete the top-up.');
+      setErr((e as Error).message || tr('Could not complete the top-up.'));
     } finally {
       setTopping(null);
       topUpBusy.current = false;
@@ -248,11 +250,11 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
     try {
       const r = await light.setRenewal(acct.userId, acct.t, on);
       const until = r.ends_at ? new Date(r.ends_at).toLocaleDateString(undefined, { day: 'numeric', month: 'long' }) : null;
-      setNote(on ? 'Renewal is on again.' : until ? `Renewal is off. Your plan runs until ${until}.` : 'Renewal is off. Your plan runs to the end of the month you paid for.');
+      setNote(on ? tr('Renewal is on again.') : until ? tr('Renewal is off. Your plan runs until {date}.', { date: until }) : tr('Renewal is off. Your plan runs to the end of the month you paid for.'));
       clearNoteIn(6000);
       void load(true);
     } catch (e) {
-      setErr((e as Error).message || 'Could not change the renewal.');
+      setErr((e as Error).message || tr('Could not change the renewal.'));
     } finally {
       setRenewBusy(false);
     }
@@ -275,14 +277,14 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
         try { await light.restorePurchase(out.jws); } catch { /* App Store Server Notifications still carry it */ }
         await finish(out.transactionId);
         hapticNotify('success');
-        setNote(`Done. Your Global month is ${globalOffer.pct}% cheaper from your next renewal.`);
+        setNote(tr('Done. Your Global month is {pct}% cheaper from your next renewal.', { pct: globalOffer.pct }));
         setGlobalOffer(null);
         clearNoteIn(6000);
       } else if (out.state === 'pending') {
-        setNote('Waiting for approval (Ask to Buy). Your lower price applies once it is approved.');
+        setNote(tr('Waiting for approval (Ask to Buy). Your lower price applies once it is approved.'));
       }
     } catch (e) {
-      setErr((e as Error).message || 'Could not apply your Rewards price.');
+      setErr((e as Error).message || tr('Could not apply your Rewards price.'));
     } finally {
       setApplying(false);
     }
@@ -292,7 +294,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
   // newest first, until the site recognises one and names its owner.
   const restore = async () => {
     if (restoring) return;
-    if (!iapAvailable()) { setNote('Restore works in the Ringo iPhone app.'); return; }
+    if (!iapAvailable()) { setNote(tr('Restore works in the Ringo iPhone app.')); return; }
     setRestoring(true);
     haptic('light');
     try {
@@ -304,10 +306,10 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
           if (r.user_id && r.t) { account.set({ userId: r.user_id, t: r.t, email: r.email ?? null, purchaseRef: `apple:${r.transaction_id}` }); found = true; break; }
         } catch { /* next one */ }
       }
-      setNote(found ? 'Your purchases are back.' : txs.length ? 'No Ringo eSIM found for this Apple ID yet. If you just bought one, open the plan again.' : 'No purchases found for this Apple ID.');
+      setNote(found ? tr('Your purchases are back.') : txs.length ? tr('No Ringo eSIM found for this Apple ID yet. If you just bought one, open the plan again.') : tr('No purchases found for this Apple ID.'));
       if (found) void load();
     } catch {
-      setNote('Could not reach the App Store. Try again.');
+      setNote(tr('Could not reach the App Store. Try again.'));
     } finally {
       setRestoring(false);
       clearNoteIn(6000);
@@ -316,11 +318,11 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
 
   // The profile (travel badges, Ringo status) sits one tap from the eSIM, top right, once there is an account.
   const profileBtn = acct ? (
-    <IconButton onClick={onProfile} label="Your profile">
+    <IconButton onClick={onProfile} label={tr('Your profile')}>
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden><circle cx="12" cy="8.5" r="4" stroke={RC.inkStrong} strokeWidth="2" /><path d="M4.5 20c.9-3.6 3.8-5.5 7.5-5.5s6.6 1.9 7.5 5.5" stroke={RC.inkStrong} strokeWidth="2" strokeLinecap="round" /></svg>
     </IconButton>
   ) : null;
-  const header = <RingoHeader title="My eSIM" leading={onBack ? <BackBtn onClick={onBack} /> : null} trailing={profileBtn} />;
+  const header = <RingoHeader title={tr('My eSIM')} leading={onBack ? <BackBtn onClick={onBack} /> : null} trailing={profileBtn} />;
   const scroller = { flex: 1, overflowY: 'auto' as const, padding: `4px ${l.gutter}px calc(${TABBAR_CLEARANCE} + 24px)` };
 
   if (!acct) {
@@ -330,11 +332,11 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
         <div className="no-bar" style={scroller}>
           <Empty
             l={l}
-            title="No eSIM on this phone yet"
-            sub="Buy a plan and it appears here."
-            primary={{ label: 'Sign in', onClick: onLogin }}
-            secondary={{ label: restoring ? 'Restoring…' : 'Restore purchases', onClick: () => void restore(), loading: restoring }}
-            tertiary={{ label: 'Browse plans', onClick: onStore }}
+            title={tr('No eSIM on this phone yet')}
+            sub={tr('Buy a plan and it appears here.')}
+            primary={{ label: tr('Sign in'), onClick: onLogin }}
+            secondary={{ label: restoring ? tr('Restoring…') : tr('Restore purchases'), onClick: () => void restore(), loading: restoring }}
+            tertiary={{ label: tr('Browse plans'), onClick: onStore }}
             note={note}
           />
         </div>
@@ -347,26 +349,26 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
   const dest = destId ? destinationById(destId) : null;
   const usage = data?.usage && !('unavailable' in data.usage) ? data.usage : null;
   const ended = sub?.current_cycle_ends_at ? Date.parse(sub.current_cycle_ends_at) < Date.now() : false;
-  const place = data?.destination?.label || sub?.plan_label || 'Your eSIM';
+  const place = data?.destination?.label ? placeName(data.destination.label, dest?.flag) : sub?.plan_label || tr('Your eSIM');
   const unlimited = Boolean(sub && (sub.plan.startsWith('ul_') || usage?.unlimited));
 
   const hasUsage = Boolean(sub?.esim_attached && usageAll && (usageAll.esims.length || usageAll.daily.length));
   // Without a second column, a wide screen gets one readable column, not a stretched phone row.
-  const single = { display: 'flex', flexDirection: 'column' as const, gap: l.cardGap, width: '100%', maxWidth: l.isWide ? READ_MAX + 80 : undefined, marginLeft: 'auto', marginRight: 'auto' };
+  const single = { display: 'flex', flexDirection: 'column' as const, gap: l.cardGap, width: '100%', maxWidth: l.isWide ? READ_MAX + 80 : undefined, marginInline: 'auto' };
   const planCard = sub ? (
     <div style={{ ...cardSurface(), overflow: 'hidden' }}>
       <PlanPicture id={destId} place={place} flag={dest?.flag || null} wide={l.isWide} />
       <div style={{ padding: l.isWide ? '18px 22px 22px' : '16px 16px 18px' }}>
         <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
           <h2 style={{ margin: 0, ...TYPE.h3, color: RC.ink }}>{sub.plan_label}</h2>
-          {pioneer && <PioneerBadge tone="gold" label="Ringo Pioneer" />}
+          {pioneer && <PioneerBadge tone="gold" label={tr('Ringo Pioneer')} />}
         </div>
         <p style={{ margin: '6px 0 0', ...TYPE.small, color: RC.ink2 }}>
           {!sub.esim_attached
-            ? 'Your eSIM is being prepared. Usually under a minute.'
+            ? tr('Your eSIM is being prepared. Usually under a minute.')
             : ended
-              ? `Your period ended ${fmtDate(sub.current_cycle_ends_at)}. Top up below to keep using the same eSIM.`
-              : sub.current_cycle_ends_at ? `Valid until ${fmtDate(sub.current_cycle_ends_at)}` : 'Active'}
+              ? tr('Your period ended {date}. Top up below to keep using the same eSIM.', { date: fmtDate(sub.current_cycle_ends_at) })
+              : sub.current_cycle_ends_at ? tr('Valid until {date}', { date: fmtDate(sub.current_cycle_ends_at) }) : tr('Active')}
         </p>
 
         {!sub.esim_attached && (
@@ -377,9 +379,9 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
 
         {sub.esim_attached && (
           <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: `repeat(${sub.cycles_total > 1 ? 3 : 2}, minmax(0, 1fr))`, gap: 8 }}>
-            <Stat label="Data left" value={unlimited ? 'Unlimited' : usage && usage.data_remaining_mb != null ? fmtGb(usage.data_remaining_mb) : '…'} />
-            {sub.cycles_total > 1 && <Stat label="Months" value={`${sub.cycles_used} of ${sub.cycles_total}`} />}
-            <Stat label="Status" value={statusWord(usage?.package_status, sub.status)} />
+            <Stat label={tr('Data left')} value={unlimited ? tr('Unlimited') : usage && usage.data_remaining_mb != null ? fmtGb(usage.data_remaining_mb) : '…'} />
+            {sub.cycles_total > 1 && <Stat label={tr('Months')} value={tr('{used} of {total}', { used: sub.cycles_used, total: sub.cycles_total })} />}
+            <Stat label={tr('Status')} value={statusWord(usage?.package_status, sub.status)} />
           </div>
         )}
 
@@ -388,18 +390,20 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
             {usage?.installed ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 16, borderRadius: RADIUS.md, background: RC.cream }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="11" fill={RC.ink} /><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                <div style={{ ...TYPE.h3, color: RC.ink }}>Installed on your iPhone</div>
+                <div style={{ ...TYPE.h3, color: RC.ink }}>{tr('Installed on your iPhone')}</div>
               </div>
             ) : data?.install ? (
-              <RingoButton onClick={() => { haptic('medium'); onInstall(data.install!, place); }}>Install on this iPhone</RingoButton>
+              <RingoButton onClick={() => { haptic('medium'); onInstall(data.install!, place); }}>{tr('Install on this iPhone')}</RingoButton>
             ) : (
               <div style={{ padding: 16, borderRadius: RADIUS.md, background: RC.cream }}>
-                <div style={{ ...TYPE.h3, color: RC.ink }}>Install from your email</div>
+                <div style={{ ...TYPE.h3, color: RC.ink }}>{tr('Install from your email')}</div>
                 <p style={{ margin: '4px 0 0', ...TYPE.small, color: RC.ink2 }}>
-                  The install link is in the email we sent{acct.email ? <> to <strong style={{ color: RC.ink, overflowWrap: 'anywhere' }}>{acct.email}</strong></> : ''}. Open it on this iPhone.
+                  {acct.email
+                    ? tn('The install link is in the email we sent to {email}. Open it on this iPhone.', { email: <strong style={{ color: RC.ink, overflowWrap: 'anywhere' }}>{acct.email}</strong> })
+                    : tr('The install link is in the email we sent. Open it on this iPhone.')}
                 </p>
                 <div style={{ marginTop: 12 }}>
-                  <RingoButton size="sm" variant="secondary" onClick={() => void resend()}>{resent || 'Send the install email again'}</RingoButton>
+                  <RingoButton size="sm" variant="secondary" onClick={() => void resend()}>{resent || tr('Send the install email again')}</RingoButton>
                 </div>
               </div>
             )}
@@ -413,20 +417,20 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
     <PhotoCard
       id="rewards-global"
       photo={`${import.meta.env.BASE_URL}img/rewards/gold.jpg`}
-      name={`Your Global month is ${globalOffer.pct}% cheaper`}
+      name={tr('Your Global month is {pct}% cheaper', { pct: globalOffer.pct })}
       aspect={l.isWide ? '16 / 9' : '2 / 1'}
-      what="A Ringo Rewards thank you for staying with Global. It applies from your next renewal."
+      what={tr('A Ringo Rewards thank you for staying with Global. It applies from your next renewal.')}
       style={{ marginTop: 0 }}
     >
       <div style={{ marginTop: 10 }}>
-        <RingoButton loading={applying} disabled={applying} onClick={() => void applyGlobalOffer()}>Apply my lower price</RingoButton>
+        <RingoButton loading={applying} disabled={applying} onClick={() => void applyGlobalOffer()}>{tr('Apply my lower price')}</RingoButton>
       </div>
     </PhotoCard>
   ) : null;
 
   const topUps = sub?.esim_attached && data?.top_ups && data.top_ups.length > 0 ? (
     <section>
-      <SectionHead title="Allowance top-up" sub="More data on this same eSIM." />
+      <SectionHead title={tr('Allowance top-up')} sub={tr('More data on this same eSIM.')} />
       <RingoCard padding={0} clip>
         {data.top_ups.map((t, i) => {
           const ready = CARD_PAYMENTS || !iapAvailable() || Boolean(t.apple_product_id && topProducts.has(t.apple_product_id));
@@ -437,14 +441,14 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
               className="press"
               onClick={() => void topUp(t)}
               disabled={topping != null || !ready}
-              aria-label={`Allowance top-up, valid ${t.validity_days} days, ${price}`}
-              style={{ width: '100%', minHeight: 64, textAlign: 'left', cursor: 'pointer', border: 'none', background: 'transparent', padding: '14px 16px', borderBottom: i === data.top_ups!.length - 1 ? 'none' : `1px solid ${RC.line}`, display: 'flex', alignItems: 'center', gap: 12, opacity: topping != null && topping !== t.plan ? 0.5 : 1 }}
+              aria-label={tr('Allowance top-up, valid {n} days, {price}', { n: t.validity_days, price })}
+              style={{ width: '100%', minHeight: 64, textAlign: 'start', cursor: 'pointer', border: 'none', background: 'transparent', padding: '14px 16px', borderBottom: i === data.top_ups!.length - 1 ? 'none' : `1px solid ${RC.line}`, display: 'flex', alignItems: 'center', gap: 12, opacity: topping != null && topping !== t.plan ? 0.5 : 1 }}
             >
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ ...TYPE.h3, color: RC.ink }}>Allowance top-up</div>
-                <div style={{ ...TYPE.small, color: RC.ink2 }}>Valid {t.validity_days} days</div>
+                <div style={{ ...TYPE.h3, color: RC.ink }}>{tr('Allowance top-up')}</div>
+                <div style={{ ...TYPE.small, color: RC.ink2 }}>{plural(t.validity_days, 'Valid {n} day', 'Valid {n} days')}</div>
               </div>
-              <div style={{ ...TYPE.bodyStrong, color: RC.orangeInk, fontVariantNumeric: 'tabular-nums' }}>{topping === t.plan ? 'Adding…' : price}</div>
+              <div style={{ ...TYPE.bodyStrong, color: RC.orangeInk, fontVariantNumeric: 'tabular-nums' }}>{topping === t.plan ? tr('Adding…') : price}</div>
             </button>
           );
         })}
@@ -457,7 +461,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
       {header}
       <div className="no-bar" style={scroller}>
         {loading && !data && (
-          <div role="status" aria-label="Loading your eSIM" style={{ ...twoColumn(l) }}>
+          <div role="status" aria-label={tr('Loading your eSIM')} style={{ ...twoColumn(l) }}>
             <div style={{ height: l.isWide ? 380 : 300, borderRadius: RADIUS.card, border: `1.5px solid ${RC.line}`, background: RC.cream, animation: 'ringoSheen 1.4s ease-in-out infinite' }} />
             {l.isWide && <div style={{ height: 380, borderRadius: RADIUS.card, border: `1.5px solid ${RC.line}`, background: RC.cream, animation: 'ringoSheen 1.4s ease-in-out infinite' }} />}
           </div>
@@ -467,21 +471,21 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
         {!loading && !data && err && (
           <Empty
             l={l}
-            title="Could not reach Ringo"
-            sub="Your eSIM is fine. We just could not load it. Check your connection and try again."
-            primary={{ label: 'Try again', onClick: () => void load() }}
-            tertiary={{ label: 'Report a problem', onClick: onReport }}
+            title={tr('Could not reach Ringo')}
+            sub={tr('Your eSIM is fine. We just could not load it. Check your connection and try again.')}
+            primary={{ label: tr('Try again'), onClick: () => void load() }}
+            tertiary={{ label: tr('Report a problem'), onClick: onReport }}
           />
         )}
 
         {!loading && data && !sub && (
           <Empty
             l={l}
-            title="No plan on this account yet"
-            sub={<>{acct.email && <span style={{ display: 'block', color: RC.ink, fontWeight: 600, overflowWrap: 'anywhere' }}>{acct.email}</span>}<span style={{ display: 'block', marginTop: 6 }}>If you just paid, give it a minute.</span></>}
-            primary={{ label: 'Browse plans', onClick: onStore }}
-            secondary={{ label: restoring ? 'Restoring…' : 'Restore purchases', onClick: () => void restore(), loading: restoring }}
-            tertiary={{ label: 'Sign in with another account', onClick: onLogin }}
+            title={tr('No plan on this account yet')}
+            sub={<>{acct.email && <span style={{ display: 'block', color: RC.ink, fontWeight: 600, overflowWrap: 'anywhere' }}>{acct.email}</span>}<span style={{ display: 'block', marginTop: 6 }}>{tr('If you just paid, give it a minute.')}</span></>}
+            primary={{ label: tr('Browse plans'), onClick: onStore }}
+            secondary={{ label: restoring ? tr('Restoring…') : tr('Restore purchases'), onClick: () => void restore(), loading: restoring }}
+            tertiary={{ label: tr('Sign in with another account'), onClick: onLogin }}
             note={note}
           />
         )}
@@ -512,22 +516,22 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
               {topUps}
               {sub.esim_attached && (
                 <section>
-                  <SectionHead title="Help" sub="Setup, problems and purchases." />
+                  <SectionHead title={tr('Help')} sub={tr('Setup, problems and purchases.')} />
                   <RingoCard padding={0} clip>
-                    {data?.install && <LinkRow label={resent || 'Send the install email again'} onClick={() => void resend()} />}
-                    <LinkRow label="Setup guide" onClick={() => void openInSheet(`${SITE}/esim-setup.html`)} />
-                    <LinkRow label="Report a problem" onClick={onReport} />
+                    {data?.install && <LinkRow label={resent || tr('Send the install email again')} onClick={() => void resend()} />}
+                    <LinkRow label={tr('Setup guide')} onClick={() => void openInSheet(`${SITE}/esim-setup.html`)} />
+                    <LinkRow label={tr('Report a problem')} onClick={onReport} />
                     {sub.billing === 'card'
-                      ? <LinkRow label={renewBusy ? 'One moment…' : sub.renewal_off ? 'Turn renewal back on' : 'Turn renewal off'} onClick={() => void toggleRenewal(Boolean(sub.renewal_off))} />
-                      : (sub.cycles_total > 1 || /_1m$/.test(String(sub.plan))) && <LinkRow label="Manage subscription" onClick={() => void manageSubscriptions()} />}
-                    <LinkRow label={restoring ? 'Restoring…' : 'Restore purchases'} onClick={() => void restore()} last />
+                      ? <LinkRow label={renewBusy ? tr('One moment…') : sub.renewal_off ? tr('Turn renewal back on') : tr('Turn renewal off')} onClick={() => void toggleRenewal(Boolean(sub.renewal_off))} />
+                      : (sub.cycles_total > 1 || /_1m$/.test(String(sub.plan))) && <LinkRow label={tr('Manage subscription')} onClick={() => void manageSubscriptions()} />}
+                    <LinkRow label={restoring ? tr('Restoring…') : tr('Restore purchases')} onClick={() => void restore()} last />
                   </RingoCard>
                 </section>
               )}
             </div>
 
             <div style={{ marginTop: l.sectionGap, textAlign: 'center' }}>
-              <TextLink onClick={onLogin}>Not your eSIM? Sign in with another email</TextLink>
+              <TextLink onClick={onLogin}>{tr('Not your eSIM? Sign in with another email')}</TextLink>
             </div>
           </>
         )}
@@ -551,7 +555,7 @@ function PlanPicture({ id, place, flag, wide }: { id: string | null; place: stri
         ? <PlaceMosaic id={id} />
         : src && <img src={src} alt="" onError={fail} decoding="async" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
       <div aria-hidden style={{ position: 'absolute', inset: 0, background: PHOTO_OVERLAY }} />
-      <div style={{ position: 'absolute', left: 16, right: 16, bottom: 14, display: 'flex', alignItems: 'center', gap: 8, color: '#FFFFFF', textShadow: PHOTO_TEXT_SHADOW }}>
+      <div style={{ position: 'absolute', insetInline: 16, bottom: 14, display: 'flex', alignItems: 'center', gap: 8, color: '#FFFFFF', textShadow: PHOTO_TEXT_SHADOW }}>
         {flag && <span aria-hidden style={{ fontSize: 26, lineHeight: 1 }}>{flag}</span>}
         <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: wide ? 28 : 24, lineHeight: 1.15, letterSpacing: '-0.02em', overflowWrap: 'anywhere' }}>{place}</span>
       </div>
@@ -571,12 +575,12 @@ function Stat({ label, value }: { label: string; value: string }) {
 /** A row in a list card: 17 label, optional 15 line under it, a chevron. Also used by Help. */
 export function LinkRow({ label, sub, onClick, last }: { label: string; sub?: string; onClick: () => void; last?: boolean }) {
   return (
-    <button className="press" onClick={onClick} style={{ width: '100%', minHeight: 56, textAlign: 'left', cursor: 'pointer', border: 'none', background: 'transparent', padding: '14px 16px', borderBottom: last ? 'none' : `1px solid ${RC.line}`, display: 'flex', alignItems: 'center', gap: 12 }}>
+    <button className="press" onClick={onClick} style={{ width: '100%', minHeight: 56, textAlign: 'start', cursor: 'pointer', border: 'none', background: 'transparent', padding: '14px 16px', borderBottom: last ? 'none' : `1px solid ${RC.line}`, display: 'flex', alignItems: 'center', gap: 12 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontFamily: 'var(--font)', fontSize: 17, lineHeight: 1.3, fontWeight: 600, color: RC.ink }}>{label}</div>
         {sub && <div style={{ ...TYPE.small, color: RC.ink2 }}>{sub}</div>}
       </div>
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden><path d="M6 3l5 5-5 5" stroke={RC.inkDeco} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      <svg className="flip-rtl" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden><path d="M6 3l5 5-5 5" stroke={RC.inkDeco} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
     </button>
   );
 }

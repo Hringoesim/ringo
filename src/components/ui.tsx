@@ -9,15 +9,16 @@ import {
 } from '../theme';
 import { hapticSelection } from '../lib/haptics';
 import { useLayout } from '../lib/layout';
+import { t, isRtl } from '../lib/i18n';
 
 // ── Header controls ─────────────────────────────────────────────────────────
 
-export function BackBtn({ onClick, label = 'Back' }: { onClick?: () => void; label?: string }) {
+export function BackBtn({ onClick, label }: { onClick?: () => void; label?: string }) {
   return (
     <button
       className="press"
       onClick={onClick}
-      aria-label={label}
+      aria-label={label ?? t('Back')}
       style={{
         width: TAP, height: TAP, borderRadius: '50%', padding: 0, flexShrink: 0,
         background: RC.cream, border: `1.5px solid ${RC.lineStrong}`,
@@ -25,7 +26,7 @@ export function BackBtn({ onClick, label = 'Back' }: { onClick?: () => void; lab
         cursor: 'pointer', boxShadow: '0 4px 12px -6px rgba(26,15,46,0.16)',
       }}
     >
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <svg className="flip-rtl" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
         <path d="M10 2L4 8l6 6" stroke={RC.orangeInk} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </button>
@@ -60,7 +61,7 @@ export function TextLink({ onClick, children, color, align = 'center', disabled 
       onClick={onClick}
       style={{
         minHeight: TAP, padding: '0 16px', margin: '-12px -16px', boxSizing: 'border-box',
-        display: 'inline-flex', alignItems: 'center', justifyContent: align === 'left' ? 'flex-start' : 'center',
+        display: 'inline-flex', alignItems: 'center', justifyContent: align === 'left' ? 'flex-start' : 'center', textAlign: align === 'left' ? 'start' : 'center',
         border: 'none', background: 'transparent', cursor: disabled ? 'default' : 'pointer',
         opacity: disabled ? 0.5 : 1,
         fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, lineHeight: 1.3,
@@ -238,7 +239,7 @@ export function PhotoCard({ id, name, photo, alt = '', flag, chip, size = 'big',
         {chip != null && (
           <span
             style={{
-              position: 'absolute', top: 10, right: 10, padding: '5px 10px', borderRadius: 999,
+              position: 'absolute', top: 10, insetInlineEnd: 10, padding: '5px 10px', borderRadius: 999,
               background: 'rgba(14,7,24,0.55)', border: '1px solid rgba(255,255,255,0.25)',
               backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
               color: '#FFFFFF', fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, lineHeight: 1.2,
@@ -272,7 +273,7 @@ export function PhotoCard({ id, name, photo, alt = '', flag, chip, size = 'big',
 // ── Pioneer badge ───────────────────────────────────────────────────────────
 
 /** The Pioneer badge. premium: plum chip, white label. light: purple text on a soft lilac fill. gold: gold fill, plum label. */
-export function PioneerBadge({ label = 'Pioneer', tone = 'premium', style = {} }: { label?: ReactNode; tone?: 'premium' | 'light' | 'gold'; style?: CSSProperties }) {
+export function PioneerBadge({ label, tone = 'premium', style = {} }: { label?: ReactNode; tone?: 'premium' | 'light' | 'gold'; style?: CSSProperties }) {
   const skin: CSSProperties =
     tone === 'premium'
       ? { background: GRAD_PREMIUM, color: '#FFFFFF' }
@@ -290,7 +291,7 @@ export function PioneerBadge({ label = 'Pioneer', tone = 'premium', style = {} }
       <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden>
         <path d="M12 2.8l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.1 6.4 20l1.1-6.2L3 9.4l6.2-.9z" fill={star} />
       </svg>
-      {label}
+      {label ?? t('Pioneer')}
     </span>
   );
 }
@@ -316,8 +317,8 @@ export function Segmented<T extends string>({ value, options, onChange, tone = '
     if (focus) refs.current[i]?.focus();
   };
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); pick((idx + 1) % options.length, true); }
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); pick((idx - 1 + options.length) % options.length, true); }
+    if (e.key === (isRtl() ? 'ArrowLeft' : 'ArrowRight') || e.key === 'ArrowDown') { e.preventDefault(); pick((idx + 1) % options.length, true); }
+    if (e.key === (isRtl() ? 'ArrowRight' : 'ArrowLeft') || e.key === 'ArrowUp') { e.preventDefault(); pick((idx - 1 + options.length) % options.length, true); }
   };
   const track: CSSProperties = dark
     ? { background: ON_DARK.track, border: `1px solid ${ON_DARK.trackLine}` }
@@ -349,7 +350,7 @@ export function Segmented<T extends string>({ value, options, onChange, tone = '
   }
   return (
     <div role="tablist" aria-label={ariaLabel} onKeyDown={onKey} style={{ position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))`, gap: 4, padding: 4, borderRadius: RADIUS.pill, ...track }}>
-      <div aria-hidden className="seg-pill" style={{ position: 'absolute', top: 4, bottom: 4, left: 4, width: `calc((100% - 8px - ${(options.length - 1) * 4}px) / ${options.length})`, borderRadius: RADIUS.pill, background: pillBg, boxShadow: pillShadow, transform: `translateX(calc(${idx * 100}% + ${idx * 4}px))` }} />
+      <div aria-hidden className="seg-pill" style={{ position: 'absolute', top: 4, bottom: 4, insetInlineStart: 4, width: `calc((100% - 8px - ${(options.length - 1) * 4}px) / ${options.length})`, borderRadius: RADIUS.pill, background: pillBg, boxShadow: pillShadow, transform: `translateX(calc(${(isRtl() ? -1 : 1) * idx * 100}% + ${(isRtl() ? -1 : 1) * idx * 4}px))` }} />
       {options.map((o, i) => {
         const on = i === idx;
         return (
@@ -503,7 +504,7 @@ export function Row({
 }) {
   const style: CSSProperties = {
     display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', minHeight: 60, width: '100%',
-    border: 'none', borderBottom: last ? 'none' : `1px solid ${RC.line}`, textAlign: 'left',
+    border: 'none', borderBottom: last ? 'none' : `1px solid ${RC.line}`, textAlign: 'start',
     cursor: onClick ? 'pointer' : 'default', fontFamily: 'var(--font)',
     background: active ? RC.cream : 'transparent', boxSizing: 'border-box',
   };

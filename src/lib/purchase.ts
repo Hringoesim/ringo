@@ -6,10 +6,11 @@ import { light, money, type Plan , ApiError } from '../api/light';
 import { account, pendingPurchase } from '../store/account';
 import { finish, type IapProduct, type IapTransaction } from './iap';
 import { subMonths } from './terms';
+import { t as tr, currentLocale } from './i18n';
 
 /** An amount in Apple's currency, formatted for this phone. */
 export function appleMoney(n: number, currency: string): string {
-  try { return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(n); } catch { return `${currency} ${n.toFixed(2)}`; }
+  try { return new Intl.NumberFormat(currentLocale(), { style: 'currency', currency }).format(n); } catch { return `${currency} ${n.toFixed(2)}`; }
 }
 
 // What a line costs, in Apple's words. On the phone every price is the App
@@ -34,7 +35,7 @@ export async function reportTransaction(t: IapTransaction, ctx: { plan: string; 
   // account. Finishing the transaction here would tell StoreKit it was
   // delivered, with money taken and nothing on the phone to show for it, so
   // it stays unfinished and is reported again on the next launch.
-  if (!r.user_id || !r.t) throw new ApiError('Your purchase went through, but we could not open your account yet.', 502);
+  if (!r.user_id || !r.t) throw new ApiError(tr('Your purchase went through, but we could not open your account yet.'), 502);
   account.set({ userId: r.user_id, t: r.t, email: ctx.email, purchaseRef: `apple:${r.transaction_id}` });
   await finish(t.transactionId);
   // Consumes this purchase's own context, never another destination's

@@ -8,6 +8,7 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 import { light } from '../api/light';
 import { account } from '../store/account';
 import { InlinePay } from './inlinePay';
+import { t } from './i18n';
 
 interface SheetResult { status: 'completed' | 'canceled' | 'failed'; message?: string }
 const Sheet = registerPlugin<{ present(o: { clientSecret: string; publishableKey: string; email?: string; buttonLabel?: string }): Promise<SheetResult> }>('PaymentSheet');
@@ -36,12 +37,12 @@ export interface CardPayment {
 
 const wait = (ms: number) => new Promise((r) => window.setTimeout(r, ms));
 
-const NOT_STARTED = 'The payment could not be started. Nothing was charged. Please try again.';
-const NOT_THROUGH = 'The payment did not go through. Nothing was charged.';
+const NOT_STARTED = (): string => t('The payment could not be started. Nothing was charged. Please try again.');
+const NOT_THROUGH = (): string => t('The payment did not go through. Nothing was charged.');
 // What the buyer reads: a sentence, never a code ("missing_secret", "Unknown plan").
 function buyerMessage(e: unknown): string {
   const m = (e as Error)?.message || '';
-  if (!m || /^[a-z_]+$/.test(m) || /^unknown plan$/i.test(m) || /^could not start checkout$/i.test(m)) return NOT_STARTED;
+  if (!m || /^[a-z_]+$/.test(m) || /^unknown plan$/i.test(m) || /^could not start checkout$/i.test(m)) return NOT_STARTED();
   return m;
 }
 
@@ -60,7 +61,7 @@ export async function waitForOwner(query: StatusQuery, stillWanted: () => boolea
 
 /** Mint the intent, show the sheet, and wait for Stripe's word. Throws with a message the buyer can read. */
 export async function payByCard(order: CardOrder): Promise<CardPayment> {
-  if (!Capacitor.isNativePlatform()) throw new Error('Payments are taken in the Ringo iPhone app.');
+  if (!Capacitor.isNativePlatform()) throw new Error(t('Payments are taken in the Ringo iPhone app.'));
   try {
     return await start(order);
   } catch (e) {
@@ -76,7 +77,7 @@ async function start(order: CardOrder): Promise<CardPayment> {
   const { useCredit, via = 'sheet', ...rest } = order;
   const r = await light.appPay({ ...rest, ...(acct && mine ? { user: acct.userId, t: acct.t, ...(useCredit ? { use_credit: true } : {}) } : {}) });
   const ref = r.payment_intent_id || r.subscription_id || '';
-  if (!r.client_secret || !r.publishable_key || !ref) throw new Error('The payment could not be started. Nothing was charged.');
+  if (!r.client_secret || !r.publishable_key || !ref) throw new Error(t('The payment could not be started. Nothing was charged.'));
 
   const query: StatusQuery = r.payment_intent_id ? { pi: r.payment_intent_id } : { sub: r.subscription_id! };
   let stopped = false;
@@ -87,7 +88,7 @@ async function start(order: CardOrder): Promise<CardPayment> {
       : via === 'applePay' ? await InlinePay.payApple({ ...secret, amount: r.amount, currency: r.currency, label: r.label || 'Ringo eSIM', monthly: r.mode === 'subscription' })
       : await Sheet.present({ ...secret, email: order.email });
     if (out.status === 'canceled') return { state: 'left' };
-    if (out.status === 'failed') throw new Error(out.message || NOT_THROUGH);
+    if (out.status === 'failed') throw new Error(out.message || NOT_THROUGH());
     // The sheet says confirmed; Stripe's own record says paid before the buyer is told.
     const started = Date.now();
     let paidSeen = false;

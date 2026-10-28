@@ -143,7 +143,7 @@ public class InlinePayPlugin: CAPPlugin, CAPBridgedPlugin, STPPaymentCardTextFie
         if let c = card { return c }
         let c = STPPaymentCardTextField()
         c.postalCodeEntryEnabled = false
-        c.numberPlaceholder = "Card number"
+        c.numberPlaceholder = NSLocalizedString("Card number", comment: "Placeholder in the card field at checkout")
         c.backgroundColor = .white
         c.textColor = UIColor(red: 0x1A/255, green: 0x0F/255, blue: 0x2E/255, alpha: 1)
         c.borderColor = UIColor(red: 0x1A/255, green: 0x0F/255, blue: 0x2E/255, alpha: 0.16)

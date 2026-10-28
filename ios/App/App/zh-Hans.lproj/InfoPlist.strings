@@ -1,0 +1,5 @@
+/* Permission prompts and the home screen name, zh-Hans. */
+"CFBundleDisplayName" = "Ringo";
+"NSLocationWhenInUseUsageDescription" = "Ringo 只使用你所在的国家（绝不使用你的精确位置），为你发送旅行目的地的最新消息。";
+"NSCameraUsageDescription" = "只有在你为个人头像拍照时，Ringo 才会使用相机。";
+"NSPhotoLibraryUsageDescription" = "只有在你为个人资料选择图片时，Ringo 才会打开你的照片。";

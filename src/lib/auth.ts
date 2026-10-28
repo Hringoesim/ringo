@@ -8,6 +8,7 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 import { light } from '../api/light';
 import { account } from '../store/account';
 import { flags } from '../store/flags';
+import { t } from './i18n';
 
 interface SignInWithApplePlugin {
   authorize(o: { nonce?: string }): Promise<{ response: { identityToken: string; user: string; email?: string; givenName?: string; familyName?: string } }>;
@@ -60,7 +61,7 @@ export async function signInWithApple(): Promise<SignInResult> {
     const err = e as { message?: string; code?: string };
     const msg = String(err?.message || e);
     if (err?.code === '1001' || /cancel/i.test(msg) || /1001/.test(msg)) return { ok: false, cancelled: true };
-    return { ok: false, error: 'Apple did not complete the sign-in.' };
+    return { ok: false, error: t('Apple did not complete the sign-in.') };
   }
   return finish('apple', token, raw);
 }
@@ -75,7 +76,7 @@ export async function signInWithGoogle(): Promise<SignInResult> {
     if (r.cancelled || !r.idToken) return { ok: false, cancelled: true };
     token = r.idToken;
   } catch (e) {
-    return { ok: false, error: String((e as Error)?.message || 'Google did not complete the sign-in.') };
+    return { ok: false, error: String((e as Error)?.message || t('Google did not complete the sign-in.')) };
   }
   return finish('google', token, raw);
 }
@@ -88,13 +89,13 @@ async function signInWithGoogleViaSupabase(): Promise<SignInResult> {
     if (r.cancelled || !r.callback) return { ok: false, cancelled: true };
     callback = r.callback;
   } catch (e) {
-    return { ok: false, error: String((e as Error)?.message || 'Google did not complete the sign-in.') };
+    return { ok: false, error: String((e as Error)?.message || t('Google did not complete the sign-in.')) };
   }
   // Supabase returns the session in the fragment (implicit flow); an error comes as query or fragment fields.
   const u = new URL(callback);
   const params = new URLSearchParams(u.hash.startsWith('#') ? u.hash.slice(1) : u.search.slice(1));
   const token = params.get('access_token');
-  if (!token) return { ok: false, error: params.get('error_description') || 'Google did not complete the sign-in.' };
+  if (!token) return { ok: false, error: params.get('error_description') || t('Google did not complete the sign-in.') };
   return finish('supabase', token, '');
 }
 
@@ -104,6 +105,6 @@ async function finish(provider: 'apple' | 'google' | 'supabase', token: string, 
     account.set({ userId: r.user_id, t: r.t, email: r.email, purchaseRef: null });
     return { ok: true, email: r.email };
   } catch (e) {
-    return { ok: false, error: (e as Error).message || 'Could not open the account.' };
+    return { ok: false, error: (e as Error).message || t('Could not open the account.') };
   }
 }

@@ -10,6 +10,7 @@ import { App } from './App';
 import { RC, applyTheme, RADIUS, LOGO_GRAD, type Scheme } from './theme';
 import { syncStatusBar } from './lib/statusBar';
 import { setLayoutWidth } from './lib/layout';
+import { useLang } from './lib/i18n';
 
 // Measures the app root and feeds its live width to useLayout(). On the
 // iPhone Duo the WebView resizes when the phone opens or closes; the
@@ -61,6 +62,8 @@ function isPhoneViewport(): boolean {
 }
 
 export function Host() {
+  // A language picked in the app re-renders every screen in it.
+  const lang = useLang();
   const [theme, setThemeState] = useState<Scheme>(() => {
     const saved = (typeof localStorage !== 'undefined' && localStorage.getItem('ringo_theme')) as Scheme | null;
     const initial: Scheme = saved === 'dark' || saved === 'light' ? saved : 'light';
@@ -168,7 +171,7 @@ export function Host() {
         }}
       >
         <LayoutRoot>
-          <App />
+          <App key={lang} />
         </LayoutRoot>
       </div>
     );
@@ -189,6 +192,7 @@ function mockupSize(): { width: number; height: number } {
 }
 
 function BrowserMockup() {
+  const lang = useLang();
   const [scale, setScale] = useState(1);
   const [{ width, height }] = useState(mockupSize);
   useEffect(() => {
@@ -224,7 +228,7 @@ function BrowserMockup() {
       <div style={{ transform: `scale(${scale})`, transformOrigin: 'center center' }}>
         <RingoDevice width={width} height={height}>
           <LayoutRoot>
-            <App />
+            <App key={lang} />
           </LayoutRoot>
         </RingoDevice>
       </div>

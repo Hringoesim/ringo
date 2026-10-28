@@ -18,6 +18,7 @@ import { openExternal, openInSheet } from '../lib/browser';
 import { SITE } from '../api/light';
 import { haptic, hapticSelection } from '../lib/haptics';
 import { useLayout, readColumn, twoColumn, actionWidth } from '../lib/layout';
+import { t } from '../lib/i18n';
 
 function DetailRow({ label, value, last }: { label: string; value: string; last?: boolean }) {
   const [copied, setCopied] = useState(false);
@@ -32,15 +33,15 @@ function DetailRow({ label, value, last }: { label: string; value: string; last?
       type="button"
       onClick={copy}
       className="press"
-      aria-label={`Copy ${label}`}
-      style={{ width: '100%', textAlign: 'left', border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', minHeight: 56, cursor: 'pointer', borderBottom: last ? 'none' : `1px solid ${RC.line}` }}
+      aria-label={t('Copy {label}', { label })}
+      style={{ width: '100%', textAlign: 'start', border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', minHeight: 56, cursor: 'pointer', borderBottom: last ? 'none' : `1px solid ${RC.line}` }}
     >
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ ...TYPE.label, color: RC.ink2 }}>{label}</div>
         <div style={{ marginTop: 4, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 15, lineHeight: 1.4, fontWeight: 600, color: RC.ink, wordBreak: 'break-all' }}>{value}</div>
       </div>
       <span aria-live="polite" style={{ flexShrink: 0, ...TYPE.label, fontWeight: 700, color: copied ? RC.success : RC.orangeInk }}>
-        {copied ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, animation: 'ringoConfirm 1.4s ease both' }}>Copied ✓</span> : 'Copy'}
+        {copied ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, animation: 'ringoConfirm 1.4s ease both' }}>{t('Copied')} ✓</span> : t('Copy')}
       </span>
     </button>
   );
@@ -61,21 +62,21 @@ export function InstallScreen({ install, label, onBack }: { install: { apple_url
 
   const steps = (
     <RingoCard padding={0} clip>
-      <Step num="1" title="Tap Install on this iPhone" sub="iOS opens Add eSIM with everything filled in" />
-      <Step num="2" title="Confirm, and label it Ringo" sub="Choose Travel or Secondary when iOS asks" />
-      <Step num="3" title="When you land, turn on roaming" sub="Settings, Mobile Data, Ringo: turn on Data Roaming" last />
+      <Step num="1" title={t('Tap Install on this iPhone')} sub={t('iOS opens Add eSIM with everything filled in')} />
+      <Step num="2" title={t('Confirm, and label it Ringo')} sub={t('Choose Travel or Secondary when iOS asks')} />
+      <Step num="3" title={t('When you land, turn on roaming')} sub={t('Settings, Mobile Data, Ringo: turn on Data Roaming')} last />
     </RingoCard>
   );
 
   const qr = (
     <section>
-      <SectionHead as="h2" title="Another phone?" sub="Scan this with its camera." />
+      <SectionHead as="h2" title={t('Another phone?')} sub={t('Scan this with its camera.')} />
       <div style={{ ...cardSurface(), padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <div style={{ width: l.isWide ? 260 : 'min(100%, 220px)', aspectRatio: '1 / 1', borderRadius: RADIUS.sm, padding: 10, boxSizing: 'border-box', background: '#FFFFFF', boxShadow: 'inset 0 0 0 1.5px ' + RC.line }}>
-          <img src={qrDataUri(install.lpa)} alt="eSIM activation QR code" style={{ width: '100%', height: '100%', imageRendering: 'pixelated', display: 'block' }} />
+          <img src={qrDataUri(install.lpa)} alt={t('eSIM activation QR code')} style={{ width: '100%', height: '100%', imageRendering: 'pixelated', display: 'block' }} />
         </div>
         <p style={{ margin: '12px 0 0', ...TYPE.small, color: RC.ink2, textAlign: 'center' }}>
-          The same code is in your email.
+          {t('The same code is in your email.')}
         </p>
       </div>
     </section>
@@ -83,14 +84,14 @@ export function InstallScreen({ install, label, onBack }: { install: { apple_url
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
-      <RingoHeader title="Install eSIM" leading={<BackBtn onClick={onBack} />} />
+      <RingoHeader title={t('Install eSIM')} leading={<BackBtn onClick={onBack} />} />
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', paddingBottom: 'calc(120px + env(safe-area-inset-bottom, 0px))' }}>
         <div style={l.isWide ? { width: '100%', maxWidth: 880, margin: '0 auto', padding: `4px ${l.gutter}px 0`, boxSizing: 'border-box' } : readColumn(l)}>
           <h2 style={{ margin: '4px 0 0', ...typeFor('display', l.size), color: RC.ink }}>
-            Install your {label} eSIM
+            {t('Install your {place} eSIM', { place: label })}
           </h2>
           <p style={{ margin: '8px 0 0', ...TYPE.body, color: RC.ink2 }}>
-            About a minute. Your own SIM keeps your calls.
+            {t('About a minute. Your own SIM keeps your calls.')}
           </p>
 
           <div style={{ marginTop: 20, ...twoColumn(l, 1.2, 1) }}>
@@ -98,20 +99,20 @@ export function InstallScreen({ install, label, onBack }: { install: { apple_url
               {steps}
               {opened && (
                 <SuccessBox>
-                  If Add eSIM did not open, go to Settings, Mobile Data, Add eSIM, Use QR Code, Enter Details Manually, and paste the details below.
+                  {t('If Add eSIM did not open, go to Settings, Mobile Data, Add eSIM, Use QR Code, Enter Details Manually, and paste the details below.')}
                 </SuccessBox>
               )}
               <div style={{ textAlign: 'center', padding: '8px 0' }}>
                 <TextLink onClick={() => { hapticSelection(); setShowManual((s) => !s); }}>
-                  {showManual ? 'Hide manual details' : 'Enter the details manually'}
+                  {showManual ? t('Hide manual details') : t('Enter the details manually')}
                 </TextLink>
               </div>
               {showManual && (
                 <RingoCard padding={0} clip>
-                  <DetailRow label="SM-DP+ address" value={parts.smdp} />
-                  <DetailRow label="Activation code" value={parts.matchingId} />
-                  {parts.confirmationCode && <DetailRow label="Confirmation code" value={parts.confirmationCode} />}
-                  <DetailRow label="Full code (LPA)" value={install.lpa} last />
+                  <DetailRow label={t('SM-DP+ address')} value={parts.smdp} />
+                  <DetailRow label={t('Activation code')} value={parts.matchingId} />
+                  {parts.confirmationCode && <DetailRow label={t('Confirmation code')} value={parts.confirmationCode} />}
+                  <DetailRow label={t('Full code (LPA)')} value={install.lpa} last />
                 </RingoCard>
               )}
             </div>
@@ -120,7 +121,7 @@ export function InstallScreen({ install, label, onBack }: { install: { apple_url
 
           <div style={{ marginTop: 28, textAlign: 'center' }}>
             <TextLink onClick={() => void openInSheet(`${SITE}/esim-setup.html`)}>
-              Full setup guide with screenshots
+              {t('Full setup guide with screenshots')}
             </TextLink>
           </div>
         </div>
@@ -128,7 +129,7 @@ export function InstallScreen({ install, label, onBack }: { install: { apple_url
 
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: `12px ${l.gutter}px max(20px, env(safe-area-inset-bottom, 0px))`, borderTop: `1px solid ${RC.line}`, background: RC.glass, backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)' }}>
         <div style={actionWidth(l)}>
-          <RingoButton onClick={installOnDevice}>{opened ? 'Open Add eSIM again' : 'Install on this iPhone'}</RingoButton>
+          <RingoButton onClick={installOnDevice}>{opened ? t('Open Add eSIM again') : t('Install on this iPhone')}</RingoButton>
         </div>
       </div>
     </div>

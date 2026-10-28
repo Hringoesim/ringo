@@ -12,13 +12,14 @@ import { avatarTraveller } from '../store/avatar';
 import { account } from '../store/account';
 import { hapticNotify } from '../lib/haptics';
 import { useLayout, contentColumn } from '../lib/layout';
+import { t } from '../lib/i18n';
 
 export function TravellerScreen({ onDone }: { onDone: () => void }) {
   const l = useLayout();
   const acct = account.get();
   const userId = acct?.userId || 'guest';
   const picked = avatarTraveller.use(userId);
-  const name = TRAVELLERS.find((t) => t.id === picked)?.name;
+  const name = TRAVELLERS.find((tr) => tr.id === picked)?.name;
   const [party, setParty] = useState(0);
   const go = () => {
     if (!avatarTraveller.picked(userId)) avatarTraveller.set(userId, 'cowboy');
@@ -30,14 +31,14 @@ export function TravellerScreen({ onDone }: { onDone: () => void }) {
       {party > 0 && <Confetti key={party} count={28} />}
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', padding: `calc(env(safe-area-inset-top, 0px) + 40px) ${l.gutter}px 140px` }}>
         <div style={{ ...contentColumn(l) }}>
-          <h1 className="rise" style={{ margin: 0, ...TYPE.h1, fontSize: 32, color: RC.ink }}>Pick your traveller</h1>
-          <p className="rise" style={{ margin: '8px 0 24px', ...TYPE.body, color: RC.ink2 }}>{name ? `${name} it is. Ready when you are.` : 'Who is coming on your trips?'}</p>
+          <h1 className="rise" style={{ margin: 0, ...TYPE.h1, fontSize: 32, color: RC.ink }}>{t('Pick your traveller')}</h1>
+          <p className="rise" style={{ margin: '8px 0 24px', ...TYPE.body, color: RC.ink2 }}>{name ? t('{name} it is. Ready when you are.', { name: t(name) }) : t('Who is coming on your trips?')}</p>
           <TravellerGrid userId={userId} seed={acct?.email || userId} level={null} tile={l.isWide ? 96 : 84} onPick={() => setParty((n) => n + 1)} />
-          <p style={{ margin: '18px 0 0', ...TYPE.small, color: RC.inkMute }}>Change it any time: tap your picture in Rewards.</p>
+          <p style={{ margin: '18px 0 0', ...TYPE.small, color: RC.inkMute }}>{t('Change it any time: tap your picture in Rewards.')}</p>
         </div>
       </div>
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: `12px ${l.gutter}px max(20px, env(safe-area-inset-bottom, 0px))`, background: RC.glass, backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)', borderTop: `1px solid ${RC.line}` }}>
-        <RingoButton onClick={go}>{picked ? "Let's go" : 'Skip for now'}</RingoButton>
+        <RingoButton onClick={go}>{picked ? t("Let's go") : t('Skip for now')}</RingoButton>
       </div>
     </div>
   );

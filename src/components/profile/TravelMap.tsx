@@ -12,6 +12,7 @@ import { RC } from '../../theme';
 import type { TravelBadge } from '../../api/light';
 import { useDestinations } from '../../store/destinations';
 import { ISO_NUMERIC } from '../../data/isoNumeric';
+import { t } from '../../lib/i18n';
 
 type Shapes = FeatureCollection<Geometry, { name: string }>;
 let shapesPromise: Promise<Shapes> | null = null;
@@ -69,7 +70,7 @@ export function TravelMap({ badges }: { badges: TravelBadge[] }) {
 
   return (
     <div style={{ borderRadius: 20, background: RC.paper, border: `1.5px solid ${RC.line}`, overflow: 'hidden', padding: '10px 6px' }}>
-      <svg viewBox={`0 ${paths.top} ${W} ${paths.height}`} width="100%" role="img" aria-label="Map of the countries you have travelled to with Ringo" style={{ display: 'block' }}>
+      <svg viewBox={`0 ${paths.top} ${W} ${paths.height}`} width="100%" role="img" aria-label={t('Map of the countries you have travelled to with Ringo')} style={{ display: 'block' }}>
         {paths.list.map((p, i) => (
           <path
             key={`${p.id}-${i}`}

@@ -23,19 +23,21 @@ import { light, type ProfileAnswers, type WaitlistDashboard, type WaitlistUser }
 import { useAccount } from '../store/account';
 import { useLayout, contentColumn, twoColumn, type Layout } from '../lib/layout';
 import { hapticNotify, hapticSelection } from '../lib/haptics';
-import { countryByIso, isoArray, isoOrEmpty, searchCountries, type Country } from '../lib/countries';
+import { countryByIso, countryName, isoArray, isoOrEmpty, searchCountries, type Country } from '../lib/countries';
 import { PROFILE_QUESTIONS, PLACES_PER_REFERRAL, PLACES_PER_ANSWER, firstNameOf, fmt, isLead, isPioneer, placeFrom, referralLink } from '../lib/waitlist';
+import { t, t as tr, tk, tn, plural } from '../lib/i18n';
 
 // ── The survey's options, byte-identical to the website ─────────────────────
 const TOP_VALUES = [
-  'Call & text with my number like I do at home',
-  'Group my international phone numbers in one plan',
-  'A local number where I live or travel',
-  'Unlimited data abroad included',
-  'Getting my bank & app codes',
-  'One fixed monthly price, no roaming surprises',
+  tk('Call & text with my number like I do at home'),
+  tk('Group my international phone numbers in one plan'),
+  tk('A local number where I live or travel'),
+  tk('Unlimited data abroad included'),
+  tk('Getting my bank & app codes'),
+  tk('One fixed monthly price, no roaming surprises'),
 ];
-const TRAVEL_REGIONS = ['Europe', 'North America', 'Asia', 'Latin America', 'Africa', 'Middle East', 'Australia'];
+// Saved in English (the site's survey reads them); shown translated.
+const TRAVEL_REGIONS = [tk('Europe'), tk('North America'), tk('Asia'), tk('Latin America'), tk('Africa'), tk('Middle East'), tk('Australia')];
 const MAX_VALUES = 3;
 const AUTOSAVE_TEXT_MS = 1200;
 
@@ -59,14 +61,14 @@ const STARS = Array.from({ length: 34 }, (_, i) => {
 function NumberChip() {
   return (
     <div aria-hidden style={{
-      position: 'absolute', right: '-10%', top: '2%', display: 'flex', alignItems: 'center', gap: 7,
-      padding: '7px 12px 7px 8px', borderRadius: RADIUS.pill, background: '#FFFFFF',
+      position: 'absolute', insetInlineEnd: '-10%', top: '2%', display: 'flex', alignItems: 'center', gap: 7,
+      paddingBlock: 7, paddingInlineStart: 8, paddingInlineEnd: 12, borderRadius: RADIUS.pill, background: '#FFFFFF',
       boxShadow: '0 10px 24px -10px rgba(26,15,46,0.6)', animation: 'ringoGlobeFloat 6s ease-in-out infinite reverse',
     }}>
       <span style={{ width: 24, height: 24, borderRadius: '50%', background: 'linear-gradient(135deg,#f26122,#ff42a1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.6a1 1 0 0 1-.25 1z" fill="#fff" /></svg>
       </span>
-      <span style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 800, color: '#1A0F2E', whiteSpace: 'nowrap' }}>Your number</span>
+      <span style={{ fontFamily: 'var(--font)', fontSize: 14, fontWeight: 800, color: '#1A0F2E', whiteSpace: 'nowrap' }}>{t('Your number')}</span>
     </div>
   );
 }
@@ -97,12 +99,12 @@ function Hero({ l, children, signedOut = false }: { l: Layout; children?: ReactN
           <NumberChip />
         </div>
         <h2 style={{ margin: '22px 0 0', color: '#FFFFFF', textWrap: 'balance', ...typeFor('hero', l.isWide ? 'phone' : l.size) }}>
-          Ringo: your number, every country
+          {t('Ringo: your number, every country')}
         </h2>
         <p style={{ margin: '10px 0 0', ...TYPE.body, color: 'rgba(255,255,255,0.9)', maxWidth: 460 }}>
-          Port your own number onto one plan that works in every country. We are building it now, and the waitlist is free.
+          {t('Port your own number onto one plan that works in every country. We are building it now, and the waitlist is free.')}
         </p>
-        {signedOut && <p style={{ margin: '8px 0 0', ...TYPE.small, color: 'rgba(255,255,255,0.82)' }}>Sign in to join the waitlist and see your place in line.</p>}
+        {signedOut && <p style={{ margin: '8px 0 0', ...TYPE.small, color: 'rgba(255,255,255,0.82)' }}>{t('Sign in to join the waitlist and see your place in line.')}</p>}
         {children && <div style={{ width: '100%', maxWidth: 420, marginTop: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>{children}</div>}
       </div>
     </section>
@@ -114,14 +116,14 @@ function Promise({ l }: { l: Layout }) {
   return (
     <section style={{ ...cardSurface(), padding: l.cardPad }}>
       <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }}>
-        {['Keep your own number, moved to Ringo', 'One plan that works in every country', 'Free to join, nothing to pay'].map((t) => (
-          <li key={t} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', ...TYPE.body, color: RC.ink }}>
+        {[tk('Keep your own number, moved to Ringo'), tk('One plan that works in every country'), tk('Free to join, nothing to pay')].map((line) => (
+          <li key={line} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', ...TYPE.body, color: RC.ink }}>
             <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden style={{ marginTop: 4, flexShrink: 0 }}><path d="M3 8.5l3.2 3L13 4.5" stroke="hsl(142,60%,42%)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            <span>{t}</span>
+            <span>{t(line)}</span>
           </li>
         ))}
       </ul>
-      <p style={{ margin: '14px 0 0', ...TYPE.small, color: RC.ink2 }}>Ringo Light, the data eSIMs you buy in this app, is what funds it.</p>
+      <p style={{ margin: '14px 0 0', ...TYPE.small, color: RC.ink2 }}>{t('Ringo Light, the data eSIMs you buy in this app, is what funds it.')}</p>
     </section>
   );
 }
@@ -134,23 +136,23 @@ function PlaceCard({ l, user, liveAnswers }: { l: Layout; user: WaitlistUser; li
   const { ahead, behind } = placeFrom(user, liveAnswers);
   const first = firstNameOf(user);
   return (
-    <Card l={l} label="Your place in line">
-      <h2 style={{ margin: 0, ...TYPE.h2, color: RC.ink }}>{first ? `Welcome, ${first}! You're on the waitlist` : "Welcome! You're on the waitlist"}</h2>
+    <Card l={l} label={t('Your place in line')}>
+      <h2 style={{ margin: 0, ...TYPE.h2, color: RC.ink }}>{first ? t("Welcome, {name}! You're on the waitlist", { name: first }) : t("Welcome! You're on the waitlist")}</h2>
       {ahead == null ? (
-        <p style={{ margin: '8px 0 0', ...TYPE.body, color: RC.ink2 }}>You're in line for Ringo.</p>
+        <p style={{ margin: '8px 0 0', ...TYPE.body, color: RC.ink2 }}>{t("You're in line for Ringo.")}</p>
       ) : ahead === 0 ? (
-        <p style={{ margin: '12px 0 0', ...TYPE.bodyStrong, color: RC.ink }}>You're at the front of the line.</p>
+        <p style={{ margin: '12px 0 0', ...TYPE.bodyStrong, color: RC.ink }}>{t("You're at the front of the line.")}</p>
       ) : (
         <div style={{ marginTop: 12 }}>
           <div aria-live="polite" style={{ fontFamily: 'var(--font-display)', fontSize: l.isCover ? 44 : 52, fontWeight: 800, lineHeight: 1, letterSpacing: '-0.03em', color: RC.ink, fontVariantNumeric: 'tabular-nums' }}>
             {fmt(ahead)}
           </div>
-          <div style={{ marginTop: 6, ...TYPE.body, color: RC.ink2 }}>{ahead === 1 ? 'person ahead of you' : 'people ahead of you'}</div>
+          <div style={{ marginTop: 6, ...TYPE.body, color: RC.ink2 }}>{plural(ahead, 'person ahead of you', 'people ahead of you')}</div>
         </div>
       )}
       {behind != null && behind > 0 && (
         <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${RC.line}`, ...TYPE.small, color: RC.ink2 }}>
-          <b style={{ color: RC.ink, fontVariantNumeric: 'tabular-nums' }}>{fmt(behind)}</b> behind you
+          {tn('{n} behind you', { n: <b style={{ color: RC.ink, fontVariantNumeric: 'tabular-nums' }}>{fmt(behind)}</b> })}
         </div>
       )}
     </Card>
@@ -160,20 +162,20 @@ function PlaceCard({ l, user, liveAnswers }: { l: Layout; user: WaitlistUser; li
 function PioneerCard({ l, user, status }: { l: Layout; user: WaitlistUser; status: string }) {
   const first = firstNameOf(user);
   return (
-    <Card l={l} label="Your Pioneer status">
-      <PioneerBadge tone="gold" label={status === 'promoter_pioneer' ? 'Ringo Pioneer, promoter' : 'Ringo Pioneer'} />
+    <Card l={l} label={t('Your Pioneer status')}>
+      <PioneerBadge tone="gold" label={status === 'promoter_pioneer' ? t('Ringo Pioneer, promoter') : t('Ringo Pioneer')} />
       {/* The welcome is for backers only, a paid deposit (owner 2026-10-26: "only on
           backers for now not on global plan users"). A Global plan never sets this
           status; a Pioneer spot earned by referrals keeps the plain card. */}
       {status === 'pioneer_active' ? (
         <>
-          <h2 style={{ margin: '12px 0 0', ...TYPE.h2, color: RC.ink }}>{first ? `Welcome back, Pioneer ${first}!` : 'Welcome back, Pioneer!'}</h2>
-          <p style={{ margin: '6px 0 0', ...TYPE.small, color: RC.ink2 }}>You're a Ringo Pioneer and already ahead of the line. Thank you for backing Ringo. Your status is on your account for good.</p>
+          <h2 style={{ margin: '12px 0 0', ...TYPE.h2, color: RC.ink }}>{first ? t('Welcome back, Pioneer {name}!', { name: first }) : t('Welcome back, Pioneer!')}</h2>
+          <p style={{ margin: '6px 0 0', ...TYPE.small, color: RC.ink2 }}>{t("You're a Ringo Pioneer and already ahead of the line. Thank you for backing Ringo. Your status is on your account for good.")}</p>
         </>
       ) : (
         <>
-          <h2 style={{ margin: '12px 0 0', ...TYPE.h2, color: RC.ink }}>You're a Ringo Pioneer</h2>
-          <p style={{ margin: '6px 0 0', ...TYPE.small, color: RC.ink2 }}>Your Pioneer status is on your account for good.</p>
+          <h2 style={{ margin: '12px 0 0', ...TYPE.h2, color: RC.ink }}>{t("You're a Ringo Pioneer")}</h2>
+          <p style={{ margin: '6px 0 0', ...TYPE.small, color: RC.ink2 }}>{t('Your Pioneer status is on your account for good.')}</p>
         </>
       )}
     </Card>
@@ -187,22 +189,22 @@ function ShareCard({ l, code }: { l: Layout; code: string | null | undefined }) 
   const share = async () => {
     hapticSelection();
     setNote(null);
-    const data = { title: 'Ringo', text: 'Join me on the Ringo waitlist: your own number, in every country.', url: link };
+    const data = { title: 'Ringo', text: t('Join me on the Ringo waitlist: your own number, in every country.'), url: link };
     if (typeof navigator.share === 'function') {
       try { await navigator.share(data); return; } catch (e) {
         if ((e as Error)?.name === 'AbortError') return;
       }
     }
-    try { await navigator.clipboard.writeText(link); setNote('Link copied'); } catch { setNote('Copy the link above to share it.'); }
+    try { await navigator.clipboard.writeText(link); setNote(t('Link copied')); } catch { setNote(t('Copy the link above to share it.')); }
   };
   return (
-    <Card l={l} label="Share your link">
-      <h2 style={{ margin: 0, ...TYPE.h2, color: RC.ink }}>Move up the line</h2>
-      <p style={{ margin: '6px 0 0', ...TYPE.small, color: RC.ink2 }}>Every friend who joins moves you up {PLACES_PER_REFERRAL} places.</p>
+    <Card l={l} label={t('Share your link')}>
+      <h2 style={{ margin: 0, ...TYPE.h2, color: RC.ink }}>{t('Move up the line')}</h2>
+      <p style={{ margin: '6px 0 0', ...TYPE.small, color: RC.ink2 }}>{t('Every friend who joins moves you up {n} places.', { n: PLACES_PER_REFERRAL })}</p>
       <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: RADIUS.control, background: RC.cream, border: `1px solid ${RC.line}`, ...TYPE.small, fontWeight: 600, color: RC.ink, overflowWrap: 'anywhere', userSelect: 'text', WebkitUserSelect: 'text' }}>
         {link.replace(/^https:\/\//, '')}
       </div>
-      <div style={{ marginTop: 12 }}><RingoButton variant="secondary" onClick={() => void share()}>Share your link</RingoButton></div>
+      <div style={{ marginTop: 12 }}><RingoButton variant="secondary" onClick={() => void share()}>{t('Share your link')}</RingoButton></div>
       {note && <div role="status" style={{ marginTop: 8, ...TYPE.small, color: RC.ink2 }}>{note}</div>}
     </Card>
   );
@@ -219,7 +221,7 @@ function Chip({ selected, disabled, onClick, children }: { selected: boolean; di
       style={{
         minHeight: TAP, padding: '10px 16px', boxSizing: 'border-box', borderRadius: RADIUS.control, cursor: disabled ? 'default' : 'pointer',
         border: `1.5px solid ${selected ? RC.ink : RC.lineStrong}`, background: selected ? RC.ink : RC.paper,
-        color: selected ? RC.paper : disabled ? RC.inkMute : RC.ink, textAlign: 'left',
+        color: selected ? RC.paper : disabled ? RC.inkMute : RC.ink, textAlign: 'start',
         fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, lineHeight: 1.3, letterSpacing: 0,
         display: 'inline-flex', alignItems: 'center', gap: 8, maxWidth: '100%',
         transition: 'background .15s ease, color .15s ease, border-color .15s ease',
@@ -241,7 +243,7 @@ function Question({ n, title, help, answered, children }: { n: number; title: st
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <h3 style={{ flex: 1, margin: 0, ...TYPE.h3, color: RC.ink }}>{title}</h3>
         {answered && (
-          <span role="img" aria-label="Answered" style={{ flexShrink: 0, width: 24, height: 24, borderRadius: '50%', background: RC.successSoft, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span role="img" aria-label={t('Answered')} style={{ flexShrink: 0, width: 24, height: 24, borderRadius: '50%', background: RC.successSoft, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden>
               <path d="M3 8.5l3.2 3L13 4.5" stroke={RC.success} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
@@ -281,7 +283,7 @@ function SearchField({ value, onChange, placeholder, onFocus, onBlur, autoFocus,
 
 /** The scrolling list of countries under a search field. Taps never blur the field first. */
 function CountryList({ items, onPick, selected }: { items: Country[]; onPick: (c: Country) => void; selected?: string }) {
-  if (!items.length) return <div style={{ marginTop: 8, padding: '12px 4px', ...TYPE.small, color: RC.ink2 }}>No country matches that.</div>;
+  if (!items.length) return <div style={{ marginTop: 8, padding: '12px 4px', ...TYPE.small, color: RC.ink2 }}>{t('No country matches that.')}</div>;
   return (
     <div
       role="listbox"
@@ -298,7 +300,7 @@ function CountryList({ items, onPick, selected }: { items: Country[]; onPick: (c
           style={{
             width: '100%', minHeight: TAP + 4, padding: '10px 14px', boxSizing: 'border-box', border: 'none', cursor: 'pointer',
             borderBottom: i === items.length - 1 ? 'none' : `1px solid ${RC.line}`, background: selected === c.iso ? RC.cream : 'transparent',
-            display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left',
+            display: 'flex', alignItems: 'center', gap: 12, textAlign: 'start',
           }}
         >
           <span aria-hidden style={{ fontSize: 22, lineHeight: 1 }}>{c.flag}</span>
@@ -324,17 +326,17 @@ function CountrySingle({ value, onChange }: { value: string; onChange: (iso: str
         onClick={() => { hapticSelection(); setOpen((o) => !o); setQ(''); }}
         style={{
           width: '100%', minHeight: 54, padding: '10px 14px', boxSizing: 'border-box', borderRadius: RADIUS.control, cursor: 'pointer',
-          border: `1.5px solid ${open ? RC.inkStrong : RC.lineStrong}`, background: RC.paper, display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left',
+          border: `1.5px solid ${open ? RC.inkStrong : RC.lineStrong}`, background: RC.paper, display: 'flex', alignItems: 'center', gap: 12, textAlign: 'start',
         }}
       >
         {picked ? (
           <>
             <span aria-hidden style={{ fontSize: 24, lineHeight: 1 }}>{picked.flag}</span>
-            <span style={{ flex: 1, minWidth: 0, ...TYPE.body, fontWeight: 600, color: RC.ink }}>{picked.name}</span>
+            <span style={{ flex: 1, minWidth: 0, ...TYPE.body, fontWeight: 600, color: RC.ink }}>{countryName(picked)}</span>
             <span style={{ ...TYPE.small, color: RC.ink2 }}>{picked.dial}</span>
           </>
         ) : (
-          <span style={{ flex: 1, ...TYPE.body, color: RC.inkMute }}>Select your country</span>
+          <span style={{ flex: 1, ...TYPE.body, color: RC.inkMute }}>{t('Select your country')}</span>
         )}
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden style={{ flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}>
           <path d="M3.5 6l4.5 4.5L12.5 6" stroke={RC.inkDeco} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -342,7 +344,7 @@ function CountrySingle({ value, onChange }: { value: string; onChange: (iso: str
       </button>
       {open && (
         <div style={{ marginTop: 8 }}>
-          <SearchField value={q} onChange={setQ} placeholder="Search countries or dial codes" label="Search countries" />
+          <SearchField value={q} onChange={setQ} placeholder={t('Search countries or dial codes')} label={t('Search countries')} />
           <CountryList items={items} selected={value} onPick={(c) => { hapticSelection(); onChange(c.iso); setOpen(false); setQ(''); }} />
         </div>
       )}
@@ -367,17 +369,17 @@ function CountryMulti({ value, onChange, exclude, placeholder, browse, label }: 
                 key={iso}
                 type="button"
                 className="press"
-                aria-label={`Remove ${c?.name || iso}`}
+                aria-label={t('Remove {name}', { name: c ? countryName(c) : iso })}
                 onClick={() => { hapticSelection(); onChange(value.filter((x) => x !== iso)); }}
                 style={{
-                  minHeight: TAP, padding: '8px 12px 8px 14px', boxSizing: 'border-box', borderRadius: RADIUS.control, cursor: 'pointer',
+                  minHeight: TAP, paddingBlock: 8, paddingInlineStart: 14, paddingInlineEnd: 12, boxSizing: 'border-box', borderRadius: RADIUS.control, cursor: 'pointer',
                   border: `1.5px solid ${RC.ink}`, background: RC.ink, color: RC.paper, display: 'inline-flex', alignItems: 'center', gap: 8,
                   fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600,
                 }}
               >
                 <span aria-hidden style={{ fontSize: 18, lineHeight: 1 }}>{c?.flag}</span>
-                {c?.name || iso}
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden style={{ marginLeft: 2 }}>
+                {c ? countryName(c) : iso}
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden style={{ marginInlineStart: 2 }}>
                   <path d="M2.5 2.5l7 7M9.5 2.5l-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                 </svg>
               </button>
@@ -534,53 +536,53 @@ function Survey({ l, user, userId, t, onAnswered }: { l: Layout; user: WaitlistU
   const valuesFull = values.length >= MAX_VALUES;
 
   return (
-    <section aria-label="Help us build it around you">
+    <section aria-label={tr('Help us build it around you')}>
       <div style={{ ...cardSurface(), padding: `${l.cardPad + 2}px ${l.cardPad}px ${l.cardPad - 6}px` }}>
-        <h2 style={{ margin: 0, ...typeFor('h1', l.size), color: RC.ink }}>Help us build it around you</h2>
+        <h2 style={{ margin: 0, ...typeFor('h1', l.size), color: RC.ink }}>{tr('Help us build it around you')}</h2>
         <p style={{ margin: '6px 0 0', ...TYPE.small, color: RC.ink2 }}>Each answer moves you up {PLACES_PER_ANSWER} places.</p>
         <div style={{ marginTop: 14 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
-            <span style={{ ...TYPE.bodyStrong, fontSize: 16, color: done ? RC.success : RC.ink }}>{done ? 'Profile complete' : `${count} of ${PROFILE_QUESTIONS} answered`}</span>
+            <span style={{ ...TYPE.bodyStrong, fontSize: 16, color: done ? RC.success : RC.ink }}>{done ? tr('Profile complete') : tr('{have} of {total} answered', { have: count, total: PROFILE_QUESTIONS })}</span>
             <span aria-live="polite" style={{ ...TYPE.caption, color: save === 'error' ? RC.error : RC.inkMute }}>
-              {save === 'saving' ? 'Saving' : save === 'saved' ? 'Saved' : ''}
+              {save === 'saving' ? tr('Saving') : save === 'saved' ? tr('Saved') : ''}
             </span>
           </div>
-          <div role="progressbar" aria-label="Profile completion" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}
+          <div role="progressbar" aria-label={tr('Profile completion')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}
             style={{ height: 8, borderRadius: RADIUS.pill, background: RC.cream, border: `1px solid ${RC.line}`, overflow: 'hidden' }}>
             <div style={{ width: `${pct}%`, height: '100%', borderRadius: RADIUS.pill, background: SITE_GRAD, transition: 'width .5s ease' }} />
           </div>
           {save === 'error' && (
             <div role="alert" style={{ marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, ...TYPE.small, color: RC.error }}>
-              <span>Could not save, try again.</span>
+              <span>{tr('Could not save, try again.')}</span>
               <button type="button" className="press" onClick={retry}
                 style={{ minHeight: TAP, padding: '0 14px', borderRadius: RADIUS.control, border: `1.5px solid ${RC.lineStrong}`, background: RC.paper, color: RC.ink, fontFamily: 'var(--font)', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
-                Try again
+                {tr('Try again')}
               </button>
             </div>
           )}
         </div>
 
         <div style={{ marginTop: 6 }}>
-          <Question n={1} title="Main country phone plan" help="The country your main number is from." answered={answered.phone}>
+          <Question n={1} title={tr('Main country phone plan')} help={tr('The country your main number is from.')} answered={answered.phone}>
             <CountrySingle value={phone} onChange={pickMain} />
           </Question>
 
-          <Question n={2} title="What matters most in a phone plan?" help="Pick up to 3." answered={answered.values}>
+          <Question n={2} title={tr('What matters most in a phone plan?')} help={tr('Pick up to {n}.', { n: MAX_VALUES })} answered={answered.values}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {TOP_VALUES.map((v) => {
                 const on = values.includes(v);
-                return <Chip key={v} selected={on} disabled={!on && valuesFull} onClick={() => { hapticSelection(); setValues((cur) => toggle(cur, v, MAX_VALUES)); }}>{v}</Chip>;
+                return <Chip key={v} selected={on} disabled={!on && valuesFull} onClick={() => { hapticSelection(); setValues((cur) => toggle(cur, v, MAX_VALUES)); }}>{tr(v)}</Chip>;
               })}
             </div>
           </Question>
 
-          <Question n={3} title="Which other countries do you have a number in?" help="Any second line or local number you hold, or say it's just the one." answered={answered.extra}>
+          <Question n={3} title={tr('Which other countries do you have a number in?')} help={tr("Any second line or local number you hold, or say it's just the one.")} answered={answered.extra}>
             <CountryMulti
               value={extra}
               exclude={phone}
               browse
-              label="Other countries you have a number in"
-              placeholder="Search and add countries"
+              label={tr('Other countries you have a number in')}
+              placeholder={tr('Search and add countries')}
               onChange={(next) => { setExtra(next); if (next.length) setNoSecond(false); }}
             />
             <button
@@ -589,40 +591,40 @@ function Survey({ l, user, userId, t, onAnswered }: { l: Layout; user: WaitlistU
               role="checkbox"
               aria-checked={noSecond}
               onClick={() => { hapticSelection(); setNoSecond((on) => { const next = !on; if (next) setExtra([]); return next; }); }}
-              style={{ marginTop: 10, width: '100%', minHeight: TAP + 4, padding: '10px 4px', boxSizing: 'border-box', border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', textAlign: 'left' }}
+              style={{ marginTop: 10, width: '100%', minHeight: TAP + 4, padding: '10px 4px', boxSizing: 'border-box', border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', textAlign: 'start' }}
             >
               <span aria-hidden style={{ width: 24, height: 24, flexShrink: 0, borderRadius: 7, border: `2px solid ${noSecond ? RC.ink : RC.lineStrong}`, background: noSecond ? RC.ink : RC.paper, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                 {noSecond && <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.2 3L13 4.5" stroke={RC.paper} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>}
               </span>
-              <span style={{ ...TYPE.body, fontSize: 16, color: RC.ink }}>I only have my main number</span>
+              <span style={{ ...TYPE.body, fontSize: 16, color: RC.ink }}>{tr('I only have my main number')}</span>
             </button>
           </Question>
 
-          <Question n={4} title="Which regions do you travel most?" help="Select any." answered={answered.regions}>
+          <Question n={4} title={tr('Which regions do you travel most?')} help={tr('Select any.')} answered={answered.regions}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {TRAVEL_REGIONS.map((r) => (
-                <Chip key={r} selected={regions.includes(r)} onClick={() => { hapticSelection(); setRegions((cur) => toggle(cur, r)); }}>{r}</Chip>
+                <Chip key={r} selected={regions.includes(r)} onClick={() => { hapticSelection(); setRegions((cur) => toggle(cur, r)); }}>{tr(r)}</Chip>
               ))}
             </div>
           </Question>
 
-          <Question n={5} title="Which countries do you travel to most?" help="Places abroad you keep going back to." answered={answered.travel}>
+          <Question n={5} title={tr('Which countries do you travel to most?')} help={tr('Places abroad you keep going back to.')} answered={answered.travel}>
             <CountryMulti
               value={travel}
               exclude={phone}
               browse={false}
-              label="Countries you travel to most"
-              placeholder="Type a country to add it"
+              label={tr('Countries you travel to most')}
+              placeholder={tr('Type a country to add it')}
               onChange={setTravel}
             />
           </Question>
 
-          <Question n={6} title="Name" answered={answered.name}>
+          <Question n={6} title={tr('Name')} answered={answered.name}>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Your full name"
-              aria-label="Name"
+              placeholder={tr('Your full name')}
+              aria-label={tr('Name')}
               autoComplete="name"
               autoCapitalize="words"
               enterKeyHint="done"
@@ -632,9 +634,9 @@ function Survey({ l, user, userId, t, onAnswered }: { l: Layout; user: WaitlistU
           </Question>
         </div>
         <div style={{ padding: '6px 0 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <RingoButton loading={save === 'saving' && tapped} onClick={saveNow}>Save answers</RingoButton>
+          <RingoButton loading={save === 'saving' && tapped} onClick={saveNow}>{tr('Save answers')}</RingoButton>
           <div aria-live="polite" style={{ minHeight: 18, textAlign: 'center', ...TYPE.caption, color: save === 'error' ? RC.error : RC.inkMute }}>
-            {save === 'saved' ? 'Your answers are saved' : save === 'error' ? 'Could not save, try again.' : ''}
+            {save === 'saved' ? tr('Your answers are saved') : save === 'error' ? tr('Could not save, try again.') : ''}
           </div>
         </div>
       </div>
@@ -665,7 +667,7 @@ export function WaitlistScreen({ onBack, onLogin, onBrowse }: { onBack: () => vo
     let on = true;
     light.dashboard(userId, t)
       .then((d) => { if (on) { setData(d); setLoadErr(null); } })
-      .catch((e) => { if (on) setLoadErr((e as Error).message || 'Could not load your place in line.'); });
+      .catch((e) => { if (on) setLoadErr((e as Error).message || tr('Could not load your place in line.')); });
     return () => { on = false; };
   }, [userId, t, nonce]);
 
@@ -682,7 +684,7 @@ export function WaitlistScreen({ onBack, onLogin, onBrowse }: { onBack: () => vo
       setNonce((n) => n + 1);
     } catch {
       hapticNotify('error');
-      setJoinErr('Could not join just now. Please try again.');
+      setJoinErr(tr('Could not join just now. Please try again.'));
     } finally {
       setJoining(false);
     }
@@ -701,7 +703,7 @@ export function WaitlistScreen({ onBack, onLogin, onBrowse }: { onBack: () => vo
     left = (
       <>
         <Hero l={l} signedOut>
-          <RingoButton variant="onDark" onClick={onLogin}>Sign in</RingoButton>
+          <RingoButton variant="onDark" onClick={onLogin}>{tr('Sign in')}</RingoButton>
         </Hero>
         <Promise l={l} />
       </>
@@ -713,7 +715,7 @@ export function WaitlistScreen({ onBack, onLogin, onBrowse }: { onBack: () => vo
         {loadErr ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <ErrorBox>{loadErr}</ErrorBox>
-            <RingoButton variant="secondary" capped onClick={() => setNonce((n) => n + 1)}>Try again</RingoButton>
+            <RingoButton variant="secondary" capped onClick={() => setNonce((n) => n + 1)}>{tr('Try again')}</RingoButton>
           </div>
         ) : (
           <div aria-hidden style={{ minHeight: 160, borderRadius: RADIUS.card, background: RC.cream }} />
@@ -724,7 +726,7 @@ export function WaitlistScreen({ onBack, onLogin, onBrowse }: { onBack: () => vo
     left = (
       <>
         <Hero l={l}>
-          <RingoButton variant="onDark" loading={joining} onClick={() => void join()}>Join the waitlist</RingoButton>
+          <RingoButton variant="onDark" loading={joining} onClick={() => void join()}>{tr('Join the waitlist')}</RingoButton>
           {joinErr && <ErrorBox>{joinErr}</ErrorBox>}
         </Hero>
         <Promise l={l} />
@@ -743,7 +745,7 @@ export function WaitlistScreen({ onBack, onLogin, onBrowse }: { onBack: () => vo
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <RingoHeader title="Ringo waitlist" leading={<BackBtn onClick={onBack} />} />
+      <RingoHeader title={tr('Ringo waitlist')} leading={<BackBtn onClick={onBack} />} />
       <div className="no-bar" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
         <div style={{ ...contentColumn(l), paddingTop: 4, paddingBottom: 'calc(40px + env(safe-area-inset-bottom, 0px))' }}>
           <div style={{ ...twoColumn(l, 1, 1.15), gap: l.isWide ? 24 : l.cardGap + 4 }}>
@@ -751,7 +753,7 @@ export function WaitlistScreen({ onBack, onLogin, onBrowse }: { onBack: () => vo
             {right && <div style={{ minWidth: 0 }}>{right}</div>}
           </div>
           <div style={{ marginTop: l.sectionGap }}>
-            <RingoButton variant="soft" capped onClick={onBrowse}>Shop Ringo Light eSIMs</RingoButton>
+            <RingoButton variant="soft" capped onClick={onBrowse}>{tr('Shop Ringo Light eSIMs')}</RingoButton>
           </div>
         </div>
       </div>

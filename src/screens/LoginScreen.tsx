@@ -18,6 +18,7 @@ import { hapticNotify, hapticSelection } from '../lib/haptics';
 import { appleSignInAvailable } from '../lib/auth';
 import { useLayout, contentColumn } from '../lib/layout';
 import { requestLightStatusBar } from '../lib/statusBar';
+import { t, tn, tk } from '../lib/i18n';
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -42,8 +43,8 @@ export function LoginScreen({ onBack, onDone, initialEmail = '', startWithEmail 
 
   useEffect(() => {
     if (wait <= 0) return;
-    const t = window.setTimeout(() => setWait((w) => w - 1), 1000);
-    return () => window.clearTimeout(t);
+    const id = window.setTimeout(() => setWait((w) => w - 1), 1000);
+    return () => window.clearTimeout(id);
   }, [wait]);
 
   // A code to an address that does not exist bounces within seconds, and
@@ -53,18 +54,18 @@ export function LoginScreen({ onBack, onDone, initialEmail = '', startWithEmail 
   useEffect(() => {
     if (stage !== 'code' || !sentTo) return;
     let n = 0;
-    const t = window.setInterval(async () => {
-      if (++n > 24) { window.clearInterval(t); return; }
+    const tick = window.setInterval(async () => {
+      if (++n > 24) { window.clearInterval(tick); return; }
       try {
         const r = await light.loginCheck(sentTo);
         if (!alive.current || !r.bounced) return;
-        window.clearInterval(t);
+        window.clearInterval(tick);
         setSentTo(null); setStage('email'); setCode('');
-        setErr(r.error || 'Our email to that address bounced back. Check the spelling.');
+        setErr(r.error || t('Our email to that address bounced back. Check the spelling.'));
         hapticNotify('error');
       } catch { /* a failed check never interrupts the sign-in */ }
     }, 5000);
-    return () => window.clearInterval(t);
+    return () => window.clearInterval(tick);
   }, [stage, sentTo]);
 
   const focusCode = () => window.setTimeout(() => { if (alive.current) codeRef.current?.focus(); }, 200);
@@ -72,7 +73,7 @@ export function LoginScreen({ onBack, onDone, initialEmail = '', startWithEmail 
   const send = async () => {
     if (busy) return;
     const e = email.trim().toLowerCase();
-    if (!EMAIL_RE.test(e)) { setErr('Enter a valid email.'); return; }
+    if (!EMAIL_RE.test(e)) { setErr(t('Enter a valid email.')); return; }
     setErr(null); setBusy(true);
     try {
       const r = await light.loginStart(e);
@@ -83,7 +84,7 @@ export function LoginScreen({ onBack, onDone, initialEmail = '', startWithEmail 
       focusCode();
     } catch (ex) {
       if (!alive.current) return;
-      setErr((ex as Error).message || 'Could not send the code.');
+      setErr((ex as Error).message || t('Could not send the code.'));
       hapticNotify('error');
     } finally { if (alive.current) setBusy(false); }
   };
@@ -91,7 +92,7 @@ export function LoginScreen({ onBack, onDone, initialEmail = '', startWithEmail 
   const verify = async () => {
     if (busy) return;
     const c = code.replace(/\D/g, '');
-    if (c.length !== 6) { setErr('The code is six digits.'); return; }
+    if (c.length !== 6) { setErr(t('The code is six digits.')); return; }
     setErr(null); setBusy(true);
     try {
       const r = await light.loginVerify(email.trim().toLowerCase(), c);
@@ -100,7 +101,7 @@ export function LoginScreen({ onBack, onDone, initialEmail = '', startWithEmail 
       onDone();
     } catch (ex) {
       if (!alive.current) return;
-      setErr((ex as Error).message || 'That code did not match.');
+      setErr((ex as Error).message || t('That code did not match.'));
       hapticNotify('error');
     } finally { if (alive.current) setBusy(false); }
   };
@@ -113,10 +114,10 @@ export function LoginScreen({ onBack, onDone, initialEmail = '', startWithEmail 
 
   const errBox = err ? <ErrorBox style={{ marginTop: 12 }}>{err}</ErrorBox> : null;
   const head = stage === 'code'
-    ? { title: 'Check your inbox', sub: <>We sent a six digit code to <b style={{ fontWeight: 700, overflowWrap: 'anywhere' }}>{email.trim().toLowerCase()}</b>. It works for ten minutes.</> }
+    ? { title: t('Check your inbox'), sub: tn('We sent a six digit code to {email}. It works for ten minutes.', { email: <b style={{ fontWeight: 700, overflowWrap: 'anywhere' }}>{email.trim().toLowerCase()}</b> }) }
     : stage === 'email'
-      ? { title: 'Sign in with your email', sub: 'We send you a six digit code. No password to remember.' }
-      : { title: 'Welcome to Ringo', sub: 'Sign in or create your account in one tap.' };
+      ? { title: t('Sign in with your email'), sub: t('We send you a six digit code. No password to remember.') }
+      : { title: t('Welcome to Ringo'), sub: t('Sign in or create your account in one tap.') };
 
   const form = (
     <>
@@ -126,23 +127,23 @@ export function LoginScreen({ onBack, onDone, initialEmail = '', startWithEmail 
 
       {stage === 'email' && (
         <>
-          <FieldLabel htmlFor="login-email">Email</FieldLabel>
-          <Input id="login-email" name="email" autoComplete="email" value={email} onChange={(v) => { setEmail(v); if (err) setErr(null); }} placeholder="you@example.com" type="email" inputMode="email" invalid={Boolean(err)} onEnter={() => void send()} />
+          <FieldLabel htmlFor="login-email">{t('Email')}</FieldLabel>
+          <Input id="login-email" name="email" autoComplete="email" value={email} onChange={(v) => { setEmail(v); if (err) setErr(null); }} placeholder={t('you@example.com')} type="email" inputMode="email" invalid={Boolean(err)} onEnter={() => void send()} />
           {errBox}
           <div style={{ marginTop: 20 }}>
-            <RingoButton loading={busy} onClick={() => void send()}>Send my code</RingoButton>
+            <RingoButton loading={busy} onClick={() => void send()}>{t('Send my code')}</RingoButton>
           </div>
           {/* App Review is given a fixed code, and the field for it used to
               sit behind a send that their address cannot receive. */}
           <div style={{ marginTop: 18, textAlign: 'center' }}>
             <TextLink
               onClick={() => {
-                if (!EMAIL_RE.test(email.trim().toLowerCase())) { setErr('Enter a valid email.'); return; }
+                if (!EMAIL_RE.test(email.trim().toLowerCase())) { setErr(t('Enter a valid email.')); return; }
                 hapticSelection(); setErr(null); setStage('code');
                 focusCode();
               }}
             >
-              I already have a code
+              {t('I already have a code')}
             </TextLink>
           </div>
         </>
@@ -150,7 +151,7 @@ export function LoginScreen({ onBack, onDone, initialEmail = '', startWithEmail 
 
       {stage === 'code' && (
         <>
-          <FieldLabel htmlFor="login-code">Six digit code</FieldLabel>
+          <FieldLabel htmlFor="login-code">{t('Six digit code')}</FieldLabel>
           <input
             id="login-code"
             ref={codeRef}
@@ -174,13 +175,13 @@ export function LoginScreen({ onBack, onDone, initialEmail = '', startWithEmail 
           />
           {errBox}
           <div style={{ marginTop: 20 }}>
-            <RingoButton loading={busy} disabled={code.length !== 6} onClick={() => void verify()}>Sign in</RingoButton>
+            <RingoButton loading={busy} disabled={code.length !== 6} onClick={() => void verify()}>{t('Sign in')}</RingoButton>
           </div>
           <div style={{ marginTop: 18, textAlign: 'center' }}>
             {wait > 0 ? (
-              <p aria-live="polite" style={{ margin: 0, ...TYPE.small, fontWeight: 500, color: RC.ink2 }}>Send a new code in {wait}s</p>
+              <p aria-live="polite" style={{ margin: 0, ...TYPE.small, fontWeight: 500, color: RC.ink2 }}>{t('Send a new code in {n}s', { n: wait })}</p>
             ) : (
-              <TextLink disabled={busy} onClick={() => void send()}>Send a new code</TextLink>
+              <TextLink disabled={busy} onClick={() => void send()}>{t('Send a new code')}</TextLink>
             )}
           </div>
         </>
@@ -188,10 +189,10 @@ export function LoginScreen({ onBack, onDone, initialEmail = '', startWithEmail 
 
       {/* What the account is for, said once, in the site's green ticks. */}
       <ul style={{ listStyle: 'none', margin: '28px 0 0', padding: '20px 0 0', borderTop: `1.5px solid ${RC.line}`, display: 'grid', gap: 10 }}>
-        {['Your eSIMs on any phone you sign in on', 'Data left and day by day usage', 'Ringo Rewards and your travel badges'].map((t) => (
-          <li key={t} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', ...TYPE.body, fontSize: 16, color: RC.ink }}>
+        {[tk('Your eSIMs on any phone you sign in on'), tk('Data left and day by day usage'), tk('Ringo Rewards and your travel badges')].map((line) => (
+          <li key={line} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', ...TYPE.body, fontSize: 16, color: RC.ink }}>
             <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden style={{ marginTop: 3, flexShrink: 0 }}><path d="M3 8.5l3.2 3L13 4.5" stroke="hsl(142,60%,42%)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            <span>{t}</span>
+            <span>{t(line)}</span>
           </li>
         ))}
       </ul>
@@ -212,8 +213,8 @@ export function LoginScreen({ onBack, onDone, initialEmail = '', startWithEmail 
       <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(26,15,46,0.55) 0%, rgba(26,15,46,0.25) 38%, rgba(26,15,46,0.82) 100%)' }} />
       <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', minHeight: 'inherit', boxSizing: 'border-box', padding: l.isWide ? '24px 28px 32px' : `calc(env(safe-area-inset-top, 0px) + 12px) ${l.gutter}px ${l.isWide ? 32 : 52}px` }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <button className="press" onClick={back} aria-label="Back" style={{ width: TAP, height: TAP, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.45)', background: 'rgba(26,15,46,0.35)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M15 5l-7 7 7 7" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          <button className="press" onClick={back} aria-label={t('Back')} style={{ width: TAP, height: TAP, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.45)', background: 'rgba(26,15,46,0.35)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
+            <svg className="flip-rtl" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M15 5l-7 7 7 7" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </button>
           <RingoWordmark light size={30} />
           <span style={{ width: TAP }} aria-hidden />

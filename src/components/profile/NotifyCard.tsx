@@ -10,6 +10,7 @@ import { RingoButton } from '../Button';
 import { usePush, askPermission, openPushSettings, pushAvailable } from '../../lib/push';
 import { hapticNotify } from '../../lib/haptics';
 import type { Layout } from '../../lib/layout';
+import { t } from '../../lib/i18n';
 
 const BellIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -37,15 +38,15 @@ export function NotifyCard({ l }: { l: Layout }) {
           <BellIcon />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h2 style={{ margin: 0, ...TYPE.h3, color: RC.ink }}>{'Know before your data runs out'}</h2>
+          <h2 style={{ margin: 0, ...TYPE.h3, color: RC.ink }}>{t('Know before your data runs out')}</h2>
           <p style={{ margin: '4px 0 0', ...TYPE.small, color: RC.ink2 }}>
             {denied
-              ? 'Notifications are off for Ringo in your iPhone settings.'
-              : 'We tell you when data runs low or your eSIM needs you. Nothing else unless you choose it.'}
+              ? t('Notifications are off for Ringo in your iPhone settings.')
+              : t('We tell you when data runs low or your eSIM needs you. Nothing else unless you choose it.')}
           </p>
         </div>
       </div>
-      <RingoButton loading={busy} onClick={() => void turnOn()}>{denied ? 'Open Settings' : 'Turn on notifications'}</RingoButton>
+      <RingoButton loading={busy} onClick={() => void turnOn()}>{denied ? t('Open Settings') : t('Turn on notifications')}</RingoButton>
     </section>
   );
 }

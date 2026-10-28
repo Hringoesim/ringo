@@ -33,7 +33,7 @@ import { TravellerScreen } from './screens/TravellerScreen';
 import { QuizScreen } from './screens/QuizScreen';
 import { avatarTraveller } from './store/avatar';
 import { ReportScreen } from './screens/ReportScreen';
-import { HelpScreen } from './screens/HelpScreen';
+import { HelpScreen, LANG_RETURN_KEY } from './screens/HelpScreen';
 import { RewardsScreen } from './screens/RewardsScreen';
 import { WaitlistScreen } from './screens/WaitlistScreen';
 import { startPush, shouldPrompt } from './lib/push';
@@ -139,7 +139,10 @@ export function App() {
     // them sign in, like all apps do"; 2026-09-18: sign-in must be seen).
     const acct = account.get();
     if (!acct) return [{ id: 0, name: 'landing', params: {} }];
-    return [{ id: 0, name: 'store', params: {} }];
+    // A language just picked under Help re-renders the app there.
+    let back: string | null = null;
+    try { back = sessionStorage.getItem(LANG_RETURN_KEY); sessionStorage.removeItem(LANG_RETURN_KEY); } catch { /* ignore */ }
+    return [{ id: 0, name: back === 'help' ? 'help' : 'store', params: {} }];
   });
   const current = stack[stack.length - 1];
 

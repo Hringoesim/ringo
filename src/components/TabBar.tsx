@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { RC, GLASS, TABBAR_MAX } from '../theme';
 import { useLayout } from '../lib/layout';
+import { t, t as tr, tk, isRtl } from '../lib/i18n';
 
 export type TabId = 'store' | 'esim' | 'rewards' | 'help';
 type IconKind = 'globe' | 'sim' | 'star' | 'help';
@@ -68,10 +69,10 @@ function tabIcon(kind: IconKind) {
 }
 
 const tabs: { id: TabId; label: string; icon: (c: string, active: boolean) => ReactNode }[] = [
-  { id: 'store', label: 'eSIMs', icon: tabIcon('globe') },
-  { id: 'esim', label: 'My eSIM', icon: tabIcon('sim') },
-  { id: 'rewards', label: 'Rewards', icon: tabIcon('star') },
-  { id: 'help', label: 'Help', icon: tabIcon('help') },
+  { id: 'store', label: tk('eSIMs'), icon: tabIcon('globe') },
+  { id: 'esim', label: tk('My eSIM'), icon: tabIcon('sim') },
+  { id: 'rewards', label: tk('Rewards'), icon: tabIcon('star') },
+  { id: 'help', label: tk('Help'), icon: tabIcon('help') },
 ];
 
 export function RingoTabBar({
@@ -87,7 +88,7 @@ export function RingoTabBar({
     // Floats over the content; the margins let taps pass through to what's behind.
     <nav
       data-tabbar
-      aria-label="Main"
+      aria-label={t('Main')}
       style={{
         position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 50, pointerEvents: 'none',
         // Full width on a phone; held to 480 and centred on a wide screen.
@@ -112,9 +113,9 @@ export function RingoTabBar({
           <div
             aria-hidden
             style={{
-              position: 'absolute', top: 6, bottom: 6, left: 0, width: `${100 / tabs.length}%`,
+              position: 'absolute', top: 6, bottom: 6, insetInlineStart: 0, width: `${100 / tabs.length}%`,
               display: 'flex', alignItems: 'stretch', justifyContent: 'center', pointerEvents: 'none',
-              transform: `translateX(${activeIndex * 100}%)`,
+              transform: `translateX(${(isRtl() ? -1 : 1) * activeIndex * 100}%)`,
               transition: 'transform 0.4s cubic-bezier(0.34, 1.4, 0.64, 1)',
             }}
           >
@@ -127,7 +128,7 @@ export function RingoTabBar({
             <button
               key={t.id}
               role="tab"
-              aria-label={t.label}
+              aria-label={tr(t.label)}
               aria-selected={on}
               aria-current={on ? 'page' : undefined}
               className="press"
@@ -152,7 +153,7 @@ export function RingoTabBar({
               >
                 {t.icon(on ? RC.inkStrong : RC.inkMute, on)}
               </span>
-              <span style={{ maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.label}</span>
+              <span style={{ maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tr(t.label)}</span>
             </button>
           );
         })}

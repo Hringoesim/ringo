@@ -3,6 +3,7 @@
 // website's own list (src/App.jsx COUNTRY_DATA_RAW, same names and dial
 // codes); the remaining territories complete ISO 3166. The survey stores the
 // ISO2 code only, never the name.
+import { regionName, currentLocale } from './i18n';
 export interface Country {
   iso: string;
   name: string;
@@ -138,19 +139,25 @@ export function isoArray(raw: unknown): string[] {
   return [...new Set(raw.map(isoOrEmpty).filter(Boolean))];
 }
 
-/** Countries whose name, code or dial code matches what was typed. */
+/** A country's name in the app's language (the stored answer stays its ISO code). */
+export const countryName = (c: Country): string => regionName(c.iso, c.name);
+
+/** Countries whose name (English or the app's language), code or dial code matches what was typed. */
 export function searchCountries(q: string, exclude: Iterable<string> = []): Country[] {
   const skip = new Set(exclude);
   const s = q.trim().toLowerCase();
-  const list = COUNTRIES.filter((c) => !skip.has(c.iso));
+  const locale = currentLocale();
+  const list = COUNTRIES.filter((c) => !skip.has(c.iso)).map((c) => ({ ...c, name: countryName(c), en: c.name }))
+    .sort((a, b) => a.name.localeCompare(b.name, locale));
   if (!s) return list;
   const digits = s.replace(/[^0-9]/g, '');
   const starts: Country[] = [];
   const contains: Country[] = [];
   for (const c of list) {
     const n = c.name.toLowerCase();
-    if (n.startsWith(s) || c.iso.toLowerCase() === s) starts.push(c);
-    else if (n.includes(s) || (digits && s.startsWith('+') && c.dial.replace('+', '').startsWith(digits))) contains.push(c);
+    const en = c.en.toLowerCase();
+    if (n.startsWith(s) || en.startsWith(s) || c.iso.toLowerCase() === s) starts.push(c);
+    else if (n.includes(s) || en.includes(s) || (digits && s.startsWith('+') && c.dial.replace('+', '').startsWith(digits))) contains.push(c);
   }
   return [...starts, ...contains];
 }

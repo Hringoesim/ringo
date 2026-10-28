@@ -9,12 +9,13 @@ import { RC, RADIUS, TYPE, SITE_GRAD, cardSurface } from '../../theme';
 import type { Layout } from '../../lib/layout';
 import type { Achievement } from '../../api/light';
 import { PIONEER_GOLD } from './format';
+import { t, tk, fmtNumber } from '../../lib/i18n';
 
 const RARITY: Record<string, { label: string; color: string }> = {
-  common: { label: 'Common', color: RC.ink2 },
-  rare: { label: 'Rare', color: '#2F6FEB' },
-  epic: { label: 'Epic', color: '#8652E0' },
-  super: { label: 'Super rare', color: '#B7791F' },
+  common: { label: tk('Common'), color: RC.ink2 },
+  rare: { label: tk('Rare'), color: '#2F6FEB' },
+  epic: { label: tk('Epic'), color: '#8652E0' },
+  super: { label: tk('Super rare'), color: '#B7791F' },
 };
 
 const S = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
@@ -58,16 +59,16 @@ function Tile({ a, l }: { a: Achievement; l: Layout }) {
       <Medal a={a} size={l.isCover ? 50 : 58} />
       <div style={{ ...TYPE.bodyStrong, color: RC.ink }}>{a.name}</div>
       {a.coins ? (
-        <div style={{ ...TYPE.caption, fontWeight: 700, color: rarityOf(a).color }}>{`${rarityOf(a).label}, ${a.coins} coins`}</div>
+        <div style={{ ...TYPE.caption, fontWeight: 700, color: rarityOf(a).color }}>{t('{rarity}, {n} coins', { rarity: t(rarityOf(a).label), n: a.coins })}</div>
       ) : null}
-      <div style={{ ...TYPE.small, color: a.earned ? RC.success : RC.ink2, fontWeight: a.earned ? 700 : undefined }}>{a.earned ? 'Earned' : a.how}</div>
+      <div style={{ ...TYPE.small, color: a.earned ? RC.success : RC.ink2, fontWeight: a.earned ? 700 : undefined }}>{a.earned ? t('Earned') : a.how}</div>
       {!a.earned && a.need > 1 && (
         <div style={{ width: '100%', marginTop: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div role="progressbar" aria-label={`${a.name} progress`} aria-valuemin={0} aria-valuemax={a.need} aria-valuenow={a.have}
+          <div role="progressbar" aria-label={t('{name} progress', { name: a.name })} aria-valuemin={0} aria-valuemax={a.need} aria-valuenow={a.have}
             style={{ flex: 1, height: 6, borderRadius: RADIUS.pill, background: RC.cream, overflow: 'hidden' }}>
             <div style={{ width: `${Math.max(pct, a.have ? 4 : 0)}%`, height: '100%', background: SITE_GRAD, borderRadius: RADIUS.pill }} />
           </div>
-          <span style={{ ...TYPE.caption, color: RC.inkMute, fontVariantNumeric: 'tabular-nums' }}>{a.have}/{a.need}</span>
+          <span style={{ ...TYPE.caption, color: RC.inkMute, fontVariantNumeric: 'tabular-nums' }}>{fmtNumber(a.have)}/{fmtNumber(a.need)}</span>
         </div>
       )}
     </li>

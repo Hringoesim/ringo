@@ -8,6 +8,7 @@
 import { Capacitor } from '@capacitor/core';
 import { account } from '../store/account';
 import { SITE } from '../api/light';
+import { t, tk, plural } from './i18n';
 
 export type Use = 'maps' | 'social' | 'calls' | 'streaming' | 'hotspot';
 export type PlanTab = 'data' | 'unl' | 'power';
@@ -18,11 +19,11 @@ export type Trip = 'backpacker' | 'beach' | 'multi' | 'city' | 'nomad';
 // the kind of trip sets a starting length and the usual uses, both still
 // changeable; a multi country trip ends on the region plans, not a country.
 export const TRIPS: { id: Trip; label: string; sub: string; days: number; uses: Use[] }[] = [
-  { id: 'backpacker', label: 'Backpacker', sub: 'Long trip, hostels, on the move', days: 30, uses: ['maps', 'social'] },
-  { id: 'beach', label: 'Beach holiday', sub: 'Sun, photos, a week or two', days: 7, uses: ['social'] },
-  { id: 'multi', label: 'Multi country', sub: 'Several countries, one eSIM', days: 14, uses: ['maps', 'social'] },
-  { id: 'city', label: 'City trip', sub: 'A few days, maps and photos', days: 4, uses: ['maps', 'social'] },
-  { id: 'nomad', label: 'Digital nomad', sub: 'Working online from anywhere', days: 30, uses: ['maps', 'calls', 'social'] },
+  { id: 'backpacker', label: tk('Backpacker'), sub: tk('Long trip, hostels, on the move'), days: 30, uses: ['maps', 'social'] },
+  { id: 'beach', label: tk('Beach holiday'), sub: tk('Sun, photos, a week or two'), days: 7, uses: ['social'] },
+  { id: 'multi', label: tk('Multi country'), sub: tk('Several countries, one eSIM'), days: 14, uses: ['maps', 'social'] },
+  { id: 'city', label: tk('City trip'), sub: tk('A few days, maps and photos'), days: 4, uses: ['maps', 'social'] },
+  { id: 'nomad', label: tk('Digital nomad'), sub: tk('Working online from anywhere'), days: 30, uses: ['maps', 'calls', 'social'] },
 ];
 
 /** Kept for older screens; the quiz now uses a slider. */
@@ -34,11 +35,11 @@ export const LENGTHS = [
 ];
 
 export const USES: { id: Use; label: string; sub: string; gbDay: number }[] = [
-  { id: 'maps', label: 'Maps and messages', sub: 'Directions, WhatsApp, email', gbDay: 0.3 },
-  { id: 'social', label: 'Social and photos', sub: 'Instagram, TikTok, sharing pictures', gbDay: 0.8 },
-  { id: 'calls', label: 'Video calls', sub: 'FaceTime, Zoom, Teams', gbDay: 1 },
-  { id: 'streaming', label: 'Streaming', sub: 'Netflix, YouTube, Spotify', gbDay: 2 },
-  { id: 'hotspot', label: 'Hotspot', sub: 'Laptop, friends, a van', gbDay: 3 },
+  { id: 'maps', label: tk('Maps and messages'), sub: tk('Directions, WhatsApp, email'), gbDay: 0.3 },
+  { id: 'social', label: tk('Social and photos'), sub: tk('Instagram, TikTok, sharing pictures'), gbDay: 0.8 },
+  { id: 'calls', label: tk('Video calls'), sub: tk('FaceTime, Zoom, Teams'), gbDay: 1 },
+  { id: 'streaming', label: tk('Streaming'), sub: tk('Netflix, YouTube, Spotify'), gbDay: 2 },
+  { id: 'hotspot', label: tk('Hotspot'), sub: tk('Laptop, friends, a van'), gbDay: 3 },
 ];
 
 const DATA_SIZES = [1, 3, 5, 10, 20, 50];
@@ -50,24 +51,28 @@ export function perDayOf(uses: Use[], work: boolean): number {
   return uses.reduce((n, u) => n + (USES.find((x) => x.id === u)?.gbDay || 0), 0) + (work ? 1 : 0);
 }
 
-export interface QuizPlan { tab: PlanTab; days: number; gb?: number; dailyGb?: number; title: string; line: string }
+/** `title` stays English (it is what /api/app-quiz-answer records); `shown` is the title in the app's language. */
+export interface QuizPlan { tab: PlanTab; days: number; gb?: number; dailyGb?: number; title: string; shown: string; line: string }
 
 export function recommend({ days, uses, work }: { days: number; uses: Use[]; work: boolean }): QuizPlan {
   const perDay = perDayOf(uses, work);
   const len = PLAN_DAYS.find((d) => d >= days) ?? 30;
   const lenText = len === 1 ? '1 day' : `${len} days`;
+  const lenShown = plural(len, '{n} day', '{n} days');
   if (uses.includes('hotspot') || perDay >= 4) {
     // Super User (10 GB a day) when a hotspot also carries work or streaming.
     const superUser = perDay >= 6;
-    return { tab: 'power', days: len, dailyGb: superUser ? 10 : 5, title: `${superUser ? 'Super User' : 'Power'}, ${lenText}`, line: 'Unlimited data for a van, hotspot or laptop.' };
+    return { tab: 'power', days: len, dailyGb: superUser ? 10 : 5, title: `${superUser ? 'Super User' : 'Power'}, ${lenText}`, shown: t('{a}, {b}', { a: t(superUser ? 'Super User' : 'Power'), b: lenShown }), line: t('Unlimited data for a van, hotspot or laptop.') };
   }
   if (perDay >= 1.5 || (perDay >= 1 && days > 7)) {
-    return { tab: 'unl', days: len, title: `Unlimited, ${lenText}`, line: 'Use it as much as you like for the whole trip, never cut off.' };
+    return { tab: 'unl', days: len, title: `Unlimited, ${lenText}`, shown: t('{a}, {b}', { a: t('Unlimited'), b: lenShown }), line: t('Use it as much as you like for the whole trip, never cut off.') };
   }
   // Data plans run up to a month; a longer trip buys a month and tops up.
   const need = Math.max(1, perDay * Math.min(days, 30) * 1.2);
   const size = DATA_SIZES.find((g) => g >= need) ?? 50;
-  return { tab: 'data', days, gb: size, title: `${size} GB of data`, line: `Covers ${days === 1 ? 'a day' : days > 30 ? 'a month' : `${days} days`} of ${uses.length ? 'what you picked' : 'light use'}, with some to spare. You can add more any time.` };
+  return { tab: 'data', days, gb: size, title: `${size} GB of data`, shown: t('{gb} GB of data', { gb: size }), line: `${uses.length
+    ? (days === 1 ? t('Covers a day of what you picked, with some to spare.') : days > 30 ? t('Covers a month of what you picked, with some to spare.') : plural(days, 'Covers {n} day of what you picked, with some to spare.', 'Covers {n} days of what you picked, with some to spare.'))
+    : (days === 1 ? t('Covers a day of light use, with some to spare.') : days > 30 ? t('Covers a month of light use, with some to spare.') : plural(days, 'Covers {n} day of light use, with some to spare.', 'Covers {n} days of light use, with some to spare.'))} ${t('You can add more any time.')}` };
 }
 
 // The quiz's plan, read once by the next plan screen (then cleared, so it

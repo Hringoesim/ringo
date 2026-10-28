@@ -1,0 +1,5 @@
+/* Permission prompts and the home screen name, pt-BR. */
+"CFBundleDisplayName" = "Ringo";
+"NSLocationWhenInUseUsageDescription" = "O Ringo usa o país em que você está, nunca sua localização exata, para enviar novidades de onde você viaja.";
+"NSCameraUsageDescription" = "O Ringo usa a câmera só se você tirar uma foto para sua imagem de perfil.";
+"NSPhotoLibraryUsageDescription" = "O Ringo abre suas fotos só se você escolher uma imagem para seu perfil.";
