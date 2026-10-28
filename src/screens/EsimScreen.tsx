@@ -23,6 +23,7 @@ import { iapAvailable, loadProducts, purchase, finish, restoreTransactions, mana
 import { CARD_PAYMENTS, payByCard } from '../lib/cardPay';
 import { haptic, hapticNotify } from '../lib/haptics';
 import { useLiveTick } from '../store/live';
+import { useScreenActive } from '../components/ScreenHost';
 import { useLayout, twoColumn, TABBAR_CLEARANCE, type Layout } from '../lib/layout';
 
 const SUNSET_PHOTO = `${SITE}/img/dashboard-sunset.jpg`;
@@ -141,6 +142,10 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
   const tick = useLiveTick();
   const openedAt = useRef(tick);
   useEffect(() => { if (tick !== openedAt.current) void load(true, true); }, [tick, load]);
+  // The tab stays mounted (App.tsx): each time it comes back on show, the
+  // eSIM is read again quietly, over what is already on screen.
+  const { shown } = useScreenActive();
+  useEffect(() => { if (shown) void load(true); }, [shown]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // While the eSIM is still being issued, ask again every few seconds (the
   // subscription only).

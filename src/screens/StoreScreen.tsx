@@ -23,6 +23,7 @@ import { haptic, hapticSelection } from '../lib/haptics';
 import { useLayout, contentColumn, cardGrid, tileGrid, TABBAR_CLEARANCE, type Layout } from '../lib/layout';
 import { requestLightStatusBar } from '../lib/statusBar';
 import { POWER_PHOTOS } from '../data/powerPhotos';
+import { useScreenActive } from '../components/ScreenHost';
 import dishPhoto from '../assets/store/dish-blue.jpg'; // Unsplash Wj1D-qiOseE, Unsplash licence
 
 // The Power shortcut card over the list: a photograph like every other card
@@ -244,6 +245,9 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
   // cheapest Power plan (owner 2026-10-27: browse them all without searching);
   // a place opens on its Power plans.
   const [powerAsk, setPowerAsk] = useState(false);
+  // The store stays mounted under other tabs and places (App.tsx): the night
+  // sky's status bar and shooting star only while it is the screen on show.
+  const { active } = useScreenActive();
   const star = useRef<HTMLSpanElement | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const query = q.trim().toLowerCase();
@@ -282,7 +286,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
   // Now and then a shooting star crosses the night sky (owner 2026-10-27), only while the top is in view
   // and not when the phone asks for reduced motion.
   useEffect(() => {
-    if (!powerAsk || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    if (!powerAsk || !active || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
     const fly = () => {
       const el = star.current;
       if (!el || (scroller.current?.scrollTop ?? 0) > 200 || typeof el.animate !== 'function') return;
@@ -296,14 +300,14 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
     const first = setTimeout(fly, 1200);
     const every = setInterval(fly, 6500);
     return () => { clearTimeout(first); clearInterval(every); };
-  }, [powerAsk]);
+  }, [powerAsk, active]);
   // The strip under the clock (App.tsx) takes the night sky's top colour while that list is open, with light clock text.
   useEffect(() => {
-    if (!powerAsk) return;
+    if (!powerAsk || !active) return;
     document.documentElement.style.setProperty('--status-strip', POWER_TOP);
     requestLightStatusBar(true);
     return () => { document.documentElement.style.removeProperty('--status-strip'); requestLightStatusBar(false); };
-  }, [powerAsk]);
+  }, [powerAsk, active]);
   const showPower = (on: boolean) => { hapticSelection(); setPowerAsk(on); setQ(''); scroller.current?.scrollTo({ top: 0 }); };
 
   // The places that sell Power (an older site names none: every place but Global, unpriced).

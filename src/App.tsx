@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { RingoTabBar, type TabId } from './components/TabBar';
 import { RC } from './theme';
-import { ScreenHost, type NavDir } from './components/ScreenHost';
+import { ScreenHost, type NavDir, type KeptScreen } from './components/ScreenHost';
 import { haptic } from './lib/haptics';
 import { account, pendingPurchase } from './store/account';
 import { useDestinations } from './store/destinations';
@@ -78,6 +78,8 @@ export function App() {
     if (id !== prevUserRef.current) {
       if (prevUserRef.current) { try { localStorage.removeItem('ringo_last_email'); } catch { /* ignore */ } }
       prevUserRef.current = id;
+      // The kept tabs showed the previous account: they start afresh.
+      forgetTabs();
     }
     if (!acct) { navDirRef.current = 'fade'; setPushAsk(null); setStack([mkFrame('landing', {})]); }
   }), []);
@@ -156,10 +158,27 @@ export function App() {
     haptic('light');
     setStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
   };
+  // The four tabs stay mounted once opened (ScreenHost keeps them hidden), so
+  // switching tabs or coming back from a place finds a tab as it was left:
+  // its scroll, the Power list, its photos, no loading state again. A tab
+  // whose content a purchase or a new account changes is forgotten and
+  // opens afresh.
+  const tabFrames = useRef(new Map<string, Frame>());
+  const tabNodes = useRef(new Map<number, ReactNode>());
+  const forgetTabs = (...names: string[]) => {
+    for (const [name, f] of [...tabFrames.current]) {
+      if (names.length && !names.includes(name)) continue;
+      tabFrames.current.delete(name);
+      tabNodes.current.delete(f.id);
+    }
+  };
   const goTab = (name: TabId) => {
     navDirRef.current = 'fade';
     haptic('light');
-    setStack([mkFrame(name, {})]);
+    let f = tabFrames.current.get(name);
+    if (!f) { f = mkFrame(name, {}); tabFrames.current.set(name, f); }
+    const frame = f;
+    setStack((s) => (s.length === 1 && s[0].id === frame.id ? s : [frame]));
   };
   // Signed in or signed up: straight to My eSIM. No welcome screen and no
   // notification ask here (owner 2026-10-24: the ask came twice and sat with
@@ -167,6 +186,7 @@ export function App() {
   // A first sign-in picks a traveller first (owner 2026-10-26: make
   // onboarding fun); it is asked once per member on this phone.
   const signedIn = () => {
+    forgetTabs();
     const a = account.get();
     if (a && !avatarTraveller.picked(a.userId)) { navDirRef.current = 'push'; setStack([mkFrame('traveller', {})]); return; }
     goTab('esim');
@@ -259,85 +279,102 @@ export function App() {
     return () => off();
   }, []);
 
-  let body: ReactNode = null;
-  switch (current.name) {
-    case 'landing':
-      body = <LandingScreen onSignedIn={signedIn} onEmail={() => push('login', { email: true })} />;
-      break;
-    case 'store':
-      body = <StoreScreen onOpen={(id, opts) => push('destination', { destination: id, ...(opts?.power ? { power: true } : {}) })} onMyEsim={() => goTab('esim')} onLogin={() => push('login')} loggedIn={Boolean(account.get())} onQuiz={() => push('quiz')} />;
-      break;
-    case 'destination':
-      body = (
-        <DestinationScreen
-          id={current.params.destination || 'europe'}
-          power={Boolean(current.params.power)}
-          onPower={(destination) => push('destination', { destination, power: true })}
-          onBack={pop}
-          onContinue={(selection) => push('checkout', { selection })}
-        />
-      );
-      break;
-    case 'checkout':
-      body = (
-        <CheckoutScreen
-          selection={current.params.selection!}
-          onBack={pop}
-          onReady={() => { const place = current.params.selection?.destination || 'global'; goTab('esim'); askAfterDelivery(place); }}
-        />
-      );
-      break;
-    case 'esim':
-      body = (
-        <EsimScreen
-          onBack={stack.length > 1 ? pop : undefined}
-          onInstall={(install, label) => push('install', { install, label })}
-          onLogin={() => push('login')}
-          onStore={() => goTab('store')}
-          onReport={() => push('report')}
-          onProfile={() => push('profile')}
-        />
-      );
-      break;
-    case 'install':
-      body = <InstallScreen install={current.params.install!} label={current.params.label || 'Ringo'} onBack={pop} />;
-      break;
-    case 'quiz':
-      body = <QuizScreen onBack={pop} onBrowse={() => goTab('store')} onOpen={(id) => push('destination', { destination: id })} />;
-      break;
-    case 'traveller':
-      body = <TravellerScreen onDone={() => goTab('esim')} />;
-      break;
-    case 'login':
-      body = <LoginScreen onBack={pop} onDone={signedIn} startWithEmail={Boolean(current.params.email)} />;
-      break;
-    case 'report':
-      body = <ReportScreen onBack={pop} />;
-      break;
-    case 'help':
-      body = <HelpScreen onLogin={() => push('login')} onProfile={() => push('profile')} onWaitlist={() => push('waitlist')} />;
-      break;
-    case 'rewards':
-      body = <RewardsScreen onBrowse={() => goTab('store')} onLogin={() => push('login')} onWaitlist={() => push('waitlist')} />;
-      break;
-    case 'profile':
-      body = <RewardsScreen onBack={pop} onBrowse={() => goTab('store')} onLogin={() => push('login')} onWaitlist={() => push('waitlist')} />;
-      break;
-    // The full Ringo service (own number ported, every country): its free
-    // waitlist and the website's survey. Not Ringo Light.
-    case 'waitlist':
-      body = <WaitlistScreen onBack={pop} onLogin={() => push('login')} onBrowse={() => goTab('store')} />;
-      break;
-    default:
-      body = <div style={{ padding: 40 }}>Unknown screen: {current.name}</div>;
-  }
+  // A tab at the root of the stack (the store at launch) is the one kept.
+  const root = stack[0];
+  if (TABBED.has(root.name) && !tabFrames.current.has(root.name)) tabFrames.current.set(root.name, root);
+
+  const screenFor = (current: Frame): ReactNode => {
+    let body: ReactNode = null;
+    switch (current.name) {
+      case 'landing':
+        body = <LandingScreen onSignedIn={signedIn} onEmail={() => push('login', { email: true })} />;
+        break;
+      case 'store':
+        body = <StoreScreen onOpen={(id, opts) => push('destination', { destination: id, ...(opts?.power ? { power: true } : {}) })} onMyEsim={() => goTab('esim')} onLogin={() => push('login')} loggedIn={Boolean(account.get())} onQuiz={() => push('quiz')} />;
+        break;
+      case 'destination':
+        body = (
+          <DestinationScreen
+            id={current.params.destination || 'europe'}
+            power={Boolean(current.params.power)}
+            onPower={(destination) => push('destination', { destination, power: true })}
+            onBack={pop}
+            onContinue={(selection) => push('checkout', { selection })}
+          />
+        );
+        break;
+      case 'checkout':
+        body = (
+          <CheckoutScreen
+            selection={current.params.selection!}
+            onBack={pop}
+            onReady={() => { const place = current.params.selection?.destination || 'global'; forgetTabs('esim', 'rewards'); goTab('esim'); askAfterDelivery(place); }}
+          />
+        );
+        break;
+      case 'esim':
+        body = (
+          <EsimScreen
+            onBack={current.id === stack[stack.length - 1].id && stack.length > 1 ? pop : undefined}
+            onInstall={(install, label) => push('install', { install, label })}
+            onLogin={() => push('login')}
+            onStore={() => goTab('store')}
+            onReport={() => push('report')}
+            onProfile={() => push('profile')}
+          />
+        );
+        break;
+      case 'install':
+        body = <InstallScreen install={current.params.install!} label={current.params.label || 'Ringo'} onBack={pop} />;
+        break;
+      case 'quiz':
+        body = <QuizScreen onBack={pop} onBrowse={() => goTab('store')} onOpen={(id) => push('destination', { destination: id })} />;
+        break;
+      case 'traveller':
+        body = <TravellerScreen onDone={() => goTab('esim')} />;
+        break;
+      case 'login':
+        body = <LoginScreen onBack={pop} onDone={signedIn} startWithEmail={Boolean(current.params.email)} />;
+        break;
+      case 'report':
+        body = <ReportScreen onBack={pop} />;
+        break;
+      case 'help':
+        body = <HelpScreen onLogin={() => push('login')} onProfile={() => push('profile')} onWaitlist={() => push('waitlist')} />;
+        break;
+      case 'rewards':
+        body = <RewardsScreen onBrowse={() => goTab('store')} onLogin={() => push('login')} onWaitlist={() => push('waitlist')} />;
+        break;
+      case 'profile':
+        body = <RewardsScreen onBack={pop} onBrowse={() => goTab('store')} onLogin={() => push('login')} onWaitlist={() => push('waitlist')} />;
+        break;
+      // The full Ringo service (own number ported, every country): its free
+      // waitlist and the website's survey. Not Ringo Light.
+      case 'waitlist':
+        body = <WaitlistScreen onBack={pop} onLogin={() => push('login')} onBrowse={() => goTab('store')} />;
+        break;
+      default:
+        body = <div style={{ padding: 40 }}>Unknown screen: {current.name}</div>;
+    }
+    return body;
+  };
+  // A kept tab's element is made once, so going back to it or switching tabs
+  // never re-renders it (its callbacks only read refs and state setters).
+  const nodeFor = (f: Frame): ReactNode => {
+    if (tabFrames.current.get(f.name)?.id !== f.id) return screenFor(f);
+    let n = tabNodes.current.get(f.id);
+    if (n === undefined) { n = screenFor(f); tabNodes.current.set(f.id, n); }
+    return n;
+  };
+  const body = nodeFor(current);
+  const kept: KeptScreen[] = [...tabFrames.current.values()].filter((f) => f.id !== current.id).map((f) => ({ key: String(f.id), node: nodeFor(f) }));
 
   const showTabs = TABBED.has(current.name);
   const closePushAsk = useCallback(() => setPushAsk(null), []);
 
   return (
     <div data-screen-label={`Ringo / ${current.name}`} style={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-      <ScreenHost navKey={navKey} dir={navDirRef.current} fullBleed={current.name === 'landing'} onSwipeBack={() => { if (stack.length > 1) pop(); }}>
+      <ScreenHost navKey={navKey} dir={navDirRef.current} fullBleed={current.name === 'landing'} kept={kept} onSwipeBack={() => { if (stack.length > 1) pop(); }}>
         {body}
       </ScreenHost>
       {/* The tab screens scroll under the clock; without this strip a heading
