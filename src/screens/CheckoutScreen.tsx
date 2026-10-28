@@ -38,11 +38,11 @@ import { hasMosaic, pictureFor, skyFor, bundledPictureFor } from '../data/destin
 import { light, SITE } from '../api/light';
 import { account } from '../store/account';
 import { openInSheet } from '../lib/browser';
-import { payByCard as startCard, waitForOwner } from '../lib/cardPay';
+import { payByCard as startCard, waitForOwner, type CardOutcome } from '../lib/cardPay';
 import { haptic, hapticNotify, hapticSelection } from '../lib/haptics';
 import { priceOf } from '../lib/purchase';
 import { logAb } from '../lib/abtest';
-import { type Selection } from './DestinationScreen';
+import { type Selection, type PaidStart } from './DestinationScreen';
 import { planName, periodWord } from '../lib/terms';
 import { useLayout, contentColumn, type Layout } from '../lib/layout';
 import { t, t as tr, tk, tn, isRtl, fmtMoney } from '../lib/i18n';
@@ -63,11 +63,13 @@ const POLL_TRIES = 40;
 // padding taken back with a negative margin so the line keeps its height.
 const inlineLink = (): CSSProperties => ({ border: 'none', background: 'transparent', padding: '14px 0', margin: '-14px 0', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', lineHeight: 'inherit', fontWeight: 700, color: RC.ink, verticalAlign: 'baseline', textDecoration: 'underline', textUnderlineOffset: 2 });
 
-export function CheckoutScreen({ selection, onBack, onReady }: { selection: Selection; onBack: () => void; onReady: () => void }) {
+// With `paid` the plan page has already shown the sheet (owner 2026-10-28,
+// TestFlight 89): this screen opens on the wait for the eSIM, never on the form.
+export function CheckoutScreen({ selection, paid, onBack, onReady }: { selection: Selection; paid?: PaidStart; onBack: () => void; onReady: () => void }) {
   const l = useLayout();
   const signedInEmail = (account.get()?.email || '').trim();
-  const [email, setEmail] = useState(signedInEmail);
-  const [stage, setStage] = useState<Stage>('email');
+  const [email, setEmail] = useState(paid?.email ?? signedInEmail);
+  const [stage, setStage] = useState<Stage>(paid ? 'card' : 'email');
   const [err, setErr] = useState<string | null>(null);
   // Set when the email typed is not the signed-in account's: asked once.
   const [otherEmail, setOtherEmail] = useState<string | null>(null);
@@ -108,7 +110,7 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   }, [renewing]);
   const creditHere = creditCents > 0 && !renewing && (!signedInEmail || email.trim().toLowerCase() === signedInEmail.toLowerCase());
 
-  const stageRef = useRef<Stage>('email');
+  const stageRef = useRef<Stage>(paid ? 'card' : 'email');
   // A long wait on Stripe (a slow bank) gets a way out after 15 seconds.
   const [cardSlow, setCardSlow] = useState(false);
   useEffect(() => {
@@ -160,6 +162,34 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
     return e;
   };
 
+  // After the sheet, wherever it was shown: the account follows the purchase
+  // the moment the site names its owner, then this purchase's eSIM is waited for.
+  const settle = (out: CardOutcome, e: string, startedAs: string | null) => {
+    const sameAccount = () => (account.get()?.userId ?? null) === startedAs;
+    // Paid (or still being confirmed): the account follows the moment the site names it.
+    const follow = (query: Parameters<typeof waitForOwner>[0], session: string) => {
+      void waitForOwner(query, sameAccount).then((o) => {
+        if (!o || !sameAccount()) return;
+        account.set({ userId: o.userId, t: o.t, email: e, purchaseRef: session });
+        if (mounted.current && (stageRef.current === 'slow' || stageRef.current === 'checking')) waitForEsim();
+      });
+    };
+    if (out.state === 'left') { setStageBoth('email'); return; }
+    // Not confirmed yet: keep asking, like a received payment, instead of stopping on "checking".
+    if (out.state === 'unconfirmed') { setStageBoth('checking'); follow(out.query, out.session); return; }
+    if (out.state === 'received') {
+      hapticNotify('success');
+      setStageBoth('slow');
+      follow(out.query, out.session);
+      return;
+    }
+    account.set({ userId: out.userId, t: out.t, email: e, purchaseRef: out.session });
+    logAb('purchase', { destination: selection.destination, plan: p.plan, product: 'stripe' });
+    waitForEsim();
+  };
+  // The plan page already took the payment: carry on from its outcome.
+  useEffect(() => { if (paid) settle(paid.out, paid.email, account.get()?.userId ?? null); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Card: Stripe's payment sheet inside the app; Stripe says when it is paid.
   const payByCard = async (via: 'card' | 'applePay' = 'card') => {
     // One payment at a time: Enter and a tap, or two quick taps, start one sheet.
@@ -171,33 +201,13 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
     // The account this checkout started under: a late answer never switches
     // the app to the buyer's account once someone else has signed in.
     const startedAs = account.get()?.userId ?? null;
-    const sameAccount = () => (account.get()?.userId ?? null) === startedAs;
-    // Paid (or still being confirmed): the account follows the moment the site names it.
-    const follow = (query: Parameters<typeof waitForOwner>[0], session: string) => {
-      void waitForOwner(query, sameAccount).then((o) => {
-        if (!o || !sameAccount()) return;
-        account.set({ userId: o.userId, t: o.t, email: e, purchaseRef: session });
-        if (mounted.current && (stageRef.current === 'slow' || stageRef.current === 'checking')) waitForEsim();
-      });
-    };
     try {
       const pay = await startCard({ plan: p.plan, destination: selection.destination, data_gb: selection.data_gb, email: e, currency: p.currency, useCredit: creditHere && useCredit, via: inline ? via : 'sheet' });
       cardStop.current = pay.stop;
       const out = await pay.done;
       cardStop.current = null;
       if (!mounted.current) return;
-      if (out.state === 'left') { setStageBoth('email'); return; }
-      // Not confirmed yet: keep asking, like a received payment, instead of stopping on "checking".
-      if (out.state === 'unconfirmed') { setStageBoth('checking'); follow(out.query, out.session); return; }
-      if (out.state === 'received') {
-        hapticNotify('success');
-        setStageBoth('slow');
-        follow(out.query, out.session);
-        return;
-      }
-      account.set({ userId: out.userId, t: out.t, email: e, purchaseRef: out.session });
-      logAb('purchase', { destination: selection.destination, plan: p.plan, product: 'stripe' });
-      waitForEsim();
+      settle(out, e, startedAs);
     } catch (ex) {
       if (!mounted.current) return;
       setErr((ex as Error).message || t('The payment could not be started. Nothing was charged.'));

@@ -24,7 +24,7 @@ import { light } from './api/light';
 
 import { LandingScreen } from './screens/LandingScreen';
 import { StoreScreen } from './screens/StoreScreen';
-import { DestinationScreen, type Selection } from './screens/DestinationScreen';
+import { DestinationScreen, type Selection, type PaidStart } from './screens/DestinationScreen';
 import { CheckoutScreen } from './screens/CheckoutScreen';
 import { EsimScreen } from './screens/EsimScreen';
 import { InstallScreen } from './screens/InstallScreen';
@@ -50,6 +50,8 @@ interface Frame {
     /** the destination opens as its Power Use card (owner 2026-10-27) */
     power?: boolean;
     selection?: Selection;
+    /** the plan page already took the payment through the sheet */
+    paid?: PaidStart;
     install?: { apple_url: string; lpa: string };
     label?: string;
     /** the login screen opens straight on the email step */
@@ -302,7 +304,7 @@ export function App() {
             power={Boolean(current.params.power)}
             onPower={(destination) => push('destination', { destination, power: true })}
             onBack={pop}
-            onContinue={(selection) => push('checkout', { selection })}
+            onContinue={(selection, paid) => push('checkout', { selection, ...(paid ? { paid } : {}) })}
           />
         );
         break;
@@ -310,6 +312,7 @@ export function App() {
         body = (
           <CheckoutScreen
             selection={current.params.selection!}
+            paid={current.params.paid}
             onBack={pop}
             onReady={() => { const place = current.params.selection?.destination || 'global'; forgetTabs('esim', 'rewards'); goTab('esim'); askAfterDelivery(place); }}
           />

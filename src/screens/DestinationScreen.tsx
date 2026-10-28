@@ -41,11 +41,14 @@ import { rememberAppleLines } from '../store/summary';
 import { useLiveTick } from '../store/live';
 import { priceOf } from '../lib/purchase';
 import { haptic, hapticSelection } from '../lib/haptics';
-import { defaultArm, logAb } from '../lib/abtest';
+import { logAb } from '../lib/abtest';
+import { payByCard as startCard, type CardOutcome } from '../lib/cardPay';
+import { openInSheet } from '../lib/browser';
+import { SITE } from '../api/light';
 import { useLayout, contentColumn, type Layout } from '../lib/layout';
 import { requestLightStatusBar } from '../lib/statusBar';
 import { powerPhotoFor } from '../data/powerPhotos';
-import { t, t as tr, tk, plural, placeName as placeLabel, currentLocale } from '../lib/i18n';
+import { t, t as tr, tk, tn, plural, placeName as placeLabel, currentLocale } from '../lib/i18n';
 import dishPhoto from '../assets/store/dish-wide.jpg'; // the store's Power card dish, full width (Unsplash Wj1D-qiOseE)
 import { i18n } from '../lib/i18n';
 
@@ -57,6 +60,9 @@ export interface Selection {
   /** Apple's product and price for this line */
   product: IapProduct | null;
 }
+
+/** A payment the plan page already took through the sheet: Checkout carries on from it. */
+export interface PaidStart { out: CardOutcome; email: string }
 
 /** Which list is shown: the trip plans, or one family of App Store only day passes. */
 type Group = 'trip' | 'day' | 'power' | 'super';
@@ -318,7 +324,7 @@ function GlobalCard({ l, p, price }: { l: Layout; p: Plan; price: { total: strin
   );
 }
 
-export function DestinationScreen({ id, power = false, onPower, onBack, onContinue }: { id: string; power?: boolean; onPower?: (id: string) => void; onBack: () => void; onContinue: (s: Selection) => void }) {
+export function DestinationScreen({ id, power = false, onPower, onBack, onContinue }: { id: string; power?: boolean; onPower?: (id: string) => void; onBack: () => void; onContinue: (s: Selection, paid?: PaidStart) => void }) {
   const l = useLayout();
   const dest = destinationFrom(useDestinations(), id);
   const acct = useAccount();
@@ -339,11 +345,22 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   useEffect(() => { if (quiz?.quizId && !power) sendQuizPicked(quiz.quizId, id); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [tab, setTab] = useState<PlanTab>(quiz?.tab ?? 'data');
   const [powerGb, setPowerGb] = useState<number | null>(quiz?.tab === 'power' ? quiz.dailyGb ?? null : null);
-  const arm = useMemo(() => defaultArm(), []);
   // At most three plans on screen (choice overload), the rest one tap away.
   const [showAll, setShowAll] = useState(false);
   const [planId, setPlanId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  // The sheet is up from this page; what it said when it could not start.
+  const [paying, setPaying] = useState(false);
+  const [payErr, setPayErr] = useState<string | null>(null);
+  // Ringo credit on the account: spent in the sheet on a one-payment plan (the site decides how much).
+  const [creditCents, setCreditCents] = useState(0);
+  useEffect(() => {
+    if (!acct) { setCreditCents(0); return; }
+    let alive = true;
+    light.profile(acct.userId, acct.t).then((pr) => { if (alive) setCreditCents(pr.credit?.balance_cents || 0); }).catch(() => {});
+    return () => { alive = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `acct` follows memberKey
+  }, [memberKey]);
 
   // On a phone the photos stay under the clock (only the sheet scrolls): light text over them.
   useEffect(() => {
@@ -474,22 +491,19 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   // covers a hotspot too, so that tab, and a line saying so.
   const shownTab: PlanTab = powerMode ? 'power' : tabOptions.includes(tab) ? tab : (tabOptions.includes('unl') && tab === 'power' ? 'unl' : (tabOptions[0] ?? 'data'));
   const quizMissing = Boolean(quiz && tab === quiz.tab && plans.length > 0 && !powerMode && !tabOptions.includes(quiz.tab));
-  // The Recommended line leads its tab (in both arms), so the plan that keeps
-  // Ringo the most is the first thing seen; the rest keep their order.
-  const leadFirst = (list: Plan[]) => [...list.filter((p) => p.best_margin), ...list.filter((p) => !p.best_margin)];
-  // Power reads shortest first and opens on its cheapest line (owner
-  // 2026-10-27: not on the 30 days); the other tabs lead with the Recommended one.
-  const tabLines = shownTab === 'power' ? powerLines : leadFirst(shownTab === 'data' ? dataLines : tierLines);
-  // Three on screen: the Recommended one, then the shortest lengths; the chosen
-  // line always stays in view.
+  // Every tab reads cheapest first and opens on its cheapest line, as Power
+  // does (owner 2026-10-28, TestFlight 89: the 30 days led the Unlimited list
+  // above the 24 hours at US$1.99); a tie goes to the shorter line.
+  const byPrice = (list: Plan[]) => [...list].sort((a, b) => a.billed_upfront_amount - b.billed_upfront_amount || a.days - b.days);
+  const tabLines = shownTab === 'power' ? powerLines : byPrice(shownTab === 'data' ? dataLines : tierLines);
+  // Three on screen: the cheapest three; the chosen line always stays in view.
   const firstThree = tabLines.slice(0, 3);
   const chosenExtra = tabLines.find((p) => lineKey(p) === planId && !firstThree.includes(p));
   const visibleLines = showAll ? tabLines : chosenExtra ? [...firstThree.slice(0, 2), chosenExtra] : firstThree;
   const hiddenCount = showAll ? 0 : tabLines.length - visibleLines.length;
-  // The test's default: the cheapest line, or the one that keeps Ringo the most.
-  // (tabLines leads with the Recommended line, so the cheapest is looked for, not taken from the top.)
+  // The default: the cheapest line (owner 2026-10-28).
   const cheapestOf = (list: Plan[]) => list.reduce((a, b) => (b.billed_upfront_amount < a.billed_upfront_amount ? b : a), list[0]);
-  const defaultOf = (list: Plan[]) => (arm === 'recommended' ? list.find((p) => p.best_margin) : undefined) ?? cheapestOf(list);
+  const defaultOf = cheapestOf;
 
   // The chosen line stays while it is in the tab shown; otherwise the test's
   // default for that tab (owner 2026-10-24 replaced "cheapest first" with this test).
@@ -507,7 +521,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
       : shownTab === 'data' ? ([...big.filter(covers)].sort(bySize)[0] ?? [...big].sort(bySize)[0])
       : days ? (byDays(list).find(covers) ?? byDays(list)[list.length - 1]) : undefined;
     setPlanId(lineKey(fit ?? (shownTab === 'power' ? cheapestOf(list) : defaultOf(list))));
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- defaultOf follows arm
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- the quiz and the tab are read when the list changes
   }, [plans, tabLines, planId, unlimitedGlobal]);
   // One view per screen for the test.
   useEffect(() => { if (cat && !unlimitedGlobal) logAb('view', { destination: id }); }, [cat?.destination.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -538,11 +552,41 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   // A line whose package connects in its own countries (Latin America's Power plans: no Mexico, US or Canada) says so.
   const coverage = selected?.coverage ? plural(selected.coverage.countries, 'Works in {n} country', 'Works in {n} countries') : cat ? (i18n.get() === 'en' ? cat.destination.coverage_line : cat.destination.countries > 1 ? plural(cat.destination.countries, 'Works in {n} country', 'Works in {n} countries') : t('Works across {place}', { place: placeName })) : dest ? (dest.countries > 1 ? plural(dest.countries, 'Works in {n} country', 'Works in {n} countries') : t('Works across {place}', { place: placeName })) : '';
 
-  const continueTap = () => {
-    if (!cat || !selected) return;
+  const selectionNow = (): Selection | null => cat && selected ? { destination: id, destinationLabel: cat.destination.id === id ? placeLabel(cat.destination.label) : t('{place} ({region} plan)', { place: dest ? placeLabel(dest.label, dest.flag) : id, region: placeLabel(cat.destination.label) }), plan: selected, data_gb: selected.tier === 'data' ? selected.data_gb : null, product: productFor(selected) } : null;
+  // Signed in, the email known: the payment sheet opens on this page (owner
+  // 2026-10-28, TestFlight 89: "the checkout card pop up should be on the
+  // previous page"), and the app moves on only once the payment is confirmed.
+  // Without an account, Checkout still asks for the email first.
+  const payHere = CARD_PAYMENTS && Boolean(acct?.email);
+  const continueTap = async () => {
+    const s = selectionNow();
+    if (!s || paying) return;
     haptic('medium');
-    onContinue({ destination: id, destinationLabel: cat.destination.id === id ? placeLabel(cat.destination.label) : t('{place} ({region} plan)', { place: dest ? placeLabel(dest.label, dest.flag) : id, region: placeLabel(cat.destination.label) }), plan: selected, data_gb: selected.tier === 'data' ? selected.data_gb : null, product: productFor(selected) });
+    const e = (acct?.email || '').trim().toLowerCase();
+    if (!payHere || !e) { onContinue(s); return; }
+    setPaying(true);
+    setPayErr(null);
+    try {
+      const pay = await startCard({ plan: s.plan.plan, destination: id, data_gb: s.data_gb, email: e, currency: s.plan.currency, useCredit: creditCents > 0 && s.plan.mode !== 'subscription', via: 'sheet' });
+      const out = await pay.done;
+      setPaying(false);
+      if (out.state === 'left') return;
+      onContinue(s, { out, email: e });
+    } catch (ex) {
+      setPaying(false);
+      setPayErr((ex as Error).message || t('The payment could not be started. Nothing was charged.'));
+    }
   };
+  // Before the sheet: the agreement the Checkout page carried (the Terms hold the right to cancel).
+  const linkStyle: CSSProperties = { border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', lineHeight: 'inherit', fontWeight: 700, color: RC.ink, textDecoration: 'underline', textUnderlineOffset: 2 };
+  const terms = payHere && (
+    <div style={{ ...TYPE.caption, color: RC.inkMute, textAlign: 'center' }}>
+      {tn('By buying you agree to the {terms} and the {privacy}.', {
+        terms: <button type="button" onClick={() => void openInSheet(`${SITE}/terms?app=1`)} style={linkStyle}>{t('Terms of Use')}</button>,
+        privacy: <button type="button" onClick={() => void openInSheet(`${SITE}/privacy?app=1`)} style={linkStyle}>{t('Privacy Policy')}</button>,
+      })}
+    </div>
+  );
   const retry = () => { setErr(null); setProducts(null); setReloadKey((k) => k + 1); };
   const loadingPrices = native && cat && !products;
   const loading = (!cat || loadingPrices) && !err;
@@ -704,7 +748,9 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
               {planList}
               {selected && selectedPrice && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <RingoButton onClick={continueTap} style={ctaStyle}>{selected.mode === 'subscription' ? t('Continue, {price} today', { price: selectedPrice.total }) : t('Continue, {price}', { price: selectedPrice.total })}</RingoButton>
+                  {payErr && <ErrorBox>{payErr}</ErrorBox>}
+                  {terms}
+                  <RingoButton onClick={() => void continueTap()} disabled={paying} style={ctaStyle}>{selected.mode === 'subscription' ? t('Continue, {price} today', { price: selectedPrice.total }) : t('Continue, {price}', { price: selectedPrice.total })}</RingoButton>
                 </div>
               )}
               {notes}
@@ -720,7 +766,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   const footer: CSSProperties = {
     position: 'absolute', left: 12, right: 12, bottom: 'max(12px, env(safe-area-inset-bottom, 0px))',
     padding: 8, paddingInlineStart: 18, borderRadius: SHEET_RADIUS + 4, background: CREAM, border: `1.5px solid ${LINE}`,
-    boxShadow: '0 2px 8px rgba(26,15,46,0.06), 0 18px 40px -16px rgba(26,15,46,0.30)', display: 'flex', alignItems: 'center', gap: 12,
+    boxShadow: '0 2px 8px rgba(26,15,46,0.06), 0 18px 40px -16px rgba(26,15,46,0.30)', display: 'flex', flexDirection: 'column', gap: 8,
   };
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
@@ -746,6 +792,9 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
 
       {cat && selected && selectedPrice && (
         <div style={footer}>
+          {payErr && <ErrorBox>{payErr}</ErrorBox>}
+          {terms && <div style={{ paddingTop: 4, paddingInlineEnd: 10 }}>{terms}</div>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ flexShrink: 1, minWidth: 0, fontFamily: 'var(--font)' }}>
             <div style={{ ...TYPE.caption, color: RC.inkMute, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{planName(selected)}</div>
             <div style={{ marginTop: 2, fontSize: 19, fontWeight: 800, lineHeight: 1.2, color: RC.ink, letterSpacing: '-0.02em', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
@@ -753,7 +802,8 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
             </div>
           </div>
           <div style={{ flex: 1, minWidth: 132 }}>
-            <RingoButton round onClick={continueTap} style={ctaStyle}>{t('Continue')}</RingoButton>
+            <RingoButton round onClick={() => void continueTap()} disabled={paying} style={ctaStyle}>{t('Continue')}</RingoButton>
+          </div>
           </div>
         </div>
       )}
