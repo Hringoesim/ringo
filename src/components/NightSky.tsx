@@ -95,7 +95,8 @@ export function NightSky({ geometry }: { geometry: SkyGeometry }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [width, logo.left, logo.right, logo.top, logo.bottom, globeX, globeY, globe],
   );
-  const height = Math.ceil(globeY + globe * 0.05);
+  // Measured before the globe lands, globeY can be negative for a frame.
+  const height = Math.max(0, Math.ceil(globeY + globe * 0.05));
   const meteor = meteorPath(geometry);
   const angle = (Math.atan2(meteor.dy, meteor.dx) * 180) / Math.PI;
   const tail = Math.min(90, Math.max(44, Math.hypot(meteor.dx, meteor.dy) * 0.45));

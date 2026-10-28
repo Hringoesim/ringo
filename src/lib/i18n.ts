@@ -12,19 +12,6 @@
 // change in iOS Settings wins over the in-app pick (owner 2026-10-28).
 // Arabic and Hebrew turn the whole document right to left.
 import { createElement, Fragment, useSyncExternalStore, type ReactNode } from 'react';
-import es from '../i18n/es';
-import fr from '../i18n/fr';
-import de from '../i18n/de';
-import it from '../i18n/it';
-import pt from '../i18n/pt';
-import nl from '../i18n/nl';
-import ar from '../i18n/ar';
-import he from '../i18n/he';
-import ja from '../i18n/ja';
-import ko from '../i18n/ko';
-import zh from '../i18n/zh';
-import tr from '../i18n/tr';
-import ru from '../i18n/ru';
 
 /** One translated string, or its plural forms (Intl.PluralRules categories). */
 export type Entry = string | Partial<Record<Intl.LDMLPluralRule, string>>;
@@ -48,7 +35,16 @@ export const LANGS = [
 ] as const;
 export type Lang = (typeof LANGS)[number]['code'];
 
-const CATALOGS: Record<Lang, Catalog> = { en: {}, es, fr, de, it, pt, nl, ar, he, ja, ko, zh, tr, ru };
+// Only the language in use is loaded (each catalog is its own small chunk):
+// all 13 together were most of the app's JavaScript, parsed at every launch.
+const LOADERS = import.meta.glob<{ default: Catalog }>('../i18n/*.ts');
+const CATALOGS: Partial<Record<Lang, Catalog>> = { en: {} };
+
+async function load(l: Lang): Promise<void> {
+  if (CATALOGS[l]) return;
+  const loader = LOADERS[`../i18n/${l}.ts`];
+  try { CATALOGS[l] = loader ? (await loader()).default : {}; } catch { CATALOGS[l] = {}; }
+}
 const RTL = new Set<Lang>(['ar', 'he']);
 // Intl locale per language: zh is Simplified Chinese, pt follows the phone's
 // region (Brazil or Portugal) for dates and money, as does every other one.
@@ -94,6 +90,8 @@ function detect(): Lang {
 
 let lang: Lang = detect();
 let locale = localeFor(lang);
+/** Resolves once the starting language's strings are in; main.tsx renders after it. */
+const ready: Promise<void> = load(lang);
 const listeners = new Set<() => void>();
 
 // The Intl locale: the phone's own tag when it is this language (es-MX keeps
@@ -119,12 +117,15 @@ export const i18n = {
   /** The buyer's own pick, or null when the app follows the phone. */
   chosen,
   /** 'auto' goes back to following the phone's language. */
-  set(next: Lang | 'auto') {
+  ready,
+  async set(next: Lang | 'auto') {
+    const target: Lang = next === 'auto' ? (deviceTags().map(supported).find(Boolean) ?? 'en') : next;
+    await load(target);
     try {
       if (next === 'auto') { localStorage.removeItem(STORE_KEY); localStorage.removeItem(DEVICE_KEY); }
       else { localStorage.setItem(STORE_KEY, next); localStorage.setItem(DEVICE_KEY, deviceTags()[0] || ''); }
     } catch { /* ignore */ }
-    lang = next === 'auto' ? (deviceTags().map(supported).find(Boolean) ?? 'en') : next;
+    lang = target;
     locale = localeFor(lang);
     apply();
     listeners.forEach((f) => f());
@@ -148,7 +149,7 @@ function fill(s: string, vars?: Vars): string {
 
 /** The current language's copy of an English string. */
 export function t(en: string, vars?: Vars): string {
-  const e = CATALOGS[lang][en];
+  const e = CATALOGS[lang]?.[en];
   const s = typeof e === 'string' ? e : e ? (e.other ?? en) : en;
   return fill(s, vars);
 }
@@ -161,7 +162,7 @@ export function t(en: string, vars?: Vars): string {
 export function plural(n: number, one: string, other: string, vars?: Vars): string {
   const all = { n, ...vars };
   if (lang === 'en') return fill(n === 1 ? one : other, all);
-  const e = CATALOGS[lang][other];
+  const e = CATALOGS[lang]?.[other];
   if (!e) return fill(n === 1 ? one : other, all);
   if (typeof e === 'string') return fill(e, all);
   const cat = new Intl.PluralRules(locale).select(n);
@@ -206,7 +207,7 @@ export const tk = (en: string): string => en;
  * tn('We sent a code to {email}.', { email: <b>{email}</b> })
  */
 export function tn(en: string, nodes: Record<string, ReactNode>): ReactNode {
-  const e = CATALOGS[lang][en];
+  const e = CATALOGS[lang]?.[en];
   const s = typeof e === 'string' ? e : e ? (e.other ?? en) : en;
   return s.split(/(\{\w+\})/).map((part, i) => {
     const m = /^\{(\w+)\}$/.exec(part);
