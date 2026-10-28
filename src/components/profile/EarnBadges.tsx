@@ -3,21 +3,23 @@
 // in the site's sunset colours, the rest muted with how to earn them and how
 // far along the member is. Each badge pays Ringo coins once, by rarity
 // (owner 2026-10-26; 100 coins = EUR 1 credit, credited by /api/app-profile);
-// Pioneer is super rare, in gold. Year round (global-12) is legendary,
+// Pioneer is super rare, in gold. Tapping a badge shows when it was earned or
+// how to earn it (owner 2026-10-28). Year round (global-12) is legendary,
 // 2000 coins, its medal in the brand's sunset (owner 2026-10-28).
-import type { ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { RC, RADIUS, TYPE, SITE_GRAD, cardSurface } from '../../theme';
 import type { Layout } from '../../lib/layout';
 import type { Achievement } from '../../api/light';
 import { PIONEER_GOLD } from './format';
-import { t, tk, fmtNumber } from '../../lib/i18n';
+import { t, tk, fmtNumber, fmtDate } from '../../lib/i18n';
 
 const RARITY: Record<string, { label: string; color: string }> = {
   common: { label: tk('Common'), color: RC.ink2 },
   rare: { label: tk('Rare'), color: '#2F6FEB' },
   epic: { label: tk('Epic'), color: '#8652E0' },
   super: { label: tk('Super rare'), color: '#B7791F' },
-  legendary: { label: tk('Legendary'), color: '#E0457B' },
+  legendary: { label: tk('Legend'), color: '#E0457B' },
 };
 
 const SUNSET = 'linear-gradient(110deg, #F26122, #FF42A1 55%, #8652E0)';
@@ -56,10 +58,11 @@ function Medal({ a, size }: { a: Achievement; size: number }) {
 /** A rarity the app does not know reads as Common rather than breaking the screen. */
 const rarityOf = (a: Achievement) => RARITY[a.rarity ?? ''] ?? RARITY.common;
 
-function Tile({ a, l }: { a: Achievement; l: Layout }) {
+function Tile({ a, l, onOpen }: { a: Achievement; l: Layout; onOpen: () => void }) {
   const pct = Math.round((a.have / Math.max(1, a.need)) * 100);
   return (
-    <li style={{ ...cardSurface(), listStyle: 'none', padding: l.isCover ? '14px 10px' : '16px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 8 }}>
+    <li className="press" role="button" tabIndex={0} onClick={onOpen} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
+      style={{ ...cardSurface(), listStyle: 'none', cursor: 'pointer', padding: l.isCover ? '14px 10px' : '16px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 8 }}>
       <Medal a={a} size={l.isCover ? 50 : 58} />
       <div style={{ ...TYPE.bodyStrong, color: RC.ink }}>{a.name}</div>
       {a.coins ? (
@@ -82,9 +85,54 @@ function Tile({ a, l }: { a: Achievement; l: Layout }) {
 /** Earned badges first, then the closest to being earned. */
 export function EarnBadges({ items, l }: { items: Achievement[]; l: Layout }) {
   const sorted = [...items].sort((x, y) => Number(y.earned) - Number(x.earned) || y.have / Math.max(1, y.need) - x.have / Math.max(1, x.need));
+  const [open, setOpen] = useState<Achievement | null>(null);
   return (
-    <ul style={{ margin: 0, padding: 0, display: 'grid', gap: l.cardGap, gridTemplateColumns: l.isWide ? 'repeat(auto-fill, minmax(170px, 1fr))' : 'repeat(2, minmax(0, 1fr))' }}>
-      {sorted.map((a) => <Tile key={a.id} a={a} l={l} />)}
-    </ul>
+    <>
+      <ul style={{ margin: 0, padding: 0, display: 'grid', gap: l.cardGap, gridTemplateColumns: l.isWide ? 'repeat(auto-fill, minmax(170px, 1fr))' : 'repeat(2, minmax(0, 1fr))' }}>
+        {sorted.map((a) => <Tile key={a.id} a={a} l={l} onOpen={() => setOpen(a)} />)}
+      </ul>
+      {open && <BadgeSheet a={open} onClose={() => setOpen(null)} />}
+    </>
+  );
+}
+
+/** Tapping a badge (owner 2026-10-28): when it was earned, or how to earn it. */
+function BadgeSheet({ a, onClose }: { a: Achievement; onClose: () => void }) {
+  const titleId = useId();
+  const pct = Math.round((a.have / Math.max(1, a.need)) * 100);
+  return createPortal(
+    <div
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(26,15,46,0.46)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', animation: 'ringoFadeIn 0.24s ease both' }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div role="dialog" aria-modal="true" aria-labelledby={titleId} className="rise"
+        style={{ width: '100%', maxWidth: 560, boxSizing: 'border-box', background: RC.paper, borderRadius: '24px 24px 0 0', padding: '28px 24px max(24px, calc(env(safe-area-inset-bottom, 0px) + 16px))', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+        <Medal a={a} size={96} />
+        <div id={titleId} style={{ marginTop: 16, ...TYPE.h2, color: RC.ink }}>{a.name}</div>
+        {a.coins ? <div style={{ marginTop: 6, ...TYPE.caption, fontWeight: 700, color: rarityOf(a).color }}>{t('{rarity}, {n} coins', { rarity: t(rarityOf(a).label), n: a.coins })}</div> : null}
+        {a.earned ? (
+          <div style={{ marginTop: 14, ...TYPE.bodyStrong, color: RC.success }}>
+            {a.earned_at ? t('Earned on {date}', { date: fmtDate(a.earned_at, { day: 'numeric', month: 'long', year: 'numeric' }) }) : t('Earned')}
+          </div>
+        ) : (
+          <>
+            <div style={{ marginTop: 16, ...TYPE.caption, fontWeight: 700, color: RC.inkMute }}>{t('How to earn it')}</div>
+            <div style={{ marginTop: 4, ...TYPE.body, color: RC.ink, maxWidth: 360 }}>{a.how}</div>
+            {a.need > 1 && (
+              <div style={{ width: '100%', maxWidth: 320, marginTop: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div role="progressbar" aria-label={t('{name} progress', { name: a.name })} aria-valuemin={0} aria-valuemax={a.need} aria-valuenow={a.have}
+                  style={{ flex: 1, height: 8, borderRadius: RADIUS.pill, background: RC.cream, overflow: 'hidden' }}>
+                  <div style={{ width: `${Math.max(pct, a.have ? 4 : 0)}%`, height: '100%', background: SITE_GRAD, borderRadius: RADIUS.pill }} />
+                </div>
+                <span style={{ ...TYPE.caption, color: RC.inkMute, fontVariantNumeric: 'tabular-nums' }}>{fmtNumber(a.have)}/{fmtNumber(a.need)}</span>
+              </div>
+            )}
+          </>
+        )}
+        <button type="button" className="press" onClick={onClose}
+          style={{ marginTop: 22, width: '100%', maxWidth: 360, border: 'none', background: RC.cream, borderRadius: 999, padding: '14px 16px', fontFamily: 'var(--font)', fontSize: 17, fontWeight: 700, color: RC.ink, cursor: 'pointer' }}>{t('Done')}</button>
+      </div>
+    </div>,
+    document.body,
   );
 }
