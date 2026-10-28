@@ -151,6 +151,8 @@ export interface Summary {
   from_lines?: Record<string, string[]>;
   /** Per place that sells Power plans (5 or 10 GB a day), its cheapest one (absent on an older site). */
   power_from?: Record<string, number>;
+  /** the cheapest line the app sells per place, day passes included (owner 2026-10-28: the card shows the true lowest price) */
+  from_app?: Record<string, number>;
 }
 
 export interface PurchaseRecord {

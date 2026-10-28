@@ -280,7 +280,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
     const regions = new Set(all.filter((d) => been.has(d.id)).map((d) => d.region).filter(Boolean));
     return all
       .filter((d) => d.kind === 'country' && !been.has(d.id) && regions.has(d.region))
-      .sort((a, b) => (summary?.from?.[a.id] ?? 1e9) - (summary?.from?.[b.id] ?? 1e9))
+      .sort((a, b) => (summary?.from_app?.[a.id] ?? summary?.from?.[a.id] ?? 1e9) - (summary?.from_app?.[b.id] ?? summary?.from?.[b.id] ?? 1e9))
       .slice(0, 4);
   }, [all, visited, summary]);
   // After the Power plans card, the place opens on its Power plans (passed
@@ -320,7 +320,9 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
   // screen shows the same), else the catalogue's; on the Power list, its cheapest Power plan.
   const fromOf = (d: Destination): string | null => {
     if (powerAsk) { const p = powerFrom?.[d.id]; return p != null && summary ? money(p, summary.currency) : null; }
-    const c = summary?.from?.[d.id];
+    // The cheapest of everything the app sells here, a 24 hour unlimited day
+    // pass included; an older site without from_app gives the website's from.
+    const c = summary?.from_app?.[d.id] ?? summary?.from?.[d.id];
     return apple[d.id] ?? (c != null && summary ? money(c, summary.currency) : null);
   };
 

@@ -206,7 +206,12 @@ export function CheckoutScreen({ selection, onBack, onReady }: { selection: Sele
   };
 
   // The card field and Apple Pay sit on this page (owner 2026-10-27), drawn natively over two slots.
-  const inline = inlineAvailable();
+  // The owner (2026-10-28, TestFlight 87): "this page should open the payment
+  // pop up, only when payment confirmed we go to the next screen", and the
+  // keyboard covered the card field on the page. So the Pay button opens the
+  // payment sheet (Apple Pay and card inside it); the on-page fields stay off.
+  const INLINE_PAY = false;
+  const inline = INLINE_PAY && inlineAvailable();
   const [cardComplete, setCardComplete] = useState(false);
   const [applePay, setApplePay] = useState(false);
   const appleSlot = useRef<HTMLDivElement>(null);

@@ -62,9 +62,12 @@ function Meter({ esim, liveRemaining }: { esim: UsageEsim; liveRemaining: number
           <div style={{ width: `${Math.max(pct, used ? 2 : 0)}%`, height: '100%', borderRadius: RADIUS.pill, background: low ? RC.error : RC.grad, transition: 'width .6s ease' }} />
         </div>
       )}
-      {esim.checked_at && (
+      {/* The expiry sits with the usage too (owner 2026-10-28), unlimited plans included. */}
+      {(esim.ends_at || esim.checked_at) && (
         <div style={{ marginTop: 10, ...TYPE.caption, color: RC.inkMute }}>
-          {t('Updated {time}', { time: fmtDate(esim.checked_at, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) })}
+          {esim.ends_at && <span>{t('Valid until {date}', { date: fmtDate(esim.ends_at, { day: 'numeric', month: 'short', year: 'numeric' }) })}</span>}
+          {esim.ends_at && esim.checked_at && ' · '}
+          {esim.checked_at && <span>{t('Updated {time}', { time: fmtDate(esim.checked_at, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) })}</span>}
         </div>
       )}
     </RingoCard>
