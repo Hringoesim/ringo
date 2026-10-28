@@ -51,6 +51,8 @@ const STARS = (() => {
 const POWER_BG = `${STARS} center top / 400px 420px repeat-x, linear-gradient(180deg, ${POWER_TOP} 0px, ${POWER_TOP} 110px, #34296F 300px, #4A3488 440px, #FFFFFF 540px, #FFFFFF 100%)`;
 // White headings on the night sky.
 const POWER_SKY_CSS = '.power-sky h1,.power-sky .sky-top h2{color:#fff!important}.power-sky h1+p,.power-sky .sky-top p,.power-sky [role=status]{color:rgba(255,255,255,0.82)!important}';
+// On the Power list every card's title says Power (owner 2026-10-28): "Europe Power".
+const asPower = (d: Destination): Destination => ({ ...d, label: `${d.label} Power` });
 const shortcutIcon: CSSProperties = { width: 36, height: 36, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(26,15,46,0.32)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' };
 
 // What people actually type. "United States" does not contain "usa", so the
@@ -420,7 +422,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
               {!query && <div className="sky-top"><SectionHead title={powerAsk ? 'Regions' : 'Popular plans'} sub="Many countries, one eSIM." /></div>}
               <div style={cardGrid(l)}>
                 {featured.map((d, i) => (
-                  <Card key={d.id} d={d} from={fromOf(d)} onOpen={open} onPeek={setPeek} size="big" eager={i < (l.isWide ? 2 : 1)} photo={powerAsk ? POWER_PHOTOS[d.id] : undefined} />
+                  <Card key={d.id} d={powerAsk ? asPower(d) : d} from={fromOf(d)} onOpen={open} onPeek={setPeek} size="big" eager={i < (l.isWide ? 2 : 1)} photo={powerAsk ? POWER_PHOTOS[d.id] : undefined} />
                 ))}
               </div>
             </section>
@@ -430,7 +432,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
             <section key={region} style={{ marginTop: l.sectionGap }}>
               <SectionHead title={region} />
               <div style={tileGrid(l)}>
-                {list.map((d) => <Card key={d.id} d={d} from={fromOf(d)} onOpen={open} onPeek={setPeek} size="tile" />)}
+                {list.map((d) => <Card key={d.id} d={powerAsk ? asPower(d) : d} from={fromOf(d)} onOpen={open} onPeek={setPeek} size="tile" />)}
               </div>
             </section>
           ))}
