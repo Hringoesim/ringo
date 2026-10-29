@@ -642,5 +642,9 @@ const c: Catalog = {
   "Gold": "Or",
   "Diamond": "Diamant",
   "Aurora": "Aurora",
+  "Expired {date}": "Expiré le {date}",
+  "Plan expires {date}": "Le forfait expire le {date}",
+  "Less than a day left": "Moins d'un jour restant",
+  "{n} days left": { one: "{n} jour restant", other: "{n} jours restants" },
 };
 export default c;

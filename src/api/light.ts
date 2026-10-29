@@ -132,6 +132,8 @@ export interface UsageEsim {
   status: string;
   bought_at: string | null;
   ends_at: string | null;
+  /** the eSIM has been switched on (absent on an older site) */
+  activated?: boolean;
   allowance_mb: number | null;
   remaining_mb: number | null;
   used_mb: number | null;

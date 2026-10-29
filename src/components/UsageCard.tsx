@@ -8,7 +8,7 @@ import { RC, RADIUS, TYPE } from '../theme';
 import { RingoCard } from './Card';
 import { SectionHead } from './ui';
 import type { Usage, UsageEsim } from '../api/light';
-import { t, fmtNumber, fmtDate, placeName } from '../lib/i18n';
+import { t, plural, fmtNumber, fmtDate, placeName } from '../lib/i18n';
 
 function fmtData(mb: number | null | undefined): string {
   if (mb == null || !Number.isFinite(mb)) return '…';
@@ -34,12 +34,29 @@ function lastDays(daily: Usage['daily'], n = 30): { day: string; mb: number }[] 
   return out;
 }
 
+/**
+ * When the plan ends, once it is bought and activated (owner 2026-10-29): an
+ * unlimited plan with a time limit says when it expires, to the minute; a data
+ * plan just counts the days left. Not activated yet: nothing, the clock has
+ * not started. An older site sends no `activated` and keeps the line.
+ */
+function endsLine(esim: UsageEsim, now = Date.now()): string | null {
+  if (!esim.ends_at || esim.activated === false) return null;
+  const end = new Date(esim.ends_at).getTime();
+  if (!Number.isFinite(end)) return null;
+  if (end <= now) return t('Expired {date}', { date: fmtDate(esim.ends_at, { day: 'numeric', month: 'short' }) });
+  if (esim.unlimited) return t('Plan expires {date}', { date: fmtDate(esim.ends_at, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) });
+  const days = Math.floor((end - now) / 86400000);
+  return days < 1 ? t('Less than a day left') : plural(days, '{n} day left', '{n} days left');
+}
+
 function Meter({ esim, liveRemaining }: { esim: UsageEsim; liveRemaining: number | null }) {
   const remaining = liveRemaining ?? esim.remaining_mb;
   const total = esim.allowance_mb;
   const used = total != null && remaining != null ? Math.max(0, total - remaining) : esim.used_mb;
   const pct = total && used != null ? Math.min(100, (used / total) * 100) : 0;
   const low = total != null && remaining != null && remaining <= total * 0.1;
+  const ends = endsLine(esim);
   return (
     <RingoCard>
       <div style={{ ...TYPE.h3, color: RC.ink }}>{esim.flag ? `${esim.flag} ` : ''}{placeName(esim.label, esim.flag)}</div>
@@ -62,11 +79,10 @@ function Meter({ esim, liveRemaining }: { esim: UsageEsim; liveRemaining: number
           <div style={{ width: `${Math.max(pct, used ? 2 : 0)}%`, height: '100%', borderRadius: RADIUS.pill, background: low ? RC.error : RC.grad, transition: 'width .6s ease' }} />
         </div>
       )}
-      {/* The expiry sits with the usage too (owner 2026-10-28), unlimited plans included. */}
-      {(esim.ends_at || esim.checked_at) && (
+      {(ends || esim.checked_at) && (
         <div style={{ marginTop: 10, ...TYPE.caption, color: RC.inkMute }}>
-          {esim.ends_at && <span>{t('Valid until {date}', { date: fmtDate(esim.ends_at, { day: 'numeric', month: 'short', year: 'numeric' }) })}</span>}
-          {esim.ends_at && esim.checked_at && ' · '}
+          {ends && <span style={{ fontWeight: 700, color: RC.ink2 }}>{ends}</span>}
+          {ends && esim.checked_at && ' · '}
           {esim.checked_at && <span>{t('Updated {time}', { time: fmtDate(esim.checked_at, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) })}</span>}
         </div>
       )}

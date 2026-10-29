@@ -642,5 +642,9 @@ const c: Catalog = {
   "Gold": "黄金",
   "Diamond": "钻石",
   "Aurora": "极光",
+  "Expired {date}": "已于{date}过期",
+  "Plan expires {date}": "套餐到期时间：{date}",
+  "Less than a day left": "剩余不到一天",
+  "{n} days left": { other: "剩余{n}天" },
 };
 export default c;

@@ -642,5 +642,9 @@ const c: Catalog = {
   "Gold": "ذهبي",
   "Diamond": "ماسي",
   "Aurora": "Aurora",
+  "Expired {date}": "انتهت في {date}",
+  "Plan expires {date}": "تنتهي الباقة في {date}",
+  "Less than a day left": "تبقى أقل من يوم",
+  "{n} days left": { zero: "تبقى {n} يوم", one: "تبقى يوم واحد", two: "تبقى يومان", few: "تبقى {n} أيام", many: "تبقى {n} يومًا", other: "تبقى {n} يوم" },
 };
 export default c;

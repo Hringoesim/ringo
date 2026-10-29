@@ -642,5 +642,9 @@ const c: Catalog = {
   "Gold": "골드",
   "Diamond": "다이아몬드",
   "Aurora": "오로라",
+  "Expired {date}": "{date}에 만료됨",
+  "Plan expires {date}": "요금제 만료: {date}",
+  "Less than a day left": "하루 미만 남음",
+  "{n} days left": { other: "{n}일 남음" },
 };
 export default c;

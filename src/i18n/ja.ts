@@ -642,5 +642,9 @@ const c: Catalog = {
   "Gold": "ゴールド",
   "Diamond": "ダイヤモンド",
   "Aurora": "オーロラ",
+  "Expired {date}": "{date}に期限切れ",
+  "Plan expires {date}": "プランの有効期限: {date}",
+  "Less than a day left": "残り1日未満",
+  "{n} days left": { other: "残り{n}日" },
 };
 export default c;

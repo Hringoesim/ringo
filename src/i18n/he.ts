@@ -642,5 +642,9 @@ const c: Catalog = {
   "Gold": "זהב",
   "Diamond": "יהלום",
   "Aurora": "Aurora",
+  "Expired {date}": "פג תוקף ב-{date}",
+  "Plan expires {date}": "החבילה בתוקף עד {date}",
+  "Less than a day left": "נותר פחות מיום",
+  "{n} days left": { one: "נותר יום אחד", two: "נותרו יומיים", other: "נותרו {n} ימים" },
 };
 export default c;
