@@ -646,5 +646,8 @@ const c: Catalog = {
   "Plan expires {date}": "요금제 만료: {date}",
   "Less than a day left": "하루 미만 남음",
   "{n} days left": { other: "{n}일 남음" },
+  "Enjoying Ringo?": "Ringo가 마음에 드시나요?",
+  "Rate Ringo": "Ringo 평가하기",
+  "A rating on the App Store helps other travellers find us.": "App Store 평가는 다른 여행자가 Ringo를 찾는 데 도움이 돼요.",
 };
 export default c;

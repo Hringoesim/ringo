@@ -9,7 +9,8 @@ import { RC, TYPE, cardSurface } from '../theme';
 import { RingoButton } from '../components/Button';
 import { ScreenTitle, SectionHead, PhotoCard, ErrorBox } from '../components/ui';
 import { SITE, light } from '../api/light';
-import { openInSheet } from '../lib/browser';
+import { openInSheet, openExternal } from '../lib/browser';
+import { WRITE_REVIEW_URL } from '../lib/review';
 import { useAccount, account } from '../store/account';
 import { manageSubscriptions, iapAvailable, useStoreStatus } from '../lib/iap';
 import { PICTURE_CREDITS, BUNDLED_PICTURE_CREDITS, type PictureCredit } from '../data/pictureCredits';
@@ -252,6 +253,13 @@ export function HelpScreen({ onLogin, onProfile, onWaitlist }: { onLogin: () => 
             {/* The full Ringo service (not launched), apart from Ringo Light. */}
             <Group title={t('Coming next from Ringo')}>
               <HelpRow label={t('Your number, every country')} sub={t('Join the free waitlist and help shape it.')} onClick={() => { hapticSelection(); onWaitlist(); }} last />
+            </Group>
+
+            {/* Owner 2026-10-31: more downloads. The App Store shows no stars
+                under four ratings, so a written review is one tap away here;
+                the one-time native ask lives on My eSIM (src/lib/review.ts). */}
+            <Group title={t('Enjoying Ringo?')}>
+              <HelpRow label={t('Rate Ringo')} sub={t('A rating on the App Store helps other travellers find us.')} onClick={() => { hapticSelection(); void openExternal(WRITE_REVIEW_URL); }} last />
             </Group>
 
             <Group title={t('Plans and legal')}>

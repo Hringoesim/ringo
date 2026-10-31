@@ -646,5 +646,8 @@ const c: Catalog = {
   "Plan expires {date}": "套餐到期时间：{date}",
   "Less than a day left": "剩余不到一天",
   "{n} days left": { other: "剩余{n}天" },
+  "Enjoying Ringo?": "喜欢 Ringo 吗？",
+  "Rate Ringo": "给 Ringo 评分",
+  "A rating on the App Store helps other travellers find us.": "你在 App Store 的评分能帮助更多旅行者找到我们。",
 };
 export default c;

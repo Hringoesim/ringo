@@ -4,10 +4,11 @@ import Capacitor
 import StoreKit
 
 // Embedded App Store rating plugin (Capacitor 6 CAPBridgedPlugin, registered
-// in MainViewController). JS calls request() once per phone, only after a
-// delivered eSIM shows data in use (src/lib/review.ts). Apple decides whether
-// the dialog actually appears (at most three times a year), so this never
-// reports back whether the person rated.
+// in MainViewController). JS calls request() from My eSIM only, once the
+// eSIM shows as installed and has carried data, at most once every 120 days
+// (src/lib/review.ts). Apple decides whether the dialog actually appears (at
+// most three times a year), so this never reports back whether the person
+// rated.
 @objc(ReviewPlugin)
 public class ReviewPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "ReviewPlugin"

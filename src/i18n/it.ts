@@ -646,5 +646,8 @@ const c: Catalog = {
   "Plan expires {date}": "Il piano scade il {date}",
   "Less than a day left": "Manca meno di un giorno",
   "{n} days left": { one: "Manca {n} giorno", other: "Mancano {n} giorni" },
+  "Enjoying Ringo?": "Ti piace Ringo?",
+  "Rate Ringo": "Valuta Ringo",
+  "A rating on the App Store helps other travellers find us.": "Una valutazione sull’App Store aiuta altri viaggiatori a trovarci.",
 };
 export default c;

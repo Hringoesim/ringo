@@ -18,7 +18,7 @@ import { light, money, SITE, type Profile, type SubscriptionRead, type TopUp, ty
 import { UsageSection } from '../components/UsageCard';
 import { useAccount, account, pendingPurchase } from '../store/account';
 import { openInSheet } from '../lib/browser';
-import { askForReview, shouldAskForReview } from '../lib/review';
+import { askForReview, shouldAskForReview, usedMbFor } from '../lib/review';
 import { iapAvailable, loadProducts, purchase, finish, restoreTransactions, manageSubscriptions, type IapProduct, type SignedOffer } from '../lib/iap';
 import { CARD_PAYMENTS, payByCard } from '../lib/cardPay';
 import { haptic, hapticNotify } from '../lib/haptics';
@@ -76,13 +76,6 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
   const clearNoteIn = (ms: number) => { if (noteTimer.current) window.clearTimeout(noteTimer.current); noteTimer.current = window.setTimeout(() => setNote(null), ms); };
   useEffect(() => () => { if (noteTimer.current) window.clearTimeout(noteTimer.current); }, []);
   const [usageAll, setUsageAll] = useState<Usage | null>(null);
-  // The rating ask, once per phone, when a delivered eSIM shows data in use;
-  // a short pause so it never covers the screen while it is still drawing.
-  useEffect(() => {
-    if (!shouldAskForReview(usageAll)) return;
-    const id = window.setTimeout(() => { void askForReview(); }, 2500);
-    return () => window.clearTimeout(id);
-  }, [usageAll]);
   const [pioneer, setPioneer] = useState<Pioneer | null>(null);
   // Ringo Rewards: Global's cheaper month, offered once the site has signed it.
   const [globalOffer, setGlobalOffer] = useState<{ pct: number; productId: string; offer: SignedOffer } | null>(null);
@@ -146,8 +139,21 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
   useEffect(() => { if (tick !== openedAt.current) void load(true, true); }, [tick, load]);
   // The tab stays mounted (App.tsx): each time it comes back on show, the
   // eSIM is read again quietly, over what is already on screen.
-  const { shown } = useScreenActive();
+  const { shown, active: onScreen } = useScreenActive();
   useEffect(() => { if (shown) void load(true); }, [shown]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The App Store rating ask (src/lib/review.ts): only while My eSIM is the
+  // tab on show, once the plan card says "Installed on your iPhone" and the
+  // usage history shows that eSIM has carried data, at most once every 120
+  // days. A short pause so it never covers the screen while it is drawing.
+  const liveUsage = data?.usage && !('unavailable' in data.usage) ? data.usage : null;
+  const installed = Boolean(data?.subscription?.esim_attached && liveUsage?.installed);
+  const usedMb = usedMbFor(usageAll, data?.destination?.id || null);
+  useEffect(() => {
+    if (!onScreen || !shouldAskForReview(installed, usedMb)) return;
+    const id = window.setTimeout(() => { void askForReview(); }, 2500);
+    return () => window.clearTimeout(id);
+  }, [onScreen, installed, usedMb]);
 
   // While the eSIM is still being issued, ask again every few seconds (the
   // subscription only).
