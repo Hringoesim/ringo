@@ -1,71 +1,68 @@
-# ✅ Turn on "Continue with Google" — your exact checklist
+# Continue with Google in the iOS app: what the owner does, what the code does
 
-Everything below is filled in with **your real project** and verified against the
-current (2026) Google Cloud Console UI. Just copy the **bold/code** bits and
-paste where it says. ~5 minutes of clicking, then Claude automates the rest.
+The app and ringoesim.com are ready (2026-11-02). Continue with Google is
+hidden until Google knows the app, and only the owner can tell Google that.
+About five minutes of clicking, no code and no new App Store submission by
+anyone but the owner.
 
-Your values (you'll need these below):
+## What exists
 
-- **Supabase callback URL (the only redirect URI Google needs):**
-  `https://swfojlhulsgivzrxqtkv.supabase.co/auth/v1/callback`
-- **Your live app:** `https://ringo-pi.vercel.app`
+- App: `src/lib/auth.ts` and `ios/App/App/GoogleSignInPlugin.swift`. The
+  button opens Google's own sign-in page in the system sheet
+  (ASWebAuthenticationSession), with PKCE, and gets an ID token back. No
+  Google SDK, no package, no `GoogleService-Info.plist`. The button and its
+  copy ("Continue with Google") are translated in all 13 extra languages.
+- Site: `POST /api/app-login { provider: 'google', id_token, nonce }` checks
+  the token's signature against Google's published keys, the issuer, the
+  audience (our client id), the expiry, the nonce and `email_verified`, and
+  opens the account with that email. Same account as the email code and
+  Sign in with Apple: one row per address, never a duplicate.
+- Switch: the site's catalogue sends `app_flags.google_signin` and
+  `app_flags.google_ios_client_id` to the app at launch. Both come from one
+  Vercel setting, `GOOGLE_IOS_CLIENT_ID`. No value, no button.
 
----
+## Part A, owner: create the iOS OAuth client (Google Cloud Console)
 
-## Part A — Create a Google sign-in client (only you can do this)
+1. https://console.cloud.google.com, signed in with the Google account that
+   owns the Ringo project (the one whose Web client already serves the
+   Ringo Supabase project: its id starts with `93624347681-`). Pick that
+   project in the top-left dropdown.
+2. Search **Google Auth Platform** in the top bar and open it.
+3. Left menu **Clients**, then **+ Create client**:
+   - Application type: **iOS**
+   - Name: **Ringo iOS**
+   - Bundle ID: `com.ringoesim.app`
+   - App Store ID: `6787133742`
+   - Team ID: `R226ARCXF4`
+   - **Create**. An iOS client has no secret; nothing to keep private.
+4. Copy the **Client ID** (ends in `.apps.googleusercontent.com`). The
+   reversed id Google shows (`com.googleusercontent.apps.…`) is derived by
+   the app itself; nothing to paste for it.
+5. Left menu **Audience**. If the publishing status is **Testing**, press
+   **Publish app**: in Testing only listed test users can sign in. The
+   scopes used (openid, email, profile) need no verification.
 
-1. Go to **https://console.cloud.google.com** and sign in
-   (the Google account that owns the Ringo project).
-2. Top-left **project dropdown** → **New Project** → Name: **Ringo** → **Create**.
-   Wait a few seconds, then make sure **Ringo** is selected in that dropdown.
-3. In the top search bar type **Google Auth Platform** and open it
-   (this replaced the old "OAuth consent screen"). A **Get started** wizard appears:
-   - **App name:** `Ringo` · **User support email:** your email → Next
-   - **Audience:** **External** → Next
-   - **Contact information:** your email → Next → agree → **Create**.
-4. Left menu: **Clients** → **+ Create client**:
-   - Application type: **Web application** · Name: **Ringo Web**
-   - **Authorized redirect URIs** → **+ Add URI** → paste exactly:
-     `https://swfojlhulsgivzrxqtkv.supabase.co/auth/v1/callback`
-   - Click **Create**.
-5. ⚠️ **The Client secret is shown only this once.** Copy **both** the
-   **Client ID** (ends in `.apps.googleusercontent.com`) and the
-   **Client secret** (starts with `GOCSPX-`) right now.
-6. ⚠️ New apps start in **Testing** mode — only listed test users can sign in.
-   Left menu: **Audience** → **Test users** → **+ Add users** → add
-   the owner Google account → Save.
-   (Later, to open it to everyone: **Audience** → **Publish app**.)
+## Part B, one Vercel setting (owner, or paste the id in chat)
 
-## Part B — Hand off to Claude (automated)
+```
+vercel env add GOOGLE_IOS_CLIENT_ID production
+```
 
-7. Get a Supabase access token (one click):
-   **https://supabase.com/dashboard/account/tokens** → **Generate new token** →
-   name it `claude` → copy the `sbp_…` value.
-8. Paste **three things** into the Claude chat: the **Client ID**, the
-   **Client secret**, and the **sbp\_ token**. Claude then automatically:
-   - enables the Google provider on Supabase project **APP3** (Management API),
-   - sets the Site URL + redirect allow-list (`https://ringo-pi.vercel.app/` and
-     `http://localhost:5173/` for local dev),
-   - flips the app's `VITE_OAUTH_PROVIDERS=google` flag locally and on Vercel,
-   - redeploys and live-tests the button end to end.
+Paste the Client ID. The next deploy of main sends the flag; the app shows
+the button the next time it launches and reads the catalogue. The current
+App Store build (1.07/1.08) already reads the flag; the direct-to-Google
+route in it still wants the id baked in, so the first build that includes
+`src/lib/auth.ts` from this branch is the one where the Vercel setting
+alone turns it on.
 
-<details>
-<summary>Prefer to click it yourself instead? (manual Part B)</summary>
+## Part C, test on a phone
 
-- supabase.com/dashboard → project **APP3** → **Authentication** →
-  **Sign In / Providers** → **Google** → toggle **ON** → paste Client ID +
-  Client Secret → **Save**.
-- **Authentication** → **URL Configuration** → Site URL:
-  `https://ringo-pi.vercel.app/` · Redirect URLs: add
-  `https://ringo-pi.vercel.app/` and `http://localhost:5173/`.
-- Then tell Claude "Google is on" so the app flag gets flipped and tested.
+Open the app, Continue with Google, pick an account, land signed in. The
+site logs `[app-login] provider token rejected google …` with the reason
+when a token is refused (wrong client id is `audience`).
 
-</details>
+## Local test before the client exists
 
-## Part C — Test
-
-Open **https://ringo-pi.vercel.app** → **Create account** → **Continue with
-Google** → real Google account chooser → back into Ringo, signed in. 🎉
-
-If anything looks different from these steps, paste a screenshot or the error
-text into the chat.
+`VITE_GOOGLE_IOS_CLIENT_ID=<id>` in `.env.local` (not committed) shows the
+button in a local build; with a placeholder id Google refuses the sheet,
+which is expected.
