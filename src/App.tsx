@@ -8,8 +8,10 @@
 // for a phone that did not do the buying. Everything the app knows about its
 // owner lives in src/store/account.ts, on this phone only.
 //
-// Notifications are asked in one place only: the PushSheet below, once per
-// phone, after the first purchase is delivered.
+// Notifications are asked on the onboarding step (NotifyScreen): after signing
+// up and picking a traveller, before the tabs; once at launch for a member
+// from before the step. The PushSheet below (after the first delivered
+// purchase) stays as the ask for a phone that never saw the step.
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { RingoTabBar, type TabId } from './components/TabBar';
 import { RC } from './theme';
@@ -30,13 +32,14 @@ import { EsimScreen } from './screens/EsimScreen';
 import { InstallScreen } from './screens/InstallScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { TravellerScreen } from './screens/TravellerScreen';
+import { NotifyScreen } from './screens/NotifyScreen';
 import { QuizScreen } from './screens/QuizScreen';
 import { avatarTraveller } from './store/avatar';
 import { ReportScreen } from './screens/ReportScreen';
 import { HelpScreen, LANG_RETURN_KEY } from './screens/HelpScreen';
 import { RewardsScreen } from './screens/RewardsScreen';
 import { WaitlistScreen } from './screens/WaitlistScreen';
-import { startPush, shouldPrompt } from './lib/push';
+import { startPush, shouldPrompt, onboardDue, usePush } from './lib/push';
 import { PushSheet } from './components/PushControls';
 import { bundledPictureFor, pictureFor } from './data/destinations';
 
@@ -56,6 +59,8 @@ interface Frame {
     label?: string;
     /** the login screen opens straight on the email step */
     email?: boolean;
+    /** the tab the notifications step opens when done */
+    then?: TabId;
   };
 }
 
@@ -185,17 +190,33 @@ export function App() {
     const frame = f;
     setStack((s) => (s.length === 1 && s[0].id === frame.id ? s : [frame]));
   };
-  // Signed in or signed up: straight to My eSIM. No welcome screen and no
-  // notification ask here (owner 2026-10-24: the ask came twice and sat with
-  // Rewards); the one ask follows the first delivered purchase.
-  // A first sign-in picks a traveller first (owner 2026-10-26: make
-  // onboarding fun); it is asked once per member on this phone.
+  // The notifications step (owner 2026-11-02), once per phone, then the tab.
+  const afterOnboarding = (tab: TabId) => {
+    if (onboardDue()) { navDirRef.current = 'push'; setStack([mkFrame('notify', { then: tab })]); return; }
+    goTab(tab);
+  };
+  // Signed in or signed up: traveller first for a first sign-in (owner
+  // 2026-10-26: make onboarding fun; once per member on this phone), then the
+  // notifications step (once per phone), then My eSIM. No welcome screen.
   const signedIn = () => {
     forgetTabs();
     const a = account.get();
     if (a && !avatarTraveller.picked(a.userId)) { navDirRef.current = 'push'; setStack([mkFrame('traveller', {})]); return; }
-    goTab('esim');
+    afterOnboarding('esim');
   };
+  // A member from before the step (or a sign-in that came before the native
+  // side had said where permission stands) sees it once, over the tab they
+  // are on, as soon as it is due: iOS not asked yet, or the offers switch
+  // never set. Never while a screen is open on top of a tab, never while the
+  // older sheet shows, never for a screenshot build.
+  const pushState = usePush();
+  useEffect(() => {
+    if (import.meta.env.VITE_SHOT) return;
+    if (!pushState.known || pushAsk || !account.get()) return;
+    if (stack.length !== 1 || !TABBED.has(stack[0].name) || !onboardDue()) return;
+    navDirRef.current = 'push';
+    setStack([mkFrame('notify', { then: stack[0].name as TabId })]);
+  }, [pushState.known, stack, pushAsk]);
 
   // One line in the device log at launch saying whether the App Store
   // returns our products: the Paid Apps agreement and the product state are
@@ -337,7 +358,10 @@ export function App() {
         body = <QuizScreen onBack={pop} onBrowse={() => goTab('store')} onOpen={(id) => push('destination', { destination: id })} />;
         break;
       case 'traveller':
-        body = <TravellerScreen onDone={() => goTab('esim')} />;
+        body = <TravellerScreen onDone={() => afterOnboarding('esim')} />;
+        break;
+      case 'notify':
+        body = <NotifyScreen onDone={() => goTab(current.params.then || 'esim')} />;
         break;
       case 'login':
         body = <LoginScreen onBack={pop} onDone={signedIn} startWithEmail={Boolean(current.params.email)} />;

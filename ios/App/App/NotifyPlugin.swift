@@ -4,9 +4,10 @@ import Capacitor
 import UserNotifications
 
 // Embedded native push plugin (Capacitor 6 CAPBridgedPlugin, registered in
-// MainViewController). JS asks for permission only after its one pre-prompt
-// (PushSheet, shown once per phone after the first delivered purchase; see
-// src/lib/push.ts). Nothing native ever calls requestAuthorization on launch:
+// MainViewController). JS asks for permission only from its onboarding step
+// (NotifyScreen, once per phone, with the offers switch; see src/lib/push.ts)
+// or, for a phone that never saw it, the PushSheet after the first delivered
+// purchase. Nothing native ever calls requestAuthorization on launch:
 // load() only re-registers for a token when the person already said yes. AppDelegate hands the APNs
 // device token here; JS reads it with status() or the 'token' event and
 // registers it with ringoesim.com (/api/app-push-register), which is the

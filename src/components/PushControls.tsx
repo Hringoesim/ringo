@@ -1,6 +1,7 @@
-// PushControls: the ONE notification ask (PushSheet, shown by App.tsx once per
-// device after the first purchase is delivered) and the two switches under
-// Help (service alerts, offers). See src/lib/push.ts.
+// PushControls: the notification pre-prompt (PushSheet, shown by App.tsx once
+// per device after the first purchase is delivered, for a phone that never saw
+// the onboarding step in screens/NotifyScreen.tsx), the Toggle both share and
+// the two switches under Help (service alerts, offers). See src/lib/push.ts.
 //
 // PushPrompt is kept as a no-op export so an older import still compiles; it
 // renders nothing. Nothing outside App.tsx raises the pre-prompt.
@@ -114,7 +115,7 @@ export function PushSheet({ photo, place, onClose }: { photo?: string | null; pl
   );
 }
 
-function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
+export function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
     <button
       role="switch"
@@ -146,8 +147,10 @@ function SwitchRow({ label, sub, on, onChange, last }: { label: string; sub: str
 }
 
 /**
- * Help > Notifications: service alerts on by default once allowed, offers off
- * until turned on. Once iOS has been refused, the switches open iOS Settings.
+ * Help > Notifications: service alerts on by default once allowed, offers as
+ * the member left the switch on the onboarding step (off for a member from
+ * before it). Once iOS has been refused, the switches open iOS Settings. Each
+ * flip is sent to the site at once, and the site's answer is what shows.
  */
 export function PushSwitches() {
   const push = usePush();

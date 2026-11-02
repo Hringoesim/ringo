@@ -3,15 +3,21 @@
 // member's two switches (POST /api/app-push-register), and opens the screen a
 // tapped push names.
 //
-// - Permission is asked in ONE place: the pre-prompt sheet App.tsx shows once
-//   per device, after the first purchase is delivered (PushSheet in
-//   components/PushControls.tsx), then the iOS dialog once. 'Not now' and an
-//   iOS 'Don't Allow' both close the ask for good on this phone; after that
-//   only the switches under Help can turn notifications on (they open iOS
-//   Settings once iOS has been refused). Never at launch, never on Rewards.
+// - Permission is asked in ONE place: the onboarding step (NotifyScreen,
+//   owner 2026-11-02: only 4 of 16 phones had offers on), right after signing
+//   up and picking a traveller, before the tabs. It explains why, carries the
+//   offers switch (on by default, visible and changeable: App Store guideline
+//   4.5.4) and raises the iOS dialog once from "Turn on notifications". A
+//   member from before the step sees it once at launch, while iOS has not
+//   been asked yet or the offers switch was never set; a phone where iOS has
+//   been refused is never nagged. 'Not now' and an iOS 'Don't Allow' both
+//   close the ask for good on this phone; after that only the switches under
+//   Help can turn notifications on (they open iOS Settings once iOS has been
+//   refused). The older PushSheet (after the first delivered purchase) stays
+//   as the ask for a phone that somehow never saw the step.
 // - Service alerts (data running low, eSIM ready) are on once notifications
-//   are allowed. Offers (Rewards, promos) stay OFF until the member turns
-//   them on, and turn off as easily (App Store guideline 4.5.4).
+//   are allowed. Offers (Rewards, promos) are what the member left the switch
+//   on: on from the step unless turned off, off as easily under Help.
 import { Capacitor, registerPlugin, type PluginListenerHandle } from '@capacitor/core';
 import { useSyncExternalStore } from 'react';
 import { light } from '../api/light';
@@ -44,6 +50,8 @@ export interface PushState {
 const PREFS_KEY = 'ringo_push_prefs_v1';
 const PROMPTED_KEY = 'ringo_push_prompted_v1';
 const SENT_KEY = 'ringo_push_sent_v1';
+// The onboarding step has been shown on this phone (any answer, or closed).
+const ONBOARD_KEY = 'ringo_push_onboard_v1';
 
 function readPrefs(): PushPrefs {
   try {
@@ -74,8 +82,16 @@ export async function syncPush(): Promise<void> {
   const sig = JSON.stringify({ u: acct.userId, ...body });
   try { if (localStorage.getItem(SENT_KEY) === sig) return; } catch { /* ignore */ }
   try {
-    await light.pushRegister(acct.userId, acct.t, body);
+    const r = await light.pushRegister(acct.userId, acct.t, body);
     try { localStorage.setItem(SENT_KEY, sig); } catch { /* ignore */ }
+    // The switches under Help show what the site holds: when it answers with
+    // something else than what was sent (a row another phone or the site
+    // changed), the phone follows the site.
+    if (allowed && r && typeof r.service_ok === 'boolean' && typeof r.offers_ok === 'boolean' && (r.service_ok !== prefs.service || r.offers_ok !== prefs.offers)) {
+      const next = { service: r.service_ok, offers: r.offers_ok };
+      try { localStorage.setItem(PREFS_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      setState({ prefs: next });
+    }
   } catch (e) {
     log.error('push', e, { step: 'register' });
   }
@@ -127,6 +143,42 @@ export function shouldPrompt(): boolean {
 export function dismissPrompt(): void {
   try { localStorage.setItem(PROMPTED_KEY, '1'); } catch { /* ignore */ }
   listeners.forEach((l) => l());
+}
+
+/**
+ * The onboarding step (NotifyScreen) is due once per phone: notifications are
+ * available, the native side has said where permission stands, the step has
+ * not been shown, and either iOS has not been asked yet or the offers switch
+ * was never set by the member (no saved switches). A phone where iOS has been
+ * refused is never nagged.
+ */
+export function onboardDue(): boolean {
+  if (!pushAvailable() || !state.known) return false;
+  try {
+    if (localStorage.getItem(ONBOARD_KEY) === '1') return false;
+    if (state.permission === 'prompt') return true;
+    return state.permission === 'granted' && localStorage.getItem(PREFS_KEY) === null;
+  } catch { return false; }
+}
+/** The step has been shown: never again on this phone. The older sheet goes with it. */
+export function markOnboarded(): void {
+  try { localStorage.setItem(ONBOARD_KEY, '1'); } catch { /* ignore */ }
+  dismissPrompt();
+}
+/**
+ * "Turn on notifications" on the step: save the switches as the member left
+ * them (service alerts on, offers as chosen), then the iOS dialog once if iOS
+ * has not been asked yet. A yes registers this phone's token with the site
+ * right away, offers flag included. Returns whether notifications are allowed.
+ */
+export async function completeOnboard(offers: boolean): Promise<boolean> {
+  markOnboarded();
+  const prefs = { service: true, offers };
+  try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch { /* ignore */ }
+  setState({ prefs });
+  if (state.permission === 'granted') { void syncPush(); return true; }
+  if (state.permission === 'denied') return false;
+  return askPermission();
 }
 
 /** Raise the iOS dialog (after the pre-prompt). Returns whether allowed. */
