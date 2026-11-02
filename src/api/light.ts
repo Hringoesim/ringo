@@ -83,7 +83,7 @@ export interface Catalog {
   /** Global's meter (the website tops it up at 90%); its presence makes the plan read as unlimited. */
   meter_topups?: { at_percent: number; data_gb: number; annual: number; monthly: number; currency: Currency } | null;
   /** switches for the app, see store/flags.ts */
-  app_flags?: { google_signin?: boolean };
+  app_flags?: { google_signin?: boolean; google_ios_client_id?: string };
   /** every destination the site sells */
   destinations: { id: string; label: string; kind: string; countries?: number; iso?: string | null; region?: string | null }[];
 }

@@ -20,7 +20,14 @@ interface GoogleSignInPlugin {
 const Apple = registerPlugin<SignInWithApplePlugin>('SignInWithApple');
 const Google = registerPlugin<GoogleSignInPlugin>('GoogleSignIn');
 
+// The Google OAuth client (iOS type, bundle id com.ringoesim.app) the sheet
+// opens for and ringoesim.com verifies the token against. The site sends it
+// with the catalogue (app_flags.google_ios_client_id, from GOOGLE_IOS_CLIENT_ID
+// on Vercel), so the owner turns Google sign-in on in one place and no build
+// bakes the id in; a build-time VITE_GOOGLE_IOS_CLIENT_ID (.env.local, not
+// committed) still wins, for a phone or simulator test before the site has it.
 export const GOOGLE_IOS_CLIENT_ID = (import.meta.env.VITE_GOOGLE_IOS_CLIENT_ID as string | undefined) || '';
+export const googleIosClientId = (): string => GOOGLE_IOS_CLIENT_ID || flags.get().google_ios_client_id || '';
 // Ringo's Supabase project "APP3" already has Google (and Apple) sign-in
 // configured, so Google needs no client of its own here: the system sheet
 // opens Supabase's authorize page, Supabase talks to Google, and the session
@@ -34,7 +41,7 @@ export const SUPABASE_AUTH_URL = 'https://swfojlhulsgivzrxqtkv.supabase.co/auth/
 export const AUTH_LOOPBACK_PORT = 3000;
 export const AUTH_RETURN = `http://localhost:${AUTH_LOOPBACK_PORT}`;
 export const appleSignInAvailable = (): boolean => Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
-export const googleSignInAvailable = (): boolean => appleSignInAvailable() && (Boolean(GOOGLE_IOS_CLIENT_ID) || flags.get().google_signin === true);
+export const googleSignInAvailable = (): boolean => appleSignInAvailable() && (Boolean(googleIosClientId()) || flags.get().google_signin === true);
 
 function nonce(): string {
   const b = new Uint8Array(24); crypto.getRandomValues(b);
@@ -68,11 +75,12 @@ export async function signInWithApple(): Promise<SignInResult> {
 
 /** Google's sheet (system browser), then the account: through Supabase, or straight to Google when an iOS client is configured. */
 export async function signInWithGoogle(): Promise<SignInResult> {
-  if (!GOOGLE_IOS_CLIENT_ID) return signInWithGoogleViaSupabase();
+  const clientId = googleIosClientId();
+  if (!clientId) return signInWithGoogleViaSupabase();
   const raw = nonce();
   let token: string;
   try {
-    const r = await Google.signIn({ clientId: GOOGLE_IOS_CLIENT_ID, nonce: raw });
+    const r = await Google.signIn({ clientId, nonce: raw });
     if (r.cancelled || !r.idToken) return { ok: false, cancelled: true };
     token = r.idToken;
   } catch (e) {
