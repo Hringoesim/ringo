@@ -314,6 +314,8 @@ const c: Catalog = {
   "Months": "Meses",
   "{used} of {total}": "{used} de {total}",
   "Status": "Status",
+  "Expires": "Expira",
+  "Expired": "Expirado",
   "Installed on your iPhone": "Instalado no seu iPhone",
   "Install on this iPhone": "Instalar neste iPhone",
   "Install from your email": "Instale pelo seu e-mail",

@@ -190,6 +190,12 @@ export function App() {
     const frame = f;
     setStack((s) => (s.length === 1 && s[0].id === frame.id ? s : [frame]));
   };
+  // The eSIMs tab is home (owner 2026-11-06: "when you press the home button
+  // I want it to bring you back home"): pressed, it opens the store afresh,
+  // at the top, with no search and no Power list, wherever the store was
+  // left. Coming back from a place (pop) still finds the store as it was.
+  const goHome = () => { forgetTabs('store'); goTab('store'); };
+  const tabTap = (name: TabId) => (name === 'store' ? goHome() : goTab(name));
   // The notifications step (owner 2026-11-02), once per phone, then the tab.
   const afterOnboarding = (tab: TabId) => {
     if (onboardDue()) { navDirRef.current = 'push'; setStack([mkFrame('notify', { then: tab })]); return; }
@@ -355,7 +361,7 @@ export function App() {
         body = <InstallScreen install={current.params.install!} label={current.params.label || 'Ringo'} onBack={pop} />;
         break;
       case 'quiz':
-        body = <QuizScreen onBack={pop} onBrowse={() => goTab('store')} onOpen={(id) => push('destination', { destination: id })} />;
+        body = <QuizScreen onBack={pop} onBrowse={goHome} onOpen={(id) => push('destination', { destination: id })} />;
         break;
       case 'traveller':
         body = <TravellerScreen onDone={() => afterOnboarding('esim')} />;
@@ -410,7 +416,7 @@ export function App() {
       {/* The tab screens scroll under the clock; without this strip a heading
           scrolled up runs straight through the time and battery. */}
       {showTabs && <div aria-hidden style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 'env(safe-area-inset-top, 0px)', background: `var(--status-strip, ${RC.bg})`, zIndex: 5, pointerEvents: 'none' }} />}
-      {showTabs && <RingoTabBar active={current.name} onChange={goTab} />}
+      {showTabs && <RingoTabBar active={current.name} onChange={tabTap} />}
       {pushAsk && showTabs && (
         <PushSheet
           place={pushAsk.place}

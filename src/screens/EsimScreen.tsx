@@ -357,6 +357,10 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
   const ended = sub?.current_cycle_ends_at ? Date.parse(sub.current_cycle_ends_at) < Date.now() : false;
   const place = data?.destination?.label ? placeName(data.destination.label, dest?.flag) : sub?.plan_label || tr('Your eSIM');
   const unlimited = Boolean(sub && (sub.plan.startsWith('ul_') || usage?.unlimited));
+  // An unlimited plan has no data figure to watch, so its figures say when
+  // it expires (owner 2026-11-06: "with unlimited plans have the expire
+  // there"): the plan's cycle end, else the carrier's expiry.
+  const expiresAt = unlimited ? (sub?.current_cycle_ends_at || usage?.expires_at || null) : null;
 
   const hasUsage = Boolean(sub?.esim_attached && usageAll && (usageAll.esims.length || usageAll.daily.length));
   // Without a second column, a wide screen gets one readable column, not a stretched phone row.
@@ -384,8 +388,9 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
         )}
 
         {sub.esim_attached && (
-          <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: `repeat(${sub.cycles_total > 1 ? 3 : 2}, minmax(0, 1fr))`, gap: 8 }}>
+          <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: `repeat(${sub.cycles_total > 1 || expiresAt ? 3 : 2}, minmax(0, 1fr))`, gap: 8 }}>
             <Stat label={tr('Data left')} value={unlimited ? tr('Unlimited') : usage && usage.data_remaining_mb != null ? fmtGb(usage.data_remaining_mb) : '…'} />
+            {expiresAt && <Stat label={Date.parse(expiresAt) < Date.now() ? tr('Expired') : tr('Expires')} value={fmtWhen(expiresAt, { day: 'numeric', month: 'short' })} />}
             {sub.cycles_total > 1 && <Stat label={tr('Months')} value={tr('{used} of {total}', { used: sub.cycles_used, total: sub.cycles_total })} />}
             <Stat label={tr('Status')} value={statusWord(usage?.package_status, sub.status)} />
           </div>

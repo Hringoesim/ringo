@@ -41,7 +41,9 @@ function lastDays(daily: Usage['daily'], n = 30): { day: string; mb: number }[] 
  * not started. An older site sends no `activated` and keeps the line.
  */
 function endsLine(esim: UsageEsim, now = Date.now()): string | null {
-  if (!esim.ends_at || esim.activated === false) return null;
+  // An unlimited plan always says when it expires (owner 2026-11-06); a data
+  // plan waits for its activation, when its clock starts.
+  if (!esim.ends_at || (esim.activated === false && !esim.unlimited)) return null;
   const end = new Date(esim.ends_at).getTime();
   if (!Number.isFinite(end)) return null;
   if (end <= now) return t('Expired {date}', { date: fmtDate(esim.ends_at, { day: 'numeric', month: 'short' }) });

@@ -355,7 +355,10 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
       <div ref={scroller} className="no-bar" style={{ flex: 1, overflowY: 'auto', ...(powerAsk ? { background: POWER_BG, backgroundAttachment: 'local' } : {}), paddingTop: 'max(54px, calc(env(safe-area-inset-top, 0px) + 12px))', paddingBottom: `calc(${TABBAR_CLEARANCE} + 24px)` }}>
         <div style={contentColumn(l)}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: TAP }}>
-            <img src={LOGO_SRC} alt="Ringo" style={{ height: l.isWide ? 34 : 30, width: 'auto', display: 'block' }} />
+            {/* The logo brings the store home too: top of the list, no search, no Power list (owner 2026-11-06). */}
+            <button type="button" aria-label="Ringo" onClick={() => showPower(false)} style={{ border: 'none', background: 'none', padding: 0, margin: 0, cursor: 'pointer', display: 'block' }}>
+              <img src={LOGO_SRC} alt="Ringo" style={{ height: l.isWide ? 34 : 30, width: 'auto', display: 'block' }} />
+            </button>
             <button type="button" className="press" onClick={loggedIn ? onMyEsim : onLogin} style={accountBtn}>
               {loggedIn ? t('My eSIM') : t('Sign in')}
             </button>

@@ -314,6 +314,8 @@ const c: Catalog = {
   "Months": "الأشهر",
   "{used} of {total}": "{used} من {total}",
   "Status": "الحالة",
+  "Expires": "ينتهي",
+  "Expired": "منتهٍ",
   "Installed on your iPhone": "مثبتة على iPhone",
   "Install on this iPhone": "التثبيت على هذا الـ iPhone",
   "Install from your email": "ثبّتها من بريدك الإلكتروني",

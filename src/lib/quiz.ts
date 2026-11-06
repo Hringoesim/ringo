@@ -75,23 +75,33 @@ export function recommend({ days, uses, work }: { days: number; uses: Use[]; wor
     : (days === 1 ? t('Covers a day of light use, with some to spare.') : days > 30 ? t('Covers a month of light use, with some to spare.') : plural(days, 'Covers {n} day of light use, with some to spare.', 'Covers {n} days of light use, with some to spare.'))} ${t('You can add more any time.')}` };
 }
 
-// The quiz's plan, read once by the next plan screen (then cleared, so it
-// never steers later destinations): the tab, the length, and the size (data)
-// or the GB a day (Power) that pick the line.
+// The quiz's plan, read by the next plan screen: the tab, the length, and
+// the size (data) or the GB a day (Power) that pick the line. The first
+// place that reads it claims it (`for`): that place can read it again (a
+// screen mounts twice in the slide, and StrictMode runs an initialiser twice;
+// owner 2026-11-06: "the quiz does not connect with a plan", the second read
+// found nothing and the page opened on Data), while the next place opened
+// finds nothing, so it never steers later destinations.
 const KEY = 'ringo_quiz_pick';
 export interface QuizPick { tab: PlanTab; days?: number; gb?: number; dailyGb?: number; quizId?: string }
 export function setQuizPick(pick: QuizPick): void {
   const { tab, days, gb, dailyGb, quizId } = pick;
   try { sessionStorage.setItem(KEY, JSON.stringify({ tab, days, gb, dailyGb, quizId })); } catch { /* ignore */ }
 }
-export function takeQuizPick(): QuizPick | null {
+export function takeQuizPick(forId: string): QuizPick | null {
   try {
     const raw = sessionStorage.getItem(KEY);
-    sessionStorage.removeItem(KEY);
     const v = raw ? JSON.parse(raw) : null;
+    if (!v || !(v.tab === 'data' || v.tab === 'unl' || v.tab === 'power')) { sessionStorage.removeItem(KEY); return null; }
+    if (typeof v.for === 'string' && v.for !== forId) { sessionStorage.removeItem(KEY); return null; }
+    if (v.for !== forId) sessionStorage.setItem(KEY, JSON.stringify({ ...v, for: forId }));
     const num = (n: unknown) => (Number(n) > 0 ? Number(n) : undefined);
-    return v && (v.tab === 'data' || v.tab === 'unl' || v.tab === 'power') ? { tab: v.tab, days: num(v.days), gb: num(v.gb), dailyGb: num(v.dailyGb), quizId: typeof v.quizId === 'string' ? v.quizId : undefined } : null;
+    return { tab: v.tab, days: num(v.days), gb: num(v.gb), dailyGb: num(v.dailyGb), quizId: typeof v.quizId === 'string' ? v.quizId : undefined };
   } catch { return null; }
+}
+/** The quiz's plan is spent: a later place opens on its own default. */
+export function clearQuizPick(): void {
+  try { sessionStorage.removeItem(KEY); } catch { /* ignore */ }
 }
 
 // Every answer is kept (owner 2026-10-27: "keep it and store and learn and

@@ -314,6 +314,8 @@ const c: Catalog = {
   "Months": "개월",
   "{used} of {total}": "{total} 중 {used}",
   "Status": "상태",
+  "Expires": "만료일",
+  "Expired": "만료됨",
   "Installed on your iPhone": "iPhone에 설치됨",
   "Install on this iPhone": "이 iPhone에 설치",
   "Install from your email": "이메일에서 설치하기",

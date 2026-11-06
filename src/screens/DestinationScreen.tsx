@@ -30,7 +30,7 @@ import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { BackBtn, TickList, ErrorBox } from '../components/ui';
 import { termTitle, planName, periodWord, lineKey, tierName } from '../lib/terms';
-import { takeQuizPick, setQuizPick, sendQuizPicked } from '../lib/quiz';
+import { takeQuizPick, setQuizPick, clearQuizPick, sendQuizPicked } from '../lib/quiz';
 import { hasMosaic, pictureFor, skyFor, bundledPictureFor, type Destination } from '../data/destinations';
 import { useDestinations, destinationFrom } from '../store/destinations';
 import { useAccount, account } from '../store/account';
@@ -380,10 +380,13 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   // Screen 1, the tabs (owner 2026-10-24, after the choice research): Data or
   // Unlimited first, each explained in one line, then that tab's plans.
   // The data quiz's plan opens its tab with its line picked (lib/quiz.ts), once.
-  const [quiz] = useState(() => takeQuizPick());
+  const [quiz] = useState(() => takeQuizPick(id));
   // The place opened after the quiz is kept with its answer (once, not on the Power hop).
   useEffect(() => { if (quiz?.quizId && !power) sendQuizPicked(quiz.quizId, id); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  const [tab, setTab] = useState<PlanTab>(quiz?.tab ?? 'data');
+  // Without a quiz the page opens on Unlimited (owner 2026-11-06: "the
+  // cheapest unlimited should be default"); shownTab falls back to Data
+  // where no Unlimited line is sold.
+  const [tab, setTab] = useState<PlanTab>(quiz?.tab ?? 'unl');
   const [powerGb, setPowerGb] = useState<number | null>(quiz?.tab === 'power' ? quiz.dailyGb ?? null : null);
   // At most three plans on screen (choice overload), the rest one tap away.
   const [showAll, setShowAll] = useState(false);
@@ -612,6 +615,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
     if (!s || paying) return;
     haptic('medium');
     const e = (acct?.email || '').trim().toLowerCase();
+    clearQuizPick();
     if (!payHere || !e) { onContinue(s); return; }
     setPaying(true);
     setPayErr(null);
