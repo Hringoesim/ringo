@@ -59,17 +59,26 @@ function Meter({ esim, liveRemaining }: { esim: UsageEsim; liveRemaining: number
   const pct = total && used != null ? Math.min(100, (used / total) * 100) : 0;
   const low = total != null && remaining != null && remaining <= total * 0.1;
   const ends = endsLine(esim);
+  // ConnectedYou reports no consumed figure for an unlimited product (its
+  // allowance and remaining both read -1), so an unlimited line on that
+  // network says so instead of "0 B used" (owner 2026-11-10: "doesn't show
+  // how much data I used").
+  const noFigure = esim.unlimited && esim.used_mb == null;
   return (
     <RingoCard>
       <div style={{ ...TYPE.h3, color: RC.ink }}>{esim.flag ? `${esim.flag} ` : ''}{placeName(esim.label, esim.flag)}</div>
       <div style={{ marginTop: 10, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px 12px' }}>
         <div style={{ ...TYPE.price, color: RC.ink, fontVariantNumeric: 'tabular-nums' }}>
-          {esim.unlimited ? fmtData(esim.used_mb ?? 0) : fmtData(used)}
-          <span style={{ ...TYPE.small, fontWeight: 500, color: RC.ink2 }}>
-            {' '}{esim.unlimited ? t('used') : total != null ? t('of {total} used', { total: fmtData(total) }) : t('used')}
-          </span>
+          {noFigure ? t('Unlimited') : esim.unlimited ? fmtData(esim.used_mb) : fmtData(used)}
+          {!noFigure && (
+            <span style={{ ...TYPE.small, fontWeight: 500, color: RC.ink2 }}>
+              {' '}{esim.unlimited ? t('used') : total != null ? t('of {total} used', { total: fmtData(total) }) : t('used')}
+            </span>
+          )}
         </div>
-        {esim.unlimited ? (
+        {noFigure ? (
+          <div style={{ ...TYPE.small, fontWeight: 500, color: RC.ink2 }}>{t('This network does not report data used.')}</div>
+        ) : esim.unlimited ? (
           <div style={{ ...TYPE.small, fontWeight: 700, color: RC.success }}>{t('Unlimited')}</div>
         ) : remaining != null && (
           <div style={{ ...TYPE.small, fontWeight: 700, color: low ? RC.error : RC.ink }}>{t('{amount} left', { amount: fmtData(remaining) })}</div>

@@ -2,6 +2,7 @@
 import type { Catalog } from '../lib/i18n';
 
 const c: Catalog = {
+  "This network does not report data used.": "Questa rete non comunica i dati consumati.",
   "Ringo took too long to answer. Try again in a moment.": "Ringo ci ha messo troppo a rispondere. Riprova tra un momento.",
   "No connection to Ringo. Check your internet and try again.": "Nessuna connessione con Ringo. Controlla la connessione internet e riprova.",
   "Request failed ({status})": "Richiesta non riuscita ({status})",

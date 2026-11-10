@@ -53,6 +53,23 @@ function statusWord(pkg: string | null | undefined, sub: string): string {
 
 type Pioneer = NonNullable<Profile['pioneer']>;
 
+// An eSIM the network once reported installed stays "Installed" on this
+// phone: a carrier hiccup (no live read) or a network that never reports
+// the install state must not bring "Install on this iPhone" back for an
+// eSIM that is already on the phone (owner 2026-11-10).
+const INSTALLED_KEY = 'ringo_installed_v1';
+function rememberedInstalled(id: string | null | undefined): boolean {
+  if (!id) return false;
+  try { return (JSON.parse(localStorage.getItem(INSTALLED_KEY) || '[]') as string[]).includes(id); } catch { return false; }
+}
+function rememberInstalled(id: string | null | undefined): void {
+  if (!id || rememberedInstalled(id)) return;
+  try {
+    const list = JSON.parse(localStorage.getItem(INSTALLED_KEY) || '[]') as string[];
+    localStorage.setItem(INSTALLED_KEY, JSON.stringify([...list, id].slice(-20)));
+  } catch { /* ignore */ }
+}
+
 export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onProfile }: {
   onBack?: () => void;
   onProfile: () => void;
@@ -147,7 +164,9 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
   // usage history shows that eSIM has carried data, at most once every 120
   // days. A short pause so it never covers the screen while it is drawing.
   const liveUsage = data?.usage && !('unavailable' in data.usage) ? data.usage : null;
-  const installed = Boolean(data?.subscription?.esim_attached && liveUsage?.installed);
+  const subId = data?.subscription?.id || null;
+  useEffect(() => { if (liveUsage?.installed) rememberInstalled(subId); }, [liveUsage?.installed, subId]);
+  const installed = Boolean(data?.subscription?.esim_attached && (liveUsage?.installed || rememberedInstalled(subId)));
   const usedMb = usedMbFor(usageAll, data?.destination?.id || null);
   useEffect(() => {
     if (!onScreen || !shouldAskForReview(installed, usedMb)) return;
@@ -398,7 +417,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
 
         {sub.esim_attached && (
           <div style={{ marginTop: 16 }}>
-            {usage?.installed ? (
+            {installed ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 16, borderRadius: RADIUS.md, background: RC.cream }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="11" fill={RC.ink} /><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 <div style={{ ...TYPE.h3, color: RC.ink }}>{tr('Installed on your iPhone')}</div>
