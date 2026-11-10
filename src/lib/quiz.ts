@@ -7,7 +7,7 @@
 
 import { Capacitor } from '@capacitor/core';
 import { account } from '../store/account';
-import { SITE } from '../api/light';
+import { SITE, type Catalog, type Plan } from '../api/light';
 import { t, tk, plural } from './i18n';
 
 export type Use = 'maps' | 'social' | 'calls' | 'streaming' | 'hotspot';
@@ -42,7 +42,6 @@ export const USES: { id: Use; label: string; sub: string; gbDay: number }[] = [
   { id: 'hotspot', label: tk('Hotspot'), sub: tk('Laptop, friends, a van'), gbDay: 3 },
 ];
 
-const DATA_SIZES = [1, 3, 5, 10, 20, 50];
 // The lengths the Unlimited and Power plans are sold in.
 const PLAN_DAYS = [1, 3, 5, 7, 10, 15, 20, 30];
 
@@ -52,27 +51,33 @@ export function perDayOf(uses: Use[], work: boolean): number {
 }
 
 /** `title` stays English (it is what /api/app-quiz-answer records); `shown` is the title in the app's language. */
-export interface QuizPlan { tab: PlanTab; days: number; gb?: number; dailyGb?: number; title: string; shown: string; line: string }
+export interface QuizPlan { tab: PlanTab; days: number; gb?: number; dailyGb?: number; /** The trip's length as answered, and the GB it needs with a fifth to spare. */ tripDays: number; needGb: number; title: string; shown: string; line: string }
 
+// The rules (owner 2026-11-10, after the quiz offered "30 days, 3 GB" for a
+// week away: "never would you suggest this, have actual rules", then "show
+// the plan that works for them but also gives us good margins"). The answers
+// say what the trip needs (recommend); the place's catalogue says which line
+// that is (lineFor):
+// 1. A plan works when it lasts the whole trip and holds enough for what was
+//    picked. Never a longer or bigger line than the smallest that works.
+// 2. A hotspot, or 4 GB a day and up, is Power; 6 GB a day and up, Super User.
+// 3. Otherwise Unlimited for the trip's length, when it keeps Ringo a good
+//    margin (the site's good_margin: half of what the card pays).
+// 4. Where it does not, or none is sold, the data plan that works, when that
+//    one keeps a good margin.
+// 5. Where neither does, Unlimited anyway, else the data plan that works.
 export function recommend({ days, uses, work }: { days: number; uses: Use[]; work: boolean }): QuizPlan {
   const perDay = perDayOf(uses, work);
   const len = PLAN_DAYS.find((d) => d >= days) ?? 30;
   const lenText = len === 1 ? '1 day' : `${len} days`;
   const lenShown = plural(len, '{n} day', '{n} days');
+  const trip = { tripDays: Math.min(days, 30), needGb: Math.max(1, perDay * Math.min(days, 30) * 1.2) };
   if (uses.includes('hotspot') || perDay >= 4) {
     // Super User (10 GB a day) when a hotspot also carries work or streaming.
     const superUser = perDay >= 6;
-    return { tab: 'power', days: len, dailyGb: superUser ? 10 : 5, title: `${superUser ? 'Super User' : 'Power'}, ${lenText}`, shown: t('{a}, {b}', { a: t(superUser ? 'Super User' : 'Power'), b: lenShown }), line: t('Unlimited data for a van, hotspot or laptop.') };
+    return { ...trip, tab: 'power', days: len, dailyGb: superUser ? 10 : 5, title: `${superUser ? 'Super User' : 'Power'}, ${lenText}`, shown: t('{a}, {b}', { a: t(superUser ? 'Super User' : 'Power'), b: lenShown }), line: t('Unlimited data for a van, hotspot or laptop.') };
   }
-  if (perDay >= 1.5 || (perDay >= 1 && days > 7)) {
-    return { tab: 'unl', days: len, title: `Unlimited, ${lenText}`, shown: t('{a}, {b}', { a: t('Unlimited'), b: lenShown }), line: t('Use it as much as you like for the whole trip, never cut off.') };
-  }
-  // Data plans run up to a month; a longer trip buys a month and tops up.
-  const need = Math.max(1, perDay * Math.min(days, 30) * 1.2);
-  const size = DATA_SIZES.find((g) => g >= need) ?? 50;
-  return { tab: 'data', days, gb: size, title: `${size} GB of data`, shown: t('{gb} GB of data', { gb: size }), line: `${uses.length
-    ? (days === 1 ? t('Covers a day of what you picked, with some to spare.') : days > 30 ? t('Covers a month of what you picked, with some to spare.') : plural(days, 'Covers {n} day of what you picked, with some to spare.', 'Covers {n} days of what you picked, with some to spare.'))
-    : (days === 1 ? t('Covers a day of light use, with some to spare.') : days > 30 ? t('Covers a month of light use, with some to spare.') : plural(days, 'Covers {n} day of light use, with some to spare.', 'Covers {n} days of light use, with some to spare.'))} ${t('You can add more any time.')}` };
+  return { ...trip, tab: 'unl', days: len, title: `Unlimited, ${lenText}`, shown: t('{a}, {b}', { a: t('Unlimited'), b: lenShown }), line: t('Use it as much as you like for the whole trip, never cut off.') };
 }
 
 // The quiz's plan, read by the next plan screen: the tab, the length, and
@@ -102,6 +107,41 @@ export function takeQuizPick(forId: string): QuizPick | null {
 /** The quiz's plan is spent: a later place opens on its own default. */
 export function clearQuizPick(): void {
   try { sessionStorage.removeItem(KEY); } catch { /* ignore */ }
+}
+
+// The line for a quiz result at a place, by the rules above, so the quiz
+// shows it with its price before the place is opened (owner 2026-11-10: "it
+// should list a plan immediately"). The families are DestinationScreen's.
+const daily = (p: Plan) => p.daily_gb ?? 0;
+const isPower = (p: Plan) => (Boolean(p.app_only) || p.tier === 'unlimited') && daily(p) >= 5;
+export function lineFor(cat: Catalog, rec: QuizPlan): Plan | null {
+  const all = [...cat.plans, ...(cat.app_plans ?? [])].filter((p) => p.mode === 'payment');
+  const byDays = (a: Plan, b: Plan) => a.days - b.days;
+  const shortest = (list: Plan[], days: number) => { const s = [...list].sort(byDays); return s.find((p) => p.days >= days) ?? s[s.length - 1] ?? null; };
+  const power = all.filter(isPower);
+  if (rec.tab === 'power' && power.length) {
+    const tiers = [...new Set(power.map(daily))].sort((a, b) => a - b);
+    const gb = rec.dailyGb != null && tiers.includes(rec.dailyGb) ? rec.dailyGb : tiers[0];
+    return shortest(power.filter((p) => daily(p) === gb), rec.days);
+  }
+  const passes = all.filter((p) => p.app_only && !isPower(p));
+  const unlAll = passes.length ? passes : all.filter((p) => !p.app_only && p.tier === 'unlimited' && !isPower(p));
+  const base = Math.min(...unlAll.map(daily));
+  const unl = shortest(unlAll.filter((p) => daily(p) === base), rec.days);
+  const data = all.filter((p) => !p.app_only && p.tier === 'data');
+  const byPrice = (a: Plan, b: Plan) => a.billed_upfront_amount - b.billed_upfront_amount || a.days - b.days;
+  const works = data.filter((p) => p.days >= rec.tripDays && (p.data_gb ?? 0) >= rec.needGb).sort(byPrice)[0] ?? null;
+  if (unl?.good_margin) return unl;
+  if (works?.good_margin) return works;
+  // No data plan holds enough: the biggest that lasts the trip, else the cheapest sold.
+  const closest = data.filter((p) => p.days >= rec.tripDays).sort((a, b) => (b.data_gb ?? 0) - (a.data_gb ?? 0) || byPrice(a, b))[0] ?? [...data].sort(byPrice)[0] ?? null;
+  return unl ?? works ?? closest;
+}
+/** The pick that opens the plan screen on that very line. */
+export function pickFor(line: Plan): QuizPick {
+  if (isPower(line)) return { tab: 'power', days: line.days, dailyGb: line.daily_gb };
+  if (line.app_only || line.tier === 'unlimited') return { tab: 'unl', days: line.days };
+  return { tab: 'data', days: line.days, gb: line.data_gb ?? undefined };
 }
 
 // Every answer is kept (owner 2026-10-27: "keep it and store and learn and

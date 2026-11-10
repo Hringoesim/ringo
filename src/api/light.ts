@@ -48,6 +48,8 @@ export interface Plan {
   coverage?: { countries: number; list: { iso: string; name: string; flag: string }[] };
   /** The line in its list that keeps Ringo the most per sale (app catalogue only). */
   best_margin?: boolean;
+  /** A one-payment line that keeps Ringo at least half of what the card pays (app catalogue only); the quiz reads it. */
+  good_margin?: boolean;
   app_only?: boolean;
 }
 

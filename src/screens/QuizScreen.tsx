@@ -1,11 +1,12 @@
 // QuizScreen: "How much data do I need?" (owner 2026-10-27), made to play.
-// Four steps: the kind of trip (Backpacker, Beach holiday, Multi country),
-// a trip length slider, tiles for what the trip needs with a live data meter
-// that fills as they are picked, and work online or not; then a reveal with
-// confetti and one plan (owner 2026-10-27: "the quiz should recommend a
-// single plan", no coins). The plan rides to the plan screen (quizPick in
-// lib/quiz.ts), which opens with that line picked; a multi country trip
-// picks a region plan right on the result.
+// Four steps: where the trip goes (owner 2026-11-10: "it should ask where
+// you go in easy steps", it used to ask the kind of trip and leave the place
+// to the store afterwards), a trip length slider, tiles for what the trip
+// needs with a live data meter that fills as they are picked, and work online
+// or not; then a reveal with confetti and one plan for that place with its
+// price (owner 2026-10-27: "the quiz should recommend a single plan", no
+// coins; 2026-11-10: "it should list a plan immediately"). The plan rides to
+// the plan screen (quizPick in lib/quiz.ts), which opens with that line picked.
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { RC, TYPE, RADIUS, SITE_GRAD, cardSurface } from '../theme';
 import { RingoHeader } from '../components/Header';
@@ -14,11 +15,14 @@ import { BackBtn } from '../components/ui';
 import { Confetti } from '../components/Confetti';
 import { hapticSelection, hapticNotify } from '../lib/haptics';
 import { useLayout, contentColumn } from '../lib/layout';
-import { recommend, setQuizPick, perDayOf, newQuizId, sendQuizAnswer, USES, TRIPS, type Use, type Trip } from '../lib/quiz';
-import { FEATURED, bundledPictureFor, pictureFor, skyFor } from '../data/destinations';
+import { recommend, lineFor, pickFor, setQuizPick, perDayOf, newQuizId, sendQuizAnswer, sendQuizPicked, USES, type Use } from '../lib/quiz';
+import { planName } from '../lib/terms';
+import { SearchField, Picture, matches } from './StoreScreen';
+import { FEATURED } from '../data/destinations';
 import europeOrbit from '../assets/quiz/europe-orbit.jpg'; // ISS photo iss066e116300, NASA, public domain
 import { useDestinations } from '../store/destinations';
-import { SITE } from '../api/light';
+import { useAccount } from '../store/account';
+import { light, money, type Catalog } from '../api/light';
 import { t as tr, plural, fmtNumber, placeName } from '../lib/i18n';
 
 const S = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
@@ -30,21 +34,9 @@ const ICON: Record<Use, ReactNode> = {
   hotspot: <><path d="M5 9.5a10 10 0 0 1 14 0M8 12.5a5.6 5.6 0 0 1 8 0" {...S} /><circle cx="12" cy="16" r="1.6" fill="currentColor" /></>,
 };
 // More colour (owner 2026-10-27: "a bit more colourful, add pictures or
-// items"): each trip type is a photo, each use its own hue. The 3D items
-// on the photos were taken off again (owner 2026-10-27: "delete").
-// No coloured rim around the photos (owner: "the contour does not need this shine").
-const TRIP_LOOK: Record<Trip, { photo: string }> = {
-  backpacker: { photo: bundledPictureFor('vietnam') ?? pictureFor('vietnam') },
-  // Blue sky and white sand (owner 2026-10-27), daylight everywhere.
-  // A deserted island, turquoise lagoon, deep blue sky (owner 2026-10-27:
-  // "french polynesia pic"): Rangiroa, from the site's guides.
-  beach: { photo: `${SITE}/img/guides/french-polynesia/rangiroa.jpg` },
-  multi: { photo: bundledPictureFor('switzerland') ?? pictureFor('switzerland') },
-  city: { photo: pictureFor('portugal') },
-  nomad: { photo: pictureFor('costa-rica') },
-};
-// The regions on a multi country result (owner 2026-10-27): Europe from space,
-// the others their landmark photos (Angkor Wat, Machu Picchu, Petra).
+// items"): each place is a photo, each use its own hue.
+// The regions (owner 2026-10-27): Europe from space, the others their
+// landmark photos (Angkor Wat, Machu Picchu, Petra).
 const REGION_PHOTO: Record<string, string> = { europe: europeOrbit };
 const USE_HUE: Record<Use, string> = { maps: '#1FA971', social: '#E4407B', calls: '#2F7BF6', streaming: '#8B5CF6', hotspot: '#F08A24' };
 // 1 month plus (owner 2026-10-27): any trip past 30 days, kept as 60.
@@ -68,11 +60,12 @@ function DataMeter({ gbDay }: { gbDay: number }) {
   );
 }
 
-export function QuizScreen({ onBack, onBrowse, onOpen }: { onBack: () => void; onBrowse: () => void; onOpen: (id: string) => void }) {
+export function QuizScreen({ onBack, onOpen }: { onBack: () => void; onOpen: (id: string) => void }) {
   const l = useLayout();
   const all = useDestinations();
   const [step, setStep] = useState(0);
-  const [trip, setTrip] = useState<Trip | null>(null);
+  const [place, setPlace] = useState<string | null>(null);
+  const [q, setQ] = useState('');
   const [days, setDays] = useState(7);
   const [uses, setUses] = useState<Use[]>([]);
   const [hop, setHop] = useState<Use | null>(null);
@@ -82,14 +75,47 @@ export function QuizScreen({ onBack, onBrowse, onOpen }: { onBack: () => void; o
   // Each finished quiz is one answer kept on the site (lib/quiz.ts sendQuizAnswer).
   const [quizId, setQuizId] = useState(newQuizId);
   useEffect(() => {
-    if (rec) sendQuizAnswer({ id: quizId, trip, days, uses, work: work!, gbDay: perDayOf(uses, work!), rec });
+    if (!rec) return;
+    sendQuizAnswer({ id: quizId, trip: null, days, uses, work: work!, gbDay: perDayOf(uses, work!), rec });
+    if (place) sendQuizPicked(quizId, place);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- once per result
   }, [rec, quizId]);
-  // A multi country trip picks a region plan (owner 2026-10-27), the store's
-  // order; Global is its own monthly plan, so it is left out here.
-  const regions = FEATURED.map((id) => all.find((d) => d.id === id)).filter((d): d is NonNullable<typeof d> => Boolean(d) && d!.kind === 'region' && d!.countries > 1 && d!.id !== 'global');
+  // Where to: the store's popular places until something is typed, then what
+  // matches (the store's own search: names, cities, "usa"). Global is its own
+  // monthly plan, so it is left out here.
+  const query = q.trim().toLowerCase();
+  const places = (query ? all.filter((d) => matches(d, query)) : FEATURED.map((id) => all.find((d) => d.id === id)).filter((d): d is NonNullable<typeof d> => Boolean(d)))
+    .filter((d) => d.id !== 'global').slice(0, 8);
+  const dest = all.find((d) => d.id === place) ?? null;
+  // The place's plans, asked for as soon as it is picked, so the result shows
+  // the line and its price at once. A Power plan for a place with its own
+  // Power Use card (Europe) is read from that card, as the plan screen does.
+  const acct = useAccount();
+  const memberKey = acct ? acct.userId : '';
+  const [cat, setCat] = useState<Catalog | null>(null);
+  const [powerCat, setPowerCat] = useState<Catalog | null>(null);
+  useEffect(() => {
+    setCat(null);
+    if (!place) return;
+    let alive = true;
+    light.catalog(place, acct ? { userId: acct.userId, t: acct.t } : null).then((c) => { if (alive) setCat(c); }).catch(() => {});
+    return () => { alive = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `acct` follows memberKey
+  }, [place, memberKey]);
+  const powerId = rec?.tab === 'power' ? cat?.power_destination : undefined;
+  useEffect(() => {
+    setPowerCat(null);
+    if (!powerId) return;
+    let alive = true;
+    light.catalog(powerId, acct ? { userId: acct.userId, t: acct.t } : null).then((c) => { if (alive) setPowerCat(c); }).catch(() => {});
+    return () => { alive = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `acct` follows memberKey
+  }, [powerId, memberKey]);
+  const shownCat = powerId ? powerCat : cat;
+  const line = rec && shownCat ? lineFor(shownCat, rec) : null;
+  const price = line ? money(line.billed_upfront_amount, line.currency) : null;
 
-  const restart = () => { setQuizId(newQuizId()); setStep(0); setTrip(null); setDays(7); setUses([]); setWork(null); };
+  const restart = () => { setQuizId(newQuizId()); setStep(0); setPlace(null); setQ(''); setDays(7); setUses([]); setWork(null); };
   const title = (t: string, sub?: string) => (<>
     <h2 className="rise" style={{ margin: '4px 0 0', ...TYPE.h1, color: RC.ink }}>{t}</h2>
     {sub && <p style={{ margin: '0 0 4px', ...TYPE.small, color: RC.ink2 }}>{sub}</p>}
@@ -108,23 +134,25 @@ export function QuizScreen({ onBack, onBrowse, onOpen }: { onBack: () => void; o
           )}
 
           {step === 0 && (<>
-            {title(tr('What kind of trip?'), tr('Tap and pick one.'))}
-            {TRIPS.map((t) => {
-              const on = trip === t.id;
-              return (
-                <button key={t.id} type="button" className="press" aria-pressed={on}
-                  onClick={() => { hapticNotify('success'); setTrip(t.id); setDays(t.days); setUses(t.uses); window.setTimeout(() => setStep(1), 260); }}
-                  style={{ position: 'relative', width: '100%', minHeight: 112, overflow: 'hidden', display: 'flex', alignItems: 'flex-end', gap: 12, textAlign: 'start', cursor: 'pointer', padding: '14px 16px', borderRadius: 20, border: 'none', outline: on ? `3px solid ${RC.orangeInk}` : 'none', outlineOffset: 2, background: '#2a1d3d', fontFamily: 'var(--font)' }}>
-                  <img src={TRIP_LOOK[t.id].photo} alt="" aria-hidden decoding="async" onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
-                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <span aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(20,10,40,0) 35%, rgba(20,10,40,0.6) 100%)' }} />
-                  <span style={{ position: 'relative', flex: 1 }}>
-                    <span style={{ display: 'block', fontSize: 19, fontWeight: 800, color: '#fff', textShadow: '0 1px 6px rgba(0,0,0,0.35)' }}>{tr(t.label)}</span>
-                    <span style={{ display: 'block', marginTop: 2, fontSize: 14, color: 'rgba(255,255,255,0.92)' }}>{tr(t.sub)}</span>
-                  </span>
-                </button>
-              );
-            })}
+            {title(tr('Where are you going?'))}
+            <SearchField value={q} onChange={setQ} />
+            {/* The store's photo cards (owner 2026-11-10: "it needs to be with pictures and a clean UI"): the first popular place wide, the rest two across. */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {places.map((d, i) => {
+                const wide = !query && i === 0;
+                return (
+                  <button key={d.id} type="button" className="press" aria-pressed={place === d.id} aria-label={placeName(d.label, d.flag)}
+                    onClick={() => { hapticNotify('success'); setPlace(d.id); window.setTimeout(() => setStep(1), 260); }}
+                    style={{ gridColumn: wide ? '1 / -1' : undefined, display: 'block', padding: 0, border: 'none', borderRadius: 20, overflow: 'hidden', cursor: 'pointer', textAlign: 'start', background: 'none', outline: place === d.id ? `3px solid ${RC.orangeInk}` : 'none', outlineOffset: 2 }}>
+                    <Picture d={d} size={wide ? 'big' : 'tile'} eager={i < 3} photo={REGION_PHOTO[d.id]}
+                      chip={wide && d.countries > 1 ? plural(d.countries, '{n} country', '{n} countries') : null} />
+                  </button>
+                );
+              })}
+            </div>
+            {query && all.length > 0 && places.length === 0 && (
+              <div style={{ ...TYPE.small, color: RC.ink2, textAlign: 'center' }}>{tr('Nothing matches “{q}”', { q: q.trim() })}</div>
+            )}
           </>)}
 
           {step === 1 && (<>
@@ -182,24 +210,16 @@ export function QuizScreen({ onBack, onBrowse, onOpen }: { onBack: () => void; o
           </>)}
 
           {rec && (<>
-            <div className="rise" style={{ ...cardSurface(), padding: 22, textAlign: 'center' }}>
+            <div className="rise" style={{ ...cardSurface(), padding: 0, overflow: 'hidden', textAlign: 'center' }}>
+              {dest && <Picture d={dest} size="big" eager photo={REGION_PHOTO[dest.id]} />}
+              <div style={{ padding: 22 }}>
               <div style={{ ...TYPE.small, fontWeight: 700, color: RC.orangeInk }}>{tr('Your plan')}</div>
-              <div style={{ marginTop: 6, fontFamily: 'var(--font-display)', fontSize: 34, fontWeight: 800, lineHeight: 1.1, color: RC.ink }}>{rec.shown}</div>
-              <p style={{ margin: '10px 0 0', ...TYPE.body, color: RC.ink2 }}>{rec.line}</p>
+              <div style={{ marginTop: 6, fontFamily: 'var(--font-display)', fontSize: 34, fontWeight: 800, lineHeight: 1.1, color: RC.ink }}>{line ? planName(line) : rec.shown}</div>
+              {price && <div style={{ marginTop: 8, fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, color: RC.orangeInk, fontVariantNumeric: 'tabular-nums' }}>{price}</div>}
+              {/* A place that sells no Unlimited shows its cheapest plan: the Unlimited promise is not made for it. */}
+              {line?.tier !== 'data' && <p style={{ margin: '10px 0 0', ...TYPE.body, color: RC.ink2 }}>{rec.line}</p>}
+              </div>
             </div>
-            {trip === 'multi' && regions.length > 0 && (<>
-              <div style={{ marginTop: 4, ...TYPE.body, fontWeight: 700, color: RC.ink }}>{tr('Pick your region')}</div>
-              {regions.map((d) => (
-                <button key={d.id} type="button" className="press" onClick={() => { hapticSelection(); setQuizPick({ ...rec, quizId }); onOpen(d.id); }}
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, textAlign: 'start', cursor: 'pointer', padding: 10, borderRadius: 18, border: `2px solid ${RC.line}`, background: '#fff', fontFamily: 'var(--font)' }}>
-                  <span aria-hidden style={{ flex: 'none', width: 64, height: 48, borderRadius: 12, overflow: 'hidden', background: skyFor(d.id) }}>
-                    <img src={REGION_PHOTO[d.id] ?? bundledPictureFor(d.id) ?? pictureFor(d.id)} alt="" decoding="async" onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                  </span>
-                  <span style={{ flex: 1, fontSize: 17, fontWeight: 700, color: RC.ink }}>{placeName(d.label, d.flag)}</span>
-                  <span style={{ paddingInlineEnd: 8, fontSize: 14, color: RC.ink2 }}>{plural(d.countries, '{n} country', '{n} countries')}</span>
-                </button>
-              ))}
-            </>)}
             <button type="button" className="press" onClick={restart}
               style={{ alignSelf: 'center', border: 'none', background: 'none', padding: 8, cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 15, fontWeight: 700, color: RC.ink2, textDecoration: 'underline', textUnderlineOffset: 3 }}>
               {tr('Take it again')}
@@ -211,7 +231,7 @@ export function QuizScreen({ onBack, onBrowse, onOpen }: { onBack: () => void; o
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: `12px ${l.gutter}px max(20px, env(safe-area-inset-bottom, 0px))`, background: RC.glass, backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)', borderTop: `1px solid ${RC.line}` }}>
           {step === 1 && <RingoButton onClick={() => { hapticSelection(); setStep(2); }}>{tr('Next')}</RingoButton>}
           {step === 2 && <RingoButton onClick={() => { hapticSelection(); setStep(3); }} disabled={uses.length === 0}>{tr('Next')}</RingoButton>}
-          {rec && <RingoButton onClick={() => { setQuizPick({ ...rec, quizId }); onBrowse(); }}>{tr('Pick my destination')}</RingoButton>}
+          {rec && place && <RingoButton onClick={() => { setQuizPick({ ...(line && !powerId ? pickFor(line) : rec), quizId }); onOpen(place); }}>{price ? tr('Continue, {price}', { price }) : tr('Continue')}</RingoButton>}
         </div>
       )}
     </div>

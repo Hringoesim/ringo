@@ -397,7 +397,7 @@ export function App() {
         body = <InstallScreen install={current.params.install!} label={current.params.label || 'Ringo'} onBack={pop} />;
         break;
       case 'quiz':
-        body = <QuizScreen onBack={pop} onBrowse={goHome} onOpen={(id) => push('destination', { destination: id })} />;
+        body = <QuizScreen onBack={pop} onOpen={(id) => push('destination', { destination: id })} />;
         break;
       case 'traveller':
         body = <TravellerScreen onDone={() => afterOnboarding('esim')} />;

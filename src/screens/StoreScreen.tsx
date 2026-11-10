@@ -90,7 +90,7 @@ const cityIsos = (q: string) => {
   if (q !== lastCityQuery) { lastCityQuery = q; lastCityIsos = new Set(citiesFor(q).map(([, c]) => c)); }
   return lastCityIsos;
 };
-const matches = (d: Destination, q: string) => {
+export const matches = (d: Destination, q: string) => {
   if (!q) return true;
   if (fold(d.label).includes(fold(q)) || fold(placeName(d.label, d.flag)).includes(fold(q)) || d.id.includes(q) || ALIASES[q] === d.id) return true;
   const iso = isoOf(d);
@@ -180,7 +180,7 @@ function Card({ d, from, onOpen, onPeek, size, eager = false, photo }: { d: Dest
   );
 }
 
-function SearchField({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+export function SearchField({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
   const [focused, setFocused] = useState(false);
   return (
     <div style={{ position: 'relative' }}>
