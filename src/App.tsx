@@ -12,7 +12,7 @@
 // up and picking a traveller, before the tabs; once at launch for a member
 // from before the step. The PushSheet below (after the first delivered
 // purchase) stays as the ask for a phone that never saw the step.
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { RingoTabBar, type TabId } from './components/TabBar';
 import { RC } from './theme';
 import { ScreenHost, type NavDir, type KeptScreen } from './components/ScreenHost';
@@ -26,19 +26,45 @@ import { light } from './api/light';
 
 import { LandingScreen } from './screens/LandingScreen';
 import { StoreScreen } from './screens/StoreScreen';
-import { DestinationScreen, type Selection, type PaidStart } from './screens/DestinationScreen';
-import { CheckoutScreen } from './screens/CheckoutScreen';
-import { EsimScreen } from './screens/EsimScreen';
-import { InstallScreen } from './screens/InstallScreen';
-import { LoginScreen } from './screens/LoginScreen';
-import { TravellerScreen } from './screens/TravellerScreen';
-import { NotifyScreen } from './screens/NotifyScreen';
-import { QuizScreen } from './screens/QuizScreen';
+import type { Selection, PaidStart } from './screens/DestinationScreen';
 import { avatarTraveller } from './store/avatar';
-import { ReportScreen } from './screens/ReportScreen';
-import { HelpScreen, LANG_RETURN_KEY } from './screens/HelpScreen';
-import { RewardsScreen } from './screens/RewardsScreen';
-import { WaitlistScreen } from './screens/WaitlistScreen';
+import { LANG_RETURN_KEY } from './lib/langReturn';
+import { launchCatalog } from './store/destinations';
+
+// Only the two screens a launch can open (welcome, store) ship in the main
+// chunk. Every other screen is its own chunk, parsed when it first opens:
+// parsing all fifteen before the store could paint was most of a cold start
+// (owner 2026-11-10: "slow to load"). prefetchScreens() fetches them in the
+// background once the first screen is up, so opening one later is instant.
+const SCREENS = {
+  destination: () => import('./screens/DestinationScreen'),
+  checkout: () => import('./screens/CheckoutScreen'),
+  esim: () => import('./screens/EsimScreen'),
+  install: () => import('./screens/InstallScreen'),
+  login: () => import('./screens/LoginScreen'),
+  traveller: () => import('./screens/TravellerScreen'),
+  notify: () => import('./screens/NotifyScreen'),
+  quiz: () => import('./screens/QuizScreen'),
+  report: () => import('./screens/ReportScreen'),
+  help: () => import('./screens/HelpScreen'),
+  rewards: () => import('./screens/RewardsScreen'),
+  waitlist: () => import('./screens/WaitlistScreen'),
+};
+const DestinationScreen = lazy(() => SCREENS.destination().then((m) => ({ default: m.DestinationScreen })));
+const CheckoutScreen = lazy(() => SCREENS.checkout().then((m) => ({ default: m.CheckoutScreen })));
+const EsimScreen = lazy(() => SCREENS.esim().then((m) => ({ default: m.EsimScreen })));
+const InstallScreen = lazy(() => SCREENS.install().then((m) => ({ default: m.InstallScreen })));
+const LoginScreen = lazy(() => SCREENS.login().then((m) => ({ default: m.LoginScreen })));
+const TravellerScreen = lazy(() => SCREENS.traveller().then((m) => ({ default: m.TravellerScreen })));
+const NotifyScreen = lazy(() => SCREENS.notify().then((m) => ({ default: m.NotifyScreen })));
+const QuizScreen = lazy(() => SCREENS.quiz().then((m) => ({ default: m.QuizScreen })));
+const ReportScreen = lazy(() => SCREENS.report().then((m) => ({ default: m.ReportScreen })));
+const HelpScreen = lazy(() => SCREENS.help().then((m) => ({ default: m.HelpScreen })));
+const RewardsScreen = lazy(() => SCREENS.rewards().then((m) => ({ default: m.RewardsScreen })));
+const WaitlistScreen = lazy(() => SCREENS.waitlist().then((m) => ({ default: m.WaitlistScreen })));
+function prefetchScreens(): void {
+  Object.values(SCREENS).forEach((load) => void load().catch(() => {}));
+}
 import { startPush, shouldPrompt, onboardDue, usePush } from './lib/push';
 import { PushSheet } from './components/PushControls';
 import { bundledPictureFor, pictureFor } from './data/destinations';
@@ -227,21 +253,31 @@ export function App() {
   // One line in the device log at launch saying whether the App Store
   // returns our products: the Paid Apps agreement and the product state are
   // the two things that make every plan read "not sold" without any error.
+  // The other screens' chunks, fetched once the first screen has painted.
+  useEffect(() => {
+    const h = window.setTimeout(prefetchScreens, 1500);
+    return () => window.clearTimeout(h);
+  }, []);
+
   useEffect(() => {
     if (!iapAvailable()) return;
     let alive = true;
-    (async () => {
-      // The reference products are Europe's, read from the live catalogue so
-      // a reprice (new product ids) never leaves the probe asking for
+    // Held a moment so its StoreKit calls over the bridge never compete with
+    // the first paint and the store's own price reads.
+    const start = window.setTimeout(() => void (async () => {
+      // The reference products are Europe's, read from the catalogue the
+      // store already fetched at launch (never a second request), so a
+      // reprice (new product ids) never leaves the probe asking for
       // products that no longer exist.
       let ids: string[] = [];
       try {
-        const c = await light.catalog('europe');
+        const c = await launchCatalog();
         ids = c.plans.map((p) => p.apple_product_id).filter((x): x is string => Boolean(x)).slice(0, 2);
       } catch (e) {
         setStoreStatus({ checked: true, error: String((e as Error)?.message || e) });
         return;
       }
+      if (!alive) return;
       if (!ids.length) { setStoreStatus({ checked: true, available: 0 }); return; }
       // An empty answer right at launch is often the store not being ready
       // yet, so the probe asks again a few times before it is believed.
@@ -265,8 +301,8 @@ export function App() {
       if (import.meta.env.VITE_PROBE_BEACON === '1') {
         void fetch('https://ringoesim.com/api/app-probe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...last, of: ids.length, ids, build: import.meta.env.VITE_BUILD || 'dev' }) }).catch(() => {});
       }
-    })();
-    return () => { alive = false; };
+    })(), 2500);
+    return () => { alive = false; window.clearTimeout(start); };
   }, []);
 
   // Transactions StoreKit still holds unfinished (the app died between the
@@ -392,7 +428,9 @@ export function App() {
       default:
         body = <div style={{ padding: 40 }}>Unknown screen: {current.name}</div>;
     }
-    return body;
+    // A chunk still loading paints nothing for the moment it takes; the
+    // screen host's slide covers it, and prefetchScreens() makes it rare.
+    return <Suspense fallback={null}>{body}</Suspense>;
   };
   // A kept tab's element is made once, so going back to it or switching tabs
   // never re-renders it (its callbacks only read refs and state setters).

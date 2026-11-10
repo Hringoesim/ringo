@@ -4,7 +4,7 @@
 // and the photo credits. On a wide screen (iPhone Duo open) the groups sit in
 // two columns.
 import { CARD_PAYMENTS } from '../lib/cardPay';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { RC, TYPE, cardSurface } from '../theme';
 import { RingoButton } from '../components/Button';
 import { ScreenTitle, SectionHead, PhotoCard, ErrorBox } from '../components/ui';
@@ -13,7 +13,9 @@ import { openInSheet, openExternal } from '../lib/browser';
 import { WRITE_REVIEW_URL } from '../lib/review';
 import { useAccount, account } from '../store/account';
 import { manageSubscriptions, iapAvailable, useStoreStatus } from '../lib/iap';
-import { PICTURE_CREDITS, BUNDLED_PICTURE_CREDITS, type PictureCredit } from '../data/pictureCredits';
+import type { PictureCredit } from '../data/pictureCredits';
+
+type Credits = typeof import('../data/pictureCredits');
 import { bundledPictureFor, pictureFor } from '../data/destinations';
 import { useDestinations, destinationFrom } from '../store/destinations';
 import { hapticNotify, hapticSelection } from '../lib/haptics';
@@ -25,7 +27,8 @@ import { t, tn, tk, i18n, LANGS, useLang } from '../lib/i18n';
 /** Read by LandingScreen once, to say the account was deleted. */
 export const ACCOUNT_DELETED_KEY = 'ringo_account_deleted';
 /** Read by App once: a language picked here re-renders the app on Help, not the store. */
-export const LANG_RETURN_KEY = 'ringo_lang_return';
+import { LANG_RETURN_KEY } from '../lib/langReturn';
+export { LANG_RETURN_KEY };
 
 const FAQ: { q: string; a: string }[] = [
   { q: tk('Does my phone support eSIM?'), a: tk('Every iPhone from the XS and XR onwards does, including iPhone Duo, as long as it is not carrier locked. In Settings › General › About, look for “Available SIM” or “Digital SIM”.') },
@@ -86,6 +89,14 @@ export function HelpScreen({ onLogin, onProfile, onWaitlist }: { onLogin: () => 
   const storeStatus = useStoreStatus();
   const [open, setOpen] = useState<number | null>(null);
   const [credits, setCredits] = useState(false);
+  // The 1,300-line credits table loads the first time the list opens, not at launch.
+  const [creditTable, setCreditTable] = useState<Credits | null>(null);
+  useEffect(() => {
+    if (!credits || creditTable) return;
+    let on = true;
+    void import('../data/pictureCredits').then((m) => { if (on) setCreditTable(m); }).catch(() => {});
+    return () => { on = false; };
+  }, [credits, creditTable]);
   const destinations = useDestinations();
   const [deleting, setDeleting] = useState<'idle' | 'confirm' | 'busy' | 'failed'>('idle');
   const [signingOut, setSigningOut] = useState(false);
@@ -270,11 +281,11 @@ export function HelpScreen({ onLogin, onProfile, onWaitlist }: { onLogin: () => 
 
             <Group title={t('Photo credits')}>
               <HelpRow label={credits ? t('Hide the list') : t('Destination photographs')} onClick={() => { hapticSelection(); setCredits((c) => !c); }} last={!credits} />
-              {credits && (
+              {credits && creditTable && (
                 <div style={{ padding: '6px 16px 16px', ...TYPE.caption, fontWeight: 400, lineHeight: 1.6, color: RC.inkMute }}>
-                  {destinations.map((d) => { const c = PICTURE_CREDITS[d.id]; return c ? <div key={d.id}><span style={{ color: RC.ink, fontWeight: 600 }}>{d.label}:</span> {creditLine(c)}</div> : null; })}
-                  {Object.keys(BUNDLED_PICTURE_CREDITS).length > 0 && <div style={{ marginTop: 8, color: RC.ink, fontWeight: 600 }}>{t('Offline pictures')}</div>}
-                  {Object.entries(BUNDLED_PICTURE_CREDITS).map(([id, c]) => <div key={`b-${id}`}><span style={{ color: RC.ink, fontWeight: 600 }}>{destinationFrom(destinations, id)?.label || id}:</span> {creditLine(c)}</div>)}
+                  {destinations.map((d) => { const c = creditTable.PICTURE_CREDITS[d.id]; return c ? <div key={d.id}><span style={{ color: RC.ink, fontWeight: 600 }}>{d.label}:</span> {creditLine(c)}</div> : null; })}
+                  {Object.keys(creditTable.BUNDLED_PICTURE_CREDITS).length > 0 && <div style={{ marginTop: 8, color: RC.ink, fontWeight: 600 }}>{t('Offline pictures')}</div>}
+                  {Object.entries(creditTable.BUNDLED_PICTURE_CREDITS).map(([id, c]) => <div key={`b-${id}`}><span style={{ color: RC.ink, fontWeight: 600 }}>{destinationFrom(destinations, id)?.label || id}:</span> {creditLine(c)}</div>)}
                 </div>
               )}
             </Group>

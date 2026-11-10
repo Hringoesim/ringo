@@ -6,7 +6,6 @@
 // nothing: it covers the world. The map's shapes (world-atlas, ~100 KB) load
 // only when the profile opens.
 import { useEffect, useMemo, useState } from 'react';
-import { geoNaturalEarth1, geoPath } from 'd3-geo';
 import type { FeatureCollection, Geometry } from 'geojson';
 import { RC } from '../../theme';
 import type { TravelBadge } from '../../api/light';
@@ -16,8 +15,11 @@ import { t } from '../../lib/i18n';
 
 type Shapes = FeatureCollection<Geometry, { name: string }>;
 let shapesPromise: Promise<Shapes> | null = null;
+// d3-geo (36 KB) rides with the shapes: only the profile's map needs it.
+let geo: typeof import('d3-geo') | null = null;
 function loadShapes(): Promise<Shapes> {
-  shapesPromise ??= Promise.all([import('topojson-client'), import('world-atlas/countries-110m.json')]).then(([topo, atlas]) => {
+  shapesPromise ??= Promise.all([import('topojson-client'), import('world-atlas/countries-110m.json'), import('d3-geo')]).then(([topo, atlas, d3]) => {
+    geo = d3;
     const t = (atlas as { default?: unknown }).default ?? atlas;
     return topo.feature(t as any, (t as any).objects.countries) as unknown as Shapes;
   });
@@ -59,11 +61,11 @@ export function TravelMap({ badges }: { badges: TravelBadge[] }) {
   }, [badges, destinations]);
 
   const paths = useMemo(() => {
-    if (!shapes) return { top: 0, height: H, list: [] as { id: string; d: string }[] };
+    if (!shapes || !geo) return { top: 0, height: H, list: [] as { id: string; d: string }[] };
     // Fitted to the land without Antarctica, so the map has no empty band.
     const land = { ...shapes, features: shapes.features.filter((f) => f.properties?.name !== 'Antarctica') };
-    const projection = geoNaturalEarth1().fitWidth(W, land);
-    const path = geoPath(projection);
+    const projection = geo.geoNaturalEarth1().fitWidth(W, land);
+    const path = geo.geoPath(projection);
     const [[, y0], [, y1]] = path.bounds(land);
     return { top: Math.floor(y0), height: Math.ceil(y1 - y0), list: land.features.map((f) => ({ id: String(f.id ?? ''), d: path(f) || '' })) };
   }, [shapes]);

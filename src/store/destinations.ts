@@ -5,7 +5,7 @@
 // with no network: once the site has answered, only its list is shown, so a
 // country added or removed on the site shows here at the next return.
 import { useEffect, useSyncExternalStore } from 'react';
-import { light } from '../api/light';
+import { light, type Catalog } from '../api/light';
 import { DESTINATIONS, flagOf, type Destination } from '../data/destinations';
 import { flags } from './flags';
 import { live } from './live';
@@ -14,14 +14,23 @@ import { live } from './live';
 let current: Destination[] | null = null;
 let loadedTick = -1;
 let inflight: Promise<void> | null = null;
+let lastCatalog: Promise<Catalog> | null = null;
 const listeners = new Set<() => void>();
+
+/** The catalogue the store reads at launch, shared so nothing asks the site for it twice. */
+export function launchCatalog(): Promise<Catalog> {
+  lastCatalog ??= light.catalog('europe');
+  return lastCatalog;
+}
 
 /** Asks the site for the list (and the app_flags that ride with it) unless this live tick already did. */
 export function refreshDestinations(): Promise<void> {
   const t = live.get();
   if (loadedTick === t) return inflight || Promise.resolve();
   loadedTick = t;
-  inflight = light.catalog('europe').then((c) => {
+  const req = light.catalog('europe');
+  lastCatalog = req;
+  inflight = req.then((c) => {
     flags.set(c.app_flags);
     const out: Destination[] = c.destinations.map((d) => ({ id: d.id, label: d.label, kind: d.kind === 'region' ? 'region' : 'country', countries: d.countries || 1, flag: d.iso ? flagOf(d.iso) : undefined, region: d.region || null }));
     if (out.length) {

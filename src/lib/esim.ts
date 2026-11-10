@@ -2,7 +2,6 @@
 // (LPA:1$<SM-DP+>$<matching id>[$<confirmation code>]) that ringoesim.com
 // hands the app for an eSIM it sold: a scannable QR for another device and
 // the parts for manual entry.
-import qrcode from 'qrcode-generator';
 
 export interface LpaParts {
   smdp: string;
@@ -15,8 +14,10 @@ export function lpaParts(lpa: string): LpaParts {
   return confirmationCode ? { smdp, matchingId, confirmationCode } : { smdp, matchingId };
 }
 
-/** A crisp, scannable QR of the LPA string, as a data URI for an <img>. */
-export function qrDataUri(lpa: string): string {
+/** A crisp, scannable QR of the LPA string, as a data URI for an <img>.
+ *  The QR library (56 KB) loads here, the first time a QR is drawn, not at launch. */
+export async function qrDataUri(lpa: string): Promise<string> {
+  const { default: qrcode } = await import('qrcode-generator');
   const qr = qrcode(0, 'M');
   qr.addData(lpa);
   qr.make();

@@ -7,7 +7,7 @@
 // The iOS version is never guessed from the user agent (WebKit freezes it).
 // The one-tap button is always offered; once tapped, the manual route opens
 // right under it in case this iOS did not show Add eSIM.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { RC, RADIUS, TYPE, cardSurface, typeFor } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
@@ -68,12 +68,19 @@ export function InstallScreen({ install, label, onBack }: { install: { apple_url
     </RingoCard>
   );
 
+  const [qrSrc, setQrSrc] = useState<string | null>(null);
+  useEffect(() => {
+    let on = true;
+    void qrDataUri(install.lpa).then((u) => { if (on) setQrSrc(u); }).catch(() => {});
+    return () => { on = false; };
+  }, [install.lpa]);
+
   const qr = (
     <section>
       <SectionHead as="h2" title={t('Another phone?')} sub={t('Scan this with its camera.')} />
       <div style={{ ...cardSurface(), padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <div style={{ width: l.isWide ? 260 : 'min(100%, 220px)', aspectRatio: '1 / 1', borderRadius: RADIUS.sm, padding: 10, boxSizing: 'border-box', background: '#FFFFFF', boxShadow: 'inset 0 0 0 1.5px ' + RC.line }}>
-          <img src={qrDataUri(install.lpa)} alt={t('eSIM activation QR code')} style={{ width: '100%', height: '100%', imageRendering: 'pixelated', display: 'block' }} />
+          {qrSrc && <img src={qrSrc} alt={t('eSIM activation QR code')} style={{ width: '100%', height: '100%', imageRendering: 'pixelated', display: 'block' }} />}
         </div>
         <p style={{ margin: '12px 0 0', ...TYPE.small, color: RC.ink2, textAlign: 'center' }}>
           {t('The same code is in your email.')}
