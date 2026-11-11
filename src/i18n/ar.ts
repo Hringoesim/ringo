@@ -2,6 +2,21 @@
 import type { Catalog } from '../lib/i18n';
 
 const c: Catalog = {
+  "Full speed today": "السرعة الكاملة اليوم",
+  "Today's {gb} at full speed is used. You are on {speed} until about {time}, then full speed again.": "تم استخدام {gb} بالسرعة الكاملة لليوم. السرعة {speed} حتى حوالي {time}، ثم تعود السرعة الكاملة.",
+  "Today's {gb} at full speed is used. Slower until about {time}, then full speed again.": "تم استخدام {gb} بالسرعة الكاملة لليوم. أبطأ حتى حوالي {time}، ثم تعود السرعة الكاملة.",
+  "{left} left at full speed today. It renews about {time}.": "تبقى {left} بالسرعة الكاملة اليوم. يتجدد حوالي {time}.",
+  "Need full speed all day?": "تحتاج سرعة كاملة طوال اليوم؟",
+  "Power gives you {n} GB a day at full speed for the rest of your trip.": "يمنحك Power ‏{n} غيغابايت يوميًا بالسرعة الكاملة لبقية رحلتك.",
+  "See Power plans": "عرض باقات Power",
+  "Removed from your iPhone": "أُزيلت من iPhone",
+  "Installed, switched off": "مثبتة، مُطفأة",
+  "The network shows this eSIM was deleted from the phone. Tell us and we will help you get it back.": "تُظهر الشبكة أن هذه الشريحة حُذفت من الهاتف. أخبرنا وسنساعدك على استعادتها.",
+  "Turn it on in Settings > Mobile Service, then pick it for Mobile Data.": "شغّلها من الإعدادات > الخلوي، ثم اخترها لبيانات الخلوي.",
+  "Connected to a network.": "متصلة بشبكة.",
+  "On your iPhone. It connects once you arrive and turn on Data Roaming for it.": "على iPhone. تتصل عند وصولك وتشغيل تجوال البيانات لها.",
+  "The network sees it on the phone with EID ending {tail}. Yours is in Settings > General > About.": "ترى الشبكة الشريحة على الهاتف الذي ينتهي رقم EID فيه بـ {tail}. رقمك في الإعدادات > عام > حول.",
+  "Get help": "طلب المساعدة",
   "This network does not report data used.": "لا تُبلغ هذه الشبكة عن البيانات المستخدمة.",
   "Ringo took too long to answer. Try again in a moment.": "تأخر Ringo في الرد. حاول مرة أخرى بعد قليل.",
   "No connection to Ringo. Check your internet and try again.": "لا يوجد اتصال بـ Ringo. تحقق من الإنترنت وحاول مرة أخرى.",

@@ -2,6 +2,21 @@
 import type { Catalog } from '../lib/i18n';
 
 const c: Catalog = {
+  "Full speed today": "오늘의 최고 속도",
+  "Today's {gb} at full speed is used. You are on {speed} until about {time}, then full speed again.": "오늘의 최고 속도 {gb}를 모두 사용했습니다. 약 {time}까지 {speed}, 이후 다시 최고 속도입니다.",
+  "Today's {gb} at full speed is used. Slower until about {time}, then full speed again.": "오늘의 최고 속도 {gb}를 모두 사용했습니다. 약 {time}까지 느려지고, 이후 다시 최고 속도입니다.",
+  "{left} left at full speed today. It renews about {time}.": "오늘 최고 속도로 {left} 남았습니다. 약 {time}에 갱신됩니다.",
+  "Need full speed all day?": "하루 종일 최고 속도가 필요하신가요?",
+  "Power gives you {n} GB a day at full speed for the rest of your trip.": "Power는 남은 여행 기간 동안 하루 {n} GB를 최고 속도로 제공합니다.",
+  "See Power plans": "Power 요금제 보기",
+  "Removed from your iPhone": "iPhone에서 삭제됨",
+  "Installed, switched off": "설치됨, 꺼짐",
+  "The network shows this eSIM was deleted from the phone. Tell us and we will help you get it back.": "네트워크에 이 eSIM이 휴대폰에서 삭제된 것으로 표시됩니다. 알려 주시면 복구를 도와드립니다.",
+  "Turn it on in Settings > Mobile Service, then pick it for Mobile Data.": "설정 > 셀룰러에서 켜고 셀룰러 데이터용으로 선택하세요.",
+  "Connected to a network.": "네트워크에 연결됨.",
+  "On your iPhone. It connects once you arrive and turn on Data Roaming for it.": "iPhone에 있습니다. 도착 후 데이터 로밍을 켜면 연결됩니다.",
+  "The network sees it on the phone with EID ending {tail}. Yours is in Settings > General > About.": "네트워크는 EID가 {tail}(으)로 끝나는 휴대폰에서 확인합니다. 내 EID는 설정 > 일반 > 정보에 있습니다.",
+  "Get help": "도움 받기",
   "This network does not report data used.": "이 네트워크는 사용한 데이터를 보고하지 않습니다.",
   "Ringo took too long to answer. Try again in a moment.": "Ringo 응답이 너무 오래 걸려요. 잠시 후 다시 시도해 주세요.",
   "No connection to Ringo. Check your internet and try again.": "Ringo에 연결할 수 없어요. 인터넷 연결을 확인하고 다시 시도해 주세요.",

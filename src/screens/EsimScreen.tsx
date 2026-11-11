@@ -14,7 +14,7 @@ import { RingoCard } from '../components/Card';
 import { BackBtn, ErrorBox, IconButton, PhotoCard, PioneerBadge, SectionHead, SuccessBox, TextLink } from '../components/ui';
 import { PlaceMosaic } from '../components/PlaceMosaic';
 import { bundledPictureFor, destinationById, hasMosaic, pictureFor, skyFor } from '../data/destinations';
-import { light, money, SITE, type Profile, type SubscriptionRead, type TopUp, type Usage } from '../api/light';
+import { light, money, SITE, type DayUsage, type DeviceState, type Profile, type SubscriptionRead, type TopUp, type Usage } from '../api/light';
 import { UsageSection } from '../components/UsageCard';
 import { useAccount, account, pendingPurchase } from '../store/account';
 import { openInSheet } from '../lib/browser';
@@ -70,8 +70,10 @@ function rememberInstalled(id: string | null | undefined): void {
   } catch { /* ignore */ }
 }
 
-export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onProfile }: {
+export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onProfile, onPower }: {
   onBack?: () => void;
+  /** Opens this place's Power plans with the given pass picked (the day-pass upsell). */
+  onPower?: (destination: string, pick: { days: number; dailyGb: number }) => void;
   onProfile: () => void;
   onInstall: (install: { apple_url: string; lpa: string }, label: string) => void;
   onLogin: () => void;
@@ -118,11 +120,18 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
 
   // `extras: false` is the light poll while the eSIM is being issued: the
   // subscription only, unless it has just become attached.
+  // Only the newest read lands: on slow roaming data the issuing poll, the
+  // minute refresh and the return to the app overlap, and an older answer
+  // (or another account's, after Restore purchases) must not paint over it
+  // or sign out the account just switched to.
+  const seq = useRef(0);
   const load = useCallback(async (quiet = false, freshPrices = false, extras = true) => {
     if (!acct) { setLoading(false); return; }
+    const my = ++seq.current;
     if (!quiet) setLoading(true);
     try {
       const d = await light.subscription(acct.userId, acct.t, { usage: true, install: acct.purchaseRef });
+      if (my !== seq.current) return;
       setData(d);
       setErr(null);
       const attached = Boolean(d.subscription?.esim_attached);
@@ -130,14 +139,17 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
       wasAttached.current = attached;
       if (attached && (extras || justAttached)) await loadExtras(d, freshPrices);
     } catch (e) {
+      if (my !== seq.current) return;
       const status = (e as { status?: number }).status;
       if (status === 401) { account.forget(); setData(null); }
       else setErr(tr('Could not reach Ringo. Check your connection and try again.'));
     } finally {
-      setLoading(false);
+      if (my === seq.current) setLoading(false);
     }
   }, [acct, loadExtras]);
 
+  // Another account (Restore purchases, a new sign-in): nothing of the last one stays on screen.
+  useEffect(() => { setData(null); setUsageAll(null); setGlobalOffer(null); }, [acct?.userId]);
   useEffect(() => { wasAttached.current = false; void load(); }, [load]);
 
   // The Pioneer mark sits on the plan card. One small read per account.
@@ -174,14 +186,28 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
     return () => window.clearTimeout(id);
   }, [onScreen, installed, usedMb]);
 
+  // On show with an eSIM in place: the network's figure again every minute,
+  // quietly (owner 2026-11-11: "we need to have the ability to track usage
+  // on the app"). The carrier settles its own count about hourly; this keeps
+  // the screen at the carrier's newest, not at the moment the tab opened.
+  const attachedNow = Boolean(data?.subscription?.esim_attached);
+  useEffect(() => {
+    if (!onScreen || !attachedNow) return;
+    const t = window.setInterval(() => void load(true, false, false), 60000);
+    return () => window.clearInterval(t);
+  }, [onScreen, attachedNow, load]);
+
   // While the eSIM is still being issued, ask again every few seconds (the
   // subscription only).
+  // Only while the tab is on show, and for five minutes at most: an eSIM
+  // that never arrives must not keep the phone polling from the Store tab.
   const issuing = Boolean(data?.subscription && !data.subscription.esim_attached);
   useEffect(() => {
-    if (!issuing) return;
-    const t = window.setInterval(() => void load(true, false, false), 4000);
+    if (!issuing || !onScreen) return;
+    let n = 0;
+    const t = window.setInterval(() => { if (++n > 75) { window.clearInterval(t); return; } void load(true, false, false); }, 4000);
     return () => window.clearInterval(t);
-  }, [issuing, load]);
+  }, [issuing, onScreen, load]);
 
   const resend = async () => {
     if (!acct) return;
@@ -415,13 +441,14 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
           </div>
         )}
 
+        {sub.esim_attached && usage?.day && !ended && (
+          <DayMeter day={usage.day} onPower={destId && onPower && usage.day.upgrade ? () => { haptic('medium'); onPower(destId, { days: usage.day!.upgrade!.days, dailyGb: usage.day!.upgrade!.daily_gb }); } : undefined} />
+        )}
+
         {sub.esim_attached && (
           <div style={{ marginTop: 16 }}>
-            {installed ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 16, borderRadius: RADIUS.md, background: RC.cream }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="11" fill={RC.ink} /><path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                <div style={{ ...TYPE.h3, color: RC.ink }}>{tr('Installed on your iPhone')}</div>
-              </div>
+            {installed || (usage?.device && usage.device.stage !== 'ready') ? (
+              <InstallCheck device={usage?.device || null} onHelp={onReport} />
             ) : data?.install ? (
               <RingoButton onClick={() => { haptic('medium'); onInstall(data.install!, place); }}>{tr('Install on this iPhone')}</RingoButton>
             ) : (
@@ -589,6 +616,85 @@ function PlanPicture({ id, place, flag, wide }: { id: string | null; place: stri
         {flag && <span aria-hidden style={{ fontSize: 26, lineHeight: 1 }}>{flag}</span>}
         <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: wide ? 28 : 24, lineHeight: 1.15, letterSpacing: '-0.02em', overflowWrap: 'anywhere' }}>{place}</span>
       </div>
+    </div>
+  );
+}
+
+// A day pass's priority data in its current 24 hours (owner 2026-11-11:
+// "show when the 1gb is used and when the person is throttling ... use this
+// as an upsell"). The network settles its count about hourly, so the bar
+// says it is the network's figure. From 80% of the day's amount, and once
+// slowed, the Power pass that lasts the trip is offered.
+function DayMeter({ day, onPower }: { day: DayUsage; onPower?: () => void }) {
+  const pct = Math.min(100, Math.round((day.used_today_mb / Math.max(1, day.priority_mb)) * 100));
+  const gb = fmtGb(day.priority_mb);
+  const time = fmtWhen(day.resets_at, { hour: 'numeric', minute: '2-digit' });
+  const up = day.upgrade;
+  return (
+    <div style={{ marginTop: 12, padding: 14, borderRadius: RADIUS.md, background: RC.cream }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+        <div style={{ ...TYPE.caption, color: RC.inkMute }}>{tr('Full speed today')}</div>
+        <div style={{ ...TYPE.small, color: RC.ink, fontWeight: 600 }}>{tr('{used} of {total}', { used: fmtGb(Math.min(day.used_today_mb, day.priority_mb)), total: gb })}</div>
+      </div>
+      <div role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={tr('Full speed today')} style={{ marginTop: 8, height: 8, borderRadius: RADIUS.pill, background: '#fff', overflow: 'hidden' }}>
+        <div style={{ width: `${pct}%`, height: '100%', borderRadius: RADIUS.pill, background: day.throttled ? RC.inkMute : RC.grad }} />
+      </div>
+      <p style={{ margin: '8px 0 0', ...TYPE.small, color: RC.ink2 }}>
+        {day.throttled
+          ? (day.after_speed
+            ? tr('Today\'s {gb} at full speed is used. You are on {speed} until about {time}, then full speed again.', { gb, speed: day.after_speed, time })
+            : tr('Today\'s {gb} at full speed is used. Slower until about {time}, then full speed again.', { gb, time }))
+          : tr('{left} left at full speed today. It renews about {time}.', { left: fmtGb(day.left_today_mb), time })}
+      </p>
+      {up && onPower && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ ...TYPE.small, color: RC.ink, fontWeight: 600 }}>{tr('Need full speed all day?')}</div>
+          <p style={{ margin: '2px 0 10px', ...TYPE.small, color: RC.ink2 }}>{tr('Power gives you {n} GB a day at full speed for the rest of your trip.', { n: up.daily_gb })}</p>
+          <RingoButton size="sm" onClick={onPower}>{tr('See Power plans')}</RingoButton>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// What the network has seen of this eSIM on a phone (owner 2026-11-11: "a
+// smart check that says this sim is installed on the device where we can
+// actually see it being installed and matched"). iOS lets no app read the
+// phone's EID, so the match is the buyer's: the last digits the network saw
+// next to the ones in Settings > General > About > EID.
+function InstallCheck({ device, onHelp }: { device: DeviceState | null; onHelp: () => void }) {
+  const stage = device?.stage || 'connected';
+  const removed = stage === 'removed';
+  const off = stage === 'off';
+  const title = removed ? tr('Removed from your iPhone') : off ? tr('Installed, switched off') : tr('Installed on your iPhone');
+  const line = removed
+    ? tr('The network shows this eSIM was deleted from the phone. Tell us and we will help you get it back.')
+    : off
+      ? tr('Turn it on in Settings > Mobile Service, then pick it for Mobile Data.')
+      : stage === 'connected'
+        ? tr('Connected to a network.')
+        : tr('On your iPhone. It connects once you arrive and turn on Data Roaming for it.');
+  const done = !removed && !off;
+  return (
+    <div style={{ padding: 16, borderRadius: RADIUS.md, background: RC.cream }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden style={{ flexShrink: 0 }}>
+          <circle cx="12" cy="12" r="11" fill={done ? RC.ink : RC.inkMute} />
+          {done ? <path d="M7 12.5l3.2 3.2L17 9" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /> : <path d="M12 7v6M12 16.5v.5" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" />}
+        </svg>
+        <div style={{ ...TYPE.h3, color: RC.ink }}>{title}</div>
+      </div>
+      <p style={{ margin: '6px 0 0', ...TYPE.small, color: RC.ink2 }}>{line}</p>
+      {device?.eid_tail && !removed && (
+        <p style={{ margin: '6px 0 0', ...TYPE.caption, color: RC.inkMute }}>
+          {tr('The network sees it on the phone with EID ending {tail}. Yours is in Settings > General > About.', { tail: device.eid_tail })}
+        </p>
+      )}
+      {removed && (
+        <div style={{ marginTop: 12 }}>
+          <RingoButton size="sm" variant="secondary" onClick={onHelp}>{tr('Get help')}</RingoButton>
+        </div>
+      )}
     </div>
   );
 }

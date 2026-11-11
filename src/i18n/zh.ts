@@ -2,6 +2,21 @@
 import type { Catalog } from '../lib/i18n';
 
 const c: Catalog = {
+  "Full speed today": "今日高速流量",
+  "Today's {gb} at full speed is used. You are on {speed} until about {time}, then full speed again.": "今日{gb}高速流量已用完。约{time}前为{speed}，之后恢复高速。",
+  "Today's {gb} at full speed is used. Slower until about {time}, then full speed again.": "今日{gb}高速流量已用完。约{time}前速度较慢，之后恢复高速。",
+  "{left} left at full speed today. It renews about {time}.": "今日高速流量剩余{left}，约{time}重置。",
+  "Need full speed all day?": "需要全天高速吗？",
+  "Power gives you {n} GB a day at full speed for the rest of your trip.": "Power在剩余行程中每天提供{n} GB高速流量。",
+  "See Power plans": "查看Power套餐",
+  "Removed from your iPhone": "已从你的iPhone删除",
+  "Installed, switched off": "已安装，已关闭",
+  "The network shows this eSIM was deleted from the phone. Tell us and we will help you get it back.": "网络显示此eSIM已从手机删除。告诉我们，我们帮你找回。",
+  "Turn it on in Settings > Mobile Service, then pick it for Mobile Data.": "在 设置 > 蜂窝网络 中打开它，并选择它用于蜂窝数据。",
+  "Connected to a network.": "已连接到网络。",
+  "On your iPhone. It connects once you arrive and turn on Data Roaming for it.": "已在你的iPhone上。到达后为它打开数据漫游即可连接。",
+  "The network sees it on the phone with EID ending {tail}. Yours is in Settings > General > About.": "网络在EID末尾为{tail}的手机上看到它。你的EID在 设置 > 通用 > 关于本机。",
+  "Get help": "获取帮助",
   "This network does not report data used.": "该网络不报告已用流量。",
   "Ringo took too long to answer. Try again in a moment.": "Ringo 响应超时，请稍后再试。",
   "No connection to Ringo. Check your internet and try again.": "无法连接 Ringo。请检查网络后重试。",

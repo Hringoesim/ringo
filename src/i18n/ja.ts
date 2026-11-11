@@ -2,6 +2,21 @@
 import type { Catalog } from '../lib/i18n';
 
 const c: Catalog = {
+  "Full speed today": "今日の高速データ",
+  "Today's {gb} at full speed is used. You are on {speed} until about {time}, then full speed again.": "今日の高速データ{gb}を使い切りました。{time}ごろまで{speed}、その後は再び高速になります。",
+  "Today's {gb} at full speed is used. Slower until about {time}, then full speed again.": "今日の高速データ{gb}を使い切りました。{time}ごろまで低速、その後は再び高速になります。",
+  "{left} left at full speed today. It renews about {time}.": "今日の高速データは残り{left}です。{time}ごろにリセットされます。",
+  "Need full speed all day?": "一日中高速で使いたいですか？",
+  "Power gives you {n} GB a day at full speed for the rest of your trip.": "Powerなら旅行の残りの期間、1日{n} GBを高速で使えます。",
+  "See Power plans": "Powerプランを見る",
+  "Removed from your iPhone": "iPhoneから削除されました",
+  "Installed, switched off": "インストール済み・オフ",
+  "The network shows this eSIM was deleted from the phone. Tell us and we will help you get it back.": "このeSIMは電話から削除されたとネットワークが示しています。ご連絡いただければ復旧をお手伝いします。",
+  "Turn it on in Settings > Mobile Service, then pick it for Mobile Data.": "設定 > モバイル通信 でオンにし、モバイルデータ通信に選んでください。",
+  "Connected to a network.": "ネットワークに接続済み。",
+  "On your iPhone. It connects once you arrive and turn on Data Roaming for it.": "iPhoneに入っています。到着してデータローミングをオンにすると接続します。",
+  "The network sees it on the phone with EID ending {tail}. Yours is in Settings > General > About.": "ネットワークはEIDの末尾が{tail}の電話で確認しています。お使いのEIDは 設定 > 一般 > 情報 にあります。",
+  "Get help": "サポートを受ける",
   "This network does not report data used.": "このネットワークは使用済みデータ量を報告しません。",
   "Ringo took too long to answer. Try again in a moment.": "Ringoの応答に時間がかかっています。少し待ってからもう一度お試しください。",
   "No connection to Ringo. Check your internet and try again.": "Ringoに接続できません。インターネット接続を確認してもう一度お試しください。",

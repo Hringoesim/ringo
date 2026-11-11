@@ -2,6 +2,21 @@
 import type { Catalog } from '../lib/i18n';
 
 const c: Catalog = {
+  "Full speed today": "Massima velocità oggi",
+  "Today's {gb} at full speed is used. You are on {speed} until about {time}, then full speed again.": "I {gb} a massima velocità di oggi sono usati. Sei a {speed} fino alle {time} circa, poi di nuovo a massima velocità.",
+  "Today's {gb} at full speed is used. Slower until about {time}, then full speed again.": "I {gb} a massima velocità di oggi sono usati. Più lento fino alle {time} circa, poi di nuovo a massima velocità.",
+  "{left} left at full speed today. It renews about {time}.": "Ti restano {left} a massima velocità oggi. Si rinnova verso le {time}.",
+  "Need full speed all day?": "Ti serve la massima velocità tutto il giorno?",
+  "Power gives you {n} GB a day at full speed for the rest of your trip.": "Power ti dà {n} GB al giorno a massima velocità per il resto del viaggio.",
+  "See Power plans": "Vedi i piani Power",
+  "Removed from your iPhone": "Rimossa dal tuo iPhone",
+  "Installed, switched off": "Installata, disattivata",
+  "The network shows this eSIM was deleted from the phone. Tell us and we will help you get it back.": "La rete indica che questa eSIM è stata eliminata dal telefono. Scrivici e ti aiutiamo a recuperarla.",
+  "Turn it on in Settings > Mobile Service, then pick it for Mobile Data.": "Attivala in Impostazioni > Cellulare, poi sceglila per i dati cellulare.",
+  "Connected to a network.": "Connessa a una rete.",
+  "On your iPhone. It connects once you arrive and turn on Data Roaming for it.": "Sul tuo iPhone. Si connette quando arrivi e attivi il roaming dati per lei.",
+  "The network sees it on the phone with EID ending {tail}. Yours is in Settings > General > About.": "La rete la vede sul telefono con EID che finisce con {tail}. Il tuo è in Impostazioni > Generali > Info.",
+  "Get help": "Chiedi aiuto",
   "This network does not report data used.": "Questa rete non comunica i dati consumati.",
   "Ringo took too long to answer. Try again in a moment.": "Ringo ci ha messo troppo a rispondere. Riprova tra un momento.",
   "No connection to Ringo. Check your internet and try again.": "Nessuna connessione con Ringo. Controlla la connessione internet e riprova.",

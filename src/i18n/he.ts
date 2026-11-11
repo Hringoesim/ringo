@@ -2,6 +2,21 @@
 import type { Catalog } from '../lib/i18n';
 
 const c: Catalog = {
+  "Full speed today": "מהירות מלאה היום",
+  "Today's {gb} at full speed is used. You are on {speed} until about {time}, then full speed again.": "ה-{gb} במהירות מלאה של היום נוצלו. המהירות {speed} עד בערך {time}, ואז שוב מהירות מלאה.",
+  "Today's {gb} at full speed is used. Slower until about {time}, then full speed again.": "ה-{gb} במהירות מלאה של היום נוצלו. איטי יותר עד בערך {time}, ואז שוב מהירות מלאה.",
+  "{left} left at full speed today. It renews about {time}.": "נשארו {left} במהירות מלאה היום. מתחדש בערך ב-{time}.",
+  "Need full speed all day?": "צריך מהירות מלאה כל היום?",
+  "Power gives you {n} GB a day at full speed for the rest of your trip.": "Power נותן {n} GB ביום במהירות מלאה לשאר הטיול.",
+  "See Power plans": "לתוכניות Power",
+  "Removed from your iPhone": "הוסר מה-iPhone שלך",
+  "Installed, switched off": "מותקן, כבוי",
+  "The network shows this eSIM was deleted from the phone. Tell us and we will help you get it back.": "הרשת מראה שה-eSIM נמחק מהטלפון. ספרו לנו ונעזור להחזיר אותו.",
+  "Turn it on in Settings > Mobile Service, then pick it for Mobile Data.": "הפעילו אותו בהגדרות > סלולרי, ובחרו בו לנתונים סלולריים.",
+  "Connected to a network.": "מחובר לרשת.",
+  "On your iPhone. It connects once you arrive and turn on Data Roaming for it.": "ב-iPhone שלך. הוא יתחבר כשתגיעו ותפעילו עבורו נדידת נתונים.",
+  "The network sees it on the phone with EID ending {tail}. Yours is in Settings > General > About.": "הרשת רואה אותו בטלפון שה-EID שלו מסתיים ב-{tail}. שלך נמצא בהגדרות > כללי > אודות.",
+  "Get help": "קבלת עזרה",
   "This network does not report data used.": "הרשת הזו אינה מדווחת על נתונים שנוצלו.",
   "Ringo took too long to answer. Try again in a moment.": "לקח ל־Ringo יותר מדי זמן לענות. נסו שוב בעוד רגע.",
   "No connection to Ringo. Check your internet and try again.": "אין חיבור ל־Ringo. בדקו את החיבור לאינטרנט ונסו שוב.",

@@ -2,6 +2,21 @@
 import type { Catalog } from '../lib/i18n';
 
 const c: Catalog = {
+  "Full speed today": "Bugün tam hız",
+  "Today's {gb} at full speed is used. You are on {speed} until about {time}, then full speed again.": "Bugünün tam hızlı {gb} kotası kullanıldı. Yaklaşık {time} saatine kadar {speed}, sonra yeniden tam hız.",
+  "Today's {gb} at full speed is used. Slower until about {time}, then full speed again.": "Bugünün tam hızlı {gb} kotası kullanıldı. Yaklaşık {time} saatine kadar daha yavaş, sonra yeniden tam hız.",
+  "{left} left at full speed today. It renews about {time}.": "Bugün tam hızda {left} kaldı. Yaklaşık {time} saatinde yenilenir.",
+  "Need full speed all day?": "Gün boyu tam hız mı lazım?",
+  "Power gives you {n} GB a day at full speed for the rest of your trip.": "Power, yolculuğunun geri kalanında günde {n} GB tam hız verir.",
+  "See Power plans": "Power planlarını gör",
+  "Removed from your iPhone": "iPhone'undan silindi",
+  "Installed, switched off": "Yüklü, kapalı",
+  "The network shows this eSIM was deleted from the phone. Tell us and we will help you get it back.": "Ağ, bu eSIM'in telefondan silindiğini gösteriyor. Bize yaz, geri almana yardım edelim.",
+  "Turn it on in Settings > Mobile Service, then pick it for Mobile Data.": "Ayarlar > Hücresel bölümünden aç ve hücresel veri için seç.",
+  "Connected to a network.": "Bir ağa bağlı.",
+  "On your iPhone. It connects once you arrive and turn on Data Roaming for it.": "iPhone'unda. Varınca ve onun için veri dolaşımını açınca bağlanır.",
+  "The network sees it on the phone with EID ending {tail}. Yours is in Settings > General > About.": "Ağ onu EID'si {tail} ile biten telefonda görüyor. Seninki Ayarlar > Genel > Hakkında bölümünde.",
+  "Get help": "Yardım al",
   "This network does not report data used.": "Bu ağ kullanılan veriyi bildirmiyor.",
   "Ringo took too long to answer. Try again in a moment.": "Ringo'nun yanıtı çok uzun sürdü. Birazdan tekrar dene.",
   "No connection to Ringo. Check your internet and try again.": "Ringo'ya bağlanılamıyor. İnternetini kontrol edip tekrar dene.",

@@ -89,8 +89,10 @@ export function CheckoutScreen({ selection, paid, onBack, onReady }: { selection
   // Leaving mid-purchase would hide what happened to the payment.
   useBlockSwipeBack(!['email', 'ready', 'slow'].includes(stage));
   // The card payment being waited on, stopped when the screen goes.
+  // The card wait is NOT stopped when this screen goes ("Go to My eSIM"
+  // during a slow bank check): the purchase must still reach the account,
+  // or My eSIM never gets its Install button (see `adopt` below).
   const cardStop = useRef<(() => void) | null>(null);
-  useEffect(() => () => { cardStop.current?.(); }, []);
 
   const p = selection.plan;
   // The site's price: what Stripe's page charges.
@@ -187,6 +189,15 @@ export function CheckoutScreen({ selection, paid, onBack, onReady }: { selection
     logAb('purchase', { destination: selection.destination, plan: p.plan, product: 'stripe' });
     waitForEsim();
   };
+  // This screen has gone by the time the payment confirmed: only the account
+  // part of `settle`, so the app still follows the purchase.
+  const adopt = (out: CardOutcome, e: string, startedAs: string | null) => {
+    const sameAccount = () => (account.get()?.userId ?? null) === startedAs;
+    if (out.state === 'paid') { if (sameAccount()) account.set({ userId: out.userId, t: out.t, email: e, purchaseRef: out.session }); return; }
+    if (out.state === 'received' || out.state === 'unconfirmed') {
+      void waitForOwner(out.query, sameAccount).then((o) => { if (o && sameAccount()) account.set({ userId: o.userId, t: o.t, email: e, purchaseRef: out.session }); });
+    }
+  };
   // The plan page already took the payment: carry on from its outcome.
   useEffect(() => { if (paid) settle(paid.out, paid.email, account.get()?.userId ?? null); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -206,7 +217,7 @@ export function CheckoutScreen({ selection, paid, onBack, onReady }: { selection
       cardStop.current = pay.stop;
       const out = await pay.done;
       cardStop.current = null;
-      if (!mounted.current) return;
+      if (!mounted.current) { adopt(out, e, startedAs); return; }
       settle(out, e, startedAs);
     } catch (ex) {
       if (!mounted.current) return;

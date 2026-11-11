@@ -2,6 +2,21 @@
 import type { Catalog } from '../lib/i18n';
 
 const c: Catalog = {
+  "Full speed today": "Volle Geschwindigkeit heute",
+  "Today's {gb} at full speed is used. You are on {speed} until about {time}, then full speed again.": "Die heutigen {gb} mit voller Geschwindigkeit sind verbraucht. Du surfst mit {speed} bis etwa {time}, dann wieder mit voller Geschwindigkeit.",
+  "Today's {gb} at full speed is used. Slower until about {time}, then full speed again.": "Die heutigen {gb} mit voller Geschwindigkeit sind verbraucht. Langsamer bis etwa {time}, dann wieder mit voller Geschwindigkeit.",
+  "{left} left at full speed today. It renews about {time}.": "Heute noch {left} mit voller Geschwindigkeit. Erneuert sich gegen {time}.",
+  "Need full speed all day?": "Den ganzen Tag volle Geschwindigkeit?",
+  "Power gives you {n} GB a day at full speed for the rest of your trip.": "Power gibt dir {n} GB pro Tag mit voller Geschwindigkeit für den Rest deiner Reise.",
+  "See Power plans": "Power-Tarife ansehen",
+  "Removed from your iPhone": "Von deinem iPhone entfernt",
+  "Installed, switched off": "Installiert, ausgeschaltet",
+  "The network shows this eSIM was deleted from the phone. Tell us and we will help you get it back.": "Laut Netz wurde diese eSIM vom Telefon gelöscht. Sag uns Bescheid, wir helfen dir, sie zurückzubekommen.",
+  "Turn it on in Settings > Mobile Service, then pick it for Mobile Data.": "Schalte sie unter Einstellungen > Mobilfunk ein und wähle sie für mobile Daten.",
+  "Connected to a network.": "Mit einem Netz verbunden.",
+  "On your iPhone. It connects once you arrive and turn on Data Roaming for it.": "Auf deinem iPhone. Sie verbindet sich, sobald du ankommst und Datenroaming für sie einschaltest.",
+  "The network sees it on the phone with EID ending {tail}. Yours is in Settings > General > About.": "Das Netz sieht sie auf dem Telefon mit der EID-Endung {tail}. Deine findest du unter Einstellungen > Allgemein > Info.",
+  "Get help": "Hilfe holen",
   "This network does not report data used.": "Dieses Netz meldet den Datenverbrauch nicht.",
   "Ringo took too long to answer. Try again in a moment.": "Ringo hat zu lange gebraucht. Versuch es gleich noch einmal.",
   "No connection to Ringo. Check your internet and try again.": "Keine Verbindung zu Ringo. Prüf deine Internetverbindung und versuch es noch einmal.",

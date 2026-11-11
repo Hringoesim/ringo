@@ -190,11 +190,19 @@ export interface Subscription {
   renewal_off?: boolean;
 }
 
+/** How far onto a phone the network has seen the eSIM go (api/_day-usage.js deviceState). */
+export interface DeviceState { stage: 'ready' | 'downloaded' | 'on' | 'off' | 'connected' | 'removed'; eid_tail: string | null }
+/** A day pass's priority data in its current 24 hours, and the Power pass to move to. */
+export interface DayUsage {
+  priority_mb: number; used_today_mb: number; left_today_mb: number; throttled: boolean; resets_at: string; after_speed: string | null; day: number;
+  upgrade?: { plan: string; label: string; group: string; daily_gb: number; days: number; after_speed: string | null; amount: number | null; currency: string | null; apple_product_id: string | null } | null;
+}
+
 export interface SubscriptionRead {
   subscription: Subscription | null;
   destination?: { id: string; label: string; kind: string };
   top_ups?: TopUp[];
-  usage?: { data_remaining_mb: number | null; unlimited: boolean; package_status: string | null; expires_at: string | null; installed?: boolean } | { unavailable: true };
+  usage?: { data_remaining_mb: number | null; unlimited: boolean; package_status: string | null; expires_at: string | null; installed?: boolean; device?: DeviceState; day?: DayUsage } | { unavailable: true };
   install?: { apple_url: string; lpa: string };
   /** Ringo Rewards: Global kept long enough to earn a cheaper month. */
   rewards_global?: { pct: number; months: number; product_id: string | null };

@@ -30,6 +30,7 @@ import type { Selection, PaidStart } from './screens/DestinationScreen';
 import { avatarTraveller } from './store/avatar';
 import { LANG_RETURN_KEY } from './lib/langReturn';
 import { launchCatalog } from './store/destinations';
+import { setQuizPick } from './lib/quiz';
 
 // Only the two screens a launch can open (welcome, store) ship in the main
 // chunk. Every other screen is its own chunk, parsed when it first opens:
@@ -188,6 +189,12 @@ export function App() {
     navDirRef.current = 'push';
     haptic('light');
     setStack((s) => [...s, mkFrame(name, params)]);
+  };
+  // In place of the screen on show: a page that only forwards (a place's
+  // Power asked for, its own Power Use card shown) leaves nothing for Back to land on.
+  const replace = (name: string, params: Frame['params'] = {}) => {
+    navDirRef.current = 'push';
+    setStack((s) => [...s.slice(0, -1), mkFrame(name, params)]);
   };
   const pop = () => {
     navDirRef.current = 'pop';
@@ -365,7 +372,7 @@ export function App() {
           <DestinationScreen
             id={current.params.destination || 'europe'}
             power={Boolean(current.params.power)}
-            onPower={(destination) => push('destination', { destination, power: true })}
+            onPower={(destination, opts) => (opts?.replace ? replace : push)('destination', { destination, power: true })}
             onBack={pop}
             onContinue={(selection, paid) => push('checkout', { selection, ...(paid ? { paid } : {}) })}
           />
@@ -390,6 +397,7 @@ export function App() {
             onStore={() => goTab('store')}
             onReport={() => push('report')}
             onProfile={() => push('profile')}
+            onPower={(destination, pick) => { setQuizPick({ tab: 'power', days: pick.days, dailyGb: pick.dailyGb }); push('destination', { destination, power: true }); }}
           />
         );
         break;

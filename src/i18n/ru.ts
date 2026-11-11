@@ -2,6 +2,21 @@
 import type { Catalog } from '../lib/i18n';
 
 const c: Catalog = {
+  "Full speed today": "Полная скорость сегодня",
+  "Today's {gb} at full speed is used. You are on {speed} until about {time}, then full speed again.": "Сегодняшние {gb} на полной скорости израсходованы. Скорость {speed} примерно до {time}, затем снова полная.",
+  "Today's {gb} at full speed is used. Slower until about {time}, then full speed again.": "Сегодняшние {gb} на полной скорости израсходованы. Медленнее примерно до {time}, затем снова полная скорость.",
+  "{left} left at full speed today. It renews about {time}.": "Сегодня осталось {left} на полной скорости. Обновится около {time}.",
+  "Need full speed all day?": "Нужна полная скорость весь день?",
+  "Power gives you {n} GB a day at full speed for the rest of your trip.": "Power даёт {n} ГБ в день на полной скорости до конца поездки.",
+  "See Power plans": "Тарифы Power",
+  "Removed from your iPhone": "Удалена с вашего iPhone",
+  "Installed, switched off": "Установлена, выключена",
+  "The network shows this eSIM was deleted from the phone. Tell us and we will help you get it back.": "Сеть показывает, что эта eSIM удалена с телефона. Напишите нам, и мы поможем её вернуть.",
+  "Turn it on in Settings > Mobile Service, then pick it for Mobile Data.": "Включите её в Настройки > Сотовая связь и выберите для сотовых данных.",
+  "Connected to a network.": "Подключена к сети.",
+  "On your iPhone. It connects once you arrive and turn on Data Roaming for it.": "На вашем iPhone. Подключится, когда вы прилетите и включите для неё роуминг данных.",
+  "The network sees it on the phone with EID ending {tail}. Yours is in Settings > General > About.": "Сеть видит её на телефоне с EID, оканчивающимся на {tail}. Ваш EID: Настройки > Основные > Об этом устройстве.",
+  "Get help": "Получить помощь",
   "This network does not report data used.": "Эта сеть не сообщает об использованных данных.",
   "Ringo took too long to answer. Try again in a moment.": "Ringo слишком долго не отвечает. Попробуйте ещё раз чуть позже.",
   "No connection to Ringo. Check your internet and try again.": "Нет связи с Ringo. Проверьте интернет и попробуйте ещё раз.",

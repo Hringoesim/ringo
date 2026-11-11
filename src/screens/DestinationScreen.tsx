@@ -29,6 +29,7 @@ import { RC, RADIUS, TYPE, typeFor, cardSurface, SHADOW_CARD, SKINS, ON_DARK, PH
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { BackBtn, TickList, ErrorBox } from '../components/ui';
+import { useBlockSwipeBack } from '../components/ScreenHost';
 import { termTitle, planName, periodWord, lineKey, tierName } from '../lib/terms';
 import { takeQuizPick, setQuizPick, clearQuizPick, sendQuizPicked } from '../lib/quiz';
 import { hasMosaic, pictureFor, skyFor, bundledPictureFor, type Destination } from '../data/destinations';
@@ -364,7 +365,7 @@ function GlobalCard({ l, p, price }: { l: Layout; p: Plan; price: { total: strin
   );
 }
 
-export function DestinationScreen({ id, power = false, onPower, onBack, onContinue }: { id: string; power?: boolean; onPower?: (id: string) => void; onBack: () => void; onContinue: (s: Selection, paid?: PaidStart) => void }) {
+export function DestinationScreen({ id, power = false, onPower, onBack, onContinue }: { id: string; power?: boolean; onPower?: (id: string, opts?: { replace?: boolean }) => void; onBack: () => void; onContinue: (s: Selection, paid?: PaidStart) => void }) {
   const l = useLayout();
   const dest = destinationFrom(useDestinations(), id);
   const acct = useAccount();
@@ -394,6 +395,11 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   const [reloadKey, setReloadKey] = useState(0);
   // The sheet is up from this page; what it said when it could not start.
   const [paying, setPaying] = useState(false);
+  // While a payment confirms (up to 90 s after the sheet), this page stays:
+  // leaving it let a second plan be paid for, and the first one's Checkout
+  // landed on top of whatever screen was open by then.
+  useBlockSwipeBack(paying);
+  const back = () => { if (!paying) onBack(); };
   const [payErr, setPayErr] = useState<string | null>(null);
   // Ringo credit on the account: spent in the sheet on a one-payment plan (the site decides how much).
   const [creditCents, setCreditCents] = useState(0);
@@ -511,7 +517,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
     if ((power || quiz?.tab === 'power') && cat?.power_destination && onPower) {
       // The quiz's plan goes on to that card, which picks its line.
       if (quiz?.tab === 'power') setQuizPick(quiz);
-      onPower(cat.power_destination);
+      onPower(cat.power_destination, { replace: true });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when the catalogue arrives
   }, [cat?.power_destination]);
@@ -662,7 +668,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   const payCents = selected ? afterCredit(selected.billed_upfront_amount, selected.currency, creditHere && useCredit ? creditCents : 0) : 0;
   const payLabel: ReactNode = !selected ? '' : selected.mode === 'subscription' ? t('Subscribe securely, {price} a month', { price: payPrice }) : tn('Pay {price} securely', { price: <CountingPrice key={lineKey(selected)} cents={payCents} currency={selected.currency} /> });
   const payButton = (
-    <RingoButton onClick={() => void continueTap()} disabled={paying} style={ctaStyle}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Lock size={17} color="#fff" /><span>{payLabel}</span></span></RingoButton>
+    <RingoButton onClick={() => void continueTap()} disabled={paying} loading={paying} style={ctaStyle}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Lock size={17} color="#fff" /><span>{payLabel}</span></span></RingoButton>
   );
   const retry = () => { setErr(null); setProducts(null); setReloadKey((k) => k + 1); };
   const loadingPrices = native && cat && !products;
@@ -806,7 +812,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   if (l.isWide) {
     return (
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <RingoHeader leading={<BackBtn onClick={onBack} />} title={name} />
+        <RingoHeader leading={<BackBtn onClick={back} />} title={name} />
         <div className="no-bar" style={{ flex: 1, overflowY: 'auto', paddingBottom: 'calc(40px + env(safe-area-inset-bottom, 0px))' }}>
           <div style={{ ...contentColumn(l), display: 'grid', gridTemplateColumns: 'minmax(0, 1.05fr) minmax(0, 1fr)', gap: 28, alignItems: 'start' }}>
             <div style={{ position: 'sticky', top: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -828,7 +834,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
                   {payErr && <ErrorBox>{payErr}</ErrorBox>}
                   {creditBox}
                   {terms}
-                  {payHere ? payButton : <RingoButton onClick={() => void continueTap()} disabled={paying} style={ctaStyle}>{selected.mode === 'subscription' ? t('Continue, {price} today', { price: selectedPrice.total }) : t('Continue, {price}', { price: selectedPrice.total })}</RingoButton>}
+                  {payHere ? payButton : <RingoButton onClick={() => void continueTap()} disabled={paying} loading={paying} style={ctaStyle}>{selected.mode === 'subscription' ? t('Continue, {price} today', { price: selectedPrice.total }) : t('Continue, {price}', { price: selectedPrice.total })}</RingoButton>}
                   {payHere && <PayMethods />}
                 </div>
               )}
@@ -853,7 +859,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
         <Photo id={id} src={powerHero} />
         <div aria-hidden style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(26,15,46,0.30) 0%, rgba(26,15,46,0) 32%, rgba(26,15,46,0.78) 100%)' }} />
         <div style={{ position: 'absolute', left: 0, right: 0, top: 0 }}>
-          <RingoHeader leading={<BackBtn onClick={onBack} />} />
+          <RingoHeader leading={<BackBtn onClick={back} />} />
         </div>
         <div style={{ position: 'absolute', left: l.gutter, right: l.gutter, bottom: SHEET_RADIUS + 12 }}>
           <PhotoTitle l={l} dest={dest} name={name} coverage={coverage} />
@@ -882,7 +888,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
             </div>
           </div>
           <div style={{ flex: 1, minWidth: 132 }}>
-            <RingoButton round onClick={() => void continueTap()} disabled={paying} style={ctaStyle}>{t('Continue')}</RingoButton>
+            <RingoButton round onClick={() => void continueTap()} disabled={paying} loading={paying} style={ctaStyle}>{t('Continue')}</RingoButton>
           </div>
           </div>}
           {payHere && <PayMethods />}

@@ -2,6 +2,21 @@
 import type { Catalog } from '../lib/i18n';
 
 const c: Catalog = {
+  "Full speed today": "Volle snelheid vandaag",
+  "Today's {gb} at full speed is used. You are on {speed} until about {time}, then full speed again.": "De {gb} op volle snelheid van vandaag is op. Je zit op {speed} tot ongeveer {time}, daarna weer volle snelheid.",
+  "Today's {gb} at full speed is used. Slower until about {time}, then full speed again.": "De {gb} op volle snelheid van vandaag is op. Trager tot ongeveer {time}, daarna weer volle snelheid.",
+  "{left} left at full speed today. It renews about {time}.": "Nog {left} op volle snelheid vandaag. Vernieuwt rond {time}.",
+  "Need full speed all day?": "De hele dag volle snelheid nodig?",
+  "Power gives you {n} GB a day at full speed for the rest of your trip.": "Power geeft je {n} GB per dag op volle snelheid voor de rest van je reis.",
+  "See Power plans": "Bekijk Power-abonnementen",
+  "Removed from your iPhone": "Verwijderd van je iPhone",
+  "Installed, switched off": "Geïnstalleerd, uitgeschakeld",
+  "The network shows this eSIM was deleted from the phone. Tell us and we will help you get it back.": "Het netwerk meldt dat deze eSIM van de telefoon is verwijderd. Laat het ons weten, dan helpen we je hem terug te krijgen.",
+  "Turn it on in Settings > Mobile Service, then pick it for Mobile Data.": "Zet hem aan via Instellingen > Mobiel netwerk en kies hem voor mobiele data.",
+  "Connected to a network.": "Verbonden met een netwerk.",
+  "On your iPhone. It connects once you arrive and turn on Data Roaming for it.": "Op je iPhone. Hij maakt verbinding zodra je aankomt en dataroaming ervoor aanzet.",
+  "The network sees it on the phone with EID ending {tail}. Yours is in Settings > General > About.": "Het netwerk ziet hem op de telefoon met een EID die eindigt op {tail}. De jouwe staat in Instellingen > Algemeen > Info.",
+  "Get help": "Hulp krijgen",
   "This network does not report data used.": "Dit netwerk meldt het dataverbruik niet.",
   "Ringo took too long to answer. Try again in a moment.": "Ringo deed er te lang over. Probeer het zo nog eens.",
   "No connection to Ringo. Check your internet and try again.": "Geen verbinding met Ringo. Controleer je internet en probeer het opnieuw.",

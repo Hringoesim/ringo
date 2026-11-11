@@ -2,6 +2,21 @@
 import type { Catalog } from '../lib/i18n';
 
 const c: Catalog = {
+  "Full speed today": "Velocidade máxima hoje",
+  "Today's {gb} at full speed is used. You are on {speed} until about {time}, then full speed again.": "Os {gb} de velocidade máxima de hoje foram usados. Você está a {speed} até cerca de {time}, depois volta a velocidade máxima.",
+  "Today's {gb} at full speed is used. Slower until about {time}, then full speed again.": "Os {gb} de velocidade máxima de hoje foram usados. Mais lento até cerca de {time}, depois volta a velocidade máxima.",
+  "{left} left at full speed today. It renews about {time}.": "Restam {left} em velocidade máxima hoje. Renova por volta de {time}.",
+  "Need full speed all day?": "Precisa de velocidade máxima o dia todo?",
+  "Power gives you {n} GB a day at full speed for the rest of your trip.": "O Power dá {n} GB por dia em velocidade máxima pelo resto da sua viagem.",
+  "See Power plans": "Ver planos Power",
+  "Removed from your iPhone": "Removido do seu iPhone",
+  "Installed, switched off": "Instalado, desligado",
+  "The network shows this eSIM was deleted from the phone. Tell us and we will help you get it back.": "A rede mostra que este eSIM foi apagado do telefone. Avise a gente e ajudamos você a recuperá-lo.",
+  "Turn it on in Settings > Mobile Service, then pick it for Mobile Data.": "Ative em Ajustes > Celular e escolha-o para os dados celulares.",
+  "Connected to a network.": "Conectado a uma rede.",
+  "On your iPhone. It connects once you arrive and turn on Data Roaming for it.": "No seu iPhone. Ele conecta quando você chegar e ativar o roaming de dados para ele.",
+  "The network sees it on the phone with EID ending {tail}. Yours is in Settings > General > About.": "A rede o vê no telefone com EID terminado em {tail}. O seu está em Ajustes > Geral > Sobre.",
+  "Get help": "Obter ajuda",
   "This network does not report data used.": "Esta rede não informa os dados consumidos.",
   "Ringo took too long to answer. Try again in a moment.": "O Ringo demorou demais para responder. Tente de novo em instantes.",
   "No connection to Ringo. Check your internet and try again.": "Sem conexão com o Ringo. Verifique sua internet e tente de novo.",
