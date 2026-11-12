@@ -671,5 +671,10 @@ const c: Catalog = {
   "Enjoying Ringo?": "¿Te gusta Ringo?",
   "Rate Ringo": "Valorar Ringo",
   "A rating on the App Store helps other travellers find us.": "Una valoración en el App Store ayuda a otros viajeros a encontrarnos.",
+  "A new version of Ringo is ready": "Hay una nueva versión de Ringo",
+  "Update for the latest fixes and features.": "Actualiza para tener las últimas mejoras y correcciones.",
+  "Update": "Actualizar",
+  "Know when your eSIM is ready and when data runs low.": "Entérate cuando tu eSIM esté lista y cuando te queden pocos datos.",
+  "Notifications are off": "Las notificaciones están desactivadas",
 };
 export default c;

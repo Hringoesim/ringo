@@ -16,6 +16,7 @@ import { PlaceMosaic } from '../components/PlaceMosaic';
 import { bundledPictureFor, destinationById, hasMosaic, pictureFor, skyFor } from '../data/destinations';
 import { light, money, SITE, type DayUsage, type DeviceState, type Profile, type SubscriptionRead, type TopUp, type Usage } from '../api/light';
 import { UsageSection } from '../components/UsageCard';
+import { AppNudge } from '../components/AppNudge';
 import { useAccount, account, pendingPurchase } from '../store/account';
 import { openInSheet } from '../lib/browser';
 import { askForReview, shouldAskForReview, usedMbFor } from '../lib/review';
@@ -517,6 +518,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {header}
       <div className="no-bar" style={scroller}>
+        <AppNudge style={{ marginBottom: 16 }} />
         {loading && !data && (
           <div role="status" aria-label={tr('Loading your eSIM')} style={{ ...twoColumn(l) }}>
             <div style={{ height: l.isWide ? 380 : 300, borderRadius: RADIUS.card, border: `1.5px solid ${RC.line}`, background: RC.cream, animation: 'ringoSheen 1.4s ease-in-out infinite' }} />

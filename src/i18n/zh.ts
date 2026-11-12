@@ -671,5 +671,10 @@ const c: Catalog = {
   "Enjoying Ringo?": "喜欢 Ringo 吗？",
   "Rate Ringo": "给 Ringo 评分",
   "A rating on the App Store helps other travellers find us.": "你在 App Store 的评分能帮助更多旅行者找到我们。",
+  "A new version of Ringo is ready": "Ringo 有新版本了",
+  "Update for the latest fixes and features.": "更新即可获得最新功能和修复。",
+  "Update": "更新",
+  "Know when your eSIM is ready and when data runs low.": "eSIM 就绪或流量不足时，我们会通知你。",
+  "Notifications are off": "通知已关闭",
 };
 export default c;

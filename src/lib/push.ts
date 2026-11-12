@@ -15,6 +15,10 @@
 //   Help can turn notifications on (they open iOS Settings once iOS has been
 //   refused). The older PushSheet (after the first delivered purchase) stays
 //   as the ask for a phone that somehow never saw the step.
+// - Since 2026-11-12 (owner: "toggle people to turn on notifications") a
+//   signed-in phone with notifications off also gets a small card over the
+//   store and My eSIM (components/AppNudge), which "Not now" puts away for
+//   30 days. It never raises the iOS dialog by itself.
 // - Service alerts (data running low, eSIM ready) are on once notifications
 //   are allowed. Offers (Rewards, promos) are what the member left the switch
 //   on: on from the step unless turned off, off as easily under Help.
@@ -159,6 +163,17 @@ export function onboardDue(): boolean {
     if (state.permission === 'prompt') return true;
     return state.permission === 'granted' && localStorage.getItem(PREFS_KEY) === null;
   } catch { return false; }
+}
+/**
+ * The card over the store and My eSIM (components/AppNudge) is due while
+ * notifications are off on this phone: iOS has been refused, or the
+ * onboarding step was answered 'Not now'. Not before the step has had its turn.
+ */
+export function pushNudgeDue(): boolean {
+  if (!pushAvailable() || !state.known) return false;
+  if (state.permission === 'denied') return true;
+  if (state.permission !== 'prompt') return false;
+  try { return localStorage.getItem(ONBOARD_KEY) === '1'; } catch { return false; }
 }
 /** The step has been shown: never again on this phone. The older sheet goes with it. */
 export function markOnboarded(): void {
