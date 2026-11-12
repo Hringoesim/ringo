@@ -16,6 +16,7 @@ import { PlaceMosaic } from '../components/PlaceMosaic';
 import { bundledPictureFor, destinationById, hasMosaic, pictureFor, skyFor } from '../data/destinations';
 import { light, money, SITE, type DayUsage, type DeviceState, type Profile, type SubscriptionRead, type TopUp, type Usage } from '../api/light';
 import { UsageSection } from '../components/UsageCard';
+import { Toggle } from '../components/PushControls';
 import { useAccount, account, pendingPurchase } from '../store/account';
 import { openInSheet } from '../lib/browser';
 import { askForReview, shouldAskForReview, usedMbFor } from '../lib/review';
@@ -291,6 +292,27 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
     }
   };
 
+  // Automatic top-up (owner 2026-11-12): a switch, off by default for a plan
+  // bought in the app, not a one-tap buy. On, the site adds the top-up at 90%
+  // used and charges the card, at the member's Rewards price.
+  const [autoBusy, setAutoBusy] = useState(false);
+  const [showAddNow, setShowAddNow] = useState(false);
+  const toggleAutoTopUp = async (on: boolean) => {
+    if (!acct || autoBusy) return;
+    setAutoBusy(true);
+    setErr(null);
+    try {
+      const r = await light.setAutoTopUp(acct.userId, acct.t, on, data?.subscription?.id ?? null);
+      setData((d) => (d && d.subscription ? { ...d, subscription: { ...d.subscription, auto_topup: r.auto_topup } } : d));
+      setNote(r.auto_topup ? tr('Automatic top-up is on. We email you at 80% before anything is charged.') : tr('Automatic top-up is off. Your data can run out before your plan ends.'));
+      clearNoteIn(6000);
+    } catch (e) {
+      setErr((e as Error).message || tr('Could not update.'));
+    } finally {
+      setAutoBusy(false);
+    }
+  };
+
   // Renewal of a card subscription, off or back on. Off keeps the month paid for.
   const [renewBusy, setRenewBusy] = useState(false);
   const toggleRenewal = async (on: boolean) => {
@@ -485,33 +507,53 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
     </PhotoCard>
   ) : null;
 
-  const topUps = sub?.esim_attached && data?.top_ups && data.top_ups.length > 0 ? (
-    <section>
-      <SectionHead title={tr('Allowance top-up')} sub={tr('More data on this same eSIM.')} />
-      <RingoCard padding={0} clip>
-        {data.top_ups.map((t, i) => {
-          const ready = CARD_PAYMENTS || !iapAvailable() || Boolean(t.apple_product_id && topProducts.has(t.apple_product_id));
-          const price = CARD_PAYMENTS ? money(t.amount, t.currency) : (t.apple_product_id && topProducts.get(t.apple_product_id)?.displayPrice) || (iapAvailable() ? '…' : money(t.amount, t.currency));
-          return (
-            <button
-              key={t.plan}
-              className="press"
-              onClick={() => void topUp(t)}
-              disabled={topping != null || !ready}
-              aria-label={tr('Allowance top-up, valid {n} days, {price}', { n: t.validity_days, price })}
-              style={{ width: '100%', minHeight: 64, textAlign: 'start', cursor: 'pointer', border: 'none', background: 'transparent', padding: '14px 16px', borderBottom: i === data.top_ups!.length - 1 ? 'none' : `1px solid ${RC.line}`, display: 'flex', alignItems: 'center', gap: 12, opacity: topping != null && topping !== t.plan ? 0.5 : 1 }}
-            >
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ ...TYPE.h3, color: RC.ink }}>{tr('Allowance top-up')}</div>
-                <div style={{ ...TYPE.small, color: RC.ink2 }}>{plural(t.validity_days, 'Valid {n} day', 'Valid {n} days')}</div>
+  const topUps = sub?.esim_attached && data?.top_ups && data.top_ups.length > 0 ? (() => {
+    const first = data.top_ups![0];
+    const firstPrice = money(first.amount, first.currency);
+    const autoOn = sub.auto_topup === true;
+    return (
+      <section>
+        <SectionHead title={tr('Automatic top-up')} sub={tr('More data on this same eSIM.')} />
+        <RingoCard padding={0} clip>
+          <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, minHeight: 64 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ ...TYPE.h3, color: RC.ink }}>{tr('Top up automatically')}</div>
+              <div style={{ ...TYPE.small, color: RC.ink2 }}>
+                {tr('Adds {gb} GB for {price} when 90% is used. We email you at 80% first.', { gb: first.data_gb, price: firstPrice })}
+                {first.member_pct ? ` ${tr('{n}% off with your Rewards level.', { n: first.member_pct })}` : ''}
               </div>
-              <div style={{ ...TYPE.bodyStrong, color: RC.orangeInk, fontVariantNumeric: 'tabular-nums' }}>{topping === t.plan ? tr('Adding…') : price}</div>
-            </button>
-          );
-        })}
-      </RingoCard>
-    </section>
-  ) : null;
+            </div>
+            <Toggle on={autoOn} onChange={(v) => void toggleAutoTopUp(v)} label={tr('Top up automatically')} />
+          </div>
+          {showAddNow ? data.top_ups!.map((t) => {
+            const ready = CARD_PAYMENTS || !iapAvailable() || Boolean(t.apple_product_id && topProducts.has(t.apple_product_id));
+            const price = CARD_PAYMENTS ? money(t.amount, t.currency) : (t.apple_product_id && topProducts.get(t.apple_product_id)?.displayPrice) || (iapAvailable() ? '…' : money(t.amount, t.currency));
+            return (
+              <button
+                key={t.plan}
+                className="press"
+                onClick={() => void topUp(t)}
+                disabled={topping != null || !ready}
+                aria-label={tr('Allowance top-up, valid {n} days, {price}', { n: t.validity_days, price })}
+                style={{ width: '100%', minHeight: 56, textAlign: 'start', cursor: 'pointer', border: 'none', background: 'transparent', padding: '12px 16px', borderTop: `1px solid ${RC.line}`, display: 'flex', alignItems: 'center', gap: 12, opacity: topping != null && topping !== t.plan ? 0.5 : 1 }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ ...TYPE.bodyStrong, color: RC.ink }}>{tr('Add {gb} GB now', { gb: t.data_gb })}</div>
+                  <div style={{ ...TYPE.small, color: RC.ink2 }}>{plural(t.validity_days, 'Valid {n} day', 'Valid {n} days')}</div>
+                </div>
+                <div style={{ ...TYPE.bodyStrong, color: RC.orangeInk, fontVariantNumeric: 'tabular-nums' }}>{topping === t.plan ? tr('Adding…') : price}</div>
+              </button>
+            );
+          }) : null}
+        </RingoCard>
+        {!showAddNow && (
+          <div style={{ marginTop: 8 }}>
+            <TextLink onClick={() => setShowAddNow(true)}>{tr('Add data now instead')}</TextLink>
+          </div>
+        )}
+      </section>
+    );
+  })() : null;
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>

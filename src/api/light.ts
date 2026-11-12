@@ -61,6 +61,9 @@ export interface TopUp {
   amount: number;
   currency: Currency;
   validity_days: number;
+  /** The Rewards level's share off, when this price carries one. */
+  member_pct?: number;
+  list_amount?: number;
 }
 
 export interface Catalog {
@@ -188,6 +191,8 @@ export interface Subscription {
   /** Who bills the renewal: a card (turned off here, setRenewal) or Apple (iOS Settings). */
   billing?: 'card' | 'apple' | null;
   renewal_off?: boolean;
+  /** Data added and charged on its own at 90% used. Off by default for a plan bought in the app. */
+  auto_topup?: boolean;
 }
 
 /** How far onto a phone the network has seen the eSIM go (api/_day-usage.js deviceState). */
@@ -289,6 +294,12 @@ export const light = {
     request<{ ok: boolean; renewal_off: boolean; ends_at: string | null }>(
       `/esim-subscription?${new URLSearchParams({ user: userId, t }).toString()}`,
       { method: 'POST', body: JSON.stringify({ action: 'renewal', on }) },
+    ),
+  /** Automatic top-up on or off for this eSIM (owner 2026-11-12: a switch, off by default). */
+  setAutoTopUp: (userId: string, t: string, on: boolean, subscription?: string | null) =>
+    request<{ ok: boolean; auto_topup: boolean }>(
+      `/esim-subscription?${new URLSearchParams({ user: userId, t }).toString()}`,
+      { method: 'POST', body: JSON.stringify({ action: 'auto_topup', on, ...(subscription ? { subscription } : {}) }) },
     ),
   resendInstall: (userId: string, t: string) =>
     request<{ ok: boolean; throttled?: boolean; retry_after_seconds?: number; sent_to?: string }>(
