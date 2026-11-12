@@ -3,8 +3,9 @@
 // at most one thing: a newer version on the App Store first (lib/appUpdate),
 // else notifications that are off for a signed-in member (lib/push). The
 // button does the one thing: the App Store, the iOS dialog, or iOS Settings
-// once iOS has been refused. "Not now" puts the update card away for a week
-// (a newer version brings it back) and the notifications card for 30 days.
+// once iOS has been refused. The update card stays until the phone is
+// updated (owner 2026-11-12: "if you are on an old version they need to
+// update it"); "Not now" puts the notifications card away for 30 days.
 import { useState, type CSSProperties } from 'react';
 import { RC, TYPE, cardSurface } from '../theme';
 import { RingoButton } from './Button';
@@ -16,17 +17,9 @@ import { openExternal } from '../lib/browser';
 import { useAccount } from '../store/account';
 import { t } from '../lib/i18n';
 
-const UPDATE_LATER_KEY = 'ringo_nudge_update_later_v1';
 const NOTIFY_LATER_KEY = 'ringo_nudge_notify_later_v1';
-const UPDATE_LATER_MS = 7 * 86400000;
 const NOTIFY_LATER_MS = 30 * 86400000;
 
-function updatePutAway(version: string): boolean {
-  try {
-    const v = JSON.parse(localStorage.getItem(UPDATE_LATER_KEY) || 'null');
-    return Boolean(v && v.version === version && Date.now() - Number(v.at) < UPDATE_LATER_MS);
-  } catch { return false; }
-}
 function notifyPutAway(): boolean {
   try { return Date.now() - Number(localStorage.getItem(NOTIFY_LATER_KEY) || 0) < NOTIFY_LATER_MS; } catch { return false; }
 }
@@ -54,17 +47,14 @@ export function AppNudge({ style }: { style?: CSSProperties }) {
   // Counts each "Not now", so the card goes at once.
   const [, setPutAway] = useState(0);
 
-  const update = preview === 'update' || Boolean(version && !updatePutAway(version));
+  const update = preview === 'update' || Boolean(version);
   const refused = preview === 'settings' || push.permission === 'denied';
   const notify = !update && (preview === 'notify' || preview === 'settings' || (Boolean(acct) && pushNudgeDue() && !notifyPutAway()));
   if (!update && !notify) return null;
 
   const later = () => {
     hapticSelection();
-    try {
-      if (update) localStorage.setItem(UPDATE_LATER_KEY, JSON.stringify({ version, at: Date.now() }));
-      else localStorage.setItem(NOTIFY_LATER_KEY, String(Date.now()));
-    } catch { /* ignore */ }
+    try { localStorage.setItem(NOTIFY_LATER_KEY, String(Date.now())); } catch { /* ignore */ }
     setPutAway((n) => n + 1);
   };
   const act = async () => {
@@ -90,7 +80,7 @@ export function AppNudge({ style }: { style?: CSSProperties }) {
           <RingoButton size="sm" full={false} loading={busy} onClick={() => void act()}>
             {update ? t('Update') : refused ? t('Open Settings') : t('Turn on notifications')}
           </RingoButton>
-          <TextLink onClick={later} disabled={busy} color={RC.ink2}>{t('Not now')}</TextLink>
+          {!update && <TextLink onClick={later} disabled={busy} color={RC.ink2}>{t('Not now')}</TextLink>}
         </div>
       </div>
     </section>
