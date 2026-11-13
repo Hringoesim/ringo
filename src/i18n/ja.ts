@@ -2,6 +2,12 @@
 import type { Catalog } from '../lib/i18n';
 
 const c: Catalog = {
+  "Loading…": "読み込み中…",
+  "Current": "現在",
+  "History": "履歴",
+  "History ({n})": "履歴（{n}）",
+  "Loading your history": "履歴を読み込み中",
+  "No expired eSIMs yet. Plans that have ended show here.": "期限切れのeSIMはまだありません。終了したプランはここに表示されます。",
   "Automatic top-up is on. We email you at 80% before anything is charged.": "自動チャージはオンです。課金の前に80%の時点でメールでお知らせします。",
   "Automatic top-up is off. Your data can run out before your plan ends.": "自動チャージはオフです。プラン終了前にデータがなくなる場合があります。",
   "Could not update.": "更新できませんでした。",

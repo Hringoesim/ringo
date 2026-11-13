@@ -2,6 +2,12 @@
 import type { Catalog } from '../lib/i18n';
 
 const c: Catalog = {
+  "Loading…": "Yükleniyor…",
+  "Current": "Güncel",
+  "History": "Geçmiş",
+  "History ({n})": "Geçmiş ({n})",
+  "Loading your history": "Geçmişin yükleniyor",
+  "No expired eSIMs yet. Plans that have ended show here.": "Henüz süresi dolmuş eSIM yok. Sona eren paketler burada görünür.",
   "Automatic top-up is on. We email you at 80% before anything is charged.": "Otomatik yükleme açık. Ücret alınmadan önce %80'de sana e-posta göndeririz.",
   "Automatic top-up is off. Your data can run out before your plan ends.": "Otomatik yükleme kapalı. Verin planın bitmeden tükenebilir.",
   "Could not update.": "Güncellenemedi.",

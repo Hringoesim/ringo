@@ -16,6 +16,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNod
 import { RingoTabBar, type TabId } from './components/TabBar';
 import { RC } from './theme';
 import { ScreenHost, type NavDir, type KeptScreen } from './components/ScreenHost';
+import { Loading } from './components/ui';
 import { haptic } from './lib/haptics';
 import { account, pendingPurchase } from './store/account';
 import { useDestinations } from './store/destinations';
@@ -436,9 +437,9 @@ export function App() {
       default:
         body = <div style={{ padding: 40 }}>Unknown screen: {current.name}</div>;
     }
-    // A chunk still loading paints nothing for the moment it takes; the
-    // screen host's slide covers it, and prefetchScreens() makes it rare.
-    return <Suspense fallback={null}>{body}</Suspense>;
+    // A chunk still loading shows the spinner, never a blank screen (owner
+    // 2026-11-13: "always have a loading sequence when something is loading").
+    return <Suspense fallback={<Loading />}>{body}</Suspense>;
   };
   // A kept tab's element is made once, so going back to it or switching tabs
   // never re-renders it (its callbacks only read refs and state setters).

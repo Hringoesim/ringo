@@ -389,6 +389,16 @@ export function ErrorBox({ children, style = {} }: { children: ReactNode; style?
   );
 }
 
+/** A spinner and one line, centred: what shows while anything loads, never a blank screen. */
+export function Loading({ label, style = {} }: { label?: string; style?: CSSProperties }) {
+  return (
+    <div role="status" aria-live="polite" style={{ flex: 1, minHeight: 160, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24, ...style }}>
+      <span aria-hidden style={{ width: 28, height: 28, borderRadius: '50%', border: `3px solid ${RC.line}`, borderTopColor: RC.orangeInk, animation: 'ringoSpin 0.8s linear infinite' }} />
+      <span style={{ ...TYPE.small, color: RC.ink2 }}>{label || t('Loading…')}</span>
+    </div>
+  );
+}
+
 /** The site's paid / done banner: soft green, dark green text. */
 export function SuccessBox({ children, style = {} }: { children: ReactNode; style?: CSSProperties }) {
   const dark = RC.scheme === 'dark';

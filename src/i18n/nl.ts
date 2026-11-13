@@ -2,6 +2,12 @@
 import type { Catalog } from '../lib/i18n';
 
 const c: Catalog = {
+  "Loading…": "Laden…",
+  "Current": "Huidig",
+  "History": "Geschiedenis",
+  "History ({n})": "Geschiedenis ({n})",
+  "Loading your history": "Je geschiedenis laden",
+  "No expired eSIMs yet. Plans that have ended show here.": "Nog geen verlopen eSIMs. Afgelopen bundels verschijnen hier.",
   "Automatic top-up is on. We email you at 80% before anything is charged.": "Automatisch opwaarderen staat aan. We mailen je bij 80% voordat er iets wordt afgeschreven.",
   "Automatic top-up is off. Your data can run out before your plan ends.": "Automatisch opwaarderen staat uit. Je data kan op raken voordat je bundel afloopt.",
   "Could not update.": "Bijwerken lukt niet.",

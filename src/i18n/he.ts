@@ -2,6 +2,12 @@
 import type { Catalog } from '../lib/i18n';
 
 const c: Catalog = {
+  "Loading…": "טוען…",
+  "Current": "נוכחי",
+  "History": "היסטוריה",
+  "History ({n})": "היסטוריה ({n})",
+  "Loading your history": "טוען את ההיסטוריה שלך",
+  "No expired eSIMs yet. Plans that have ended show here.": "עדיין אין eSIM שפג תוקפן. חבילות שהסתיימו יופיעו כאן.",
   "Automatic top-up is on. We email you at 80% before anything is charged.": "הטעינה האוטומטית פועלת. נשלח לך מייל ב־80% לפני כל חיוב.",
   "Automatic top-up is off. Your data can run out before your plan ends.": "הטעינה האוטומטית כבויה. הנתונים עלולים להיגמר לפני סוף החבילה.",
   "Could not update.": "לא ניתן לעדכן.",

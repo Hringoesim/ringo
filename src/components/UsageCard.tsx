@@ -125,7 +125,12 @@ function DailyChart({ daily }: { daily: Usage['daily'] }) {
   );
 }
 
-function History({ esims }: { esims: UsageEsim[] }) {
+/** Over: the network says ended, or its last day has passed. These live in My eSIM's History tab. */
+export function isExpired(e: UsageEsim, now = Date.now()): boolean {
+  return /ended|expired|terminated|cancel/i.test(e.status) || Boolean(e.ends_at && Date.parse(e.ends_at) < now);
+}
+
+export function History({ esims }: { esims: UsageEsim[] }) {
   return (
     <RingoCard padding={0} clip>
       <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
@@ -157,15 +162,17 @@ export function UsageSection({ usage, currentDestination, liveRemaining }: { usa
   const matched = forPlan.find((e) => !/ended|expired|terminated/i.test(e.status)) || forPlan[0] || null;
   const current = matched || usage.esims[0] || null;
   if (!current && !usage.daily.length) return null;
+  // Expired eSIMs sit in the History tab (owner 2026-11-13), not in this list.
+  const live = usage.esims.filter((e) => !isExpired(e));
   return (
     <section style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
       <SectionHead title={t('Your data')} style={{ marginBottom: 4 }} />
       {current && <Meter esim={current} liveRemaining={matched && current.id === matched.id ? liveRemaining : null} />}
       <DailyChart daily={usage.daily} />
-      {usage.esims.length > 1 && (
+      {live.length > 1 && (
         <>
           <SectionHead title={t('Every eSIM')} sub={t('{amount} used in all.', { amount: fmtData(usage.totals.used_mb) })} style={{ marginTop: 12, marginBottom: 4 }} />
-          <History esims={usage.esims} />
+          <History esims={live} />
         </>
       )}
     </section>

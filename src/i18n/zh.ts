@@ -2,6 +2,12 @@
 import type { Catalog } from '../lib/i18n';
 
 const c: Catalog = {
+  "Loading…": "加载中…",
+  "Current": "当前",
+  "History": "历史",
+  "History ({n})": "历史（{n}）",
+  "Loading your history": "正在加载你的历史",
+  "No expired eSIMs yet. Plans that have ended show here.": "还没有过期的 eSIM。已结束的套餐会显示在这里。",
   "Automatic top-up is on. We email you at 80% before anything is charged.": "自动充值已开启。扣费前，我们会在用量达 80% 时发邮件提醒你。",
   "Automatic top-up is off. Your data can run out before your plan ends.": "自动充值已关闭。你的流量可能在套餐结束前用完。",
   "Could not update.": "无法更新。",

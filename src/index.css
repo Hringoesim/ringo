@@ -380,6 +380,12 @@ button:focus-visible,
   .success-halo { display: none; }
 }
 
+/* Loading placeholder: a card shape that breathes in place while data loads. */
+@keyframes ringoPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
 /* Loading spinner (buttons, fetches). */
 @keyframes ringoSpin {
   to { transform: rotate(360deg); }

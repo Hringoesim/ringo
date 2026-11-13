@@ -11,11 +11,11 @@ import { RC, RADIUS, READ_MAX, TYPE, PHOTO_OVERLAY, PHOTO_TEXT_SHADOW, cardSurfa
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { RingoCard } from '../components/Card';
-import { BackBtn, ErrorBox, IconButton, PhotoCard, PioneerBadge, SectionHead, SuccessBox, TextLink } from '../components/ui';
+import { BackBtn, ErrorBox, IconButton, Loading, PhotoCard, PioneerBadge, SectionHead, Segmented, SuccessBox, TextLink } from '../components/ui';
 import { PlaceMosaic } from '../components/PlaceMosaic';
 import { bundledPictureFor, destinationById, hasMosaic, pictureFor, skyFor } from '../data/destinations';
 import { light, money, SITE, type DayUsage, type DeviceState, type Profile, type SubscriptionRead, type TopUp, type Usage } from '../api/light';
-import { UsageSection } from '../components/UsageCard';
+import { History, UsageSection, isExpired } from '../components/UsageCard';
 import { Toggle } from '../components/PushControls';
 import { useAccount, account, pendingPurchase } from '../store/account';
 import { openInSheet } from '../lib/browser';
@@ -96,6 +96,8 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
   const clearNoteIn = (ms: number) => { if (noteTimer.current) window.clearTimeout(noteTimer.current); noteTimer.current = window.setTimeout(() => setNote(null), ms); };
   useEffect(() => () => { if (noteTimer.current) window.clearTimeout(noteTimer.current); }, []);
   const [usageAll, setUsageAll] = useState<Usage | null>(null);
+  // Current plan, or the eSIMs that are over (owner 2026-11-13: "have expired esims show in a history tab").
+  const [view, setView] = useState<'current' | 'history'>('current');
   const [pioneer, setPioneer] = useState<Pioneer | null>(null);
   // Ringo Rewards: Global's cheaper month, offered once the site has signed it.
   const [globalOffer, setGlobalOffer] = useState<{ pct: number; productId: string; offer: SignedOffer } | null>(null);
@@ -429,6 +431,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
   // there"): the plan's cycle end, else the carrier's expiry.
   const expiresAt = unlimited ? (sub?.current_cycle_ends_at || usage?.expires_at || null) : null;
 
+  const expired = usageAll ? usageAll.esims.filter((e) => isExpired(e)) : [];
   const hasUsage = Boolean(sub?.esim_attached && usageAll && (usageAll.esims.length || usageAll.daily.length));
   // Without a second column, a wide screen gets one readable column, not a stretched phone row.
   const single = { display: 'flex', flexDirection: 'column' as const, gap: l.cardGap, width: '100%', maxWidth: l.isWide ? READ_MAX + 80 : undefined, marginInline: 'auto' };
@@ -559,10 +562,13 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {header}
       <div className="no-bar" style={scroller}>
-        {loading && !data && (
-          <div role="status" aria-label={tr('Loading your eSIM')} style={{ ...twoColumn(l) }}>
-            <div style={{ height: l.isWide ? 380 : 300, borderRadius: RADIUS.card, border: `1.5px solid ${RC.line}`, background: RC.cream, animation: 'ringoSheen 1.4s ease-in-out infinite' }} />
-            {l.isWide && <div style={{ height: 380, borderRadius: RADIUS.card, border: `1.5px solid ${RC.line}`, background: RC.cream, animation: 'ringoSheen 1.4s ease-in-out infinite' }} />}
+        {/* Nothing read yet and no error: always the loading state, never a
+            blank screen (a quiet read after an account switch included). */}
+        {!data && (loading || !err) && (
+          <div aria-busy="true" style={{ ...twoColumn(l) }}>
+            <Loading label={tr('Loading your eSIM')} style={{ gridColumn: '1 / -1', minHeight: 0, padding: '8px 0 0' }} />
+            <div style={{ height: l.isWide ? 380 : 300, borderRadius: RADIUS.card, border: `1.5px solid ${RC.line}`, background: RC.cream, animation: 'ringoPulse 1.2s ease-in-out infinite' }} />
+            {l.isWide && <div style={{ height: 380, borderRadius: RADIUS.card, border: `1.5px solid ${RC.line}`, background: RC.cream, animation: 'ringoPulse 1.2s ease-in-out infinite' }} />}
           </div>
         )}
 
@@ -590,6 +596,27 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
         )}
 
         {sub && (
+          <div style={{ ...single, marginBottom: l.cardGap }}>
+            <Segmented
+              value={view}
+              onChange={(v) => { haptic('light'); setView(v); }}
+              ariaLabel={tr('My eSIM')}
+              options={[{ id: 'current', label: tr('Current') }, { id: 'history', label: expired.length ? tr('History ({n})', { n: expired.length }) : tr('History') }]}
+            />
+          </div>
+        )}
+
+        {sub && view === 'history' && (
+          <div style={single}>
+            {!usageAll
+              ? <Loading label={tr('Loading your history')} />
+              : expired.length
+                ? <History esims={expired} />
+                : <p style={{ margin: '24px 0', textAlign: 'center', ...TYPE.body, color: RC.ink2 }}>{tr('No expired eSIMs yet. Plans that have ended show here.')}</p>}
+          </div>
+        )}
+
+        {sub && view === 'current' && (
           <>
             <div style={hasUsage ? twoColumn(l, 1, 1) : single}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: l.cardGap }}>

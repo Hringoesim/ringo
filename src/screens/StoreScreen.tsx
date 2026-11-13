@@ -232,7 +232,7 @@ function Skeleton({ l }: { l: Layout }) {
   return (
     <div style={{ marginTop: l.sectionGap, ...cardGrid(l) }}>
       {[0, 1, 2, 3].slice(0, l.isWide ? 4 : 3).map((i) => (
-        <div key={i} style={{ aspectRatio: '16 / 12', borderRadius: RADIUS.card, border: `1.5px solid ${RC.line}`, background: RC.cream, animation: 'ringoSheen 1.4s ease-in-out infinite' }} />
+        <div key={i} style={{ aspectRatio: '16 / 12', borderRadius: RADIUS.card, border: `1.5px solid ${RC.line}`, background: RC.cream, animation: 'ringoPulse 1.2s ease-in-out infinite' }} />
       ))}
     </div>
   );

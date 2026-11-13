@@ -687,7 +687,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
 
   const skeleton = loading && (
     <div style={{ display: 'flex', flexDirection: 'column', gap: l.cardGap }} aria-busy="true" aria-label={t('Loading plans')}>
-      {[0, 1, 2].map((i) => <div key={i} style={{ height: 96, borderRadius: RADIUS.card, background: RC.cream, border: `1.5px solid ${RC.line}`, animation: 'ringoSheen 1.4s ease-in-out infinite' }} />)}
+      {[0, 1, 2].map((i) => <div key={i} style={{ height: 96, borderRadius: RADIUS.card, background: RC.cream, border: `1.5px solid ${RC.line}`, animation: 'ringoPulse 1.2s ease-in-out infinite' }} />)}
     </div>
   );
 

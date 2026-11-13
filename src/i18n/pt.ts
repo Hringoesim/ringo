@@ -2,6 +2,12 @@
 import type { Catalog } from '../lib/i18n';
 
 const c: Catalog = {
+  "Loading…": "Carregando…",
+  "Current": "Atual",
+  "History": "Histórico",
+  "History ({n})": "Histórico ({n})",
+  "Loading your history": "Carregando seu histórico",
+  "No expired eSIMs yet. Plans that have ended show here.": "Ainda não há eSIMs expirados. Os planos encerrados aparecem aqui.",
   "Automatic top-up is on. We email you at 80% before anything is charged.": "A recarga automática está ativada. Avisamos-te aos 80% antes de qualquer cobrança.",
   "Automatic top-up is off. Your data can run out before your plan ends.": "A recarga automática está desativada. Os teus dados podem acabar antes do fim do plano.",
   "Could not update.": "Não foi possível atualizar.",
