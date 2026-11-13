@@ -2,6 +2,15 @@
 import type { Catalog } from '../lib/i18n';
 
 const c: Catalog = {
+  "Automatic top-up is on. We email you at 80% before anything is charged.": "自动充值已开启。扣费前，我们会在用量达 80% 时发邮件提醒你。",
+  "Automatic top-up is off. Your data can run out before your plan ends.": "自动充值已关闭。你的流量可能在套餐结束前用完。",
+  "Could not update.": "无法更新。",
+  "Automatic top-up": "自动充值",
+  "Top up automatically": "自动充值",
+  "Adds {gb} GB for {price} when 90% is used. We email you at 80% first.": "用量达 90% 时以 {price} 添加 {gb} GB。我们会先在 80% 时发邮件提醒你。",
+  "{n}% off with your Rewards level.": "凭你的 Rewards 等级享 {n}% 折扣。",
+  "Add {gb} GB now": "立即添加 {gb} GB",
+  "Add data now instead": "立即添加流量",
   "Full speed today": "今日高速流量",
   "Today's {gb} at full speed is used. You are on {speed} until about {time}, then full speed again.": "今日{gb}高速流量已用完。约{time}前为{speed}，之后恢复高速。",
   "Today's {gb} at full speed is used. Slower until about {time}, then full speed again.": "今日{gb}高速流量已用完。约{time}前速度较慢，之后恢复高速。",

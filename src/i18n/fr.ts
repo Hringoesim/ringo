@@ -2,6 +2,15 @@
 import type { Catalog } from '../lib/i18n';
 
 const c: Catalog = {
+  "Automatic top-up is on. We email you at 80% before anything is charged.": "La recharge automatique est activée. On t'écrit à 80 % avant tout prélèvement.",
+  "Automatic top-up is off. Your data can run out before your plan ends.": "La recharge automatique est désactivée. Tes données peuvent s'épuiser avant la fin de ton forfait.",
+  "Could not update.": "Mise à jour impossible.",
+  "Automatic top-up": "Recharge automatique",
+  "Top up automatically": "Recharger automatiquement",
+  "Adds {gb} GB for {price} when 90% is used. We email you at 80% first.": "Ajoute {gb} Go pour {price} quand 90 % sont utilisés. On t'écrit d'abord à 80 %.",
+  "{n}% off with your Rewards level.": "{n} % de réduction grâce à ton niveau Rewards.",
+  "Add {gb} GB now": "Ajouter {gb} Go maintenant",
+  "Add data now instead": "Ajouter des données maintenant",
   "Full speed today": "Pleine vitesse aujourd'hui",
   "Today's {gb} at full speed is used. You are on {speed} until about {time}, then full speed again.": "Les {gb} à pleine vitesse d'aujourd'hui sont utilisés. Tu es à {speed} jusqu'à environ {time}, puis de nouveau à pleine vitesse.",
   "Today's {gb} at full speed is used. Slower until about {time}, then full speed again.": "Les {gb} à pleine vitesse d'aujourd'hui sont utilisés. Plus lent jusqu'à environ {time}, puis de nouveau à pleine vitesse.",
