@@ -348,6 +348,7 @@ function CountryList({ list }: { list: { iso: string; name: string; flag: string
 
 /** Global on the site's dark plan card: Unlimited, the month's price, the ticks. */
 function GlobalCard({ l, p, price }: { l: Layout; p: Plan; price: { total: string; monthly: string } }) {
+  const hero = typeFor('priceHero', l.size);
   return (
     <div style={{ background: SKINS.unlimited, borderRadius: RADIUS.card, border: `1px solid ${ON_DARK.line}`, boxShadow: '0 18px 40px -20px rgba(147,33,79,0.55)', padding: l.isWide ? 28 : 20, color: '#fff' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
@@ -357,8 +358,11 @@ function GlobalCard({ l, p, price }: { l: Layout; p: Plan; price: { total: strin
         ) : null}
       </div>
       <div style={{ marginTop: 4, ...TYPE.small, color: ON_DARK.text2 }}>{t('One plan, everywhere you go')}</div>
-      <div style={{ marginTop: 18, display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-        <span style={{ ...typeFor('priceHero', l.size), color: '#fff', fontVariantNumeric: 'tabular-nums' }}>{price.monthly}</span>
+      {/* The price never runs out of the card: on the wide layout the card is a
+          narrow column and "US$49.99" at the hero size was cut at its edge, so
+          the size is capped by the card's own width and the price's length. */}
+      <div style={{ marginTop: 18, display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', containerType: 'inline-size' }}>
+        <span style={{ ...hero, fontSize: `min(${hero.fontSize}px, ${Math.floor(155 / Math.max(6, price.monthly.length))}cqw)`, color: '#fff', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{price.monthly}</span>
         <span style={{ ...TYPE.small, color: ON_DARK.text2 }}>{t('a month')}</span>
       </div>
       <TickList items={GLOBAL_TICKS.map((x) => t(x))} onDark size={16} style={{ marginTop: 18 }} />
