@@ -693,5 +693,10 @@ const c: Catalog = {
   "Enjoying Ringo?": "Ringo가 마음에 드시나요?",
   "Rate Ringo": "Ringo 평가하기",
   "A rating on the App Store helps other travellers find us.": "App Store 평가는 다른 여행자가 Ringo를 찾는 데 도움이 돼요.",
+  "A new version of Ringo is ready": "Ringo 새 버전이 나왔어요",
+  "Update for the latest fixes and features.": "업데이트하고 최신 기능과 개선 사항을 만나보세요.",
+  "Update": "업데이트",
+  "Know when your eSIM is ready and when data runs low.": "eSIM이 준비되거나 데이터가 얼마 남지 않으면 알려드려요.",
+  "Notifications are off": "알림이 꺼져 있어요",
 };
 export default c;

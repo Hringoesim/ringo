@@ -10,6 +10,7 @@
 // screen; the country tiles are two up on a phone and three to four up wide.
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { PlaceMosaic } from '../components/PlaceMosaic';
+import { AppNudge } from '../components/AppNudge';
 import { RC, RADIUS, TAP, TYPE, cardSurface, typeFor, hexA, PHOTO_OVERLAY, PHOTO_TEXT_SHADOW } from '../theme';
 import { LOGO_SRC } from '../assets';
 import { SectionHead } from '../components/ui';
@@ -364,6 +365,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
             </button>
           </div>
 
+          {!powerAsk && !query && <AppNudge style={{ marginTop: 16 }} />}
           {powerAsk && (
             <button type="button" className="press" onClick={() => showPower(false)} style={{ ...accountBtn, marginTop: 16, color: RC.ink, fontWeight: 600 }}>
               {t('All plans')}

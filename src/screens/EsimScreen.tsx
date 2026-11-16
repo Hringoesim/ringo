@@ -17,6 +17,7 @@ import { bundledPictureFor, destinationById, hasMosaic, pictureFor, skyFor } fro
 import { light, money, SITE, type DayUsage, type DeviceState, type Profile, type SubscriptionRead, type TopUp, type Usage } from '../api/light';
 import { History, UsageSection, isExpired } from '../components/UsageCard';
 import { Toggle } from '../components/PushControls';
+import { AppNudge } from '../components/AppNudge';
 import { useAccount, account, pendingPurchase } from '../store/account';
 import { openInSheet } from '../lib/browser';
 import { askForReview, shouldAskForReview, usedMbFor } from '../lib/review';
@@ -562,6 +563,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {header}
       <div className="no-bar" style={scroller}>
+        <AppNudge style={{ marginBottom: 16 }} />
         {/* Nothing read yet and no error: always the loading state, never a
             blank screen (a quiet read after an account switch included). */}
         {!data && (loading || !err) && (

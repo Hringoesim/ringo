@@ -69,6 +69,7 @@ function prefetchScreens(): void {
 }
 import { startPush, shouldPrompt, onboardDue, usePush } from './lib/push';
 import { PushSheet } from './components/PushControls';
+import { startUpdateCheck } from './lib/appUpdate';
 import { bundledPictureFor, pictureFor } from './data/destinations';
 
 const TABBED = new Set<string>(['store', 'esim', 'rewards', 'help']);
@@ -142,6 +143,8 @@ export function App() {
     };
     pushTimer.current = window.setTimeout(() => void check(), 1200);
   };
+  // Is a newer Ringo on the App Store? The card is components/AppNudge.
+  useEffect(() => startUpdateCheck(), []);
   // Push: listens for this phone's token and for taps, never asks at launch
   // (src/lib/push.ts). A tapped push opens the tab its path names.
   useEffect(() => startPush((path) => {
