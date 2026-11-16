@@ -2,7 +2,7 @@
 // how a line's price reads (always Apple's on the phone) and how a paid
 // transaction is reported to ringoesim.com and then finished.
 import { logAb } from './abtest';
-import { light, money, type Plan , ApiError } from '../api/light';
+import { light, money, type Plan, ApiError } from '../api/light';
 import { account, pendingPurchase } from '../store/account';
 import { finish, type IapProduct, type IapTransaction } from './iap';
 import { subMonths } from './terms';
@@ -36,7 +36,10 @@ export async function reportTransaction(t: IapTransaction, ctx: { plan: string; 
   // delivered, with money taken and nothing on the phone to show for it, so
   // it stays unfinished and is reported again on the next launch.
   if (!r.user_id || !r.t) throw new ApiError(tr('Your purchase went through, but we could not open your account yet.'), 502);
-  account.set({ userId: r.user_id, t: r.t, email: ctx.email, purchaseRef: `apple:${r.transaction_id}` });
+  // The site's verified id names the purchase; Apple's own (the same
+  // transaction) stands in if the answer left it out, never "apple:undefined",
+  // which the site would not release the eSIM against.
+  account.set({ userId: r.user_id, t: r.t, email: ctx.email, purchaseRef: `apple:${r.transaction_id || t.transactionId}` });
   await finish(t.transactionId);
   // Consumes this purchase's own context, never another destination's
   // waiting on the same product.

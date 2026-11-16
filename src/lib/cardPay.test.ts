@@ -72,6 +72,15 @@ describe('payByCard: starting the payment', () => {
     expect(present).not.toHaveBeenCalled();
   });
 
+  // An answer api/light.ts refused (an empty 200, an amount that is not a
+  // number): its technical message never reaches the buyer.
+  it('turns an answer the app could not read into the same sentence, and opens no sheet', async () => {
+    appPay.mockRejectedValue(Object.assign(new Error('Request failed (200)'), { status: 200, code: 'malformed_response' }));
+    await expect(payByCard(order)).rejects.toThrow(NOT_STARTED);
+    expect(present).not.toHaveBeenCalled();
+    expect(cardStatus).not.toHaveBeenCalled();
+  });
+
   it("keeps the server's own sentence when it is one", async () => {
     appPay.mockRejectedValue(new Error('This plan is not sold in your country yet.'));
     await expect(payByCard(order)).rejects.toThrow('This plan is not sold in your country yet.');
@@ -150,6 +159,29 @@ describe('payByCard: what the site is told', () => {
     getAccount.mockReturnValue(acct({ email: 'me@example.com' }));
     await run({ ...order, topUp: true });
     expect(sent()).toMatchObject({ user: 'user-9', t: 'tok-9', topUp: true });
+  });
+
+  it('sends a staff code as typed, with or without an account, and never credit beside a stranger\'s email', async () => {
+    await run({ ...order, code: 'STAFF-7Q' });
+    expect(sent()).toEqual({ plan: 'trip_7', destination: 'japan', data_gb: null, email: 'buyer@example.com', code: 'STAFF-7Q' });
+    appPay.mockClear();
+    getAccount.mockReturnValue(acct({ email: 'me@example.com' }));
+    await run({ ...order, code: 'STAFF-7Q', useCredit: true });
+    expect(sent()).toMatchObject({ code: 'STAFF-7Q' });
+    expect(sent()).not.toHaveProperty('user');
+    expect(sent()).not.toHaveProperty('use_credit');
+  });
+
+  it('names the eSIM a top-up is for, with the account that owns it', async () => {
+    getAccount.mockReturnValue(acct());
+    await run({ ...order, topUp: true, subscription: 'sub-row-42' });
+    expect(sent()).toMatchObject({ topUp: true, subscription: 'sub-row-42', user: 'user-9', t: 'tok-9' });
+  });
+
+  it('sends an account that has no email on file with the order (nothing to compare the typed email with)', async () => {
+    getAccount.mockReturnValue(acct({ email: null }));
+    await run({ ...order, useCredit: true });
+    expect(sent()).toMatchObject({ user: 'user-9', t: 'tok-9', use_credit: true });
   });
 
   it('asks to spend credit only when the buyer chose to and the account rides along', async () => {

@@ -7,6 +7,7 @@
 // decides whether the dialog actually shows.
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import type { Usage } from '../api/light';
+import { storage } from './storage';
 
 const Native = registerPlugin<{ request(): Promise<{ asked: boolean }> }>('Review');
 /** When the ask last fired, as Date.now(). */
@@ -57,6 +58,6 @@ export function shouldAskForReview(installed: boolean, usedMb: number, now = Dat
 }
 
 export async function askForReview(): Promise<void> {
-  try { localStorage.setItem(ASKED_AT_KEY, String(Date.now())); } catch { /* ignore */ }
+  storage.set(ASKED_AT_KEY, String(Date.now()));
   try { await Native.request(); } catch { /* ignore */ }
 }

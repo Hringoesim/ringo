@@ -109,6 +109,27 @@ describe('signInWithApple', () => {
     expect(loginProvider).not.toHaveBeenCalled();
   });
 
+  // Regression: any message holding "1001" was read as a closed sheet, so a
+  // network timeout (NSURLErrorDomain -1001) ended the sign-in without a word.
+  it.each([
+    ['a network timeout', 'The operation couldn’t be completed. (NSURLErrorDomain error -1001.)'],
+    ['another number that only starts the same', 'The operation couldn’t be completed. (com.apple.AuthenticationServices.AuthorizationError error 10010.)'],
+    ['1001 outside Apple\'s sign-in error', 'Request 1001 failed'],
+  ])('reports %s as a failure, not a cancel', async (_name, message) => {
+    authorize.mockRejectedValue(Object.assign(new Error(message), { code: '-1' }));
+    const { signInWithApple } = await load();
+    await expect(signInWithApple()).resolves.toEqual({ ok: false, error: 'Apple did not complete the sign-in.' });
+    expect(loginProvider).not.toHaveBeenCalled();
+  });
+
+  it('fails, with nothing sent to the server, when Apple returns no identity token', async () => {
+    authorize.mockResolvedValue({ response: { identityToken: '', user: 'apple-user' } });
+    const { signInWithApple } = await load();
+    await expect(signInWithApple()).resolves.toEqual({ ok: false, error: 'Apple did not complete the sign-in.' });
+    expect(loginProvider).not.toHaveBeenCalled();
+    expect(setAccount).not.toHaveBeenCalled();
+  });
+
   it('is not signed in when the server rejects the token', async () => {
     loginProvider.mockRejectedValue(new Error('Token could not be verified'));
     const { signInWithApple } = await load();
@@ -209,6 +230,16 @@ describe('signInWithGoogle through Supabase (no iOS client id)', () => {
     const { signInWithGoogle } = await load();
     await expect(signInWithGoogle()).resolves.toEqual({ ok: false, error: 'Google did not complete the sign-in.' });
     expect(loginProvider).not.toHaveBeenCalled();
+  });
+
+  // Regression: `new URL(callback)` sat outside the try, so a callback that
+  // is not a URL rejected the whole sign-in instead of answering { ok: false }.
+  it.each(['not a url', '://', 'access_token=abc'])('fails cleanly, never rejects, on the malformed callback %j', async (callback) => {
+    openAuth.mockResolvedValue({ callback });
+    const { signInWithGoogle } = await load();
+    await expect(signInWithGoogle()).resolves.toEqual({ ok: false, error: 'Google did not complete the sign-in.' });
+    expect(loginProvider).not.toHaveBeenCalled();
+    expect(setAccount).not.toHaveBeenCalled();
   });
 
   it('reports a plugin failure as an error', async () => {

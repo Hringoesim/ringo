@@ -62,8 +62,8 @@ export function sizeOf(p: Plan): string {
   return p.mode === 'subscription' ? t('{gb} GB a month', { gb: p.data_gb }) : t('{gb} GB', { gb: p.data_gb });
 }
 
-/** The App Store only day passes by family ("Power user, 7 days"); the catalogue's label wins. */
-// The app's tier names (owner 2026-10-24): Day, Super, Ultra.
+// The App Store only day passes by family, for a line with no daily allowance
+// to name it by. The app's tier names (owner 2026-10-24): Day, Super, Ultra.
 const APP_GROUP_NAME: Record<string, string> = { day: tk('Unlimited Day'), power: tk('Unlimited Super'), super: tk('Unlimited Ultra') };
 
 /**
