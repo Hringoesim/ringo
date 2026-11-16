@@ -19,7 +19,7 @@ const POLL_MS = 2500;
 const OWNER_WAIT_MS = 90_000;
 
 export type StatusQuery = { pi: string } | { sub: string };
-export interface CardOrder { plan: string; destination: string; data_gb?: number | null; email: string; currency?: string; topUp?: boolean; subscription?: string; /** Spend the account's Ringo credit (the site decides how much, never under cost). */ useCredit?: boolean; /** How it is confirmed: the sheet (default), the card field on the Checkout page, or Apple Pay from that page. */ via?: 'sheet' | 'card' | 'applePay' }
+export interface CardOrder { plan: string; destination: string; data_gb?: number | null; email: string; currency?: string; topUp?: boolean; subscription?: string; /** Spend the account's Ringo credit (the site decides how much, never under cost). */ useCredit?: boolean; /** A one-time staff code (supplier rate, the site checks it). */ code?: string; /** How it is confirmed: the sheet (default), the card field on the Checkout page, or Apple Pay from that page. */ via?: 'sheet' | 'card' | 'applePay' }
 export type CardOutcome =
   | { state: 'paid'; session: string; userId: string; t: string }
   /** Stripe says paid; the account is not named yet (or a top-up, which has none to name). */

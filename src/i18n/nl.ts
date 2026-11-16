@@ -2,6 +2,13 @@
 import type { Catalog } from '../lib/i18n';
 
 const c: Catalog = {
+  "Enter the email for your eSIM first.": "Vul eerst het e-mailadres voor je eSIM in.",
+  "This code does not apply to this email or plan.": "Deze code geldt niet voor dit e-mailadres of deze bundel.",
+  "Could not check the code. Try again.": "De code kon niet worden gecontroleerd. Probeer het opnieuw.",
+  "Staff price at the supplier rate: {price}.": "Personeelsprijs tegen inkoopprijs: {price}.",
+  "Have a code?": "Heb je een code?",
+  "Code": "Code",
+  "Apply": "Toepassen",
   "Loading…": "Laden…",
   "Current": "Huidig",
   "History": "Geschiedenis",

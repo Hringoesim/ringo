@@ -2,6 +2,13 @@
 import type { Catalog } from '../lib/i18n';
 
 const c: Catalog = {
+  "Enter the email for your eSIM first.": "먼저 eSIM용 이메일을 입력하세요.",
+  "This code does not apply to this email or plan.": "이 코드는 이 이메일 또는 요금제에 적용되지 않습니다.",
+  "Could not check the code. Try again.": "코드를 확인할 수 없습니다. 다시 시도하세요.",
+  "Staff price at the supplier rate: {price}.": "공급가 기준 직원가: {price}.",
+  "Have a code?": "코드가 있나요?",
+  "Code": "코드",
+  "Apply": "적용",
   "Loading…": "불러오는 중…",
   "Current": "현재",
   "History": "기록",

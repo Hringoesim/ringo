@@ -32,10 +32,10 @@ import { InlinePay, inlineAvailable, useNativeSlot, useInlineCleanup } from '../
 import { RC, RADIUS, TYPE, typeFor, cardSurface, LOGO_GRAD, PHOTO_OVERLAY, PHOTO_TEXT_SHADOW } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
-import { BackBtn, FieldLabel, Input, HelpText, ErrorBox } from '../components/ui';
+import { BackBtn, FieldLabel, Input, HelpText, ErrorBox, SuccessBox, TextLink } from '../components/ui';
 import { useBlockSwipeBack } from '../components/ScreenHost';
 import { hasMosaic, pictureFor, skyFor, bundledPictureFor } from '../data/destinations';
-import { light, SITE } from '../api/light';
+import { light, money, SITE } from '../api/light';
 import { account } from '../store/account';
 import { openInSheet } from '../lib/browser';
 import { payByCard as startCard, waitForOwner, type CardOutcome } from '../lib/cardPay';
@@ -110,7 +110,34 @@ export function CheckoutScreen({ selection, paid, onBack, onReady }: { selection
     if (!acct || renewing) return;
     light.profile(acct.userId, acct.t).then((pr) => { if (mounted.current) setCreditCents(pr.credit?.balance_cents || 0); }).catch(() => {});
   }, [renewing]);
-  const creditHere = creditCents > 0 && !renewing && (!signedInEmail || email.trim().toLowerCase() === signedInEmail.toLowerCase());
+  // A one-time staff code (owner 2026-11-13: "at check out hidden under see
+  // more"): a small link opens the field; the site checks the code against
+  // the email and gives the supplier rate, or the list price if it does not apply.
+  const [codeOpen, setCodeOpen] = useState(false);
+  const [code, setCode] = useState('');
+  const [codeBusy, setCodeBusy] = useState(false);
+  const [codeMsg, setCodeMsg] = useState<string | null>(null);
+  const [staff, setStaff] = useState<{ code: string; amount: number; currency: string; email: string } | null>(null);
+  const applyCode = async () => {
+    const c = code.trim().toUpperCase();
+    const e = email.trim().toLowerCase();
+    if (!c || codeBusy) return;
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) { setCodeMsg(t('Enter the email for your eSIM first.')); return; }
+    setCodeBusy(true);
+    setCodeMsg(null);
+    try {
+      const q = await light.appQuote({ plan: p.plan, destination: selection.destination, data_gb: selection.data_gb, email: e, currency: p.currency, code: c });
+      if (q.staff) { hapticNotify('success'); setStaff({ code: c, amount: q.amount, currency: q.currency, email: e }); }
+      else { setStaff(null); setCodeMsg(t('This code does not apply to this email or plan.')); }
+    } catch {
+      setCodeMsg(t('Could not check the code. Try again.'));
+    } finally {
+      setCodeBusy(false);
+    }
+  };
+  // The staff price holds only for the email it was checked with.
+  const staffHere = staff && staff.email === email.trim().toLowerCase() && !renewing ? staff : null;
+  const creditHere = !staffHere && creditCents > 0 && !renewing && (!signedInEmail || email.trim().toLowerCase() === signedInEmail.toLowerCase());
 
   const stageRef = useRef<Stage>(paid ? 'card' : 'email');
   // A long wait on Stripe (a slow bank) gets a way out after 15 seconds.
@@ -213,7 +240,7 @@ export function CheckoutScreen({ selection, paid, onBack, onReady }: { selection
     // the app to the buyer's account once someone else has signed in.
     const startedAs = account.get()?.userId ?? null;
     try {
-      const pay = await startCard({ plan: p.plan, destination: selection.destination, data_gb: selection.data_gb, email: e, currency: p.currency, useCredit: creditHere && useCredit, via: inline ? via : 'sheet' });
+      const pay = await startCard({ plan: p.plan, destination: selection.destination, data_gb: selection.data_gb, email: e, currency: p.currency, useCredit: creditHere && useCredit, ...(staffHere ? { code: staffHere.code } : {}), via: inline ? via : 'sheet' });
       cardStop.current = pay.stop;
       const out = await pay.done;
       cardStop.current = null;
@@ -257,7 +284,7 @@ export function CheckoutScreen({ selection, paid, onBack, onReady }: { selection
   const useSignedIn = () => { setEmail(signedInEmail); setOtherEmail(null); confirmedOther.current = null; };
 
   const planLine = isGlobal && renewing ? t('Unlimited, renews monthly') : renewing ? planName(p) : t('{plan}, one payment', { plan: planName(p) });
-  const buyLabel = renewing ? t('Subscribe securely, {price} a month', { price: price.total }) : creditHere && useCredit ? t('Pay up to {price} securely', { price: price.total }) : t('Pay {price} securely', { price: price.total });
+  const buyLabel = staffHere ? t('Pay {price} securely', { price: money(staffHere.amount, staffHere.currency) }) : renewing ? t('Subscribe securely, {price} a month', { price: price.total }) : creditHere && useCredit ? t('Pay up to {price} securely', { price: price.total }) : t('Pay {price} securely', { price: price.total });
 
   // ── Pieces ────────────────────────────────────────────────────────────────
   const summary = <Summary l={l} selection={selection} planLine={planLine} total={price.total} renewing={renewing} />;
@@ -318,6 +345,23 @@ export function CheckoutScreen({ selection, paid, onBack, onReady }: { selection
         <span style={{ display: 'block', width: 27, height: 27, borderRadius: '50%', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', transform: useCredit ? `translateX(${isRtl() ? -20 : 20}px)` : 'none', transition: 'transform .2s' }} />
       </button>
     </div>
+  );
+
+  const codeBox = stage === 'email' && !renewing && (
+    staffHere ? (
+      <SuccessBox>{t('Staff price at the supplier rate: {price}.', { price: money(staffHere.amount, staffHere.currency) })}</SuccessBox>
+    ) : !codeOpen ? (
+      <div><TextLink onClick={() => setCodeOpen(true)}>{t('Have a code?')}</TextLink></div>
+    ) : (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <FieldLabel htmlFor="staff-code">{t('Code')}</FieldLabel>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+          <div style={{ flex: 1, minWidth: 0 }}><Input id="staff-code" value={code} onChange={(v) => { setCode(v); setCodeMsg(null); }} autoComplete="off" ariaLabel={t('Code')} onEnter={() => void applyCode()} /></div>
+          <RingoButton size="sm" variant="secondary" loading={codeBusy} disabled={!code.trim() || codeBusy} onClick={() => void applyCode()} style={{ width: 'auto' }}>{t('Apply')}</RingoButton>
+        </div>
+        {codeMsg && <HelpText>{codeMsg}</HelpText>}
+      </div>
+    )
   );
 
   const terms = stage === 'email' && (
@@ -406,6 +450,7 @@ export function CheckoutScreen({ selection, paid, onBack, onReady }: { selection
               {waiting}
               {moment}
               {creditBox}
+              {codeBox}
               {payFields}
               {consent}
               {action}
@@ -427,6 +472,7 @@ export function CheckoutScreen({ selection, paid, onBack, onReady }: { selection
           {waiting}
           {moment}
           {creditBox}
+          {codeBox}
           {payFields}
           {stage === 'email' && <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 6 }}>{consent}{action}</div>}
         </div>
