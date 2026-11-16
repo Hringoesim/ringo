@@ -2,9 +2,7 @@
 // per device after the first purchase is delivered, for a phone that never saw
 // the onboarding step in screens/NotifyScreen.tsx), the Toggle both share and
 // the two switches under Help (service alerts, offers). See src/lib/push.ts.
-//
-// PushPrompt is kept as a no-op export so an older import still compiles; it
-// renders nothing. Nothing outside App.tsx raises the pre-prompt.
+// Nothing outside App.tsx raises the pre-prompt.
 import { useEffect, useId, useRef, useState } from 'react';
 import { RC, TYPE, SHADOW_CARD, skyFor, typeFor } from '../theme';
 import { RingoButton } from './Button';
@@ -13,11 +11,6 @@ import { hapticNotify, hapticSelection } from '../lib/haptics';
 import { useLayout } from '../lib/layout';
 import { usePush, askPermission, dismissPrompt, setPushPref, openPushSettings, pushAvailable } from '../lib/push';
 import { t, isRtl } from '../lib/i18n';
-
-/** Retired: the ask lives in PushSheet, shown by App.tsx only. Renders nothing. */
-export function PushPrompt(): null {
-  return null;
-}
 
 const BellIcon = () => (
   <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>

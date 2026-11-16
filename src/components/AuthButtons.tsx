@@ -35,6 +35,9 @@ export function AuthButtons({ onSignedIn, onEmail, onDark = false }: { onSignedI
       const r = await (which === 'apple' ? signInWithApple() : signInWithGoogle());
       if (r.ok) { hapticNotify('success'); onSignedIn(); return; }
       if (!r.cancelled) { setErr(r.error); hapticNotify('error'); }
+    } catch {
+      setErr(which === 'apple' ? t('Apple did not complete the sign-in.') : t('Google did not complete the sign-in.'));
+      hapticNotify('error');
     } finally { setBusy(null); }
   };
 

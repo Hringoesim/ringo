@@ -19,6 +19,7 @@ import landTopo from 'world-atlas/land-110m.json';
 import { LANDMARK_SRC } from '../assets/landmarks3d';
 import planeSrc from '../assets/landmarks3d/plane.png';
 import biomeTopo from '../assets/biomes.json';
+import { useScreenActive } from './ScreenHost';
 
 const LAND = feature(landTopo as any, (landTopo as any).objects.land) as unknown as GeoPermissibleObjects;
 
@@ -224,6 +225,11 @@ const RANGES: { lng: number; lat: number; s: number }[] = [
 
 export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
+  // A kept tab (Rewards) stays mounted while hidden: the loop stops there and
+  // picks up again when the screen is back on show.
+  const { active } = useScreenActive();
+  const activeRef = useRef(active);
+  const wakeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const cv = ref.current;
@@ -242,7 +248,8 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
     const path = geoPath(projection, ctx);
 
     const reduce = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let raf = 0;
+    let raf = 0; // 0 while no frame is queued
+    let disposed = false;
     const flying = size >= 150;
 
     // Monument sprites — load once; drawn when their city faces the camera.
@@ -296,6 +303,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       lambda += dx * degPerPx;
       phi -= dy * degPerPx;
       phi = Math.max(-85, Math.min(85, phi));
+      if (reduce) draw(); // no loop under reduced motion: show the turn now
     };
     const onUp = () => {
       if (!dragging) return;
@@ -312,6 +320,7 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
       phi = Math.max(-85, Math.min(85, phi));
       lambda += e.deltaX * degPerPx * 0.9;
       resumeAt = performance.now() + 1400;
+      if (reduce) draw();
     };
     cv.addEventListener('pointerdown', onDown);
     cv.addEventListener('pointermove', onMove);
@@ -588,7 +597,12 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
 
       if (flying) drawPlane();
 
-      if (!reduce) raf = requestAnimationFrame(tick);
+      if (!reduce) schedule();
+    };
+
+    // Queue the next frame, unless the screen is hidden.
+    const schedule = () => {
+      raf = activeRef.current ? requestAnimationFrame(tick) : 0;
     };
 
     const tick = (now: number) => {
@@ -634,19 +648,40 @@ export function RingoGlobe({ size = 300, opacity = 1 }: { size?: number; opacity
         lastDraw = now;
         draw();
       } else {
-        raf = requestAnimationFrame(tick);
+        schedule();
       }
     };
 
+    wakeRef.current = () => {
+      if (reduce || raf || disposed) return;
+      lastTs = performance.now();
+      raf = requestAnimationFrame(tick);
+    };
+    // Under reduced motion nothing redraws by itself, and the first frame is
+    // painted before any picture has loaded: paint again as each one arrives.
+    if (reduce) {
+      const repaint = () => { if (!disposed) draw(); };
+      for (const s of sprites) s.img.onload = repaint;
+      planeImg.onload = repaint;
+    }
+
     draw();
     return () => {
+      disposed = true;
+      wakeRef.current = null;
       cancelAnimationFrame(raf);
       cv.removeEventListener('pointerdown', onDown);
       cv.removeEventListener('pointermove', onMove);
       cv.removeEventListener('pointerup', onUp);
       cv.removeEventListener('pointercancel', onUp);
+      cv.removeEventListener('wheel', onWheel);
     };
   }, [size]);
+
+  useEffect(() => {
+    activeRef.current = active;
+    if (active) wakeRef.current?.();
+  }, [active]);
 
   return <canvas ref={ref} style={{ width: size, height: size, opacity, display: 'block', borderRadius: '50%', touchAction: 'none', cursor: 'grab' }} />;
 }
