@@ -340,6 +340,8 @@ const c: Catalog = {
   "Expires": "פג בתאריך",
   "Expired": "פג תוקף",
   "Installed on your iPhone": "מותקן ב־iPhone שלכם",
+  "Checking that your eSIM is installed": "בודקים שה-eSIM שלך הותקן",
+  "This updates on its own.": "זה מתעדכן מעצמו.",
   "Install on this iPhone": "התקנה ב־iPhone הזה",
   "Install from your email": "התקנה מהאימייל",
   "The install link is in the email we sent to {email}. Open it on this iPhone.": "קישור ההתקנה נמצא באימייל ששלחנו אל {email}. פתחו אותו ב־iPhone הזה.",

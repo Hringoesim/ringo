@@ -340,6 +340,8 @@ const c: Catalog = {
   "Expires": "到期",
   "Expired": "已到期",
   "Installed on your iPhone": "已安装在你的 iPhone 上",
+  "Checking that your eSIM is installed": "正在检查你的 eSIM 是否已安装",
+  "This updates on its own.": "会自动更新。",
   "Install on this iPhone": "安装到这部 iPhone",
   "Install from your email": "通过邮件安装",
   "The install link is in the email we sent to {email}. Open it on this iPhone.": "安装链接在我们发送到 {email} 的邮件中。请在这部 iPhone 上打开。",

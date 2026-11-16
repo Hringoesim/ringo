@@ -11,7 +11,7 @@ import { RC, RADIUS, READ_MAX, TYPE, PHOTO_OVERLAY, PHOTO_TEXT_SHADOW, cardSurfa
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { RingoCard } from '../components/Card';
-import { BackBtn, ErrorBox, IconButton, Loading, PhotoCard, PioneerBadge, SectionHead, Segmented, SuccessBox, TextLink } from '../components/ui';
+import { BackBtn, ErrorBox, IconButton, InstallChecking, Loading, PhotoCard, PioneerBadge, SectionHead, Segmented, SuccessBox, TextLink } from '../components/ui';
 import { PlaceMosaic } from '../components/PlaceMosaic';
 import { bundledPictureFor, destinationById, hasMosaic, pictureFor, skyFor } from '../data/destinations';
 import { light, money, SITE, type DayUsage, type DeviceState, type Profile, type SubscriptionRead, type TopUp, type Usage } from '../api/light';
@@ -64,6 +64,8 @@ type Pioneer = NonNullable<Profile['pioneer']>;
 // the install state must not bring "Install on this iPhone" back for an
 // eSIM that is already on the phone (owner 2026-11-10).
 const INSTALLED_KEY = 'ringo_installed_v1';
+const INSTALL_CHECK_EVERY_MS = 5000;
+const INSTALL_CHECK_TRIES = 60;
 function rememberedInstalled(id: string | null | undefined): boolean {
   if (!id) return false;
   try { return (JSON.parse(localStorage.getItem(INSTALLED_KEY) || '[]') as string[]).includes(id); } catch { return false; }
@@ -201,6 +203,24 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
   useEffect(() => { if (liveUsage?.installed) rememberInstalled(subId); }, [liveUsage?.installed, subId]);
   const installed = Boolean(data?.subscription?.esim_attached && (liveUsage?.installed || rememberedInstalled(subId)));
   const usedMb = usedMbFor(usageAll, data?.destination?.id || null);
+
+  // After the tap on "Install on this iPhone" the network is asked every five
+  // seconds whether the eSIM has reached the phone, with a checking row on
+  // show, until the card says "Installed on your iPhone" (owner 2026-11-16:
+  // "once the person install check it and have a loading screen and once
+  // installed make it say installed"). Five minutes at most; the minute
+  // refresh below carries on after that.
+  const [checkingInstall, setCheckingInstall] = useState(false);
+  useEffect(() => {
+    if (!checkingInstall || installed) return;
+    let asked = 0;
+    const t = window.setInterval(() => {
+      asked += 1;
+      if (asked > INSTALL_CHECK_TRIES) { window.clearInterval(t); setCheckingInstall(false); return; }
+      void load(true, false, false);
+    }, INSTALL_CHECK_EVERY_MS);
+    return () => window.clearInterval(t);
+  }, [checkingInstall, installed, load]);
   useEffect(() => {
     if (!onScreen || !shouldAskForReview(installed, usedMb)) return;
     const id = window.setTimeout(() => { void askForReview(); }, 2500);
@@ -529,7 +549,10 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
             {installed || (usage?.device && usage.device.stage !== 'ready') ? (
               <InstallCheck device={usage?.device || null} onHelp={onReport} />
             ) : data?.install ? (
-              <RingoButton onClick={() => { haptic('medium'); onInstall(data.install!, place); }}>{tr('Install on this iPhone')}</RingoButton>
+              <>
+                {checkingInstall && <InstallChecking style={{ marginBottom: 12 }} />}
+                <RingoButton onClick={() => { haptic('medium'); setCheckingInstall(true); onInstall(data.install!, place); }}>{tr('Install on this iPhone')}</RingoButton>
+              </>
             ) : (
               <div style={{ padding: 16, borderRadius: RADIUS.md, background: RC.cream }}>
                 <div style={{ ...TYPE.h3, color: RC.ink }}>{tr('Install from your email')}</div>

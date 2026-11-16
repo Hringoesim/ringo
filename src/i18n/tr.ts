@@ -340,6 +340,8 @@ const c: Catalog = {
   "Expires": "Bitiş",
   "Expired": "Süresi doldu",
   "Installed on your iPhone": "iPhone'una yüklü",
+  "Checking that your eSIM is installed": "eSIM'inin yüklendiği kontrol ediliyor",
+  "This updates on its own.": "Kendiliğinden güncellenir.",
   "Install on this iPhone": "Bu iPhone'a yükle",
   "Install from your email": "E-postandan yükle",
   "The install link is in the email we sent to {email}. Open it on this iPhone.": "Yükleme bağlantısı {email} adresine gönderdiğimiz e-postada. Bu iPhone'da aç.",

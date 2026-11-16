@@ -12,10 +12,11 @@ import { RC, RADIUS, TYPE, cardSurface, typeFor } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { RingoCard } from '../components/Card';
-import { BackBtn, SectionHead, Step, SuccessBox, TextLink } from '../components/ui';
+import { BackBtn, InstallChecking, SectionHead, Step, SuccessBox, TextLink } from '../components/ui';
 import { qrDataUri, lpaParts } from '../lib/esim';
 import { openExternal, openInSheet } from '../lib/browser';
-import { SITE } from '../api/light';
+import { SITE, light } from '../api/light';
+import { useAccount } from '../store/account';
 import { haptic, hapticSelection } from '../lib/haptics';
 import { useLayout, readColumn, twoColumn, actionWidth } from '../lib/layout';
 import { t } from '../lib/i18n';
@@ -53,9 +54,34 @@ export function InstallScreen({ install, label, onBack }: { install: { apple_url
   const [opened, setOpened] = useState(false);
   const parts = lpaParts(install.lpa);
 
+  // Once Add eSIM has been opened the network is asked every five seconds
+  // whether the eSIM has reached the phone, with a checking row on show,
+  // until this screen says "Installed on your iPhone" (owner 2026-11-16:
+  // "once the person install check it and have a loading screen and once
+  // installed make it say installed"). Five minutes at most; opening Add
+  // eSIM again starts it over.
+  const acct = useAccount();
+  const [checking, setChecking] = useState(false);
+  const [installed, setInstalled] = useState(false);
+  const [round, setRound] = useState(0);
+  useEffect(() => {
+    if (!opened || installed || !acct) return;
+    let live = true; let asked = 0;
+    setChecking(true);
+    const t = window.setInterval(() => {
+      asked += 1;
+      if (asked > 60) { window.clearInterval(t); setChecking(false); return; }
+      light.subscription(acct.userId, acct.t, { usage: true })
+        .then((d) => { if (live && d.usage && !('unavailable' in d.usage) && d.usage.installed) { setInstalled(true); setChecking(false); } })
+        .catch(() => {});
+    }, 5000);
+    return () => { live = false; window.clearInterval(t); };
+  }, [opened, installed, acct, round]);
+
   const installOnDevice = () => {
     haptic('medium');
     setOpened(true);
+    setRound((n) => n + 1);
     setShowManual(true);
     void openExternal(install.apple_url);
   };
@@ -103,8 +129,16 @@ export function InstallScreen({ install, label, onBack }: { install: { apple_url
 
           <div style={{ marginTop: 20, ...twoColumn(l, 1.2, 1) }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: l.cardGap }}>
+              {installed && (
+                <SuccessBox>
+                  <strong>{t('Installed on your iPhone')}</strong>
+                  <br />
+                  {t('On your iPhone. It connects once you arrive and turn on Data Roaming for it.')}
+                </SuccessBox>
+              )}
+              {checking && !installed && <InstallChecking />}
               {steps}
-              {opened && (
+              {opened && !installed && (
                 <SuccessBox>
                   {t('If Add eSIM did not open, go to Settings, Mobile Data, Add eSIM, Use QR Code, Enter Details Manually, and paste the details below.')}
                 </SuccessBox>
@@ -136,7 +170,9 @@ export function InstallScreen({ install, label, onBack }: { install: { apple_url
 
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: `12px ${l.gutter}px max(20px, env(safe-area-inset-bottom, 0px))`, borderTop: `1px solid ${RC.line}`, background: RC.glass, backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)' }}>
         <div style={actionWidth(l)}>
-          <RingoButton onClick={installOnDevice}>{opened ? t('Open Add eSIM again') : t('Install on this iPhone')}</RingoButton>
+          {installed
+            ? <RingoButton onClick={onBack}>{t('Done')}</RingoButton>
+            : <RingoButton onClick={installOnDevice}>{opened ? t('Open Add eSIM again') : t('Install on this iPhone')}</RingoButton>}
         </div>
       </div>
     </div>

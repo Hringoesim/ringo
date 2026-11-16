@@ -340,6 +340,8 @@ const c: Catalog = {
   "Expires": "만료일",
   "Expired": "만료됨",
   "Installed on your iPhone": "iPhone에 설치됨",
+  "Checking that your eSIM is installed": "eSIM 설치를 확인하고 있어요",
+  "This updates on its own.": "자동으로 업데이트돼요.",
   "Install on this iPhone": "이 iPhone에 설치",
   "Install from your email": "이메일에서 설치하기",
   "The install link is in the email we sent to {email}. Open it on this iPhone.": "설치 링크는 {email}(으)로 보낸 이메일에 있어요. 이 iPhone에서 열어 주세요.",
