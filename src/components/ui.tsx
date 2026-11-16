@@ -400,6 +400,19 @@ export function Loading({ label, style = {} }: { label?: string; style?: CSSProp
 }
 
 /** The site's paid / done banner: soft green, dark green text. */
+/** The wait between the Install tap and the network seeing the eSIM on the phone. */
+export function InstallChecking({ style = {} }: { style?: CSSProperties }) {
+  return (
+    <div role="status" aria-busy="true" data-install-checking style={{ padding: 16, borderRadius: RADIUS.md, background: RC.cream, display: 'flex', alignItems: 'center', gap: 12, ...style }}>
+      <span aria-hidden style={{ flexShrink: 0, width: 22, height: 22, borderRadius: '50%', border: `3px solid ${RC.line}`, borderTopColor: RC.orangeInk, animation: 'ringoSpin 0.8s linear infinite' }} />
+      <div style={{ minWidth: 0 }}>
+        <div style={{ ...TYPE.h3, color: RC.ink }}>{t('Checking that your eSIM is installed')}</div>
+        <p style={{ margin: '2px 0 0', ...TYPE.small, color: RC.ink2 }}>{t('This updates on its own.')}</p>
+      </div>
+    </div>
+  );
+}
+
 export function SuccessBox({ children, style = {} }: { children: ReactNode; style?: CSSProperties }) {
   const dark = RC.scheme === 'dark';
   return (

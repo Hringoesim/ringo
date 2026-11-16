@@ -359,6 +359,8 @@ const c: Catalog = {
   "Expires": "Истекает",
   "Expired": "Истёк",
   "Installed on your iPhone": "Установлена на вашем iPhone",
+  "Checking that your eSIM is installed": "Проверяем, установлена ли eSIM",
+  "This updates on its own.": "Обновится само.",
   "Install on this iPhone": "Установить на этот iPhone",
   "Install from your email": "Установите из письма",
   "The install link is in the email we sent to {email}. Open it on this iPhone.": "Ссылка для установки в письме, которое мы отправили на {email}. Откройте её на этом iPhone.",
