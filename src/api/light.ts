@@ -45,7 +45,7 @@ export interface Plan {
   /** The speed once the day's allowance is used ("1 Mbps"), when the supplier states it. */
   after_speed?: string | null;
   /** The countries this line's own package connects in, where it differs from the place's list (app day plans). */
-  coverage?: { countries: number; list: { iso: string; name: string; flag: string }[] };
+  coverage?: { countries: number; list: { iso: string; name: string; flag: string; networks?: string[] }[] };
   /** The line in its list that keeps Ringo the most per sale (app catalogue only). */
   best_margin?: boolean;
   /** A one-payment line that keeps Ringo at least half of what the card pays (app catalogue only); the quiz reads it. */
@@ -74,7 +74,7 @@ export interface Catalog {
   /** This place's own Power Use card, where it has one ('europe' -> 'europe-heavy'). */
   power_destination?: string;
   /** Every country a regional plan works in (flag and name). */
-  coverage?: { countries: number; list: { iso: string; name: string; flag: string }[] };
+  coverage?: { countries: number; list: { iso: string; name: string; flag: string; networks?: string[] }[] };
   sizes: number[];
   default_data_gb: number;
   unlimited_line: string;

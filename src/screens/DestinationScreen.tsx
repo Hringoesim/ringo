@@ -31,7 +31,7 @@ import { BackBtn, TickList, ErrorBox } from '../components/ui';
 import { useBlockSwipeBack } from '../components/ScreenHost';
 import { termTitle, planName, periodWord, lineKey, tierName } from '../lib/terms';
 import { takeQuizPick, setQuizPick, clearQuizPick, sendQuizPicked } from '../lib/quiz';
-import { hasMosaic, pictureFor, skyFor, bundledPictureFor, type Destination } from '../data/destinations';
+import { hasMosaic, pictureFor, skyFor, bundledPictureFor, isGlobalPlan, type Destination } from '../data/destinations';
 import { useDestinations, destinationFrom } from '../store/destinations';
 import { useAccount, account } from '../store/account';
 import { light, money, SITE, type Catalog, type Plan } from '../api/light';
@@ -272,7 +272,7 @@ function Radio({ on, shade }: { on: boolean; shade: string }) {
 }
 
 /** A regional plan's countries, folded under one row (owner 2026-10-26: "a drop down menu where you can see what countries are"). */
-function CountryList({ list }: { list: { iso: string; name: string; flag: string }[] }) {
+function CountryList({ list }: { list: { iso: string; name: string; flag: string; networks?: string[] }[] }) {
   const [open, setOpen] = useState(false);
   return (
     <div style={{ marginTop: 14, flexShrink: 0, borderRadius: 16, border: `1.5px solid ${RC.line}`, background: '#fff', overflow: 'hidden' }}>
@@ -284,8 +284,13 @@ function CountryList({ list }: { list: { iso: string; name: string; flag: string
       {open && (
         <ul style={{ listStyle: 'none', margin: 0, padding: '0 16px 12px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', columnGap: 12 }}>
           {list.filter((c) => c && c.name).map((c) => ({ ...c, name: placeLabel(c.name, c.flag) })).sort((a, b) => a.name.localeCompare(b.name, currentLocale())).map((c) => (
-            <li key={c.iso || c.name} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 0', fontFamily: 'var(--font)', fontSize: 15, color: RC.ink, borderTop: `1px solid ${RC.line}` }}>
-              <span aria-hidden style={{ fontSize: 18 }}>{c.flag}</span>{c.name}
+            <li key={c.iso || c.name} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '7px 0', fontFamily: 'var(--font)', fontSize: 15, color: RC.ink, borderTop: `1px solid ${RC.line}` }}>
+              <span aria-hidden style={{ fontSize: 18 }}>{c.flag}</span>
+              {/* A Global tier names the mobile networks it connects to in each country (owner 2026-11-16). */}
+              <span style={{ minWidth: 0 }}>
+                {c.name}
+                {c.networks && c.networks.length > 0 && <span data-networks style={{ display: 'block', fontSize: 13, color: RC.ink2, lineHeight: 1.35 }}>{c.networks.join(', ')}</span>}
+              </span>
             </li>
           ))}
         </ul>
@@ -421,7 +426,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   // On the phone, a line is on sale when StoreKit returns it, unless it is paid by card.
   const native = iapAvailable() && !CARD_PAYMENTS;
   const productFor = (p: Plan): IapProduct | null => (p.apple_product_id && products?.get(p.apple_product_id)) || null;
-  const unlimitedGlobal = Boolean(cat && cat.destination.id === 'global' && cat.meter_topups);
+  const unlimitedGlobal = Boolean(cat && isGlobalPlan(cat.destination.id) && cat.meter_topups);
   // One list for the tier shown, cheapest first (owner 2026-09-25: the first
   // price seen is the cheapest); a tie goes to the shorter, then the smaller.
   const isUnlimitedLine = (p: Plan) => Boolean(p.app_only) || p.tier === 'unlimited';
@@ -435,7 +440,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
     if (!cat) return [];
     const sold = (p: Plan) => !native || Boolean(products && p.apple_product_id && products.has(p.apple_product_id));
     // Global: the one monthly plan the website sells.
-    if (cat.destination.id === 'global' && cat.meter_topups) {
+    if (isGlobalPlan(cat.destination.id) && cat.meter_topups) {
       const one = cat.plans.filter((p) => p.mode === 'subscription' && sold(p)).sort((a, b) => (a.data_gb ?? 0) - (b.data_gb ?? 0))[0];
       return one ? [one] : [];
     }

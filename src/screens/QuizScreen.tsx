@@ -18,7 +18,7 @@ import { useLayout, contentColumn } from '../lib/layout';
 import { recommend, lineFor, pickFor, setQuizPick, perDayOf, newQuizId, sendQuizAnswer, sendQuizPicked, USES, type Use } from '../lib/quiz';
 import { planName } from '../lib/terms';
 import { SearchField, Picture, matches } from './StoreScreen';
-import { FEATURED } from '../data/destinations';
+import { FEATURED, isGlobalPlan } from '../data/destinations';
 import europeOrbit from '../assets/quiz/europe-orbit.jpg'; // ISS photo iss066e116300, NASA, public domain
 import { useDestinations } from '../store/destinations';
 import { useAccount } from '../store/account';
@@ -85,7 +85,7 @@ export function QuizScreen({ onBack, onOpen }: { onBack: () => void; onOpen: (id
   // monthly plan, so it is left out here.
   const query = q.trim().toLowerCase();
   const places = (query ? all.filter((d) => matches(d, query)) : FEATURED.map((id) => all.find((d) => d.id === id)).filter((d): d is NonNullable<typeof d> => Boolean(d)))
-    .filter((d) => d.id !== 'global').slice(0, 8);
+    .filter((d) => !isGlobalPlan(d.id)).slice(0, 8);
   const dest = all.find((d) => d.id === place) ?? null;
   // The place's plans, asked for as soon as it is picked, so the result shows
   // the line and its price at once. A Power plan for a place with its own
