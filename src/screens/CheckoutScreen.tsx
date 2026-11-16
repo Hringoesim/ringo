@@ -88,11 +88,9 @@ export function CheckoutScreen({ selection, paid, onBack, onReady }: { selection
 
   // Leaving mid-purchase would hide what happened to the payment.
   useBlockSwipeBack(!['email', 'ready', 'slow'].includes(stage));
-  // The card payment being waited on, stopped when the screen goes.
   // The card wait is NOT stopped when this screen goes ("Go to My eSIM"
   // during a slow bank check): the purchase must still reach the account,
   // or My eSIM never gets its Install button (see `adopt` below).
-  const cardStop = useRef<(() => void) | null>(null);
 
   const p = selection.plan;
   // The site's price: what Stripe's page charges.
@@ -122,7 +120,7 @@ export function CheckoutScreen({ selection, paid, onBack, onReady }: { selection
     const c = code.trim().toUpperCase();
     const e = email.trim().toLowerCase();
     if (!c || codeBusy) return;
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) { setCodeMsg(t('Enter the email for your eSIM first.')); return; }
+    if (!EMAIL_RE.test(e)) { setCodeMsg(t('Enter the email for your eSIM first.')); return; }
     setCodeBusy(true);
     setCodeMsg(null);
     try {
@@ -153,22 +151,26 @@ export function CheckoutScreen({ selection, paid, onBack, onReady }: { selection
   // the site only returns `install` for a subscription matching the
   // transaction reference, so an older eSIM on the account never reads as
   // the new one being ready.
+  const waitGen = useRef(0);
   const waitForEsim = () => {
     const acct = account.get();
     if (!acct) { setStageBoth('slow'); return; }
     const ref = acct.purchaseRef;
     let tries = 0;
+    // One wait at a time: a second call takes over from the first.
+    stopPolling();
+    const my = ++waitGen.current;
     setStageBoth('issuing');
     const tick = async () => {
-      if (!mounted.current) return;
+      if (!mounted.current || my !== waitGen.current) return;
       tries++;
       try {
         const d = await light.subscription(acct.userId, acct.t, ref ? { install: ref } : {});
-        if (!mounted.current) return;
+        if (!mounted.current || my !== waitGen.current) return;
         const done = ref ? Boolean(d.install) : Boolean(d.subscription?.esim_attached);
         if (done) { stopPolling(); hapticNotify('success'); setStageBoth('ready'); return; }
       } catch { /* next tick */ }
-      if (!mounted.current) return;
+      if (!mounted.current || my !== waitGen.current) return;
       if (tries >= POLL_TRIES) { stopPolling(); setStageBoth('slow'); return; }
       pollRef.current = window.setTimeout(() => void tick(), POLL_MS);
     };
@@ -241,9 +243,7 @@ export function CheckoutScreen({ selection, paid, onBack, onReady }: { selection
     const startedAs = account.get()?.userId ?? null;
     try {
       const pay = await startCard({ plan: p.plan, destination: selection.destination, data_gb: selection.data_gb, email: e, currency: p.currency, useCredit: creditHere && useCredit, ...(staffHere ? { code: staffHere.code } : {}), via: inline ? via : 'sheet' });
-      cardStop.current = pay.stop;
       const out = await pay.done;
-      cardStop.current = null;
       if (!mounted.current) { adopt(out, e, startedAs); return; }
       settle(out, e, startedAs);
     } catch (ex) {
@@ -284,6 +284,8 @@ export function CheckoutScreen({ selection, paid, onBack, onReady }: { selection
   const useSignedIn = () => { setEmail(signedInEmail); setOtherEmail(null); confirmedOther.current = null; };
 
   const planLine = isGlobal && renewing ? t('Unlimited, renews monthly') : renewing ? planName(p) : t('{plan}, one payment', { plan: planName(p) });
+  // What was charged, once paid: the staff price where one applied, not the list price.
+  const paidTotal = staffHere ? money(staffHere.amount, staffHere.currency) : price.total;
   const buyLabel = staffHere ? t('Pay {price} securely', { price: money(staffHere.amount, staffHere.currency) }) : renewing ? t('Subscribe securely, {price} a month', { price: price.total }) : creditHere && useCredit ? t('Pay up to {price} securely', { price: price.total }) : t('Pay {price} securely', { price: price.total });
 
   // ── Pieces ────────────────────────────────────────────────────────────────
@@ -400,7 +402,7 @@ export function CheckoutScreen({ selection, paid, onBack, onReady }: { selection
       <h2 className="rise" style={{ margin: '26px 0 0', ...typeFor('display', l.size), color: RC.ink, animationDelay: '0.2s' }}>{t('Your eSIM is ready')}</h2>
       <p className="rise" style={{ margin: '10px 0 0', ...TYPE.body, color: RC.ink2, maxWidth: 340, animationDelay: '0.28s' }}>{t('Payment received. Install it now, or any time later from My eSIM.')}</p>
       <div className="rise" style={{ width: '100%', marginTop: 28, animationDelay: '0.36s' }}>
-        <Recap l={l} selection={selection} planLine={planLine} total={price.total} renewing={renewing} period={periodWord(p)} email={relayEmail ? null : email.trim()} />
+        <Recap l={l} selection={selection} planLine={planLine} total={paidTotal} renewing={renewing} period={periodWord(p)} email={relayEmail ? null : email.trim()} />
       </div>
     </div>
   );
@@ -434,7 +436,7 @@ export function CheckoutScreen({ selection, paid, onBack, onReady }: { selection
 
   const header = <RingoHeader title={stage === 'ready' ? undefined : t('Checkout')} leading={stage === 'email' ? <BackBtn onClick={onBack} /> : null} />;
   // Paid or paying: the plan shrinks to one row, the status takes the screen.
-  const top = stage === 'email' ? summary : stage === 'ready' ? null : <Compact l={l} selection={selection} planLine={planLine} total={price.total} />;
+  const top = stage === 'email' ? summary : stage === 'ready' ? null : <Compact l={l} selection={selection} planLine={planLine} total={paidTotal} />;
   const waiting = stage !== 'email' && stage !== 'ready' && <div style={{ paddingTop: l.isWide ? 0 : 36 }}>{status}</div>;
 
   // ── Wide: photo card left, form and button right ──────────────────────────

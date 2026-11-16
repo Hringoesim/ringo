@@ -22,9 +22,9 @@ import { t, tn, tk } from '../lib/i18n';
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
-export function LoginScreen({ onBack, onDone, initialEmail = '', startWithEmail = false }: { onBack: () => void; onDone: () => void; initialEmail?: string; startWithEmail?: boolean }) {
+export function LoginScreen({ onBack, onDone, startWithEmail = false }: { onBack: () => void; onDone: () => void; startWithEmail?: boolean }) {
   const l = useLayout();
-  const [email, setEmail] = useState(initialEmail);
+  const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [codeFocus, setCodeFocus] = useState(false);
   const [stage, setStage] = useState<'choose' | 'email' | 'code'>(startWithEmail || !appleSignInAvailable() ? 'email' : 'choose');
