@@ -12,6 +12,7 @@
 // change in iOS Settings wins over the in-app pick (owner 2026-10-28).
 // Arabic and Hebrew turn the whole document right to left.
 import { createElement, Fragment, useSyncExternalStore, type ReactNode } from 'react';
+import { storage } from './storage';
 
 /** One translated string, or its plural forms (Intl.PluralRules categories). */
 export type Entry = string | Partial<Record<Intl.LDMLPluralRule, string>>;
@@ -46,8 +47,6 @@ async function load(l: Lang): Promise<void> {
   try { CATALOGS[l] = loader ? (await loader()).default : {}; } catch { CATALOGS[l] = {}; }
 }
 const RTL = new Set<Lang>(['ar', 'he']);
-// Intl locale per language: zh is Simplified Chinese, pt follows the phone's
-// region (Brazil or Portugal) for dates and money, as does every other one.
 const STORE_KEY = 'ringo_lang';
 // The phone's language when the buyer picked one in the app: a different one
 // later means they changed it in iOS Settings, and that change wins.
@@ -62,17 +61,15 @@ function supported(tag: string | undefined | null): Lang | null {
 }
 
 function chosen(): Lang | null {
-  try {
-    const picked = supported(localStorage.getItem(STORE_KEY));
-    if (!picked) return null;
-    const then = localStorage.getItem(DEVICE_KEY);
-    if (then && then !== (deviceTags()[0] || '')) {
-      localStorage.removeItem(STORE_KEY);
-      localStorage.removeItem(DEVICE_KEY);
-      return null;
-    }
-    return picked;
-  } catch { return null; }
+  const picked = supported(storage.get(STORE_KEY));
+  if (!picked) return null;
+  const then = storage.get(DEVICE_KEY);
+  if (then && then !== (deviceTags()[0] || '')) {
+    storage.remove(STORE_KEY);
+    storage.remove(DEVICE_KEY);
+    return null;
+  }
+  return picked;
 }
 
 function deviceTags(): string[] {
@@ -95,7 +92,8 @@ const ready: Promise<void> = load(lang);
 const listeners = new Set<() => void>();
 
 // The Intl locale: the phone's own tag when it is this language (es-MX keeps
-// Mexican dates), else the bare code.
+// Mexican dates, pt follows Brazil or Portugal), else the bare code; zh is
+// Simplified Chinese.
 // Arabic keeps Latin digits, so prices, GB and counts read the same as the
 // "eSIM" and "GB" around them.
 function localeFor(l: Lang): string {
@@ -116,15 +114,13 @@ export const i18n = {
   get: (): Lang => lang,
   /** The buyer's own pick, or null when the app follows the phone. */
   chosen,
-  /** 'auto' goes back to following the phone's language. */
   ready,
+  /** 'auto' goes back to following the phone's language. */
   async set(next: Lang | 'auto') {
     const target: Lang = next === 'auto' ? (deviceTags().map(supported).find(Boolean) ?? 'en') : next;
     await load(target);
-    try {
-      if (next === 'auto') { localStorage.removeItem(STORE_KEY); localStorage.removeItem(DEVICE_KEY); }
-      else { localStorage.setItem(STORE_KEY, next); localStorage.setItem(DEVICE_KEY, deviceTags()[0] || ''); }
-    } catch { /* ignore */ }
+    if (next === 'auto') { storage.remove(STORE_KEY); storage.remove(DEVICE_KEY); }
+    else { storage.set(STORE_KEY, next); storage.set(DEVICE_KEY, deviceTags()[0] || ''); }
     lang = target;
     locale = localeFor(lang);
     apply();
@@ -181,14 +177,6 @@ export function fmtDate(d: Date | string | number, opts: Intl.DateTimeFormatOpti
   const date = d instanceof Date ? d : new Date(d);
   if (Number.isNaN(date.getTime())) return '';
   try { return date.toLocaleString(locale, opts); } catch { return date.toISOString().slice(0, 10); }
-}
-
-/** A list joined the language's way: "France, Italy and Spain". */
-export function fmtList(items: string[], type: 'conjunction' | 'disjunction' = 'conjunction'): string {
-  try {
-    const LF = (Intl as unknown as { ListFormat: new (l: string, o: object) => { format(x: string[]): string } }).ListFormat;
-    return new LF(locale, { style: 'long', type }).format(items);
-  } catch { return items.join(', '); }
 }
 
 /** A country or region name in the current language, from its ISO code. */

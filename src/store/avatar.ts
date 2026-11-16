@@ -2,6 +2,7 @@
 // ringoesim.com), shrunk to a 256px square so it fits in storage. Without
 // one the avatar is their Ringo cowboy (golden for a Pioneer).
 import { useSyncExternalStore } from 'react';
+import { storage } from '../lib/storage';
 
 const KEY = (userId: string) => `ringo_avatar_v1_${userId}`;
 const listeners = new Set<() => void>();
@@ -11,7 +12,7 @@ const subscribe = (l: () => void) => { listeners.add(l); return () => { listener
 
 function read(userId: string | null): string | null {
   if (!userId) return null;
-  try { return localStorage.getItem(KEY(userId)); } catch { return null; }
+  return storage.get(KEY(userId));
 }
 
 async function shrink(file: File, px = 256): Promise<string> {
@@ -35,12 +36,12 @@ export const avatarPhoto = {
   /** Resolves true when the photo was saved, false when it could not be read or stored. */
   async set(userId: string, file: File): Promise<boolean> {
     let ok = false;
-    try { localStorage.setItem(KEY(userId), await shrink(file)); ok = true; } catch { /* storage full or the image unreadable: keep the cowboy */ }
+    try { ok = storage.set(KEY(userId), await shrink(file)); } catch { /* the image unreadable (storage full is a false from set): keep the cowboy */ }
     notify();
     return ok;
   },
   clear(userId: string): void {
-    try { localStorage.removeItem(KEY(userId)); } catch { /* ignore */ }
+    storage.remove(KEY(userId));
     notify();
   },
   use(userId: string | null): string | null {
@@ -54,7 +55,7 @@ export const avatarPhoto = {
 const TKEY = (userId: string) => `ringo_traveller_v1_${userId}`;
 function readTraveller(userId: string | null): string | null {
   if (!userId) return null;
-  try { return localStorage.getItem(TKEY(userId)); } catch { return null; }
+  return storage.get(TKEY(userId));
 }
 export const avatarTraveller = {
   /** Whether this member has picked one yet (the onboarding asks once). */
@@ -62,7 +63,7 @@ export const avatarTraveller = {
     return readTraveller(userId) != null;
   },
   set(userId: string, kind: string): void {
-    try { localStorage.setItem(TKEY(userId), kind); } catch { /* storage full: keep the last one */ }
+    storage.set(TKEY(userId), kind); // storage full: keep the last one
     notify();
   },
   use(userId: string | null): string | null {

@@ -119,6 +119,15 @@ describe('reportTransaction', () => {
     expect(nativeFinish).toHaveBeenCalledWith({ transactionId: '2000001' });
   });
 
+  // Regression: an answer without the id stored the purchase as "apple:undefined",
+  // a reference the site releases no eSIM against.
+  it("falls back to Apple's own transaction id when the site's answer leaves it out", async () => {
+    appPurchase.mockResolvedValue(record({ transaction_id: undefined as unknown as string }));
+    await reportTransaction(tx, ctx);
+    expect(account.set).toHaveBeenCalledWith(expect.objectContaining({ purchaseRef: 'apple:2000001' }));
+    expect(nativeFinish).toHaveBeenCalledWith({ transactionId: '2000001' });
+  });
+
   it('clears the oldest waiting context when the purchase carries no start stamp (a redelivered transaction)', async () => {
     appPurchase.mockResolvedValue(record());
     await reportTransaction(tx, { plan: 'trip_7', destination: 'japan', data_gb: 5, email: 'buyer@example.com' });

@@ -40,15 +40,35 @@ describe('lpaParts', () => {
   });
 });
 
+describe('lpaParts: strings that are not exactly LPA:1$…', () => {
+  it('drops whitespace around the string and around each part', () => {
+    expect(lpaParts('  LPA:1$smdp.example.com$ABC-123\n')).toEqual({ smdp: 'smdp.example.com', matchingId: 'ABC-123' });
+    expect(lpaParts('LPA:1$ smdp.example.com $ABC-123$ 4321 ')).toEqual({ smdp: 'smdp.example.com', matchingId: 'ABC-123', confirmationCode: '4321' });
+  });
+
+  // Regression: the first field was dropped whatever it was, so a string
+  // without the marker showed the matching id as the SM-DP+ address.
+  it('reads a string without the LPA:1 marker from its first field', () => {
+    expect(lpaParts('smdp.example.com$ABC-123')).toEqual({ smdp: 'smdp.example.com', matchingId: 'ABC-123' });
+    expect(lpaParts('smdp.example.com$ABC-123$77')).toEqual({ smdp: 'smdp.example.com', matchingId: 'ABC-123', confirmationCode: '77' });
+  });
+
+  it('takes the marker in any letter case, or as the bare format number', () => {
+    expect(lpaParts('lpa:1$smdp.example.com$ABC')).toEqual({ smdp: 'smdp.example.com', matchingId: 'ABC' });
+    expect(lpaParts('1$smdp.example.com$ABC')).toEqual({ smdp: 'smdp.example.com', matchingId: 'ABC' });
+  });
+});
+
 describe('qrDataUri', () => {
   const lpa = 'LPA:1$smdp.example.com$ABC-123';
 
-  it('returns an image data URI usable as an <img> src', () => {
-    expect(qrDataUri(lpa)).toMatch(/^data:image\/gif;base64,[A-Za-z0-9+/]+=*$/);
+  it('resolves to an image data URI usable as an <img> src', async () => {
+    await expect(qrDataUri(lpa)).resolves.toMatch(/^data:image\/gif;base64,[A-Za-z0-9+/]+=*$/);
   });
 
-  it('is deterministic for one string and differs between strings', () => {
-    expect(qrDataUri(lpa)).toBe(qrDataUri(lpa));
-    expect(qrDataUri(lpa)).not.toBe(qrDataUri('LPA:1$smdp.example.com$ABC-124'));
+  it('is deterministic for one string and differs between strings', async () => {
+    const [a, again, other] = await Promise.all([qrDataUri(lpa), qrDataUri(lpa), qrDataUri('LPA:1$smdp.example.com$ABC-124')]);
+    expect(a).toBe(again);
+    expect(a).not.toBe(other);
   });
 });

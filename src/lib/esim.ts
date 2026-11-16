@@ -10,7 +10,15 @@ export interface LpaParts {
 }
 
 export function lpaParts(lpa: string): LpaParts {
-  const [, smdp = '', matchingId = '', confirmationCode] = String(lpa).split('$');
+  // Whitespace around the string or a part (a trailing newline from the
+  // supplier) would be typed into Settings with the code.
+  const parts = String(lpa ?? '').trim().split('$').map((p) => p.trim());
+  // The first field is the format marker, not an address. A string that came
+  // without it ("smdp.example.com$ABC") starts at the address: dropping its
+  // first field blindly showed the matching id as the SM-DP+ address.
+  if (/^(?:LPA:)?1$/i.test(parts[0])) parts.shift();
+  else if (parts.length < 2) return { smdp: '', matchingId: '' };
+  const [smdp = '', matchingId = '', confirmationCode] = parts;
   return confirmationCode ? { smdp, matchingId, confirmationCode } : { smdp, matchingId };
 }
 

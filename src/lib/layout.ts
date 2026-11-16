@@ -105,11 +105,6 @@ export function useLayout(): Layout {
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
-/** Current layout outside React (event handlers, measurements). */
-export function getLayout(): Layout {
-  return current;
-}
-
 // ── Style helpers ───────────────────────────────────────────────────────────
 
 /** A centred content column: full width on a phone, max COLUMN_MAX (880) wide. */

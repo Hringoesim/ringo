@@ -17,6 +17,7 @@ import { iapAvailable, loadProducts } from '../lib/iap';
 import { appleMoney } from '../lib/purchase';
 import { CARD_PAYMENTS } from '../lib/cardPay';
 import { subMonths } from '../lib/terms';
+import { storage } from '../lib/storage';
 import { live } from './live';
 
 let current: Summary | null = null;
@@ -47,7 +48,7 @@ type AppleLine = [productId: string, perMonths: number];
 // repriced on the site sells new products, and lines kept from before would
 // price its card with a product it no longer sells. The copy an older build
 // kept on the phone is removed.
-try { localStorage.removeItem('ringo_apple_lines_v1'); } catch { /* ignore */ }
+storage.remove('ringo_apple_lines_v1');
 let lines: Record<string, AppleLine[]> = {};
 const lineListeners = new Set<() => void>();
 live.subscribe(() => {

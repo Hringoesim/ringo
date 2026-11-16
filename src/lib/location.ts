@@ -7,6 +7,7 @@
 // someone who said no to pushes is never asked. Afterwards it is read again
 // when the app comes to the front, at most every 30 minutes.
 import { Capacitor, registerPlugin } from '@capacitor/core';
+import { storage } from './storage';
 
 type Permission = 'granted' | 'denied' | 'prompt';
 interface LocationPlugin {
@@ -20,10 +21,8 @@ const EVERY_MS = 30 * 60 * 1000;
 const available = () => Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
 
 function saved(): { country: string; at: number } | null {
-  try {
-    const v = JSON.parse(localStorage.getItem(KEY) || 'null');
-    return v && typeof v.country === 'string' ? v : null;
-  } catch { return null; }
+  const v = storage.json(KEY) as { country?: unknown; at?: unknown } | null;
+  return v && typeof v.country === 'string' ? { country: v.country, at: typeof v.at === 'number' ? v.at : 0 } : null;
 }
 
 /** The last country read on this phone, or null. */
@@ -40,7 +39,7 @@ export async function readCountry(ask = false): Promise<string | null> {
     const r = await Native.country({ ask });
     if (r.country && /^[A-Z]{2}$/i.test(r.country)) {
       const country = r.country.toUpperCase();
-      try { localStorage.setItem(KEY, JSON.stringify({ country, at: Date.now() })); } catch { /* ignore */ }
+      storage.set(KEY, JSON.stringify({ country, at: Date.now() }));
       return country;
     }
   } catch { /* plugin missing on an old build */ }

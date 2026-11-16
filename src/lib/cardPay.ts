@@ -42,6 +42,8 @@ const NOT_THROUGH = (): string => t('The payment did not go through. Nothing was
 // What the buyer reads: a sentence, never a code ("missing_secret", "Unknown plan").
 function buyerMessage(e: unknown): string {
   const m = (e as Error)?.message || '';
+  // The site answered with something that is not a payment (api/light.ts): nothing was minted to charge.
+  if ((e as { code?: string })?.code === 'malformed_response') return NOT_STARTED();
   if (!m || /^[a-z_]+$/.test(m) || /^unknown plan$/i.test(m) || /^could not start checkout$/i.test(m)) return NOT_STARTED();
   return m;
 }

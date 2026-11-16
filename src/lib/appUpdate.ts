@@ -7,6 +7,7 @@
 // newer, shows nothing.
 import { Capacitor } from '@capacitor/core';
 import { useSyncExternalStore } from 'react';
+import { storage } from './storage';
 
 const APP_ID = '6787133742';
 const LOOKUP_URL = `https://itunes.apple.com/lookup?id=${APP_ID}`;
@@ -30,11 +31,8 @@ export function isNewer(a: string, b: string): boolean {
 }
 
 function readSaved(): { version: string; at: number } | null {
-  try {
-    const v = JSON.parse(localStorage.getItem(LATEST_KEY) || 'null');
-    if (v && typeof v.version === 'string' && typeof v.at === 'number') return v;
-  } catch { /* ignore */ }
-  return null;
+  const v = storage.json(LATEST_KEY) as { version?: unknown; at?: unknown } | null;
+  return v && typeof v.version === 'string' && typeof v.at === 'number' ? { version: v.version, at: v.at } : null;
 }
 
 let latest: string | null = readSaved()?.version ?? null;
@@ -49,7 +47,7 @@ async function check(): Promise<void> {
     if (!r.ok) return;
     const version = String((await r.json())?.results?.[0]?.version || '');
     if (!version) return;
-    try { localStorage.setItem(LATEST_KEY, JSON.stringify({ version, at: Date.now() })); } catch { /* ignore */ }
+    storage.set(LATEST_KEY, JSON.stringify({ version, at: Date.now() }));
     latest = version;
     listeners.forEach((l) => l());
   } catch { /* offline: ask again next time */ }
