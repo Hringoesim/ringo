@@ -13,7 +13,7 @@
 //   GET  app-profile?user&t                badges + Ringo status (the loyalty ladder)
 //   GET  app-usage?user&t                  data used per eSIM and per day
 //   POST app-push-register?user&t          this phone's APNs token and the two push switches
-import { log } from '../lib/log';
+import { log, redact } from '../lib/log';
 import { t, tk, i18n, currentLocale } from '../lib/i18n';
 
 export const SITE = 'https://ringoesim.com';
@@ -116,7 +116,7 @@ export interface Profile {
   badges: TravelBadge[];
   stats: { destinations: number; plans: number; countries_reachable: number; paid_months: number };
   /** Ringo Rewards, by destinations booked (absent on an older site). */
-  rewards?: { destinations: number; /** Progress counts this many months back (12 since 2026-10-25). */ window_months?: number; booked?: number; global_months?: number; global_pct?: number; global_tenure?: { months: number; pct: number }[]; level: RewardLevel | null; next: { id: string; name: string; min: number; to_go: number } | null; levels: RewardLevel[] };
+  rewards?: { /** Plans bought in the window (the field kept its first name). */ destinations: number; /** Whole EUR the member saved with Ringo, rounded down for "over"; null under EUR 5. */ saved_over_eur?: number | null; /** Progress counts this many months back (12 since 2026-10-25). */ window_months?: number; booked?: number; global_months?: number; global_pct?: number; global_tenure?: { months: number; pct: number }[]; level: RewardLevel | null; next: { id: string; name: string; min: number; to_go: number } | null; levels: RewardLevel[] };
   /** Ringo credit in EUR cents, earned back on every plan by level (absent on an older site). */
   credit?: { balance_cents: number; earned_cents: number; spent_cents: number; pct: number; currency: 'eur' };
   /** Ringo Pioneer (absent or null when not one): how they became one and the rung's name. Never the Pioneer number. */
@@ -215,11 +215,38 @@ export interface SubscriptionRead {
 
 export class ApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  /** 'malformed_response': the site answered, but not with what the call needs. */
+  code?: string;
+  constructor(message: string, status: number, code?: string) {
     super(message);
     this.status = status;
+    if (code) this.code = code;
   }
 }
+
+// ── What an answer must hold ───────────────────────────────────────────────
+// `body as T` trusts whatever arrived: a proxy's HTML page, an empty 200 or a
+// half answer became undefined-shaped data (an account with no id, a payment
+// read as paid from the string "false"). Each check below asks only for what
+// the app reads at once and cannot do without; optional and unknown fields
+// pass untouched, so a newer site never breaks an older app.
+type Obj = Record<string, unknown>;
+const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
+const text = (v: unknown): boolean => typeof v === 'string' && v.length > 0;
+const textOrAbsent = (v: unknown): boolean => v == null || typeof v === 'string';
+const amountOf = (v: unknown): boolean => typeof v === 'number' && Number.isFinite(v) && v >= 0;
+type Check = (body: unknown) => boolean;
+/** An account opened: the signup row and its token, both or nothing. */
+const isSession: Check = (b) => isObj(b) && text(b.user_id) && text(b.t) && textOrAbsent(b.email);
+/** An App Store purchase recorded: the owner's handle is optional (reportTransaction decides), never mistyped. */
+const isPurchase: Check = (b) => isObj(b) && textOrAbsent(b.transaction_id) && textOrAbsent(b.user_id) && textOrAbsent(b.t) && textOrAbsent(b.email);
+/** A payment intent: what is charged, in what; the secret and ids are cardPay's to refuse with its own sentence. */
+const isIntent: Check = (b) => isObj(b) && amountOf(b.amount) && text(b.currency) && textOrAbsent(b.client_secret) && textOrAbsent(b.publishable_key) && textOrAbsent(b.payment_intent_id) && textOrAbsent(b.subscription_id);
+/** A staff quote: a price only matters, and must be a real one, when the code applies. */
+const isQuote: Check = (b) => isObj(b) && (b.staff !== true || (amountOf(b.amount) && text(b.currency)));
+/** Stripe's word: `paid` is a boolean or it is not an answer. */
+const isCardStatus: Check = (b) => isObj(b) && typeof b.paid === 'boolean' && textOrAbsent(b.user_id) && textOrAbsent(b.t);
+const has = (key: string, kind: 'object' | 'array'): Check => (b) => isObj(b) && (kind === 'array' ? Array.isArray(b[key]) : isObj(b[key]));
 
 // No timeout and a network that accepts the connection then answers nothing
 // leaves every button spinning for ever, which is what a proxied review
@@ -227,7 +254,19 @@ export class ApiError extends Error {
 // offline, which callers were showing to people verbatim.
 const TIMEOUT_MS = 20000;
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+// AbortSignal.timeout is missing from WebViews before 2022 (Chrome 103,
+// Safari 16): calling it threw inside the try below, so every request on such
+// a phone read as "No connection to Ringo".
+function timeoutSignal(ms: number): AbortSignal {
+  if (typeof AbortSignal.timeout === 'function') return AbortSignal.timeout(ms);
+  const c = new AbortController();
+  setTimeout(() => c.abort(new DOMException('The operation timed out.', 'TimeoutError')), ms);
+  return c.signal;
+}
+
+async function request<T>(path: string, init: RequestInit = {}, check?: Check): Promise<T> {
+  // The account's id and token ride in the query: never in a log.
+  const shown = redact(path);
   let res: Response;
   try {
     // cache: 'no-store': every answer comes from the site, never from a
@@ -236,12 +275,12 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     res = await fetch(`${API}${path}`, {
       cache: 'no-store',
       ...init,
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: timeoutSignal(TIMEOUT_MS),
       headers: { Accept: 'application/json', 'Accept-Language': i18n.get(), ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...(init.headers || {}) },
     });
   } catch (err) {
     const timedOut = (err as Error)?.name === 'TimeoutError';
-    log.warn('api', `${path} -> ${timedOut ? 'timed out' : 'no connection'}`);
+    log.warn('api', `${shown} -> ${timedOut ? 'timed out' : 'no connection'}`);
     throw new ApiError(
       timedOut ? t('Ringo took too long to answer. Try again in a moment.') : t('No connection to Ringo. Check your internet and try again.'),
       0,
@@ -250,8 +289,12 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const body = (await res.json().catch(() => null)) as (T & { error?: string; message?: string }) | null;
   if (!res.ok) {
     const msg = (body && (body.message || body.error)) || t('Request failed ({status})', { status: res.status });
-    log.warn('api', `${path} -> ${res.status} ${msg}`);
+    log.warn('api', `${shown} -> ${res.status} ${msg}`);
     throw new ApiError(msg, res.status);
+  }
+  if (check && !check(body)) {
+    log.error('api', `${shown} -> ${res.status} with an answer the app cannot read`);
+    throw new ApiError(t('Request failed ({status})', { status: res.status }), res.status, 'malformed_response');
   }
   return body as T;
 }
@@ -260,37 +303,34 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 export interface CardStatus { status: string; paid: boolean; pending: boolean; delivered?: boolean; user_id?: string; t?: string }
 
 export const light = {
-  summary: () => request<Summary>('/esim-plans?summary=1'),
+  summary: () => request<Summary>('/esim-plans?summary=1', {}, has('from', 'object')),
   /** With the member's account, plans carry their Ringo Rewards price and its App Store product. */
   catalog: (destination: string, member?: { userId: string; t: string } | null) =>
-    request<Catalog>(`/esim-plans?${new URLSearchParams({ destination, app: '1', ...(member ? { user: member.userId, t: member.t } : {}) }).toString()}`),
+    request<Catalog>(`/esim-plans?${new URLSearchParams({ destination, app: '1', ...(member ? { user: member.userId, t: member.t } : {}) }).toString()}`, {}, has('plans', 'array')),
 
   /** Report an App Store purchase; the site verifies Apple's signature and issues the eSIM. */
   appPurchase: (body: { signedTransaction: string; plan: string; destination: string; data_gb?: number | null; email: string }) =>
-    request<PurchaseRecord>('/app-purchase', { method: 'POST', body: JSON.stringify(body) }),
+    request<PurchaseRecord>('/app-purchase', { method: 'POST', body: JSON.stringify(body) }, isPurchase),
 
-  /** Hosted Stripe Checkout (the app's old card path; the app now pays in its own sheet, appPay). */
-  cardCheckout: (body: { plan: string; destination: string; data_gb?: number | null; email: string; currency?: string; user?: string; t?: string }) =>
-    request<{ url: string; id?: string }>('/esim-checkout', { method: 'POST', body: JSON.stringify({ ...body, client: 'app', device: 'iPhone app' }) }),
   /** Stripe's own word on that session: paid, and once the site has the row, whose account it is. */
-  cardStatus: (ref: { pi: string } | { sub: string }) => request<CardStatus>(`/light-status?${new URLSearchParams(ref as Record<string, string>).toString()}`),
+  cardStatus: (ref: { pi: string } | { sub: string }) => request<CardStatus>(`/light-status?${new URLSearchParams(ref as Record<string, string>).toString()}`, {}, isCardStatus),
   /** The app's own payment sheet (api/app-pay.js): the intent for the line the app showed. */
   appPay: (body: { plan: string; destination: string; data_gb?: number | null; email: string; currency?: string; user?: string; t?: string; topUp?: boolean; subscription?: string; use_credit?: boolean; code?: string }) =>
-    request<{ client_secret: string; mode: 'payment' | 'subscription'; amount: number; currency: string; label: string; payment_intent_id?: string; subscription_id?: string; publishable_key: string | null; credit_off?: number; list_amount?: number; staff?: boolean }>('/app-pay', { method: 'POST', body: JSON.stringify({ ...body, client: 'app' }) }),
+    request<{ client_secret: string; mode: 'payment' | 'subscription'; amount: number; currency: string; label: string; payment_intent_id?: string; subscription_id?: string; publishable_key: string | null; credit_off?: number; list_amount?: number; staff?: boolean }>('/app-pay', { method: 'POST', body: JSON.stringify({ ...body, client: 'app' }) }, isIntent),
 
   /** A staff code's price on this line (api/app-pay.js quote mode): nothing is minted. */
   appQuote: (body: { plan: string; destination: string; data_gb?: number | null; email: string; currency?: string; code: string }) =>
-    request<{ amount: number; currency: string; staff: boolean }>('/app-pay', { method: 'POST', body: JSON.stringify({ ...body, quote: true, client: 'app' }) }),
+    request<{ amount: number; currency: string; staff: boolean }>('/app-pay', { method: 'POST', body: JSON.stringify({ ...body, quote: true, client: 'app' }) }, isQuote),
 
   /** "Restore purchases": the owner of a purchase the site already knows (404 otherwise). */
   restorePurchase: (signedTransaction: string) =>
-    request<PurchaseRecord>('/app-purchase', { method: 'POST', body: JSON.stringify({ signedTransaction, restore: true }) }),
+    request<PurchaseRecord>('/app-purchase', { method: 'POST', body: JSON.stringify({ signedTransaction, restore: true }) }, isPurchase),
 
   subscription: (userId: string, t: string, opts: { usage?: boolean; install?: string | null } = {}) => {
     const q = new URLSearchParams({ user: userId, t });
     if (opts.usage) q.set('usage', '1');
     if (opts.install) q.set('install', opts.install);
-    return request<SubscriptionRead>(`/esim-subscription?${q.toString()}`);
+    return request<SubscriptionRead>(`/esim-subscription?${q.toString()}`, {}, isObj);
   },
 
   /** A card subscription's renewal off or back on (Stripe cancel_at_period_end; the paid month runs on). */
@@ -317,30 +357,22 @@ export const light = {
       { method: 'POST', body: JSON.stringify({ action: 'report_problem', ...body }) },
     ),
 
-  /** The signup row for an email (created if new): its id rides on a purchase as Apple's appAccountToken. */
-  lead: (email: string) =>
-    request<{ ok: boolean; id: string; t?: string }>('/lead', {
-      method: 'POST',
-      body: JSON.stringify({ email, attribution: { utm_source: 'ios_app' } }),
-    }),
-
   /** Sign in, step one: a six-digit code is emailed. */
   loginStart: (email: string) =>
-    request<{ ok: boolean; sent: boolean; retry_after?: number }>('/app-login', { method: 'POST', body: JSON.stringify({ email }) }),
+    request<{ ok: boolean; sent: boolean; retry_after?: number }>('/app-login', { method: 'POST', body: JSON.stringify({ email }) }, isObj),
   /** While the code screen waits: did the code email bounce (an address that does not exist)? */
   loginCheck: (email: string) =>
-    request<{ ok: boolean; bounced: boolean; error?: string }>('/app-login', { method: 'POST', body: JSON.stringify({ email, check: true }) }),
+    request<{ ok: boolean; bounced: boolean; error?: string }>('/app-login', { method: 'POST', body: JSON.stringify({ email, check: true }) }, isObj),
   /** Delete the account: identifiers wiped on the site, purchases kept. */
   deleteAccount: (userId: string, t: string) =>
     request<{ ok: boolean; deleted: boolean }>(`/app-account-delete?${new URLSearchParams({ user: userId, t }).toString()}`, { method: 'POST', body: '{}' }),
-  /** Sign in, step two: the code opens the account. */
   /** Sign in with Apple or Google: the provider's identity token opens the same account. */
   loginProvider: (provider: 'apple' | 'google' | 'supabase', idToken: string, nonce: string) =>
-    request<{ ok: boolean; user_id: string; t: string; email: string; provider: string }>('/app-login', { method: 'POST', body: JSON.stringify({ provider, id_token: idToken, nonce }) }),
+    request<{ ok: boolean; user_id: string; t: string; email: string; provider: string }>('/app-login', { method: 'POST', body: JSON.stringify({ provider, id_token: idToken, nonce }) }, isSession),
 
   /** The profile: who is logged in and the badges of where their eSIMs have taken them. */
   profile: (userId: string, t: string) =>
-    request<Profile>(`/app-profile?${new URLSearchParams({ user: userId, t }).toString()}`),
+    request<Profile>(`/app-profile?${new URLSearchParams({ user: userId, t }).toString()}`, {}, has('badges', 'array')),
 
   /** Apple's promotional offer for Global's kept-month price, signed for this account. */
   rewardsOffer: (userId: string, t: string, productId: string) =>
@@ -351,7 +383,7 @@ export const light = {
 
   /** Data used per eSIM and per day, from the figures the site already stored. */
   usage: (userId: string, t: string) =>
-    request<Usage>(`/app-usage?${new URLSearchParams({ user: userId, t }).toString()}`),
+    request<Usage>(`/app-usage?${new URLSearchParams({ user: userId, t }).toString()}`, {}, has('esims', 'array')),
 
   /** This phone's push token and the member's switches; the site is the sender. */
   pushRegister: (userId: string, t: string, body: { token: string; environment: 'production' | 'sandbox'; service_ok: boolean; offers_ok: boolean; app_version?: string; country?: string }) =>
@@ -360,15 +392,16 @@ export const light = {
       { method: 'POST', body: JSON.stringify(body) },
     ),
 
+  /** Sign in, step two: the code opens the account. */
   loginVerify: (email: string, code: string) =>
-    request<{ ok: boolean; user_id: string; t: string; email: string }>('/app-login', { method: 'POST', body: JSON.stringify({ email, code }) }),
+    request<{ ok: boolean; user_id: string; t: string; email: string }>('/app-login', { method: 'POST', body: JSON.stringify({ email, code }) }, isSession),
 
   // ── The full Ringo service (not launched): its waitlist and survey ──────
   // The same endpoints the website's dashboard uses. The token rides in the
   // query or body, never a header.
   /** The member's waitlist row (place in line, survey answers) and the live counts. */
   dashboard: (userId: string, t: string) =>
-    request<WaitlistDashboard>(`/dashboard?${new URLSearchParams({ user: userId, t }).toString()}`),
+    request<WaitlistDashboard>(`/dashboard?${new URLSearchParams({ user: userId, t }).toString()}`, {}, has('user', 'object')),
   /** Joins the waitlist (lead -> waitlist_active). Idempotent; one welcome email. */
   joinWaitlist: (userId: string, email: string, t: string) =>
     request<{ ok: boolean; activated?: boolean; t?: string }>('/waitlist', { method: 'POST', body: JSON.stringify({ user_id: userId, email, t }) }),

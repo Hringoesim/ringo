@@ -15,7 +15,7 @@ import { PIONEER_GOLD } from './format';
 import { t, tk, fmtNumber, fmtDate } from '../../lib/i18n';
 
 const RARITY: Record<string, { label: string; color: string }> = {
-  common: { label: tk('Common'), color: RC.ink2 },
+  common: { label: tk('Common'), color: '' }, // RC.ink2, read when drawn (rarityOf): it follows the theme
   rare: { label: tk('Rare'), color: '#2F6FEB' },
   epic: { label: tk('Epic'), color: '#8652E0' },
   super: { label: tk('Super rare'), color: '#B7791F' },
@@ -56,7 +56,10 @@ function Medal({ a, size }: { a: Achievement; size: number }) {
 }
 
 /** A rarity the app does not know reads as Common rather than breaking the screen. */
-const rarityOf = (a: Achievement) => RARITY[a.rarity ?? ''] ?? RARITY.common;
+const rarityOf = (a: Achievement) => {
+  const r = RARITY[a.rarity ?? ''] ?? RARITY.common;
+  return { label: r.label, color: r.color || RC.ink2 };
+};
 
 function Tile({ a, l, onOpen }: { a: Achievement; l: Layout; onOpen: () => void }) {
   const pct = Math.round((a.have / Math.max(1, a.need)) * 100);

@@ -154,6 +154,8 @@ function Card({ d, from, onOpen, onPeek, size, eager = false, photo }: { d: Dest
   const peeked = useRef(false);
   const startY = useRef(0);
   const stop = () => { if (timer.current) { clearTimeout(timer.current); timer.current = null; } };
+  // A card that goes mid-hold (a search narrowing the list) never opens the quick look afterwards.
+  useEffect(() => stop, []);
   const big = size === 'big';
   const chip = big && d.kind === 'region' && d.countries > 1 && d.id !== 'global' ? plural(d.countries, '{n} country', '{n} countries') : null;
   const priceText = from != null ? t('From {price}', { price: from }) : '';

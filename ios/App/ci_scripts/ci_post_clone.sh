@@ -25,7 +25,7 @@ fi
 echo "▸ using node $(node -v), npm $(npm -v)"
 
 echo "▸ installing JS dependencies (creates node_modules the SPM packages need)"
-npm ci || npm install
+npm ci
 
 echo "▸ building the web app"
 npm run build

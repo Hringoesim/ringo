@@ -32,3 +32,34 @@ pnpm-debug.log*
 appstore/scripts/chrome-cdp-profile/
 appstore/scripts/chrome-*profile*/
 appstore/scripts/*.log
+
+# Env files of every flavour (keys, tokens). Only the example is committed.
+.env.*
+!.env.example
+
+# Browser automation profiles and their output, wherever a script puts them
+# (a ~1,400-file Chrome profile was committed by accident once: 12d3e4d).
+*chrome*profile*/
+*chromium*profile*/
+*cdp-profile*/
+.puppeteer/
+.playwright/
+playwright-report/
+test-results/
+**/user-data-dir/
+**/User Data/
+
+# Build and tool output
+/build/
+coverage/
+.vite/
+.eslintcache
+*.log
+*.tgz
+
+# Signing material: never in the repo
+*.p8
+*.p12
+*.mobileprovision
+*.keystore
+*.jks

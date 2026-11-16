@@ -1,13 +1,14 @@
 // account.ts — what the app remembers about its owner, on this phone only.
 //
-// There is no login. A buyer is identified the way the website identifies
-// them: by email, through the signup row (`userId`) and its per-user token
-// (`t`), both handed back by ringoesim.com once Apple says a purchase is
-// paid, or by /api/lead when someone types the email they bought with.
+// A buyer is identified the way the website identifies them: by email,
+// through the signup row (`userId`) and its per-user token (`t`), both handed
+// back by ringoesim.com once a purchase is paid (card or App Store) or a
+// sign-in is verified (/api/app-login: the emailed code, Apple or Google).
 // `purchaseRef` is the App Store transaction (apple:<id>) of the purchase
 // made from this phone; the site only releases the installable eSIM profile
 // against it.
 import { useSyncExternalStore } from 'react';
+import { storage } from '../lib/storage';
 
 export interface Account {
   userId: string;
@@ -23,37 +24,38 @@ let cached: Account | null | undefined;
 
 function read(): Account | null {
   if (cached !== undefined) return cached;
-  try {
-    const raw = localStorage.getItem(KEY);
-    const v = raw ? (JSON.parse(raw) as Account) : null;
-    cached = v && typeof v.userId === 'string' && typeof v.t === 'string' ? v : null;
-  } catch {
-    cached = null;
-  }
+  const v = storage.json(KEY) as Partial<Record<keyof Account, unknown>> | null;
+  // Only a whole handle is an account: an empty id or token signs nobody in,
+  // and an email or purchase that is not text (a damaged or older record) is
+  // dropped here, not handed to code that calls string methods on it.
+  cached = v && typeof v === 'object' && typeof v.userId === 'string' && v.userId && typeof v.t === 'string' && v.t
+    ? { userId: v.userId, t: v.t, email: typeof v.email === 'string' ? v.email : null, purchaseRef: typeof v.purchaseRef === 'string' ? v.purchaseRef : null }
+    : null;
   return cached;
 }
 
 function write(next: Account | null): void {
   cached = next;
-  try {
-    if (next) localStorage.setItem(KEY, JSON.stringify(next));
-    else localStorage.removeItem(KEY);
-  } catch {
-    /* storage unavailable: the session still works in memory */
-  }
+  // Storage unavailable: the session still works in memory.
+  if (next) storage.set(KEY, JSON.stringify(next));
+  else storage.remove(KEY);
   listeners.forEach((l) => l());
 }
 
 export const account = {
   get: read,
-  /** Remember the owner; keeps an earlier purchaseRef unless a new one is given. */
+  /** Remember the owner; keeps the same owner's earlier email and purchaseRef unless new ones are given. */
   set(patch: Partial<Account> & { userId: string; t: string }): Account {
     const prev = read();
+    // What is kept is the same account's only: a purchase restored into
+    // another account, with no email in the answer, used to inherit the
+    // email of whoever was signed in on this phone before.
+    const same = prev && prev.userId === patch.userId ? prev : null;
     const next: Account = {
       userId: patch.userId,
       t: patch.t,
-      email: patch.email ?? prev?.email ?? null,
-      purchaseRef: patch.purchaseRef ?? (prev && prev.userId === patch.userId ? prev.purchaseRef : null),
+      email: patch.email ?? same?.email ?? null,
+      purchaseRef: patch.purchaseRef ?? same?.purchaseRef ?? null,
     };
     write(next);
     return next;
@@ -62,7 +64,7 @@ export const account = {
     // The next person on this phone never sees the last checkout's email.
     // Purchases still in flight (ringo_pending_purchases_v1) stay: they are
     // paid, and their context is what completes them.
-    try { localStorage.removeItem('ringo_last_email'); } catch { /* storage unavailable */ }
+    storage.remove('ringo_last_email');
     write(null);
   },
   subscribe(l: () => void): () => void {
@@ -89,22 +91,19 @@ type PendingStore = Record<string, PurchaseContext[]>;
 const isContext = (v: unknown): v is PurchaseContext =>
   Boolean(v) && typeof v === 'object' && typeof (v as PurchaseContext).plan === 'string' && typeof (v as PurchaseContext).destination === 'string';
 function readPending(): PendingStore {
-  try {
-    const raw = localStorage.getItem(PENDING_KEY);
-    const parsed: unknown = raw ? JSON.parse(raw) : {};
-    if (!parsed || typeof parsed !== 'object') return {};
-    const out: PendingStore = {};
-    for (const [id, v] of Object.entries(parsed as Record<string, unknown>)) {
-      // Before the list, each product held one context object; an install
-      // updated with a purchase in flight keeps it as a one-entry list.
-      const list = (Array.isArray(v) ? v : [v]).filter(isContext).map((c) => ({ ...c, startedAt: c.startedAt ?? 0 }));
-      if (list.length) out[id] = list;
-    }
-    return out;
-  } catch { return {}; }
+  const parsed = storage.json(PENDING_KEY);
+  if (!parsed || typeof parsed !== 'object') return {};
+  const out: PendingStore = {};
+  for (const [id, v] of Object.entries(parsed as Record<string, unknown>)) {
+    // Before the list, each product held one context object; an install
+    // updated with a purchase in flight keeps it as a one-entry list.
+    const list = (Array.isArray(v) ? v : [v]).filter(isContext).map((c) => ({ ...c, startedAt: c.startedAt ?? 0 }));
+    if (list.length) out[id] = list;
+  }
+  return out;
 }
 function writePending(v: PendingStore): void {
-  try { localStorage.setItem(PENDING_KEY, JSON.stringify(v)); } catch { /* ignore */ }
+  storage.set(PENDING_KEY, JSON.stringify(v));
 }
 export const pendingPurchase = {
   /** The oldest context still waiting for this product (`nth` skips that many, for several unfinished transactions of one product). */

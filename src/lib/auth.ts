@@ -52,6 +52,9 @@ async function sha256Hex(s: string): Promise<string> {
   return Array.from(new Uint8Array(d)).map((x) => x.toString(16).padStart(2, '0')).join('');
 }
 
+/** ASAuthorizationError.canceled as an NSError prints it: "(com.apple.AuthenticationServices.AuthorizationError error 1001.)", the word "error" in the phone's language. */
+const APPLE_CANCELLED = /AuthenticationServices\.AuthorizationError\D{0,40}1001(?!\d)/;
+
 export type SignInResult = { ok: true; email: string } | { ok: false; cancelled: true } | { ok: false; cancelled?: false; error: string };
 
 /** Apple's sheet, then the account. Apple gets the SHA-256 of the nonce; the server checks the raw one. */
@@ -65,11 +68,16 @@ export async function signInWithApple(): Promise<SignInResult> {
     // The plugin now passes Apple's NSError code through. Matching on the
     // message alone read a dismissed sheet as a failure on any device that is
     // not in English, because "cancel" only appears in the English string.
+    // Without the code, 1001 counts only beside Apple's own error domain,
+    // which no language translates: a bare "1001" also sits in a network
+    // timeout (NSURLErrorDomain -1001), and that is a failure to say, not a
+    // sheet the person closed.
     const err = e as { message?: string; code?: string };
     const msg = String(err?.message || e);
-    if (err?.code === '1001' || /cancel/i.test(msg) || /1001/.test(msg)) return { ok: false, cancelled: true };
+    if (err?.code === '1001' || /cancel/i.test(msg) || APPLE_CANCELLED.test(msg)) return { ok: false, cancelled: true };
     return { ok: false, error: t('Apple did not complete the sign-in.') };
   }
+  if (!token) return { ok: false, error: t('Apple did not complete the sign-in.') };
   return finish('apple', token, raw);
 }
 
@@ -100,7 +108,9 @@ async function signInWithGoogleViaSupabase(): Promise<SignInResult> {
     return { ok: false, error: String((e as Error)?.message || t('Google did not complete the sign-in.')) };
   }
   // Supabase returns the session in the fragment (implicit flow); an error comes as query or fragment fields.
-  const u = new URL(callback);
+  // A callback that is not a URL is a sign-in that did not complete, said so, never a rejection the screen has no words for.
+  let u: URL;
+  try { u = new URL(callback); } catch { return { ok: false, error: t('Google did not complete the sign-in.') }; }
   const params = new URLSearchParams(u.hash.startsWith('#') ? u.hash.slice(1) : u.search.slice(1));
   const token = params.get('access_token');
   if (!token) return { ok: false, error: params.get('error_description') || t('Google did not complete the sign-in.') };

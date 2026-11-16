@@ -4,27 +4,38 @@
 // for good, and the views and purchases go to ringoesim.com (/api/app-ab) so
 // profit per visitor can be compared after two weeks.
 import { SITE } from '../api/light';
+import { storage } from './storage';
 
 export type DefaultArm = 'cheapest' | 'recommended';
 const KEY = 'ringo_ab_default_v1';
 const INSTALL = 'ringo_install_id_v1';
 
+// What was drawn is also kept in memory for the life of the app. When the
+// write does not land (storage full or unavailable), every call used to draw
+// again: a phone could show one arm, log its view under another and its
+// purchase under a third, each event under a new install id, and a phone
+// with no storage at all always fell in 'cheapest'.
+let arm: DefaultArm | null = null;
+let install: string | null = null;
+
 function installId(): string {
-  try {
-    let id = localStorage.getItem(INSTALL);
-    if (!id) { id = crypto.randomUUID(); localStorage.setItem(INSTALL, id); }
-    return id;
-  } catch { return 'unknown'; }
+  if (install) return install;
+  let id = storage.get(INSTALL);
+  if (!id) {
+    try { id = crypto.randomUUID(); } catch { return 'unknown'; }
+    storage.set(INSTALL, id);
+  }
+  install = id;
+  return id;
 }
 
 export function defaultArm(): DefaultArm {
-  try {
-    const v = localStorage.getItem(KEY);
-    if (v === 'cheapest' || v === 'recommended') return v;
-    const arm: DefaultArm = Math.random() < 0.5 ? 'cheapest' : 'recommended';
-    localStorage.setItem(KEY, arm);
-    return arm;
-  } catch { return 'cheapest'; }
+  if (arm) return arm;
+  const v = storage.get(KEY);
+  if (v === 'cheapest' || v === 'recommended') { arm = v; return v; }
+  arm = Math.random() < 0.5 ? 'cheapest' : 'recommended';
+  storage.set(KEY, arm);
+  return arm;
 }
 
 /** One event of the test; never blocks the screen, a failure is dropped. */

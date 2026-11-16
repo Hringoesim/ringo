@@ -1,7 +1,8 @@
 // i18n-check.mjs: every English string the app passes to t(), tn(), tk() or
 // plural(), against each src/i18n/<lang>.ts. Prints what a language is
 // missing (or no longer uses). `node scripts/i18n-check.mjs --keys` prints the
-// English keys as JSON, for translating.
+// English keys as JSON, for translating. Exits 1 on any drift; with
+// `--allow-unused` only a missing translation fails (unused ones still print).
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -37,13 +38,14 @@ if (process.argv.includes('--keys')) {
   process.exit(0);
 }
 
+const allowUnused = process.argv.includes('--allow-unused');
 let bad = 0;
 for (const f of readdirSync(join(root, 'i18n'))) {
   const src = readFileSync(join(root, 'i18n', f), 'utf8');
   const have = new Set([...src.matchAll(/^\s*("(?:[^"\\]|\\.)*")\s*:/gm)].map((m) => JSON.parse(m[1])));
   const missing = [...keys.keys()].filter((k) => !have.has(k));
   const unused = [...have].filter((k) => !keys.has(k));
-  if (missing.length || unused.length) bad++;
+  if (missing.length || (unused.length && !allowUnused)) bad++;
   console.log(`${f}: ${have.size} strings, ${missing.length} missing, ${unused.length} unused`);
   for (const k of missing) console.log(`  missing: ${k}`);
   for (const k of unused) console.log(`  unused: ${k}`);

@@ -38,7 +38,7 @@ export interface KeptScreen { key: string; node: ReactNode; fullBleed?: boolean 
 // is counted, so two screens can hold one at the same time.
 let swipeBlocks = 0;
 /** Blocks the edge-swipe back until the returned release function is called. */
-export function blockSwipeBack(): () => void {
+function blockSwipeBack(): () => void {
   swipeBlocks += 1;
   let released = false;
   return () => {
@@ -48,7 +48,7 @@ export function blockSwipeBack(): () => void {
   };
 }
 /** True while any screen blocks the edge-swipe back. */
-export function isSwipeBackBlocked(): boolean {
+function isSwipeBackBlocked(): boolean {
   return swipeBlocks > 0;
 }
 /** Hook form: blocks the edge-swipe back while `active` is true. */
@@ -61,9 +61,6 @@ export function useBlockSwipeBack(active: boolean): void {
 
 export type NavDir = 'push' | 'pop' | 'fade';
 
-// Slightly longer than the matching CSS animation, to be safe. Fades are quick
-// (0.2s), slides are 0.34s — clearing the leaving layer on time (not 160ms late)
-// keeps tab switches crisp.
 // Slightly longer than the CSS animations so the leaving layer unmounts only
 // after the motion fully settles (matches index.css: push/pop 0.44s, fade 0.36s).
 const DURATION: Record<NavDir, number> = { push: 460, pop: 460, fade: 380 };

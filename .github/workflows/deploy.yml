@@ -24,6 +24,8 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - run: npm run lint
+      - run: npm test
       - name: Build (GitHub Pages base path)
         run: npm run build
         env:

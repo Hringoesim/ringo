@@ -30,6 +30,10 @@ import { useLayout, twoColumn, TABBAR_CLEARANCE, type Layout } from '../lib/layo
 import { t as tr, tn, fmtDate as fmtWhen, fmtNumber, placeName, plural } from '../lib/i18n';
 
 const SUNSET_PHOTO = `${SITE}/img/dashboard-sunset.jpg`;
+// How long My eSIM keeps asking for an eSIM that is still being issued before
+// it stops and says so (a hard cap: leaving the tab and coming back does not
+// start it again).
+const ISSUING_CAP_MS = 5 * 60_000;
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '';
@@ -111,15 +115,19 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
   // worth asking for once the eSIM exists; a failure here never blanks the plan.
   const loadExtras = useCallback(async (d: SubscriptionRead, freshPrices: boolean) => {
     if (!acct) return;
-    void light.usage(acct.userId, acct.t).then(setUsageAll).catch(() => {});
+    // An answer for an account the phone has since left is dropped.
+    const mine = () => account.get()?.userId === acct.userId;
+    void light.usage(acct.userId, acct.t).then((u) => { if (mine()) setUsageAll(u); }).catch(() => {});
     const rg = d.rewards_global;
     if (!CARD_PAYMENTS && rg?.product_id && iapAvailable() && d.subscription?.billing !== 'card') {
       light.rewardsOffer(acct.userId, acct.t, rg.product_id)
-        .then((o) => setGlobalOffer(o.available && o.offer ? { pct: o.pct || rg.pct, productId: rg.product_id!, offer: o.offer } : null))
-        .catch(() => setGlobalOffer(null));
+        .then((o) => { if (mine()) setGlobalOffer(o.available && o.offer ? { pct: o.pct || rg.pct, productId: rg.product_id!, offer: o.offer } : null); })
+        .catch(() => { if (mine()) setGlobalOffer(null); });
     } else setGlobalOffer(null);
     const ids = CARD_PAYMENTS ? [] : (d.top_ups || []).map((t) => t.apple_product_id).filter((x): x is string => Boolean(x));
-    if (ids.length) setTopProducts(await loadProducts(ids, { fresh: freshPrices }));
+    if (!ids.length) return;
+    // Apple not answering is not "could not reach Ringo": the plan stays, the prices are asked again next time.
+    try { const map = await loadProducts(ids, { fresh: freshPrices }); if (mine()) setTopProducts(map); } catch { /* next read */ }
   }, [acct]);
 
   // `extras: false` is the light poll while the eSIM is being issued: the
@@ -155,6 +163,15 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
   // Another account (Restore purchases, a new sign-in): nothing of the last one stays on screen.
   useEffect(() => { setData(null); setUsageAll(null); setGlobalOffer(null); }, [acct?.userId]);
   useEffect(() => { wasAttached.current = false; void load(); }, [load]);
+
+  // History opened before the usage was read (an eSIM still being issued
+  // reads none): the past eSIMs are asked for, so the tab is not left loading.
+  useEffect(() => {
+    if (view !== 'history' || usageAll || !acct) return;
+    let live = true;
+    light.usage(acct.userId, acct.t).then((u) => { if (live) setUsageAll(u); }).catch(() => {});
+    return () => { live = false; };
+  }, [view, usageAll, acct]);
 
   // The Pioneer mark sits on the plan card. One small read per account.
   useEffect(() => {
@@ -203,16 +220,41 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
 
   // While the eSIM is still being issued, ask again every few seconds (the
   // subscription only).
-  // Only while the tab is on show, and for five minutes at most: an eSIM
-  // that never arrives must not keep the phone polling from the Store tab.
-  const issuing = Boolean(data?.subscription && !data.subscription.esim_attached);
+  // Only while the tab is on show, and for five minutes at most, counted from
+  // when this eSIM was first seen being issued (not from each return to the
+  // tab): an eSIM that never arrives must not keep the phone polling. After
+  // that the card says it is taking longer, with Try again and Report a problem.
+  const issuingId = data?.subscription && !data.subscription.esim_attached ? (data.subscription.id || 'pending') : null;
+  const issuingSince = useRef<{ id: string; at: number } | null>(null);
+  const [stalled, setStalled] = useState(false);
   useEffect(() => {
-    if (!issuing || !onScreen) return;
-    let n = 0;
-    const t = window.setInterval(() => { if (++n > 75) { window.clearInterval(t); return; } void load(true, false, false); }, 4000);
+    if (!issuingId) { issuingSince.current = null; setStalled(false); return; }
+    if (issuingSince.current?.id !== issuingId) { issuingSince.current = { id: issuingId, at: Date.now() }; setStalled(false); }
+  }, [issuingId]);
+  useEffect(() => {
+    if (!issuingId || !onScreen || stalled) return;
+    // One read at a time: on slow data a read that takes longer than the
+    // interval was superseded by the next one, so none of them ever landed.
+    let busy = false;
+    const t = window.setInterval(() => {
+      const since = issuingSince.current;
+      if (!since || Date.now() - since.at > ISSUING_CAP_MS) { window.clearInterval(t); setStalled(true); return; }
+      if (busy) return;
+      busy = true;
+      void load(true, false, false).finally(() => { busy = false; });
+    }, 4000);
     return () => window.clearInterval(t);
-  }, [issuing, onScreen, load]);
+  }, [issuingId, onScreen, stalled, load]);
+  const retryIssuing = () => {
+    if (!issuingId) return;
+    haptic('light');
+    issuingSince.current = { id: issuingId, at: Date.now() };
+    setStalled(false);
+    void load(true, false, false);
+  };
 
+  const resentTimer = useRef<number | null>(null);
+  useEffect(() => () => { if (resentTimer.current) window.clearTimeout(resentTimer.current); }, []);
   const resend = async () => {
     if (!acct) return;
     haptic('light');
@@ -223,18 +265,22 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
     } catch {
       setResent(tr('Could not send right now.'));
     }
-    setTimeout(() => setResent(null), 4000);
+    if (resentTimer.current) window.clearTimeout(resentTimer.current);
+    resentTimer.current = window.setTimeout(() => setResent(null), 4000);
   };
 
   // A top-up is an App Store consumable: Apple's sheet, then the signed
   // transaction goes to the site, which lands the data on this eSIM.
+  const topUpBusy = useRef(false);
   const topUp = async (t: TopUp) => {
     if (CARD_PAYMENTS) { void topUpByCard(t); return; }
-    if (!acct || !data?.destination || !t.apple_product_id) return;
+    // One purchase at a time: two quick taps never open two App Store sheets.
+    if (!acct || !data?.destination || !t.apple_product_id || topUpBusy.current) return;
     if (!iapAvailable()) { setErr(tr('Top-ups are bought in the Ringo iPhone app.')); return; }
     const email = acct.email || '';
     if (!email) { setErr(tr('Sign in with the email this eSIM was bought with before adding data.')); return; }
     setErr(null);
+    topUpBusy.current = true;
     setTopping(t.plan);
     haptic('medium');
     const ctx = pendingPurchase.set(t.apple_product_id, { plan: t.plan, destination: data.destination.id, data_gb: null, email });
@@ -257,6 +303,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
       setErr((e as Error).message || tr('Could not complete the top-up.'));
     } finally {
       setTopping(null);
+      topUpBusy.current = false;
     }
   };
 
@@ -264,7 +311,6 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
   // here; the site lands the data on this eSIM once Stripe says paid.
   const topUpStop = useRef<(() => void) | null>(null);
   useEffect(() => () => { topUpStop.current?.(); }, []);
-  const topUpBusy = useRef(false);
   const topUpByCard = async (t: TopUp) => {
     if (!acct || !data?.destination || topUpBusy.current) return;
     const email = acct.email || '';
@@ -325,7 +371,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
     haptic('light');
     try {
       const r = await light.setRenewal(acct.userId, acct.t, on);
-      const until = r.ends_at ? new Date(r.ends_at).toLocaleDateString(undefined, { day: 'numeric', month: 'long' }) : null;
+      const until = r.ends_at ? fmtWhen(r.ends_at, { day: 'numeric', month: 'long' }) || null : null;
       setNote(on ? tr('Renewal is on again.') : until ? tr('Renewal is off. Your plan runs until {date}.', { date: until }) : tr('Renewal is off. Your plan runs to the end of the month you paid for.'));
       clearNoteIn(6000);
       void load(true);
@@ -379,7 +425,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
       for (const t of txs) {
         try {
           const r = await light.restorePurchase(t.jws);
-          if (r.user_id && r.t) { account.set({ userId: r.user_id, t: r.t, email: r.email ?? null, purchaseRef: `apple:${r.transaction_id}` }); found = true; break; }
+          if (r.user_id && r.t) { account.set({ userId: r.user_id, t: r.t, email: r.email ?? null, purchaseRef: `apple:${r.transaction_id || t.transactionId}` }); found = true; break; }
         } catch { /* next one */ }
       }
       setNote(found ? tr('Your purchases are back.') : txs.length ? tr('No Ringo eSIM found for this Apple ID yet. If you just bought one, open the plan again.') : tr('No purchases found for this Apple ID.'));
@@ -446,13 +492,20 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
         </div>
         <p style={{ margin: '6px 0 0', ...TYPE.small, color: RC.ink2 }}>
           {!sub.esim_attached
-            ? tr('Your eSIM is being prepared. Usually under a minute.')
+            ? (stalled ? tr('It is taking a little longer than usual. It appears under My eSIM as soon as it is ready.') : tr('Your eSIM is being prepared. Usually under a minute.'))
             : ended
               ? tr('Your period ended {date}. Top up below to keep using the same eSIM.', { date: fmtDate(sub.current_cycle_ends_at) })
               : sub.current_cycle_ends_at ? tr('Valid until {date}', { date: fmtDate(sub.current_cycle_ends_at) }) : tr('Active')}
         </p>
 
-        {!sub.esim_attached && (
+        {!sub.esim_attached && stalled && (
+          <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <RingoButton size="sm" variant="secondary" onClick={retryIssuing}>{tr('Try again')}</RingoButton>
+            <div style={{ textAlign: 'center' }}><TextLink onClick={onReport}>{tr('Report a problem')}</TextLink></div>
+          </div>
+        )}
+
+        {!sub.esim_attached && !stalled && (
           <div aria-hidden style={{ marginTop: 14, height: 8, borderRadius: RADIUS.pill, background: RC.cream, overflow: 'hidden' }}>
             <div style={{ width: '40%', height: '100%', borderRadius: RADIUS.pill, background: RC.grad, animation: 'ringoSheen 1.4s ease-in-out infinite' }} />
           </div>
@@ -779,13 +832,12 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-/** A row in a list card: 17 label, optional 15 line under it, a chevron. Also used by Help. */
-export function LinkRow({ label, sub, onClick, last }: { label: string; sub?: string; onClick: () => void; last?: boolean }) {
+/** A row in a list card: 17 label, a chevron. */
+function LinkRow({ label, onClick, last }: { label: string; onClick: () => void; last?: boolean }) {
   return (
     <button className="press" onClick={onClick} style={{ width: '100%', minHeight: 56, textAlign: 'start', cursor: 'pointer', border: 'none', background: 'transparent', padding: '14px 16px', borderBottom: last ? 'none' : `1px solid ${RC.line}`, display: 'flex', alignItems: 'center', gap: 12 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontFamily: 'var(--font)', fontSize: 17, lineHeight: 1.3, fontWeight: 600, color: RC.ink }}>{label}</div>
-        {sub && <div style={{ ...TYPE.small, color: RC.ink2 }}>{sub}</div>}
       </div>
       <svg className="flip-rtl" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden><path d="M6 3l5 5-5 5" stroke={RC.inkDeco} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
     </button>

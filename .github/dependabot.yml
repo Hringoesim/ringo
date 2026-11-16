@@ -1,0 +1,36 @@
+# Weekly, grouped: at most one PR for npm minor/patch updates, one for GitHub
+# Actions, plus security updates (which Dependabot opens on its own schedule).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      npm-minor-and-patch:
+        patterns: ['*']
+        update-types: [minor, patch]
+    ignore:
+      # Capacitor core is pinned to the exact version the native projects use
+      # (ios/App/CapApp-SPM/Package.swift pins capacitor-swift-pm to the same
+      # number, and `cap sync` rewrites it). Upgrade by hand with a native
+      # rebuild, never through a bot PR.
+      - dependency-name: '@capacitor/core'
+      - dependency-name: '@capacitor/ios'
+      - dependency-name: '@capacitor/android'
+      - dependency-name: '@capacitor/cli'
+      # Major upgrades are planned work (Capacitor plugins need a native
+      # rebuild; vite/vitest/react majors need a migration).
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      github-actions:
+        patterns: ['*']

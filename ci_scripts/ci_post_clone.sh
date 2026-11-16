@@ -25,7 +25,10 @@ fi
 echo "▸ using node $(node -v), npm $(npm -v)"
 
 echo "▸ installing JS dependencies (creates node_modules the SPM packages need)"
-npm ci || npm install
+# npm ci only: it installs exactly what package-lock.json pins and fails if the
+# lockfile is out of step. No fallback to `npm install`, which would quietly
+# resolve different (unreviewed) versions into the App Store build.
+npm ci
 
 echo "▸ building the web app"
 npm run build

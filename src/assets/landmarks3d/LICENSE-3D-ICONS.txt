@@ -1,6 +1,96 @@
-The 3D landmark icons in this folder (ferriswheel, classical, mosque, cityscape,
-temple, tokyotower, torii, bridge, mountain, liberty .png) are from Microsoft's
-Fluent Emoji 3D set and are used under the MIT License.
+Licences for the images in this folder. All of them ship in the app.
+
+1. Every .png file here (74 files) is from Microsoft's Fluent Emoji 3D set,
+   used unmodified under the MIT License (full text below).
+   Source: https://github.com/microsoft/fluentui-emoji
+
+   Checked 2026-11-16: each file is byte-identical to the upstream file listed
+   next to it (git blob hash compared against the upstream repository tree).
+   When adding an icon, add its line here.
+
+   beach.png           assets/Beach with umbrella/3D/beach_with_umbrella_3d.png
+   bear.png            assets/Bear/3D/bear_3d.png
+   bison.png           assets/Bison/3D/bison_3d.png
+   bridge.png          assets/Bridge at night/3D/bridge_at_night_3d.png
+   butterfly.png       assets/Butterfly/3D/butterfly_3d.png
+   cactus.png          assets/Cactus/3D/cactus_3d.png
+   camel.png           assets/Camel/3D/camel_3d.png
+   castle.png          assets/Castle/3D/castle_3d.png
+   church.png          assets/Church/3D/church_3d.png
+   cityscape.png       assets/Cityscape/3D/cityscape_3d.png
+   classical.png       assets/Classical building/3D/classical_building_3d.png
+   cloudpuff.png       assets/Cloud/3D/cloud_3d.png
+   crab.png            assets/Crab/3D/crab_3d.png
+   crocodile.png       assets/Crocodile/3D/crocodile_3d.png
+   deer.png            assets/Deer/3D/deer_3d.png
+   desertisland.png    assets/Desert island/3D/desert_island_3d.png
+   dolphin.png         assets/Dolphin/3D/dolphin_3d.png
+   dragon.png          assets/Dragon/3D/dragon_3d.png
+   drum.png            assets/Drum/3D/drum_3d.png
+   eagle.png           assets/Eagle/3D/eagle_3d.png
+   elephant.png        assets/Elephant/3D/elephant_3d.png
+   evergreen.png       assets/Evergreen tree/3D/evergreen_tree_3d.png
+   ewe.png             assets/Ewe/3D/ewe_3d.png
+   ferriswheel.png     assets/Ferris wheel/3D/ferris_wheel_3d.png
+   flamingo.png        assets/Flamingo/3D/flamingo_3d.png
+   fuji.png            assets/Mount fuji/3D/mount_fuji_3d.png
+   giraffe.png         assets/Giraffe/3D/giraffe_3d.png
+   gorilla.png         assets/Gorilla/3D/gorilla_3d.png
+   horse.png           assets/Horse/3D/horse_3d.png
+   japanesecastle.png  assets/Japanese castle/3D/japanese_castle_3d.png
+   kaaba.png           assets/Kaaba/3D/kaaba_3d.png
+   kangaroo.png        assets/Kangaroo/3D/kangaroo_3d.png
+   koala.png           assets/Koala/3D/koala_3d.png
+   liberty.png         assets/Statue of liberty/3D/statue_of_liberty_3d.png
+   lion.png            assets/Lion/3D/lion_3d.png
+   llama.png           assets/Llama/3D/llama_3d.png
+   mapleleaf.png       assets/Maple leaf/3D/maple_leaf_3d.png
+   moai.png            assets/Moai/3D/moai_3d.png
+   monkey.png          assets/Monkey/3D/monkey_3d.png
+   moose.png           assets/Moose/3D/moose_3d.png
+   mosque.png          assets/Mosque/3D/mosque_3d.png
+   mountain.png        assets/Mountain/3D/mountain_3d.png
+   nationalpark.png    assets/National park/3D/national_park_3d.png
+   octopus.png         assets/Octopus/3D/octopus_3d.png
+   orangutan.png       assets/Orangutan/3D/orangutan_3d.png
+   palmtree.png        assets/Palm tree/3D/palm_tree_3d.png
+   panda.png           assets/Panda/3D/panda_3d.png
+   parrot.png          assets/Parrot/3D/parrot_3d.png
+   peacock.png         assets/Peacock/3D/peacock_3d.png
+   penguin.png         assets/Penguin/3D/penguin_3d.png
+   plane.png           assets/Airplane/3D/airplane_3d.png
+   polarbear.png       assets/Polar bear/3D/polar_bear_3d.png
+   rocket.png          assets/Rocket/3D/rocket_3d.png
+   sailboat.png        assets/Sailboat/3D/sailboat_3d.png
+   shamrock.png        assets/Shamrock/3D/shamrock_3d.png
+   shark.png           assets/Shark/3D/shark_3d.png
+   ship.png            assets/Ship/3D/ship_3d.png
+   sloth.png           assets/Sloth/3D/sloth_3d.png
+   slotmachine.png     assets/Slot machine/3D/slot_machine_3d.png
+   snowman.png         assets/Snowman/3D/snowman_3d.png
+   snowmountain.png    assets/Snow-capped mountain/3D/snow-capped_mountain_3d.png
+   stadium.png         assets/Stadium/3D/stadium_3d.png
+   sunflower.png       assets/Sunflower/3D/sunflower_3d.png
+   synagogue.png       assets/Synagogue/3D/synagogue_3d.png
+   temple.png          assets/Hindu temple/3D/hindu_temple_3d.png
+   tent.png            assets/Tent/3D/tent_3d.png
+   tiger.png           assets/Tiger/3D/tiger_3d.png
+   tokyotower.png      assets/Tokyo tower/3D/tokyo_tower_3d.png
+   torii.png           assets/Shinto shrine/3D/shinto_shrine_3d.png
+   tropicalfish.png    assets/Tropical fish/3D/tropical_fish_3d.png
+   tulip.png           assets/Tulip/3D/tulip_3d.png
+   volcano.png         assets/Volcano/3D/volcano_3d.png
+   whale.png           assets/Spouting whale/3D/spouting_whale_3d.png
+   wolf.png            assets/Wolf/3D/wolf_3d.png
+
+2. pin.webp is the "Map pin" 3D icon from 3dicons (https://3dicons.co, realvjy),
+   released under CC0-1.0 (public domain): free for commercial use, no
+   attribution required. Converted to WebP.
+
+---
+Fluent Emoji
+
+MIT License.
 
 Source: https://github.com/microsoft/fluentui-emoji
 
@@ -25,9 +115,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-pin.webp is the "Map pin" 3D icon from 3dicons (https://3dicons.co, realvjy),
-released under CC0-1.0 (public domain) — free for commercial use, no attribution
-required. The unused Fluent landmark PNGs remain for an optional named-landmark
-swap and are NOT bundled (nothing imports them).

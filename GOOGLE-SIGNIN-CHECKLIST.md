@@ -18,8 +18,18 @@ anyone but the owner.
   opens the account with that email. Same account as the email code and
   Sign in with Apple: one row per address, never a duplicate.
 - Switch: the site's catalogue sends `app_flags.google_signin` and
-  `app_flags.google_ios_client_id` to the app at launch. Both come from one
-  Vercel setting, `GOOGLE_IOS_CLIENT_ID`. No value, no button.
+  `app_flags.google_ios_client_id` to the app at launch
+  (`src/store/flags.ts`). The app shows the button on iOS when it has a
+  client id or when `google_signin` is true (`googleSignInAvailable` in
+  `src/lib/auth.ts`). How the site sets the two flags is in the site's
+  repository, not this one.
+- Second route: when the button is on but the app has no client id,
+  `signInWithGoogle` goes through the Supabase project's Google provider
+  instead (`signInWithGoogleViaSupabase`), and the site receives the
+  Supabase session as `provider: 'supabase'`. The steps below set up the
+  direct route.
+
+This file does not record whether the steps below have been done.
 
 ## Part A, owner: create the iOS OAuth client (Google Cloud Console)
 
@@ -48,12 +58,11 @@ anyone but the owner.
 vercel env add GOOGLE_IOS_CLIENT_ID production
 ```
 
-Paste the Client ID. The next deploy of main sends the flag; the app shows
-the button the next time it launches and reads the catalogue. The current
-App Store build (1.07/1.08) already reads the flag; the direct-to-Google
-route in it still wants the id baked in, so the first build that includes
-`src/lib/auth.ts` from this branch is the one where the Vercel setting
-alone turns it on.
+Paste the Client ID. The next deploy of the site sends the flag; the app
+shows the button the next time it launches and reads the catalogue.
+`src/lib/auth.ts` on this branch (app version 1.13) takes the client id from
+the flag, so no id needs to be built into the app. Builds 1.07 and 1.08 read
+the flag but wanted the id built in.
 
 ## Part C, test on a phone
 

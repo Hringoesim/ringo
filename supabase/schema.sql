@@ -111,10 +111,25 @@ drop policy if exists "read plans"     on public.plans;
 drop policy if exists "read countries" on public.countries;
 
 -- Own-row access for user data
-create policy "own profile"  on public.profiles        for all using (auth.uid() = id)      with check (auth.uid() = id);
+-- profiles and kyc_submissions are NOT "for all": status columns
+-- (subscription_status, tier, kyc_status ...) must never be client-writable.
+-- See migrations/20261116_lock_profiles_kyc_privileged_columns.sql.
+revoke all on public.profiles from anon, authenticated;
+grant select on public.profiles to authenticated;
+grant update (full_name, current_country) on public.profiles to authenticated;
+drop policy if exists "own profile read"   on public.profiles;
+drop policy if exists "own profile update" on public.profiles;
+create policy "own profile read"   on public.profiles for select to authenticated using ((select auth.uid()) = id);
+create policy "own profile update" on public.profiles for update to authenticated using ((select auth.uid()) = id) with check ((select auth.uid()) = id);
 create policy "own numbers"  on public.numbers         for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own ports"    on public.ports           for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "own kyc"      on public.kyc_submissions for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+revoke all on public.kyc_submissions from anon, authenticated;
+grant select on public.kyc_submissions to authenticated;
+grant insert (user_id, first_name, last_name, dob, doc_type, document_ref) on public.kyc_submissions to authenticated;
+drop policy if exists "own kyc read"   on public.kyc_submissions;
+drop policy if exists "own kyc insert" on public.kyc_submissions;
+create policy "own kyc read"   on public.kyc_submissions for select to authenticated using ((select auth.uid()) = user_id);
+create policy "own kyc insert" on public.kyc_submissions for insert to authenticated with check ((select auth.uid()) = user_id);
 create policy "own waitlist" on public.waitlist_signups for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- Catalog is world-readable

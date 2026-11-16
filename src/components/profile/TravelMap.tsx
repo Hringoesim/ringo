@@ -22,6 +22,10 @@ function loadShapes(): Promise<Shapes> {
     geo = d3;
     const t = (atlas as { default?: unknown }).default ?? atlas;
     return topo.feature(t as any, (t as any).objects.countries) as unknown as Shapes;
+  }).catch((e) => {
+    // Offline when the profile opened: the next time it opens tries again.
+    shapesPromise = null;
+    throw e;
   });
   return shapesPromise;
 }
@@ -43,7 +47,7 @@ function isoOfFlag(flag?: string): string | null {
 export function TravelMap({ badges }: { badges: TravelBadge[] }) {
   const [shapes, setShapes] = useState<Shapes | null>(null);
   const destinations = useDestinations();
-  useEffect(() => { let alive = true; void loadShapes().then((s) => { if (alive) setShapes(s); }); return () => { alive = false; }; }, []);
+  useEffect(() => { let alive = true; void loadShapes().then((s) => { if (alive) setShapes(s); }).catch(() => { /* the map stays empty */ }); return () => { alive = false; }; }, []);
 
   const { visited, covered } = useMemo(() => {
     const visited = new Set<string>(), covered = new Set<string>();

@@ -72,11 +72,20 @@ import { PushSheet } from './components/PushControls';
 import { startUpdateCheck } from './lib/appUpdate';
 import { bundledPictureFor, pictureFor } from './data/destinations';
 
-const TABBED = new Set<string>(['store', 'esim', 'rewards', 'help']);
+// Every screen the stack can hold: the two in the main chunk, the lazy ones,
+// and 'profile' (Rewards opened from My eSIM or Help, with a Back button).
+type ScreenName = 'landing' | 'store' | 'profile' | keyof typeof SCREENS;
+const TABBED: ReadonlySet<string> = new Set<TabId>(['store', 'esim', 'rewards', 'help']);
+const isTab = (name: string): name is TabId => TABBED.has(name);
+
+// Transactions being reported right now, by id: the launch sweep and the
+// live listener (or two mounts of the app, after a language change) never
+// report one transaction twice at the same time.
+const settling = new Set<string>();
 
 interface Frame {
   id: number;
-  name: string;
+  name: ScreenName;
   params: {
     destination?: string;
     /** the destination opens as its Power Use card (owner 2026-10-27) */
@@ -149,7 +158,7 @@ export function App() {
   // (src/lib/push.ts). A tapped push opens the tab its path names.
   useEffect(() => startPush((path) => {
     const tab = path.replace(/^\/+/, '').split(/[/?#]/)[0];
-    if (tab === 'store' || tab === 'esim' || tab === 'rewards' || tab === 'help') goTab(tab);
+    if (isTab(tab)) goTab(tab);
   // goTab only sets state, so the first one is as good as any.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), []);
@@ -157,7 +166,7 @@ export function App() {
   // share a React key (prevents a screen instance being reused with stale
   // params).
   const seqRef = useRef(0);
-  const mkFrame = (name: string, params: Frame['params'] = {}): Frame => ({ id: ++seqRef.current, name, params });
+  const mkFrame = (name: ScreenName, params: Frame['params'] = {}): Frame => ({ id: ++seqRef.current, name, params });
 
   // VITE_SHOT opens the app straight onto one screen so App Store screenshots
   // can be captured without driving the UI. Build-time constant: a normal
@@ -171,7 +180,8 @@ export function App() {
       // A sample activation code so the install screen can be photographed
       // without a purchase; nothing about it is a real profile.
       if (name === 'install') return [{ id: 0, name: 'esim', params: {} }, { id: 1, name: 'install', params: { label: arg || 'Europe', install: { lpa: 'LPA:1$consumer.e-sim.global$RINGO-SAMPLE-0000', apple_url: 'https://esimsetup.apple.com/esim_qrcode_provisioning?carddata=LPA%3A1%24consumer.e-sim.global%24RINGO-SAMPLE-0000' } } }];
-      return [{ id: 0, name, params: {} }];
+      // Any other name is taken as given; one the app does not have shows "Unknown screen".
+      return [{ id: 0, name: name as ScreenName, params: {} }];
     }
     // No account, no way past the sign-in screen (owner 2026-10-23: "make
     // them sign in, like all apps do"; 2026-09-18: sign-in must be seen).
@@ -189,14 +199,20 @@ export function App() {
   const navDirRef = useRef<NavDir>('fade');
   const navKey = String(current.id);
 
-  const push = (name: string, params: Frame['params'] = {}) => {
+  // A second tap that lands before the first screen has drawn must not stack
+  // the same screen twice (seen in the simulator: two checkouts, two Backs).
+  const lastPushRef = useRef<{ name: ScreenName | null; at: number }>({ name: null, at: 0 });
+  const push = (name: ScreenName, params: Frame['params'] = {}) => {
+    const now = Date.now();
+    if (lastPushRef.current.name === name && now - lastPushRef.current.at < 600) return;
+    lastPushRef.current = { name, at: now };
     navDirRef.current = 'push';
     haptic('light');
     setStack((s) => [...s, mkFrame(name, params)]);
   };
   // In place of the screen on show: a page that only forwards (a place's
   // Power asked for, its own Power Use card shown) leaves nothing for Back to land on.
-  const replace = (name: string, params: Frame['params'] = {}) => {
+  const replace = (name: ScreenName, params: Frame['params'] = {}) => {
     navDirRef.current = 'push';
     setStack((s) => [...s.slice(0, -1), mkFrame(name, params)]);
   };
@@ -210,11 +226,11 @@ export function App() {
   // its scroll, the Power list, its photos, no loading state again. A tab
   // whose content a purchase or a new account changes is forgotten and
   // opens afresh.
-  const tabFrames = useRef(new Map<string, Frame>());
+  const tabFrames = useRef(new Map<ScreenName, Frame>());
   const tabNodes = useRef(new Map<number, ReactNode>());
-  const forgetTabs = (...names: string[]) => {
+  const forgetTabs = (...names: TabId[]) => {
     for (const [name, f] of [...tabFrames.current]) {
-      if (names.length && !names.includes(name)) continue;
+      if (names.length && !(names as ScreenName[]).includes(name)) continue;
       tabFrames.current.delete(name);
       tabNodes.current.delete(f.id);
     }
@@ -256,20 +272,21 @@ export function App() {
   useEffect(() => {
     if (import.meta.env.VITE_SHOT) return;
     if (!pushState.known || pushAsk || !account.get()) return;
-    if (stack.length !== 1 || !TABBED.has(stack[0].name) || !onboardDue()) return;
+    const tab = stack[0].name;
+    if (stack.length !== 1 || !isTab(tab) || !onboardDue()) return;
     navDirRef.current = 'push';
-    setStack([mkFrame('notify', { then: stack[0].name as TabId })]);
+    setStack([mkFrame('notify', { then: tab })]);
   }, [pushState.known, stack, pushAsk]);
 
-  // One line in the device log at launch saying whether the App Store
-  // returns our products: the Paid Apps agreement and the product state are
-  // the two things that make every plan read "not sold" without any error.
   // The other screens' chunks, fetched once the first screen has painted.
   useEffect(() => {
     const h = window.setTimeout(prefetchScreens, 1500);
     return () => window.clearTimeout(h);
   }, []);
 
+  // One line in the device log at launch saying whether the App Store
+  // returns our products: the Paid Apps agreement and the product state are
+  // the two things that make every plan read "not sold" without any error.
   useEffect(() => {
     if (!iapAvailable()) return;
     let alive = true;
@@ -325,7 +342,7 @@ export function App() {
     // `nth`: several unfinished transactions of one product at launch take
     // that product's waiting contexts in order, oldest purchase first,
     // rather than all reading the same one.
-    const settle = async (t: IapTransaction, nth = 0) => {
+    const settleOne = async (t: IapTransaction, nth: number) => {
       const ctx = pendingPurchase.get(t.productId, nth);
       if (ctx) {
         try { await reportTransaction(t, ctx); } catch { /* stays unfinished, tried again next launch */ }
@@ -340,10 +357,15 @@ export function App() {
       try {
         const r = await light.restorePurchase(t.jws);
         if (r.ok) {
-          if (r.user_id && r.t) account.set({ userId: r.user_id, t: r.t, email: r.email ?? acct?.email ?? null, purchaseRef: `apple:${r.transaction_id}` });
+          if (r.user_id && r.t) account.set({ userId: r.user_id, t: r.t, email: r.email ?? (acct?.userId === r.user_id ? acct.email : null), purchaseRef: `apple:${r.transaction_id || t.transactionId}` });
           await finish(t.transactionId);
         }
       } catch { /* left unfinished, tried again next launch */ }
+    };
+    const settle = async (t: IapTransaction, nth = 0) => {
+      if (settling.has(t.transactionId)) return;
+      settling.add(t.transactionId);
+      try { await settleOne(t, nth); } catch { /* left unfinished, tried again next launch */ } finally { settling.delete(t.transactionId); }
     };
     void unfinished().then((list) => {
       const seen = new Map<string, number>();
@@ -353,14 +375,17 @@ export function App() {
         void settle(t, nth);
       });
     });
+    // The listener is added asynchronously: one that arrives after this
+    // effect was cleaned up is removed at once, never left listening.
+    let gone = false;
     let off = () => {};
-    void onTransaction((t) => void settle(t)).then((f) => { off = f; });
-    return () => off();
+    void onTransaction((t) => void settle(t)).then((f) => { if (gone) f(); else off = f; }).catch(() => { /* the launch sweep above still runs at the next launch */ });
+    return () => { gone = true; off(); };
   }, []);
 
   // A tab at the root of the stack (the store at launch) is the one kept.
   const root = stack[0];
-  if (TABBED.has(root.name) && !tabFrames.current.has(root.name)) tabFrames.current.set(root.name, root);
+  if (isTab(root.name) && !tabFrames.current.has(root.name)) tabFrames.current.set(root.name, root);
 
   const screenFor = (current: Frame): ReactNode => {
     let body: ReactNode = null;
@@ -455,7 +480,7 @@ export function App() {
   const body = nodeFor(current);
   const kept: KeptScreen[] = [...tabFrames.current.values()].filter((f) => f.id !== current.id).map((f) => ({ key: String(f.id), node: nodeFor(f) }));
 
-  const showTabs = TABBED.has(current.name);
+  const showTabs = isTab(current.name);
   const closePushAsk = useCallback(() => setPushAsk(null), []);
 
   return (

@@ -28,6 +28,7 @@ import { light } from '../api/light';
 import { account } from '../store/account';
 import { log } from './log';
 import { lastCountry, readCountry } from './location';
+import { storage } from './storage';
 
 type Permission = 'granted' | 'denied' | 'prompt' | 'unavailable';
 type ApnsEnv = 'production' | 'sandbox';
@@ -58,10 +59,8 @@ const SENT_KEY = 'ringo_push_sent_v1';
 const ONBOARD_KEY = 'ringo_push_onboard_v1';
 
 function readPrefs(): PushPrefs {
-  try {
-    const v = JSON.parse(localStorage.getItem(PREFS_KEY) || 'null');
-    if (v && typeof v.service === 'boolean' && typeof v.offers === 'boolean') return v;
-  } catch { /* ignore */ }
+  const v = storage.json(PREFS_KEY) as { service?: unknown; offers?: unknown } | null;
+  if (v && typeof v.service === 'boolean' && typeof v.offers === 'boolean') return { service: v.service, offers: v.offers };
   return { service: true, offers: false };
 }
 
@@ -75,8 +74,18 @@ export function usePush(): PushState {
   return useSyncExternalStore((l) => { listeners.add(l); return () => listeners.delete(l); }, () => state, () => state);
 }
 
+// One registration at a time, in the order asked. The token event, the
+// launch read and a sign-in all call syncPush within the same second, and a
+// switch flipped on then off sent two requests at once: whichever the site
+// handled last won, so it could keep "offers on" under a switch showing off,
+// with the once-per-change note below saying it was already told.
+let syncing: Promise<void> = Promise.resolve();
 /** Tell the site this phone's token and switches, once per change. */
-export async function syncPush(): Promise<void> {
+export function syncPush(): Promise<void> {
+  syncing = syncing.then(syncNow, syncNow);
+  return syncing;
+}
+async function syncNow(): Promise<void> {
   const acct = account.get();
   const { token, environment, prefs, permission } = state;
   if (!acct || !token) return;
@@ -84,16 +93,22 @@ export async function syncPush(): Promise<void> {
   const country = allowed ? lastCountry() : null;
   const body = { token, environment, service_ok: allowed && prefs.service, offers_ok: allowed && prefs.offers, app_version: String(import.meta.env.VITE_APP_VERSION || ''), ...(country ? { country } : {}) };
   const sig = JSON.stringify({ u: acct.userId, ...body });
-  try { if (localStorage.getItem(SENT_KEY) === sig) return; } catch { /* ignore */ }
+  if (storage.get(SENT_KEY) === sig) return;
+  // From here the site may hold either state until it answers: a request
+  // that times out on the phone can still have landed. The note of what was
+  // last sent goes first, so a change back (offers on, the request lost, then
+  // off again) is sent too instead of matching the stale note.
+  storage.remove(SENT_KEY);
   try {
     const r = await light.pushRegister(acct.userId, acct.t, body);
-    try { localStorage.setItem(SENT_KEY, sig); } catch { /* ignore */ }
+    storage.set(SENT_KEY, sig);
     // The switches under Help show what the site holds: when it answers with
     // something else than what was sent (a row another phone or the site
-    // changed), the phone follows the site.
-    if (allowed && r && typeof r.service_ok === 'boolean' && typeof r.offers_ok === 'boolean' && (r.service_ok !== prefs.service || r.offers_ok !== prefs.offers)) {
+    // changed), the phone follows the site, unless the member has flipped a
+    // switch since this was sent: that choice is the next registration's.
+    if (allowed && state.prefs === prefs && r && typeof r.service_ok === 'boolean' && typeof r.offers_ok === 'boolean' && (r.service_ok !== prefs.service || r.offers_ok !== prefs.offers)) {
       const next = { service: r.service_ok, offers: r.offers_ok };
-      try { localStorage.setItem(PREFS_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      storage.set(PREFS_KEY, JSON.stringify(next));
       setState({ prefs: next });
     }
   } catch (e) {
@@ -145,7 +160,7 @@ export function shouldPrompt(): boolean {
 }
 /** 'Not now' (or any answer): the pre-prompt never shows again on this phone. */
 export function dismissPrompt(): void {
-  try { localStorage.setItem(PROMPTED_KEY, '1'); } catch { /* ignore */ }
+  storage.set(PROMPTED_KEY, '1');
   listeners.forEach((l) => l());
 }
 
@@ -173,11 +188,11 @@ export function pushNudgeDue(): boolean {
   if (!pushAvailable() || !state.known) return false;
   if (state.permission === 'denied') return true;
   if (state.permission !== 'prompt') return false;
-  try { return localStorage.getItem(ONBOARD_KEY) === '1'; } catch { return false; }
+  return storage.get(ONBOARD_KEY) === '1';
 }
 /** The step has been shown: never again on this phone. The older sheet goes with it. */
 export function markOnboarded(): void {
-  try { localStorage.setItem(ONBOARD_KEY, '1'); } catch { /* ignore */ }
+  storage.set(ONBOARD_KEY, '1');
   dismissPrompt();
 }
 /**
@@ -189,7 +204,7 @@ export function markOnboarded(): void {
 export async function completeOnboard(offers: boolean): Promise<boolean> {
   markOnboarded();
   const prefs = { service: true, offers };
-  try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch { /* ignore */ }
+  storage.set(PREFS_KEY, JSON.stringify(prefs));
   setState({ prefs });
   if (state.permission === 'granted') { void syncPush(); return true; }
   if (state.permission === 'denied') return false;
@@ -220,7 +235,7 @@ export async function setPushPref(key: keyof PushPrefs, on: boolean): Promise<vo
   if (on && state.permission === 'prompt' && !(await askPermission())) return;
   if (on && state.permission === 'denied') { await openPushSettings(); return; }
   const prefs = { ...state.prefs, [key]: on };
-  try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch { /* ignore */ }
+  storage.set(PREFS_KEY, JSON.stringify(prefs));
   setState({ prefs });
   void syncPush();
 }
@@ -235,7 +250,7 @@ export async function openPushSettings(): Promise<void> {
  * never holds the caller for long (capped at 2.5 s).
  */
 export async function unregisterPush(): Promise<void> {
-  try { localStorage.removeItem(SENT_KEY); } catch { /* ignore */ }
+  storage.remove(SENT_KEY);
   const acct = account.get();
   const { token, environment } = state;
   if (!acct || !token) return;
