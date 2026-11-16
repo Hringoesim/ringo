@@ -199,7 +199,13 @@ export function App() {
   const navDirRef = useRef<NavDir>('fade');
   const navKey = String(current.id);
 
+  // A second tap that lands before the first screen has drawn must not stack
+  // the same screen twice (seen in the simulator: two checkouts, two Backs).
+  const lastPushRef = useRef<{ name: ScreenName | null; at: number }>({ name: null, at: 0 });
   const push = (name: ScreenName, params: Frame['params'] = {}) => {
+    const now = Date.now();
+    if (lastPushRef.current.name === name && now - lastPushRef.current.at < 600) return;
+    lastPushRef.current = { name, at: now };
     navDirRef.current = 'push';
     haptic('light');
     setStack((s) => [...s, mkFrame(name, params)]);
