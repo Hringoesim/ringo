@@ -541,6 +541,7 @@ const c: Catalog = {
   "{n} plans bought in {months} months": "{months} ayda {n} paket",
   "{n} plans bought": "{n} paket alındı",
   "{n} more plans": "{n} paket daha",
+  "Saved over {amount} with Ringo": "Ringo ile {amount} üzerinde tasarruf",
   "{n} plans": "{n} paket",
   "Buy more plans to move up.": "Seviye atlamak için daha fazla paket al.",
   "You have kept Global {n} months.": "{n} aydır Global kullanıyorsun.",

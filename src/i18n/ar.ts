@@ -541,6 +541,7 @@ const c: Catalog = {
   "{n} plans bought in {months} months": { zero: "{n} باقة مشتراة خلال {months} شهرًا", one: "باقة واحدة مشتراة خلال {months} شهرًا", two: "باقتان مشتراتان خلال {months} شهرًا", few: "{n} باقات مشتراة خلال {months} شهرًا", many: "{n} باقة مشتراة خلال {months} شهرًا", other: "{n} باقة مشتراة خلال {months} شهرًا" },
   "{n} plans bought": { zero: "{n} باقة مشتراة", one: "باقة واحدة مشتراة", two: "باقتان مشتراتان", few: "{n} باقات مشتراة", many: "{n} باقة مشتراة", other: "{n} باقة مشتراة" },
   "{n} more plans": { one: "باقة واحدة أخرى", two: "باقتان أخريان", few: "{n} باقات أخرى", many: "{n} باقة أخرى", other: "{n} باقة أخرى" },
+  "Saved over {amount} with Ringo": "وفّرت أكثر من {amount} مع Ringo",
   "{n} plans": { one: "باقة واحدة", two: "باقتان", few: "{n} باقات", many: "{n} باقة", other: "{n} باقة" },
   "Buy more plans to move up.": "اشترِ باقات أكثر لترتفع مستواك.",
   "You have kept Global {n} months.": { one: "أنت مع Global منذ شهر واحد.", two: "أنت مع Global منذ شهرين.", few: "أنت مع Global منذ {n} أشهر.", many: "أنت مع Global منذ {n} شهرًا.", other: "أنت مع Global منذ {n} شهر." },

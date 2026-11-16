@@ -541,6 +541,7 @@ const c: Catalog = {
   "{n} plans bought in {months} months": "{months} 个月内购买了 {n} 个套餐",
   "{n} plans bought": "已购买 {n} 个套餐",
   "{n} more plans": "再买 {n} 个套餐",
+  "Saved over {amount} with Ringo": "使用 Ringo 已节省超过 {amount}",
   "{n} plans": "{n} 个套餐",
   "Buy more plans to move up.": "购买更多套餐即可升级。",
   "You have kept Global {n} months.": "你已使用 Global {n} 个月。",

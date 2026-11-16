@@ -94,6 +94,9 @@ function Current({ l, rewards, credit }: { l: Layout; rewards: Rewards; credit?:
   // Only the plans still to buy are named here; the spend a level also needs
   // is not advertised on this screen (owner 2026-11-16).
   const morePlans = next ? plural(next.to_go, 'One more plan', '{n} more plans') : '';
+  // What the member kept against a carrier day pass or the cheapest rival,
+  // plus credit earned; the site works it out and rounds it down (app-profile).
+  const saved = rewards.saved_over_eur ? fmtMoney(rewards.saved_over_eur, 'EUR', { maximumFractionDigits: 0 }) : '';
   return (
     <section aria-label={t('Your level')} style={{ ...cardSurface(), overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <LevelPhoto id={shownId} aspect="16 / 9" eager>
@@ -112,6 +115,7 @@ function Current({ l, rewards, credit }: { l: Layout; rewards: Rewards; credit?:
               : tn('{count} to {level}.', { count: <b>{morePlans}</b>, level: t(next.name) }))
             : <b>{t('You reached the top. Thank you for travelling with Ringo.')}</b>}
         </p>
+        {saved && <p style={{ margin: '6px 0 0', ...TYPE.small, fontWeight: 700, color: RC.ink }}>{t('Saved over {amount} with Ringo', { amount: saved })}</p>}
         {credit && (
           <div aria-label={t('Ringo credit')} style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${RC.line}`, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
             <div>

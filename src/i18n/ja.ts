@@ -541,6 +541,7 @@ const c: Catalog = {
   "{n} plans bought in {months} months": "{months}か月でプランを{n}件購入",
   "{n} plans bought": "プランを{n}件購入",
   "{n} more plans": "あと{n}件",
+  "Saved over {amount} with Ringo": "Ringoで{amount}以上お得に",
   "{n} plans": "{n}件のプラン",
   "Buy more plans to move up.": "プランを購入してレベルアップ。",
   "You have kept Global {n} months.": "Globalを{n}か月ご利用中です。",

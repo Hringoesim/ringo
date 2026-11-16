@@ -541,6 +541,7 @@ const c: Catalog = {
   "{n} plans bought in {months} months": { one: "{n} Tarif gekauft in {months} Monaten", other: "{n} Tarife gekauft in {months} Monaten" },
   "{n} plans bought": { one: "{n} Tarif gekauft", other: "{n} Tarife gekauft" },
   "{n} more plans": { one: "Noch ein Tarif", other: "Noch {n} Tarife" },
+  "Saved over {amount} with Ringo": "Über {amount} gespart mit Ringo",
   "{n} plans": { one: "{n} Tarif", other: "{n} Tarife" },
   "Buy more plans to move up.": "Kauf mehr Tarife, um aufzusteigen.",
   "You have kept Global {n} months.": { one: "Du hast Global seit {n} Monat.", other: "Du hast Global seit {n} Monaten." },

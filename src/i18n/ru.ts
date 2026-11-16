@@ -541,6 +541,7 @@ const c: Catalog = {
   "{n} plans bought in {months} months": { one: "{n} тариф за {months} мес.", few: "{n} тарифа за {months} мес.", many: "{n} тарифов за {months} мес.", other: "{n} тарифа за {months} мес." },
   "{n} plans bought": { one: "{n} тариф куплен", few: "{n} тарифа куплено", many: "{n} тарифов куплено", other: "{n} тарифа куплено" },
   "{n} more plans": { one: "Ещё {n} тариф", few: "Ещё {n} тарифа", many: "Ещё {n} тарифов", other: "Ещё {n} тарифа" },
+  "Saved over {amount} with Ringo": "С Ringo сэкономлено более {amount}",
   "{n} plans": { one: "{n} тариф", few: "{n} тарифа", many: "{n} тарифов", other: "{n} тарифа" },
   "Buy more plans to move up.": "Покупайте больше тарифов, чтобы повысить уровень.",
   "You have kept Global {n} months.": { one: "Вы с Global уже {n} месяц.", few: "Вы с Global уже {n} месяца.", many: "Вы с Global уже {n} месяцев.", other: "Вы с Global уже {n} месяца." },
