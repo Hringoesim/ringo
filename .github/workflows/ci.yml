@@ -5,6 +5,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -15,6 +18,13 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      # Only what ships in the app (dependencies, not devDependencies).
+      - name: Audit shipped dependencies
+        run: npm audit --omit=dev --audit-level=high
       - run: npm run lint
+      # Fails when a string the app shows has no translation in a language.
+      - name: Translations complete
+        run: node scripts/i18n-check.mjs --allow-unused
       - run: npm test
+      # `npm run build` is `tsc -b && vite build`, so it is the typecheck too.
       - run: npm run build
