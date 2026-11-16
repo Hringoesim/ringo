@@ -2,6 +2,10 @@
 import type { Catalog } from '../lib/i18n';
 
 const c: Catalog = {
+  "Code {code} saved": "تم حفظ الرمز {code}",
+  "Your next plan is priced with it.": "سيُحتسب سعر باقتك التالية به.",
+  "Remove": "إزالة",
+  "Save": "حفظ",
   "Enter the email for your eSIM first.": "أدخل بريد شريحة eSIM أولاً.",
   "This code does not apply to this email or plan.": "هذا الرمز لا ينطبق على هذا البريد أو هذه الباقة.",
   "Could not check the code. Try again.": "تعذّر التحقق من الرمز. حاول مرة أخرى.",

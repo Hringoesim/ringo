@@ -28,7 +28,8 @@ import { PlaceMosaic } from '../components/PlaceMosaic';
 import { RC, RADIUS, TYPE, typeFor, cardSurface, SHADOW_CARD, SKINS, ON_DARK, PHOTO_OVERLAY, PHOTO_TEXT_SHADOW } from '../theme';
 import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
-import { BackBtn, TickList, ErrorBox } from '../components/ui';
+import { BackBtn, TickList, ErrorBox, SuccessBox } from '../components/ui';
+import { useStaffQuote } from '../lib/staffCode';
 import { useBlockSwipeBack } from '../components/ScreenHost';
 import { termTitle, planName, periodWord, lineKey, tierName } from '../lib/terms';
 import { takeQuizPick, setQuizPick, clearQuizPick, sendQuizPicked } from '../lib/quiz';
@@ -611,7 +612,9 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   // Without an account, Checkout still asks for the email first.
   const payHere = CARD_PAYMENTS && Boolean(acct?.email);
   // Ringo credit can come off a one-payment plan (never Global's month); the site decides how much.
-  const creditHere = payHere && creditCents > 0 && Boolean(selected) && selected?.mode !== 'subscription';
+  // A staff code saved in Help > Account: the supplier rate for this line, if it applies (lib/staffCode.ts).
+  const staffQuote = useStaffQuote(payHere && selected ? { plan: selected.plan, destination: id, data_gb: selected.tier === 'data' ? selected.data_gb : null, currency: selected.currency, mode: selected.mode } : null, acct?.email ? acct.email.trim().toLowerCase() : null);
+  const creditHere = payHere && !staffQuote && creditCents > 0 && Boolean(selected) && selected?.mode !== 'subscription';
   // A balance that reads zero still asks the site for credit on a one-payment
   // plan: a sheet closed without paying leaves its credit held until the next
   // credit request releases it (api/app-pay.js releaseUnpaidHolds), so without
@@ -648,6 +651,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
     </div>
   );
   // The credit toggle and the lock line Checkout had, now that the sheet opens here (owner 2026-10-28, TestFlight 90).
+  const staffLine = staffQuote && <SuccessBox>{t('Staff price at the supplier rate: {price}.', { price: money(staffQuote.amount, staffQuote.currency) })}</SuccessBox>;
   const creditBox = creditHere && (
     <div style={{ padding: '10px 14px', borderRadius: RADIUS.sm, background: RC.cream, border: `1px solid ${RC.line}`, display: 'flex', alignItems: 'center', gap: 14 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -665,7 +669,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   // A one-payment plan shows what the sheet will ask, credit off. It counts
   // down as the toggle flips only; another plan shows its price at once (the
   // key remounts the counter), owner 2026-10-28.
-  const payCents = selected ? afterCredit(selected.billed_upfront_amount, selected.currency, creditHere && useCredit ? creditCents : 0) : 0;
+  const payCents = staffQuote ? staffQuote.amount : selected ? afterCredit(selected.billed_upfront_amount, selected.currency, creditHere && useCredit ? creditCents : 0) : 0;
   const payLabel: ReactNode = !selected ? '' : selected.mode === 'subscription' ? t('Subscribe securely, {price} a month', { price: payPrice }) : tn('Pay {price} securely', { price: <CountingPrice key={lineKey(selected)} cents={payCents} currency={selected.currency} /> });
   const payButton = (
     <RingoButton onClick={() => void continueTap()} disabled={paying} loading={paying} style={ctaStyle}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Lock size={17} color="#fff" /><span>{payLabel}</span></span></RingoButton>
@@ -832,7 +836,8 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
               {selected && selectedPrice && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {payErr && <ErrorBox>{payErr}</ErrorBox>}
-                  {creditBox}
+                  {staffLine}
+{creditBox}
                   {terms}
                   {payHere ? payButton : <RingoButton onClick={() => void continueTap()} disabled={paying} loading={paying} style={ctaStyle}>{selected.mode === 'subscription' ? t('Continue, {price} today', { price: selectedPrice.total }) : t('Continue, {price}', { price: selectedPrice.total })}</RingoButton>}
                   {payHere && <PayMethods />}
@@ -878,7 +883,8 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
       {cat && selected && selectedPrice && (
         <div style={footer}>
           {payErr && <ErrorBox>{payErr}</ErrorBox>}
-          {creditBox}
+          {staffLine}
+{creditBox}
           {terms && <div style={{ paddingTop: 2 }}>{terms}</div>}
           {payHere ? payButton : <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ flexShrink: 1, minWidth: 0, fontFamily: 'var(--font)' }}>

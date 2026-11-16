@@ -7,7 +7,8 @@ import { CARD_PAYMENTS } from '../lib/cardPay';
 import { useEffect, useState, type ReactNode } from 'react';
 import { RC, TYPE, cardSurface } from '../theme';
 import { RingoButton } from '../components/Button';
-import { ScreenTitle, SectionHead, PhotoCard, ErrorBox } from '../components/ui';
+import { ScreenTitle, SectionHead, PhotoCard, ErrorBox, Input } from '../components/ui';
+import { useStaffCode, saveStaffCode } from '../lib/staffCode';
 import { SITE, light } from '../api/light';
 import { openInSheet, openExternal } from '../lib/browser';
 import { WRITE_REVIEW_URL } from '../lib/review';
@@ -71,6 +72,33 @@ function HelpRow({ label, sub, onClick, last, danger, disabled }: { label: strin
       </span>
       {!danger && <Chevron />}
     </button>
+  );
+}
+
+// A staff code (lib/staffCode.ts): typed once here, it rides with the next
+// plan payment; the site gives the supplier rate if it is this email's code.
+function CodeRow() {
+  const saved = useStaffCode();
+  const [open, setOpen] = useState(false);
+  const [code, setCode] = useState('');
+  if (saved) {
+    return (
+      <div style={{ padding: '14px 16px', borderBottom: `1px solid ${RC.line}`, display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ ...TYPE.bodyStrong, color: RC.ink }}>{t('Code {code} saved', { code: saved })}</div>
+          <div style={{ ...TYPE.small, color: RC.ink2 }}>{t('Your next plan is priced with it.')}</div>
+        </div>
+        <button type="button" className="press" onClick={() => { hapticSelection(); saveStaffCode(null); }} style={{ border: 'none', background: 'transparent', padding: '8px 4px', cursor: 'pointer', ...TYPE.small, fontWeight: 600, color: RC.orangeInk }}>{t('Remove')}</button>
+      </div>
+    );
+  }
+  if (!open) return <HelpRow label={t('Have a code?')} onClick={() => { hapticSelection(); setOpen(true); }} />;
+  const save = () => { if (code.trim()) { hapticNotify('success'); saveStaffCode(code); setCode(''); setOpen(false); } };
+  return (
+    <div style={{ padding: '14px 16px', borderBottom: `1px solid ${RC.line}`, display: 'flex', gap: 8, alignItems: 'stretch' }}>
+      <div style={{ flex: 1, minWidth: 0 }}><Input value={code} onChange={setCode} placeholder={t('Code')} ariaLabel={t('Code')} autoComplete="off" onEnter={save} /></div>
+      <RingoButton size="sm" variant="secondary" disabled={!code.trim()} onClick={save} style={{ width: 'auto' }}>{t('Save')}</RingoButton>
+    </div>
   );
 }
 
@@ -233,6 +261,7 @@ export function HelpScreen({ onLogin, onProfile, onWaitlist }: { onLogin: () => 
                     {tn('Signed in as {email}', { email: <span style={{ color: RC.ink, fontWeight: 600 }}>{acct.email || t('this account')}</span> })}
                   </div>
                   <HelpRow label={t('My profile')} onClick={() => { hapticSelection(); onProfile(); }} />
+                  <CodeRow />
                   <HelpRow label={signingOut ? t('Signing out…') : t('Sign out')} disabled={signingOut} onClick={() => void signOut()} />
                   {deleting === 'confirm' || deleting === 'busy' ? (
                     <div style={{ padding: 16 }}>

@@ -41,6 +41,7 @@ import { openInSheet } from '../lib/browser';
 import { payByCard as startCard, waitForOwner, type CardOutcome } from '../lib/cardPay';
 import { haptic, hapticNotify, hapticSelection } from '../lib/haptics';
 import { priceOf } from '../lib/purchase';
+import { savedStaffCode } from '../lib/staffCode';
 import { logAb } from '../lib/abtest';
 import { type Selection, type PaidStart } from './DestinationScreen';
 import { planName, periodWord } from '../lib/terms';
@@ -113,8 +114,8 @@ export function CheckoutScreen({ selection, paid, onBack, onReady }: { selection
   // A one-time staff code (owner 2026-11-13: "at check out hidden under see
   // more"): a small link opens the field; the site checks the code against
   // the email and gives the supplier rate, or the list price if it does not apply.
-  const [codeOpen, setCodeOpen] = useState(false);
-  const [code, setCode] = useState('');
+  const [codeOpen, setCodeOpen] = useState(() => Boolean(savedStaffCode()));
+  const [code, setCode] = useState(() => savedStaffCode() || '');
   const [codeBusy, setCodeBusy] = useState(false);
   const [codeMsg, setCodeMsg] = useState<string | null>(null);
   const [staff, setStaff] = useState<{ code: string; amount: number; currency: string; email: string } | null>(null);

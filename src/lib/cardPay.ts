@@ -9,6 +9,7 @@ import { light } from '../api/light';
 import { account } from '../store/account';
 import { InlinePay } from './inlinePay';
 import { t } from './i18n';
+import { savedStaffCode, saveStaffCode } from './staffCode';
 
 interface SheetResult { status: 'completed' | 'canceled' | 'failed'; message?: string }
 const Sheet = registerPlugin<{ present(o: { clientSecret: string; publishableKey: string; email?: string; buttonLabel?: string }): Promise<SheetResult> }>('PaymentSheet');
@@ -75,6 +76,9 @@ async function start(order: CardOrder): Promise<CardPayment> {
   // A top-up always needs it; a plan for someone else's email is at list price.
   const mine = acct && (order.topUp || !acct.email || acct.email.toLowerCase() === order.email.toLowerCase());
   const { useCredit, via = 'sheet', ...rest } = order;
+  // The staff code saved in Help > Account rides with a plan (never a top-up); the site decides if it applies.
+  const saved = !order.topUp && !rest.code ? savedStaffCode() : null;
+  if (saved) rest.code = saved;
   const r = await light.appPay({ ...rest, ...(acct && mine ? { user: acct.userId, t: acct.t, ...(useCredit ? { use_credit: true } : {}) } : {}) });
   const ref = r.payment_intent_id || r.subscription_id || '';
   if (!r.client_secret || !r.publishable_key || !ref) throw new Error(t('The payment could not be started. Nothing was charged.'));
@@ -97,6 +101,8 @@ async function start(order: CardOrder): Promise<CardPayment> {
         const st = await light.cardStatus(query);
         if (st.paid) {
           paidSeen = true;
+          // A paid plan spent the code (the site marks it used): it leaves this phone too.
+          if (r.staff && rest.code && rest.code === savedStaffCode()) saveStaffCode(null);
           if (order.topUp) return { state: 'received', session: ref, query };
           if (st.user_id && st.t) return { state: 'paid', session: ref, userId: st.user_id, t: st.t };
         }
