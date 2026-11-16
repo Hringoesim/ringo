@@ -63,7 +63,6 @@ const c: Catalog = {
   "Your Ringo Pioneer avatar": "Seu avatar Ringo Pioneer",
   "Your avatar": "Seu avatar",
   "Change photo": "Trocar foto",
-  "Add a photo": "Adicionar uma foto",
   "Use my golden avatar": "Usar meu avatar dourado",
   "Use my Ringo avatar": "Usar meu avatar Ringo",
   "That photo could not be used. Try another one.": "Não foi possível usar essa foto. Tente outra.",

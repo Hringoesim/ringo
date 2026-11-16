@@ -63,7 +63,6 @@ const c: Catalog = {
   "Your Ringo Pioneer avatar": "صورتك الرمزية في Ringo Pioneer",
   "Your avatar": "صورتك الرمزية",
   "Change photo": "تغيير الصورة",
-  "Add a photo": "إضافة صورة",
   "Use my golden avatar": "استخدام صورتي الرمزية الذهبية",
   "Use my Ringo avatar": "استخدام صورتي الرمزية في Ringo",
   "That photo could not be used. Try another one.": "تعذّر استخدام هذه الصورة. جرّب صورة أخرى.",

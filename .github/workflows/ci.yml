@@ -24,7 +24,7 @@ jobs:
       - run: npm run lint
       # Fails when a string the app shows has no translation in a language.
       - name: Translations complete
-        run: node scripts/i18n-check.mjs --allow-unused
+        run: node scripts/i18n-check.mjs
       - run: npm test
       # `npm run build` is `tsc -b && vite build`, so it is the typecheck too.
       - run: npm run build

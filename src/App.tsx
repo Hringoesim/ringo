@@ -351,7 +351,7 @@ export function App() {
       try {
         const r = await light.restorePurchase(t.jws);
         if (r.ok) {
-          if (r.user_id && r.t) account.set({ userId: r.user_id, t: r.t, email: r.email ?? acct?.email ?? null, purchaseRef: `apple:${r.transaction_id}` });
+          if (r.user_id && r.t) account.set({ userId: r.user_id, t: r.t, email: r.email ?? (acct?.userId === r.user_id ? acct.email : null), purchaseRef: `apple:${r.transaction_id || t.transactionId}` });
           await finish(t.transactionId);
         }
       } catch { /* left unfinished, tried again next launch */ }

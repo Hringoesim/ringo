@@ -425,7 +425,7 @@ export function EsimScreen({ onBack, onInstall, onLogin, onStore, onReport, onPr
       for (const t of txs) {
         try {
           const r = await light.restorePurchase(t.jws);
-          if (r.user_id && r.t) { account.set({ userId: r.user_id, t: r.t, email: r.email ?? null, purchaseRef: `apple:${r.transaction_id}` }); found = true; break; }
+          if (r.user_id && r.t) { account.set({ userId: r.user_id, t: r.t, email: r.email ?? null, purchaseRef: `apple:${r.transaction_id || t.transactionId}` }); found = true; break; }
         } catch { /* next one */ }
       }
       setNote(found ? tr('Your purchases are back.') : txs.length ? tr('No Ringo eSIM found for this Apple ID yet. If you just bought one, open the plan again.') : tr('No purchases found for this Apple ID.'));
