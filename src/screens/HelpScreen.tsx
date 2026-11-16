@@ -14,8 +14,6 @@ import { WRITE_REVIEW_URL } from '../lib/review';
 import { useAccount, account } from '../store/account';
 import { manageSubscriptions, iapAvailable, useStoreStatus } from '../lib/iap';
 import type { PictureCredit } from '../data/pictureCredits';
-
-type Credits = typeof import('../data/pictureCredits');
 import { bundledPictureFor, pictureFor } from '../data/destinations';
 import { useDestinations, destinationFrom } from '../store/destinations';
 import { hapticNotify, hapticSelection } from '../lib/haptics';
@@ -23,12 +21,13 @@ import { PushSwitches } from '../components/PushControls';
 import { pushAvailable, unregisterPush, openPushSettings } from '../lib/push';
 import { useLayout, contentColumn, cardGrid, TABBAR_CLEARANCE } from '../lib/layout';
 import { t, tn, tk, i18n, LANGS, useLang } from '../lib/i18n';
+// Read by App once: a language picked here re-renders the app on Help, not the store.
+import { LANG_RETURN_KEY } from '../lib/langReturn';
+
+type Credits = typeof import('../data/pictureCredits');
 
 /** Read by LandingScreen once, to say the account was deleted. */
 export const ACCOUNT_DELETED_KEY = 'ringo_account_deleted';
-/** Read by App once: a language picked here re-renders the app on Help, not the store. */
-import { LANG_RETURN_KEY } from '../lib/langReturn';
-export { LANG_RETURN_KEY };
 
 const FAQ: { q: string; a: string }[] = [
   { q: tk('Does my phone support eSIM?'), a: tk('Every iPhone from the XS and XR onwards does, including iPhone Duo, as long as it is not carrier locked. In Settings › General › About, look for “Available SIM” or “Digital SIM”.') },

@@ -12,11 +12,10 @@
 // Store buyer has no card on file, so the app says the top-up is one tap on
 // My eSIM. A member price is labelled "Your Rewards price".
 //
-// Where the supplier sells them, the App Store only day passes (app_plans)
-// sit beside the trip plans: a switch between Trip plans, Day plans, Power
-// user and Super user. A day group's cards are named by their days ("24
-// hours", "3 days"), cheapest first, with one line on the daily allowance.
-// They go through the same StoreKit purchase as any plan.
+// Where the supplier sells them, the app only day passes (app_plans) sit in
+// the same tabs as the trip plans: Data, Unlimited, and Power on its own
+// card. A day pass card is named by its days ("24 hours", "3 days"),
+// cheapest first. They are bought the same way as any plan.
 //
 // Layout follows the live width: on a phone the photo is a hero with the
 // plans on a sheet over it and a floating Continue bar; on a wide screen
@@ -35,7 +34,7 @@ import { takeQuizPick, setQuizPick, clearQuizPick, sendQuizPicked } from '../lib
 import { hasMosaic, pictureFor, skyFor, bundledPictureFor, type Destination } from '../data/destinations';
 import { useDestinations, destinationFrom } from '../store/destinations';
 import { useAccount, account } from '../store/account';
-import { light, money, type Catalog, type Plan } from '../api/light';
+import { light, money, SITE, type Catalog, type Plan } from '../api/light';
 import { loadProducts, iapAvailable, type IapProduct } from '../lib/iap';
 import { CARD_PAYMENTS } from '../lib/cardPay';
 import { rememberAppleLines } from '../store/summary';
@@ -46,13 +45,11 @@ import { logAb } from '../lib/abtest';
 import { payByCard as startCard, type CardOutcome } from '../lib/cardPay';
 import { openInSheet } from '../lib/browser';
 import { Lock, PayMethods } from '../components/PayMarks';
-import { SITE } from '../api/light';
 import { useLayout, contentColumn, type Layout } from '../lib/layout';
 import { requestLightStatusBar } from '../lib/statusBar';
 import { powerPhotoFor } from '../data/powerPhotos';
-import { t, t as tr, tk, tn, plural, placeName as placeLabel, currentLocale, isRtl, fmtMoney } from '../lib/i18n';
+import { t, t as tr, tk, tn, plural, placeName as placeLabel, currentLocale, isRtl, fmtMoney, i18n } from '../lib/i18n';
 import dishPhoto from '../assets/store/dish-wide.jpg'; // the store's Power card dish, full width (Unsplash Wj1D-qiOseE)
-import { i18n } from '../lib/i18n';
 
 export interface Selection {
   destination: string;
@@ -66,13 +63,6 @@ export interface Selection {
 /** A payment the plan page already took through the sheet: Checkout carries on from it. */
 export interface PaidStart { out: CardOutcome; email: string }
 
-/** Which list is shown: the trip plans, or one family of App Store only day passes. */
-type Group = 'trip' | 'day' | 'power' | 'super';
-const DAY_GROUPS: { id: Exclude<Group, 'trip'>; label: string; line: string }[] = [
-  { id: 'day', label: 'Day plans', line: 'Unlimited, never cut off' },
-  { id: 'power', label: 'Power user', line: 'Unlimited Pro, for heavy use' },
-  { id: 'super', label: 'Super user', line: 'Unlimited Ultra, for van travel or a hotspot for friends' },
-];
 const DAY_TICKS = [tk('Unlimited data'), tk('Never cut off'), tk('Data only, next to your own SIM')];
 
 const SHEET_RADIUS = 28;
@@ -118,9 +108,6 @@ function CountingPrice({ cents, currency }: { cents: number; currency: string })
 const GLOBAL_TICKS = [tk('Unlimited data'), tk('One plan, renews until you cancel'), tk('One price, no roaming bills'), tk('Data only, next to your own SIM and number')];
 const DATA_TICKS = [tk('Full speed, no daily cap'), tk('Hotspot included'), tk('Data only, next to your own SIM')];
 const UNLIMITED_TICKS = [tk('Unlimited data'), tk('Hotspot included'), tk('Data only, next to your own SIM')];
-
-
-
 
 /** The destination's photograph (the Global mosaic for Global), filling its positioned parent. */
 function Photo({ id, eager = true, src }: { id: string; eager?: boolean; src?: string }) {
@@ -211,7 +198,7 @@ const POWER_GLASS = 'linear-gradient(160deg, rgba(255,255,255,0.85), rgba(240,23
 const POWER_SUNSET = 'linear-gradient(120deg, #FF7A3D 0%, #FF4FA1 50%, #8B5CF6 100%)';
 const POWER_PULSE_CSS = '@keyframes superPulse{0%,100%{opacity:.45}50%{opacity:1}}.super-pulse{animation:superPulse 2.8s ease-in-out infinite}@media (prefers-reduced-motion: reduce){.super-pulse{animation:none;opacity:.8}}';
 /** Each Power Use tier's icon (owner 2026-10-27), as the plan tabs draw theirs: a laptop for Power, a van for Super User. */
-function PowerTierIcon({ gb }: { gb: number; on: boolean }) {
+function PowerTierIcon({ gb }: { gb: number }) {
   const fill = RC.ink;
   return (
     <span aria-hidden style={{ width: 36, height: 36, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10,
@@ -225,35 +212,7 @@ function PowerTierIcon({ gb }: { gb: number; on: boolean }) {
   );
 }
 
-/**
- * Each plan family wears its own shade (owner 2026-10-24: "power and super
- * use, all these buttons need a different shade"): Trip plans the brand
- * orange, Day plans sunny amber, Power user pink, Super user purple. Text on
- * each solid shade is white, except dark ink on amber, every pair over 4.5:1.
- */
-
-// The plan family icons, the website's way (owner 2026-10-24: "icon and icon
-// colours do not match the website ... need an upgrade to feel modern"): a
-// filled white glyph on a squircle in the family's sunset gradient, built
-// from the site's own tokens (orange #f26122, pink #ff42a1, purple #8652e0,
-// yellow #ffcc33). Trip a plane, Day a rising sun, Power a bolt, Super a
-// hotspot signal (van travel, sharing the connection with friends).
-
-/**
- * The families that earn the most per sale wear the website's gradient
- * (owner 2026-10-24: "use the gradient to the plans that give us the most
- * margin"): Super user, then Power user (a 7-day Super user in Europe keeps
- * about EUR 41, Power about EUR 14, the 2-week trip about EUR 12). The site's
- * sunset stops (hsl 285 / 330 / 8), taken deeper so white text clears 4.5:1.
- */
-/** The plan most people pick (2 weeks: 236 of the last 316 sales, 2026-10-24). */
-// Option 1 + 2 (owner 2026-10-24): plum for what is chosen, the website's
-// orange button gradient on Continue, the full sunset on the highlight band.
 const SUNSET = 'linear-gradient(110deg, #F26122, #FF42A1 55%, #8652E0)';
-// One accent on this screen, the website's deep plum (owner 2026-10-24, from a
-// swatch of the site's dark sections). White on it reads at 14:1.
-// The Airalo way (owner 2026-10-24): cream page, white cards, black for
-// what is chosen, black line icons; colour only on Continue.
 // Owner 2026-10-24: never a black contour, cream behind everything, the
 // orange for the data plans and the gradient for Unlimited, all subtle.
 const CREAM = '#FFFAF7';
@@ -269,15 +228,6 @@ const ringOn = (unlimited: boolean, width = 1.5) => ({
 });
 const ringOff = { border: `1.5px solid ${LINE}`, background: CREAM, boxShadow: '0 6px 18px -16px rgba(26,15,46,0.25)' };
 
-
-// Every icon its own colour (owner 2026-10-24), from the website's sunset:
-// the plane orange, Unlimited purple; the tiers Day yellow, Super pink, Ultra
-// indigo. Each glyph on a soft tint of its colour, chosen or not.
-
-
-
-
-/** Data or Unlimited, each said in one line so a buyer knows what is what. */
 /** The plan families a destination shows: Data, Unlimited, and Power where it is competitive. */
 type PlanTab = 'data' | 'unl' | 'power';
 function PlanTabs({ value, options, onChange }: { value: PlanTab; options: PlanTab[]; onChange: (t: PlanTab) => void }) {
@@ -320,7 +270,6 @@ function PlanTabs({ value, options, onChange }: { value: PlanTab; options: PlanT
 function Radio({ on, shade }: { on: boolean; shade: string }) {
   return <span aria-hidden style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, boxSizing: 'border-box', marginTop: 3, border: on ? `6px solid ${shade}` : '1.5px solid rgba(26,15,46,0.3)' }} />;
 }
-
 
 /** A regional plan's countries, folded under one row (owner 2026-10-26: "a drop down menu where you can see what countries are"). */
 function CountryList({ list }: { list: { iso: string; name: string; flag: string }[] }) {
@@ -374,10 +323,6 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   const [cat, setCat] = useState<Catalog | null>(null);
   const [products, setProducts] = useState<Map<string, IapProduct> | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [group, setGroup] = useState<Group>('trip');
-  // The Saily way (owner 2026-10-24: "look at how apps do this and do the
-  // same"): one list, Unlimited as one card with its days and daily amount.
-  const [, setUnlGb] = useState<number | null>(null);
   // Screen 1, the tabs (owner 2026-10-24, after the choice research): Data or
   // Unlimited first, each explained in one line, then that tab's plans.
   // The data quiz's plan opens its tab with its line picked (lib/quiz.ts), once.
@@ -395,6 +340,8 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   const [reloadKey, setReloadKey] = useState(0);
   // The sheet is up from this page; what it said when it could not start.
   const [paying, setPaying] = useState(false);
+  // The same, read at once: two quick taps before the button redraws never start two payments.
+  const payingRef = useRef(false);
   // While a payment confirms (up to 90 s after the sheet), this page stays:
   // leaving it let a second plan be paid for, and the first one's Checkout
   // landed on top of whatever screen was open by then.
@@ -429,8 +376,6 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
       setCat(c);
       // Not c.default_plan: the screen opens on the cheapest line (below).
       setPlanId(null);
-      setGroup('trip');
-      // A destination sold only as Unlimited opens on Unlimited.
       // Apple's products for every line here; a line Apple does not sell is
       // not offered. An empty answer is asked again before it is believed.
       // Paid by card: the site's lines and prices, no App Store products.
@@ -523,10 +468,9 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   }, [cat?.power_destination]);
   // The way to this place's Power Use card from its Data and Unlimited.
   const powerLink = !powerMode && onPower ? (cat?.power_destination ?? (ownPower.length ? id : null)) : null;
-  const allPower = ownPower;
-  const powerTiers = [...new Set(allPower.map((p) => p.daily_gb ?? 0))].sort((a, b) => a - b);
+  const powerTiers = [...new Set(ownPower.map((p) => p.daily_gb ?? 0))].sort((a, b) => a - b);
   const powerGbShown = powerGb != null && powerTiers.includes(powerGb) ? powerGb : (powerTiers[0] ?? null);
-  const powerLines = byDays(allPower.filter((p) => (p.daily_gb ?? 0) === powerGbShown));
+  const powerLines = byDays(ownPower.filter((p) => (p.daily_gb ?? 0) === powerGbShown));
   // The day passes; where none is sold, the unlimited trip lines take the tab.
   const dayPasses = plans.filter((p) => p.app_only && !isPowerLine(p));
   const unlLines = dayPasses.length ? dayPasses : plans.filter((p) => !p.app_only && p.tier === 'unlimited' && !isPowerLine(p));
@@ -555,10 +499,9 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   const hiddenCount = showAll ? 0 : tabLines.length - visibleLines.length;
   // The default: the cheapest line (owner 2026-10-28).
   const cheapestOf = (list: Plan[]) => list.reduce((a, b) => (b.billed_upfront_amount < a.billed_upfront_amount ? b : a), list[0]);
-  const defaultOf = cheapestOf;
 
-  // The chosen line stays while it is in the tab shown; otherwise the test's
-  // default for that tab (owner 2026-10-24 replaced "cheapest first" with this test).
+  // The chosen line stays while it is in the tab shown; otherwise the quiz's
+  // plan, else the cheapest line of that tab.
   useEffect(() => {
     const list = unlimitedGlobal ? plans : tabLines;
     if (!list.length) return;
@@ -572,24 +515,13 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
     const fit = !quiz ? undefined
       : shownTab === 'data' ? ([...big.filter(covers)].sort(bySize)[0] ?? [...big].sort(bySize)[0])
       : days ? (byDays(list).find(covers) ?? byDays(list)[list.length - 1]) : undefined;
-    setPlanId(lineKey(fit ?? (shownTab === 'power' ? cheapestOf(list) : defaultOf(list))));
+    setPlanId(lineKey(fit ?? cheapestOf(list)));
   // eslint-disable-next-line react-hooks/exhaustive-deps -- the quiz and the tab are read when the list changes
   }, [plans, tabLines, planId, unlimitedGlobal]);
   // One view per screen for the test.
   useEffect(() => { if (cat && !unlimitedGlobal) logAb('view', { destination: id }); }, [cat?.destination.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const selected = plans.find((p) => lineKey(p) === planId) || null;
-  // The day families on sale here (a line Apple does not return is not offered).
-  const groups = useMemo(() => {
-    if (!cat?.app_plans?.length) return [];
-    const sold = (p: Plan) => !native || Boolean(products && p.apple_product_id && products.has(p.apple_product_id));
-    return DAY_GROUPS.filter((g) => cat.app_plans!.some((p) => p.group === g.id && sold(p)));
-  }, [cat, native, products]);
-  // A family no longer on sale falls back to the trip plans.
-  useEffect(() => {
-    if (group !== 'trip' && products && !groups.some((g) => g.id === group)) setGroup('trip');
-  }, [group, groups, products]);
-  const onTrip = group === 'trip';
   // Continue wears the chosen family's shade, like its tile and cards.
   // Two buttons (owner 2026-10-24): solid orange on the data plans, the
   // sunset gradient once you are on Unlimited.
@@ -597,7 +529,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
     ? { background: ORANGE, color: '#FFFFFF', boxShadow: '0 10px 22px -16px rgba(242,97,34,0.8)' }
     : { background: SUNSET, color: '#FFFFFF', boxShadow: '0 10px 22px -16px rgba(255,66,161,0.8)' };
   const tiers = new Set(cat?.plans.map((p) => p.tier) ?? []);
-  const hasBothTiers = onTrip && !unlimitedGlobal && tiers.has('data') && tiers.has('unlimited');
+  const hasBothTiers = !unlimitedGlobal && tiers.has('data') && tiers.has('unlimited');
   const placeName = dest ? placeLabel(dest.label, dest.flag) : cat ? placeLabel(cat.destination.label) : id;
   const enLabel = dest?.label || cat?.destination.label || id;
   const name = powerMode && !/power use/i.test(enLabel) ? t('{place} Power Use', { place: placeName }) : placeName;
@@ -618,21 +550,24 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
   // this the credit would stay hidden for good.
   const continueTap = async () => {
     const s = selectionNow();
-    if (!s || paying) return;
+    if (!s || payingRef.current) return;
     haptic('medium');
     const e = (acct?.email || '').trim().toLowerCase();
     clearQuizPick();
     if (!payHere || !e) { onContinue(s); return; }
+    payingRef.current = true;
     setPaying(true);
     setPayErr(null);
     try {
       const pay = await startCard({ plan: s.plan.plan, destination: id, data_gb: s.data_gb, email: e, currency: s.plan.currency, useCredit: creditHere ? useCredit : s.plan.mode !== 'subscription', via: 'sheet' });
       const out = await pay.done;
+      payingRef.current = false;
       setPaying(false);
       // Closed without paying: the balance again, once the site has released the hold.
       if (out.state === 'left') { loadCredit(); return; }
       onContinue(s, { out, email: e });
     } catch (ex) {
+      payingRef.current = false;
       setPaying(false);
       setPayErr((ex as Error).message || t('The payment could not be started. Nothing was charged.'));
     }
@@ -731,21 +666,6 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
           {quiz?.tab === 'power' ? t('Power plans are not sold here yet. Unlimited covers a hotspot too.') : t('That plan type is not sold here. Here is what is.')}
         </p>
       )}
-      {!unlimitedGlobal && shownTab === 'unl' && tierOptions.length > 1 && (
-        <div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {tierOptions.map((g) => {
-              const sel = g === tierGb;
-              return (
-                <button key={g} type="button" className="press" onClick={() => { hapticSelection(); setUnlGb(g); setShowAll(false); }}
-                  style={{ flex: '1 1 30%', cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 15, fontWeight: 600, padding: '10px 0', borderRadius: 12, color: RC.ink, ...(sel ? ringOn(true) : ringOff) }}>
-                  {tierName(g)}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
       {!unlimitedGlobal && shownTab === 'power' && (
         <div>
           <p style={{ margin: '0 0 12px', fontFamily: 'var(--font)', fontSize: 16, lineHeight: 1.4, color: RC.ink }}>
@@ -763,7 +683,7 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
                   {g >= 10 && <span aria-hidden className="super-pulse" style={{ position: 'absolute', inset: 0, borderRadius: 20, background: POWER_SUNSET }} />}
                   <span style={{ position: 'relative', display: 'block', height: '100%', boxSizing: 'border-box', padding: '12px 12px 12px', borderRadius: 18, background: POWER_GLASS, backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', color: RC.ink }}>
                     {sel && <span aria-hidden style={{ position: 'absolute', top: 12, insetInlineEnd: 12, width: 22, height: 22, borderRadius: 11, background: RC.ink, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><svg width="13" height="13" viewBox="0 0 24 24"><path fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" d="M5 12.5l4.5 4.5L19 7.5" /></svg></span>}
-                    <PowerTierIcon gb={g} on={sel} />
+                    <PowerTierIcon gb={g} />
                     <span style={{ display: 'block', fontSize: 17, fontWeight: 800, letterSpacing: '-0.01em' }}>{POWER_TIER_NAME[g] ? t(POWER_TIER_NAME[g]) : tierName(g)}</span>
                     <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: RC.ink2 }}>{POWER_TIER_USE[g] ? t(POWER_TIER_USE[g]) : t('{gb} GB a day', { gb: g })}</span>
                   </span>

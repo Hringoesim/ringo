@@ -41,7 +41,7 @@ const destinations = (n: number) => plural(n, '{n} destination', '{n} destinatio
 const PHOTO_IDS = new Set(['bronze', 'silver', 'gold', 'diamond', 'aurora']);
 
 // A photograph with the level's name on it, the way the site's destination cards carry theirs.
-export function LevelPhoto({ id, aspect, children, eager = false }: { id: string; aspect: string; children?: ReactNode; eager?: boolean }) {
+function LevelPhoto({ id, aspect, children, eager = false }: { id: string; aspect: string; children?: ReactNode; eager?: boolean }) {
   const [broken, setBroken] = useState(false);
   return (
     <div style={{ position: 'relative', aspectRatio: aspect, background: levelColor(id), overflow: 'hidden' }}>
@@ -151,7 +151,7 @@ function LevelCard({ l, level, here, reached, scroller }: { l: Layout; level: Re
   );
 }
 
-export function Levels({ rewards }: { rewards: Rewards }) {
+function Levels({ rewards }: { rewards: Rewards }) {
   const l = useLayout();
   const row = useRef<HTMLDivElement>(null);
   const current = rewards.level?.id;
