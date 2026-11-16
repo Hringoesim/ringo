@@ -543,8 +543,6 @@ const c: Catalog = {
   "{n} more plans": { one: "Ещё {n} тариф", few: "Ещё {n} тарифа", many: "Ещё {n} тарифов", other: "Ещё {n} тарифа" },
   "{n} plans": { one: "{n} тариф", few: "{n} тарифа", many: "{n} тарифов", other: "{n} тарифа" },
   "Buy more plans to move up.": "Покупайте больше тарифов, чтобы повысить уровень.",
-  "{amount} more spent to {level}.": "Ещё {amount} покупок до уровня {level}.",
-  "{count} and {amount} more spent to {level}.": "{count} и ещё {amount} покупок до уровня {level}.",
   "You have kept Global {n} months.": { one: "Вы с Global уже {n} месяц.", few: "Вы с Global уже {n} месяца.", many: "Вы с Global уже {n} месяцев.", other: "Вы с Global уже {n} месяца." },
   "Europe": "Европа",
   "North America": "Северная Америка",

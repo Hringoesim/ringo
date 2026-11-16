@@ -543,8 +543,6 @@ const c: Catalog = {
   "{n} more plans": "{n} paket daha",
   "{n} plans": "{n} paket",
   "Buy more plans to move up.": "Seviye atlamak için daha fazla paket al.",
-  "{amount} more spent to {level}.": "{level} için {amount} daha harcama.",
-  "{count} and {amount} more spent to {level}.": "{level} için {count} ve {amount} daha harcama.",
   "You have kept Global {n} months.": "{n} aydır Global kullanıyorsun.",
   "Europe": "Avrupa",
   "North America": "Kuzey Amerika",

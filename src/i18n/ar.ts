@@ -543,8 +543,6 @@ const c: Catalog = {
   "{n} more plans": { one: "باقة واحدة أخرى", two: "باقتان أخريان", few: "{n} باقات أخرى", many: "{n} باقة أخرى", other: "{n} باقة أخرى" },
   "{n} plans": { one: "باقة واحدة", two: "باقتان", few: "{n} باقات", many: "{n} باقة", other: "{n} باقة" },
   "Buy more plans to move up.": "اشترِ باقات أكثر لترتفع مستواك.",
-  "{amount} more spent to {level}.": "أنفق {amount} إضافية للوصول إلى {level}.",
-  "{count} and {amount} more spent to {level}.": "{count} وإنفاق {amount} إضافية للوصول إلى {level}.",
   "You have kept Global {n} months.": { one: "أنت مع Global منذ شهر واحد.", two: "أنت مع Global منذ شهرين.", few: "أنت مع Global منذ {n} أشهر.", many: "أنت مع Global منذ {n} شهرًا.", other: "أنت مع Global منذ {n} شهر." },
   "Europe": "أوروبا",
   "North America": "أمريكا الشمالية",

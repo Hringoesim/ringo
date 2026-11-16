@@ -543,8 +543,6 @@ const c: Catalog = {
   "{n} more plans": "あと{n}件",
   "{n} plans": "{n}件のプラン",
   "Buy more plans to move up.": "プランを購入してレベルアップ。",
-  "{amount} more spent to {level}.": "{level}まであと{amount}のご利用。",
-  "{count} and {amount} more spent to {level}.": "{level}まで{count}、あと{amount}のご利用。",
   "You have kept Global {n} months.": "Globalを{n}か月ご利用中です。",
   "Europe": "ヨーロッパ",
   "North America": "北米",

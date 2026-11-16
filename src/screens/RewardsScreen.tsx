@@ -91,12 +91,9 @@ function Current({ l, rewards, credit }: { l: Layout; rewards: Rewards; credit?:
   const from = level ? level.min : 0;
   const span = next ? Math.max(1, next.min - from) : 1;
   const pct = next ? Math.max(0, Math.min(100, ((n - from) / span) * 100)) : 100;
-  // A level needs its plans and its spend over the last 12 months (in EUR, as
-  // the levels are set); the line names whichever is still missing.
-  const spendCents = next?.spend_to_go_eur_cents || 0;
-  const spendToGo = spendCents > 0 ? fmtMoney(Math.ceil(spendCents / 100), 'EUR', { maximumFractionDigits: 0 }) : '';
-  const plansToGo = next ? (spendToGo ? Math.max(0, next.min - n) : next.to_go) : 0;
-  const morePlans = plansToGo > 0 ? plural(plansToGo, 'One more plan', '{n} more plans') : '';
+  // Only the plans still to buy are named here; the spend a level also needs
+  // is not advertised on this screen (owner 2026-11-16).
+  const morePlans = next ? plural(next.to_go, 'One more plan', '{n} more plans') : '';
   return (
     <section aria-label={t('Your level')} style={{ ...cardSurface(), overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <LevelPhoto id={shownId} aspect="16 / 9" eager>
@@ -111,12 +108,8 @@ function Current({ l, rewards, credit }: { l: Layout; rewards: Rewards; credit?:
         <p style={{ margin: '12px 0 0', ...TYPE.body, color: RC.ink }}>
           {next
             ? (i18n.get() === 'en'
-              ? <><b>{[morePlans, spendToGo && `${spendToGo} more spent`].filter(Boolean).join(' and ')}</b> to {next.name}{nextLevel?.perks[0] ? `: ${lower(nextLevel.perks[0])}.` : '.'}</>
-              : morePlans && spendToGo
-                ? tn('{count} and {amount} more spent to {level}.', { count: <b>{morePlans}</b>, amount: <b>{spendToGo}</b>, level: t(next.name) })
-                : spendToGo
-                  ? tn('{amount} more spent to {level}.', { amount: <b>{spendToGo}</b>, level: t(next.name) })
-                  : tn('{count} to {level}.', { count: <b>{morePlans}</b>, level: t(next.name) }))
+              ? <><b>{morePlans}</b> to {next.name}{nextLevel?.perks[0] ? `: ${lower(nextLevel.perks[0])}.` : '.'}</>
+              : tn('{count} to {level}.', { count: <b>{morePlans}</b>, level: t(next.name) }))
             : <b>{t('You reached the top. Thank you for travelling with Ringo.')}</b>}
         </p>
         {credit && (

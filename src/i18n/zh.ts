@@ -543,8 +543,6 @@ const c: Catalog = {
   "{n} more plans": "再买 {n} 个套餐",
   "{n} plans": "{n} 个套餐",
   "Buy more plans to move up.": "购买更多套餐即可升级。",
-  "{amount} more spent to {level}.": "再消费 {amount} 即可升至 {level}。",
-  "{count} and {amount} more spent to {level}.": "{count}，并再消费 {amount}，即可升至 {level}。",
   "You have kept Global {n} months.": "你已使用 Global {n} 个月。",
   "Europe": "欧洲",
   "North America": "北美洲",
