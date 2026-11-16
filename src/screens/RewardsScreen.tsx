@@ -1,5 +1,5 @@
 // RewardsScreen: Ringo Rewards (owner 2026-10-23). Five levels earned by the
-// destinations a member has booked, Bronze to Aurora, each with its own
+// plans a member has bought, Bronze to Aurora, each with its own
 // travel photograph; the member's avatar (their Ringo cowboy or their own
 // photo) in their level's colour; and the travel badges. Laid out the way
 // ringoesim.com lays out a page: a plain heading and one line, photo-led
@@ -38,6 +38,7 @@ type Pioneer = NonNullable<Profile['pioneer']>;
 
 const PHOTO = (id: string) => `${import.meta.env.BASE_URL}img/rewards/${id}.jpg`;
 const destinations = (n: number) => plural(n, '{n} destination', '{n} destinations');
+const plans = (n: number) => plural(n, '{n} plan', '{n} plans');
 const PHOTO_IDS = new Set(['bronze', 'silver', 'gold', 'diamond', 'aurora']);
 
 // A photograph with the level's name on it, the way the site's destination cards carry theirs.
@@ -90,11 +91,17 @@ function Current({ l, rewards, credit }: { l: Layout; rewards: Rewards; credit?:
   const from = level ? level.min : 0;
   const span = next ? Math.max(1, next.min - from) : 1;
   const pct = next ? Math.max(0, Math.min(100, ((n - from) / span) * 100)) : 100;
+  // A level needs its plans and its spend over the last 12 months (in EUR, as
+  // the levels are set); the line names whichever is still missing.
+  const spendCents = next?.spend_to_go_eur_cents || 0;
+  const spendToGo = spendCents > 0 ? fmtMoney(Math.ceil(spendCents / 100), 'EUR', { maximumFractionDigits: 0 }) : '';
+  const plansToGo = next ? (spendToGo ? Math.max(0, next.min - n) : next.to_go) : 0;
+  const morePlans = plansToGo > 0 ? plural(plansToGo, 'One more plan', '{n} more plans') : '';
   return (
     <section aria-label={t('Your level')} style={{ ...cardSurface(), overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <LevelPhoto id={shownId} aspect="16 / 9" eager>
         <div style={{ ...typeFor('hero', l.size) }}>{level ? t(level.name) : t('Your first trip')}</div>
-        <div style={{ marginTop: 4, ...TYPE.small, fontWeight: 700 }}>{rewards.window_months ? plural(n, '{n} destination booked in {months} months', '{n} destinations booked in {months} months', { months: rewards.window_months }) : plural(n, '{n} destination booked', '{n} destinations booked')}</div>
+        <div style={{ marginTop: 4, ...TYPE.small, fontWeight: 700 }}>{rewards.window_months ? plural(n, '{n} plan bought in {months} months', '{n} plans bought in {months} months', { months: rewards.window_months }) : plural(n, '{n} plan bought', '{n} plans bought')}</div>
       </LevelPhoto>
       <div style={{ padding: l.cardPad }}>
         <div role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pct)} aria-label={next ? t('Progress to {level}', { level: t(next.name) }) : t('Top level')}
@@ -104,8 +111,12 @@ function Current({ l, rewards, credit }: { l: Layout; rewards: Rewards; credit?:
         <p style={{ margin: '12px 0 0', ...TYPE.body, color: RC.ink }}>
           {next
             ? (i18n.get() === 'en'
-              ? <><b>{next.to_go === 1 ? 'One more destination' : `${next.to_go} more destinations`}</b> to {next.name}{nextLevel?.perks[0] ? `: ${lower(nextLevel.perks[0])}.` : '.'}</>
-              : tn('{count} to {level}.', { count: <b>{plural(next.to_go, 'One more destination', '{n} more destinations')}</b>, level: t(next.name) }))
+              ? <><b>{[morePlans, spendToGo && `${spendToGo} more spent`].filter(Boolean).join(' and ')}</b> to {next.name}{nextLevel?.perks[0] ? `: ${lower(nextLevel.perks[0])}.` : '.'}</>
+              : morePlans && spendToGo
+                ? tn('{count} and {amount} more spent to {level}.', { count: <b>{morePlans}</b>, amount: <b>{spendToGo}</b>, level: t(next.name) })
+                : spendToGo
+                  ? tn('{amount} more spent to {level}.', { amount: <b>{spendToGo}</b>, level: t(next.name) })
+                  : tn('{count} to {level}.', { count: <b>{morePlans}</b>, level: t(next.name) }))
             : <b>{t('You reached the top. Thank you for travelling with Ringo.')}</b>}
         </p>
         {credit && (
@@ -137,7 +148,7 @@ function LevelCard({ l, level, here, reached, scroller }: { l: Layout; level: Re
     >
       <LevelPhoto id={level.id} aspect="16 / 9">
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.1 }}>{t(level.name)}</div>
-        <div style={{ marginTop: 2, ...TYPE.small, fontWeight: 700 }}>{t('From {count}', { count: destinations(level.min) })}</div>
+        <div style={{ marginTop: 2, ...TYPE.small, fontWeight: 700 }}>{t('From {count}', { count: plans(level.min) })}</div>
       </LevelPhoto>
       <div style={{ padding: '14px 16px 16px', flex: 1 }}>
         {(here || reached) && (
@@ -376,7 +387,7 @@ export function RewardsScreen({ onBack, onBrowse, onLogin, onWaitlist }: { onBac
 
               {rewards && rewards.levels.length > 0 && (
                 <section>
-                  <SectionHead title={t('Your rewards')} sub={t('Book more destinations to move up.')} />
+                  <SectionHead title={t('Your rewards')} sub={t('Buy more plans to move up.')} />
                   <Levels rewards={rewards} />
                 </section>
               )}
