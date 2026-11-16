@@ -18,7 +18,11 @@ function fmtData(mb: number | null | undefined): string {
 function shortDate(iso: string | null): string {
   if (!iso) return '';
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '' : fmtDate(d, { day: 'numeric', month: 'short' });
+  if (Number.isNaN(d.getTime())) return '';
+  // A bare day ("2026-11-16", the daily chart) parses as midnight UTC: shown
+  // in UTC too, or anywhere west of Greenwich it reads as the day before.
+  const dayOnly = /^\d{4}-\d{2}-\d{2}$/.test(iso);
+  return fmtDate(d, { day: 'numeric', month: 'short', ...(dayOnly ? { timeZone: 'UTC' } : null) });
 }
 
 /** The 30 days ending today, zero where nothing was used. */

@@ -27,13 +27,6 @@ export const GLASS: CSSProperties = {
   border: '1px solid rgba(26,15,46,0.10)',
   boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.75), 0 12px 34px -12px rgba(26,15,46,0.24)',
 };
-// A lighter glass for inline chips / smaller controls.
-export const GLASS_THIN: CSSProperties = {
-  background: 'rgba(255,250,253,0.55)',
-  backdropFilter: 'blur(16px) saturate(170%)',
-  WebkitBackdropFilter: 'blur(16px) saturate(170%)',
-  border: '1px solid rgba(255,255,255,0.5)',
-};
 
 export interface Palette {
   scheme: Scheme;
@@ -81,14 +74,11 @@ export interface Palette {
 
 // Elevation — depth comes from soft plum-tinted shadows, not color (a cool
 // tint keeps whites crisp; brown-tinted shadows made the whole app look tan).
-// Buttons get a tighter, slightly stronger lift; "raised" is for selected
-// surfaces; the hero gets a deeper violet lift.
+// Buttons get a tighter, slightly stronger lift.
 export const SHADOW_CARD = '0 1px 2px rgba(26,15,46,0.04), 0 12px 28px -18px rgba(26,15,46,0.16)';
 export const SHADOW_BUTTON = '0 6px 24px rgba(242,97,34,0.30)';
-export const SHADOW_RAISED = '0 2px 6px rgba(26,15,46,0.07), 0 16px 34px -18px rgba(26,15,46,0.22)';
 /** The dark premium (Pioneer / Global commit) button lift. */
 export const SHADOW_PREMIUM = '0 6px 24px rgba(26,15,46,0.32)';
-export const SHADOW_HERO = '0 18px 40px -20px rgba(134,82,224,0.5)';
 
 // Widest the content column grows (grids, two-column layouts on the iPhone
 // Duo inner display at about 744pt). Phones (360 to 440pt) never reach it.
@@ -147,7 +137,6 @@ export const TYPE = {
   label: { fontFamily: F, fontSize: 15, lineHeight: 1.3, fontWeight: 600, letterSpacing: 0 },
 } satisfies Record<string, TypeStyle>;
 export type TypeRole = keyof typeof TYPE;
-export const MIN_FONT = 13;
 
 /** Width-aware sizes for the roles that change with the screen. */
 export function typeFor(role: TypeRole, size: 'cover' | 'phone' | 'wide'): CSSProperties {
@@ -166,12 +155,8 @@ export function typeFor(role: TypeRole, size: 'cover' | 'phone' | 'wide'): CSSPr
 export const LOGO_GRAD = 'linear-gradient(100deg,#ff8a45 0%,#ffa043 38%,#ff80a0 62%,#f552b5 100%)';
 /** The site GRAD: for fills WITHOUT text (progress bars, decoration). */
 export const SITE_GRAD = 'linear-gradient(135deg, #F93C1F 0%, #FF7733 52%, #FFB83D 100%)';
-/** Primary button fill: white label holds 4.57:1 or better at every stop. */
-export const GRAD_CTA = 'linear-gradient(135deg, #DF280C 0%, #D64000 55%, #D14600 100%)';
 /** Premium plum (Pioneer / Global commit button, Pioneer badge). */
 export const GRAD_PREMIUM = 'linear-gradient(135deg,#1a0f2e 0%,#3a1a3e 55%,#6a1a4a 100%)';
-/** Gold for Pioneer marks (fills only). */
-export const GRAD_GOLD = 'linear-gradient(135deg,#FFCC33 0%,#FFA733 55%,#FF7A1F 100%)';
 /** Dark overlay on photos so white text holds 5:1 even over a white photo. */
 export const PHOTO_OVERLAY = 'linear-gradient(180deg, rgba(26,15,46,0) 40%, rgba(26,15,46,0.78) 100%)';
 export const PHOTO_TEXT_SHADOW = '0 2px 12px rgba(0,0,0,0.35)';
@@ -204,11 +189,6 @@ export const ON_DARK = {
 } as const;
 /** Tick colours: icon on light (3.4:1), soft circle behind it, success text. */
 export const TICK = { icon: '#279B51', soft: 'hsl(142,60%,95%)', text: '#1F7A40', onDark: '#63E392' } as const;
-
-// The signature spring + the standard iOS ease-out, named once so motion is
-// consistent everywhere (chips, tiles, sheets, progress bars).
-export const EASE_SPRING = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
-export const EASE_OUT = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
 // The site's brand swatches (its --or, --pk, --pu, --ink and the amber end of
 // --grad), named once for illustrations that sit outside the live theme: the

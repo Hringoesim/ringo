@@ -148,9 +148,8 @@ function Traveller({ seed, level, size, kind }: { seed: string; level: string | 
           <circle cx="18" cy="16" r="1.3" fill="#fff" /><circle cx="84" cy="48" r="1" fill="#fff" />
         </>
       )}
-      {cowboy && <path d="M20 100 Q20 78 50 78 Q80 78 80 100 Z" fill={band[0]} />}
+      <path d="M20 100 Q20 78 50 78 Q80 78 80 100 Z" fill={band[0]} />
       {cowboy && <path d="M38 80 L50 92 L62 80 Z" fill={band[1]} />}
-      {!cowboy && <path d="M20 100 Q20 78 50 78 Q80 78 80 100 Z" fill={band[0]} />}
       <circle cx="30" cy="58" r="4.5" fill={SKIN} />
       <circle cx="70" cy="58" r="4.5" fill={SKIN} />
       <circle cx="50" cy="57" r="22" fill={SKIN} />
@@ -254,63 +253,6 @@ export function RingoAvatar({ seed, userId, level, size = 72, pioneer = false }:
         </div>
       </div>
       {pioneer && <PioneerMedallion size={size} />}
-    </div>
-  );
-}
-
-/** "Add a photo" / "Use my Ringo avatar": the photo stays on this phone. */
-export function AvatarPhotoControls({ userId, pioneer = false, seed = '', level = null }: { userId: string; pioneer?: boolean; seed?: string; level?: string | null }) {
-  const input = useRef<HTMLInputElement>(null);
-  const photo = avatarPhoto.use(userId);
-  const kind = avatarTraveller.use(userId) || 'cowboy';
-  const [failed, setFailed] = useState(false);
-  return (
-    <div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: 24, rowGap: 8 }}>
-        <input
-          ref={input} type="file" accept="image/*" hidden aria-hidden
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            e.target.value = '';
-            if (f) void avatarPhoto.set(userId, f).then((ok) => setFailed(!ok));
-          }}
-        />
-        <TextLink align="left" onClick={() => { setFailed(false); input.current?.click(); }}>{photo ? t('Change photo') : t('Add a photo')}</TextLink>
-        {photo && (
-          <TextLink align="left" color={RC.ink2} onClick={() => { setFailed(false); avatarPhoto.clear(userId); }}>
-            {pioneer ? t('Use my golden avatar') : t('Use my Ringo avatar')}
-          </TextLink>
-        )}
-      </div>
-      <TravellerPicker userId={userId} seed={seed || userId} level={level} pioneer={pioneer} current={photo ? null : kind} />
-      {failed && <div role="alert" style={{ marginTop: 14, fontFamily: 'var(--font)', fontSize: 15, lineHeight: 1.45, color: RC.error }}>{t('That photo could not be used. Try another one.')}</div>}
-    </div>
-  );
-}
-
-/** Pick a traveller (owner 2026-10-25): picking one also puts the photo away. */
-function TravellerPicker({ userId, seed, level, pioneer, current }: { userId: string; seed: string; level: string | null; pioneer: boolean; current: string | null }) {
-  const tile = 58;
-  return (
-    <div style={{ marginTop: 16 }}>
-      <div style={{ fontFamily: 'var(--font)', fontSize: 15, fontWeight: 700, color: RC.ink }}>{t('Pick your traveller')}</div>
-      <div role="radiogroup" aria-label={t('Pick your traveller')} className="no-bar" style={{ marginTop: 10, display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
-        {TRAVELLERS.map((t) => {
-          const on = current === t.id;
-          return (
-            <button
-              key={t.id} type="button" role="radio" aria-checked={on} aria-label={tr(t.name)} className="press"
-              onClick={() => { avatarPhoto.clear(userId); avatarTraveller.set(userId, t.id); }}
-              style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: 0, border: 'none', background: 'none', cursor: 'pointer' }}
-            >
-              <span style={{ width: tile, height: tile, borderRadius: '50%', overflow: 'hidden', display: 'block', boxSizing: 'border-box', border: `3px solid ${on ? RC.orangeInk : 'transparent'}`, boxShadow: on ? 'none' : `inset 0 0 0 1px ${RC.line}` }}>
-                {pioneer && t.id === 'cowboy' ? <PioneerAvatar size={tile - 6} /> : <Traveller seed={seed} level={level} size={tile - 6} kind={t.id} />}
-              </span>
-              <span style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: on ? 700 : 500, color: on ? RC.ink : RC.ink2, whiteSpace: 'nowrap' }}>{tr(t.name)}</span>
-            </button>
-          );
-        })}
-      </div>
     </div>
   );
 }

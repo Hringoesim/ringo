@@ -125,27 +125,6 @@ export function SectionHead({ title, sub, action, as = 'h2', style = {} }: { tit
   );
 }
 
-/**
- * Former uppercase 11px kicker. Now a sentence-case 17/700 ink heading so old
- * call sites read as a plain heading. Prefer SectionHead in new code.
- */
-export function SectionTitle({ children, style = {} }: { children: ReactNode; style?: CSSProperties }) {
-  return (
-    <h2 style={{ margin: 0, padding: '8px 0 10px', ...TYPE.h3, color: RC.ink, ...style }}>
-      {children}
-    </h2>
-  );
-}
-
-// ── Text helpers ────────────────────────────────────────────────────────────
-
-/** Body copy (17, ink) or `tone="secondary"` (15, ink2) or `tone="caption"` (13, inkMute). */
-export function Text({ children, tone = 'body', style = {}, as = 'p' }: { children: ReactNode; tone?: 'body' | 'secondary' | 'caption'; style?: CSSProperties; as?: 'p' | 'span' | 'div' }) {
-  const T = as;
-  const s = tone === 'body' ? { ...TYPE.body, color: RC.ink } : tone === 'secondary' ? { ...TYPE.small, color: RC.ink2 } : { ...TYPE.caption, color: RC.inkMute };
-  return <T style={{ margin: 0, ...s, ...style }}>{children}</T>;
-}
-
 // ── Tick list ───────────────────────────────────────────────────────────────
 
 /** One green-tick line. `onDark` for the dark plan-card skins. */
@@ -437,7 +416,7 @@ export function Input({ value, onChange, placeholder, type = 'text', inputMode, 
       onChange={(e) => onChange(e.target.value)}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
-      onKeyDown={onEnter ? (e) => { if (e.key === 'Enter') onEnter(); } : undefined}
+      onKeyDown={onEnter ? (e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) onEnter(); } : undefined}
       placeholder={placeholder}
       type={type}
       inputMode={inputMode}
@@ -458,91 +437,7 @@ export function Input({ value, onChange, placeholder, type = 'text', inputMode, 
   );
 }
 
-// ── Rows ────────────────────────────────────────────────────────────────────
-
-type RowIconKind = 'speed' | 'call' | 'hotspot' | 'sos';
-
-function rowIcon(k: RowIconKind) {
-  switch (k) {
-    case 'speed':
-      return (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <path d="M3 12a9 9 0 0118 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          <path d="M12 12l5-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-      );
-    case 'call':
-      return (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <path d="M5 4h4l2 5-3 2a12 12 0 005 5l2-3 5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-        </svg>
-      );
-    case 'hotspot':
-      return (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <circle cx="12" cy="12" r="2" fill="currentColor" />
-          <path d="M8 16a5 5 0 010-8M16 8a5 5 0 010 8M5 19a9 9 0 010-14M19 5a9 9 0 010 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-      );
-    case 'sos':
-      return (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
-          <path d="M9 10c.5-1 1.5-1.5 3-1.5 1.5 0 2.3.7 2.3 1.7 0 1-.7 1.5-2 1.8-1 .2-1.5.5-1.5 1.2v.3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          <circle cx="12" cy="16" r="0.9" fill="currentColor" />
-        </svg>
-      );
-  }
-}
-
-export function Row({
-  icon,
-  title,
-  sub,
-  last,
-  onClick,
-  trailing,
-  active,
-}: {
-  icon: RowIconKind;
-  title: string;
-  sub: string;
-  last?: boolean;
-  onClick?: () => void;
-  trailing?: ReactNode;
-  active?: boolean;
-}) {
-  const style: CSSProperties = {
-    display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', minHeight: 60, width: '100%',
-    border: 'none', borderBottom: last ? 'none' : `1px solid ${RC.line}`, textAlign: 'start',
-    cursor: onClick ? 'pointer' : 'default', fontFamily: 'var(--font)',
-    background: active ? RC.cream : 'transparent', boxSizing: 'border-box',
-  };
-  const inner = (
-    <>
-      <div
-        style={{
-          width: 40, height: 40, borderRadius: RADIUS.sm, flexShrink: 0,
-          background: active ? RC.gradCta : RC.cream,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: active ? '#FFFFFF' : RC.orangeInk,
-        }}
-      >
-        {rowIcon(icon)}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ ...TYPE.h3, color: RC.ink }}>{title}</div>
-        <div style={{ ...TYPE.small, color: RC.ink2 }}>{sub}</div>
-      </div>
-      {trailing}
-    </>
-  );
-  return onClick ? (
-    <button className="press" onClick={onClick} aria-pressed={active ?? undefined} style={style}>{inner}</button>
-  ) : (
-    <div style={style}>{inner}</div>
-  );
-}
+// ── Steps ───────────────────────────────────────────────────────────────────
 
 export function Step({
   num,

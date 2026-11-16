@@ -1,6 +1,6 @@
 // Small helpers the profile's pieces share.
 import type { Profile } from '../../api/light';
-import { t, fmtDate, plural as countOf } from '../../lib/i18n';
+import { t, fmtDate } from '../../lib/i18n';
 
 /** "Sep 2026" from an ISO date, in the app's language; empty when there is none. */
 export function monthYear(iso: string | null | undefined): string {
@@ -8,11 +8,6 @@ export function monthYear(iso: string | null | undefined): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
   return fmtDate(d, { month: 'short', year: 'numeric' });
-}
-
-/** "3 countries": `one` and `many` are the English nouns, counted in the app's language. */
-export function plural(n: number, one: string, many: string): string {
-  return countOf(n, `{n} ${one}`, `{n} ${many}`);
 }
 
 // The colour of each Rewards level: the avatar ring, the card outline.
