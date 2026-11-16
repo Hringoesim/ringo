@@ -22,7 +22,10 @@ const SUB_MONTHS: Record<string, number> = { rl_1m: 1, ul_1m: 1, global_1m: 1, r
 /** The term code of a line: from its product id, else the catalogue's plan id. */
 export function termCode(p: Plan): string {
   const m = p.apple_product_id ? /\.(?:plan|sub)\.([a-z0-9_]+)\./.exec(p.apple_product_id) : null;
-  return m ? m[1] : p.plan;
+  if (m) return m[1];
+  // A Global tier with no App Store product (Global Plus, card only) is still
+  // billed a month at a time: the site says so with apple_period (2026-11-16).
+  return p.mode === 'subscription' && p.apple_period === 'ONE_MONTH' ? 'global_1m' : p.plan;
 }
 
 /** The term's name: "2 weeks", "30 days", "7 days", "Monthly", "Annual". */

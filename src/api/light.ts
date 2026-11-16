@@ -24,6 +24,8 @@ export type Currency = 'eur' | 'usd';
 export interface Plan {
   /** the App Store product that sells this line (null = not sold in the app) */
   apple_product_id: string | null;
+  /** Apple's renewal period, or the site's own word that a card plan bills a month at a time. */
+  apple_period?: string | null;
   plan: string;
   tier: 'data' | 'unlimited';
   data_gb: number | null;
@@ -306,7 +308,7 @@ export const light = {
   summary: () => request<Summary>('/esim-plans?summary=1', {}, has('from', 'object')),
   /** With the member's account, plans carry their Ringo Rewards price and its App Store product. */
   catalog: (destination: string, member?: { userId: string; t: string } | null) =>
-    request<Catalog>(`/esim-plans?${new URLSearchParams({ destination, app: '1', ...(member ? { user: member.userId, t: member.t } : {}) }).toString()}`, {}, has('plans', 'array')),
+    request<Catalog>(`/esim-plans?${new URLSearchParams({ destination, app: '1', tiers: '2', ...(member ? { user: member.userId, t: member.t } : {}) }).toString()}`, {}, has('plans', 'array')),
 
   /** Report an App Store purchase; the site verifies Apple's signature and issues the eSIM. */
   appPurchase: (body: { signedTransaction: string; plan: string; destination: string; data_gb?: number | null; email: string }) =>

@@ -300,7 +300,7 @@ function CountryList({ list }: { list: { iso: string; name: string; flag: string
 }
 
 /** Global on the site's dark plan card: Unlimited, the month's price, the ticks. */
-function GlobalCard({ l, p, price }: { l: Layout; p: Plan; price: { total: string; monthly: string } }) {
+function GlobalCard({ l, p, price, countries }: { l: Layout; p: Plan; price: { total: string; monthly: string }; countries: number }) {
   return (
     <div style={{ background: SKINS.unlimited, borderRadius: RADIUS.card, border: `1px solid ${ON_DARK.line}`, boxShadow: '0 18px 40px -20px rgba(147,33,79,0.55)', padding: l.isWide ? 28 : 20, color: '#fff' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
@@ -309,7 +309,8 @@ function GlobalCard({ l, p, price }: { l: Layout; p: Plan; price: { total: strin
           <span style={{ fontFamily: 'var(--font)', fontSize: 13, fontWeight: 700, color: 'hsl(142,70%,64%)', background: 'hsla(142,60%,45%,0.20)', borderRadius: RADIUS.pill, padding: '5px 11px' }}>{t('Your Rewards price')}</span>
         ) : null}
       </div>
-      <div style={{ marginTop: 4, ...TYPE.small, color: ON_DARK.text2 }}>{t('One plan, everywhere you go')}</div>
+      <div style={{ marginTop: 4, ...TYPE.small, color: ON_DARK.text2 }}>{/* The count, never "everywhere" (2026-11-16: a buyer in Sint Maarten took Global for a place it does not cover). */}
+        {plural(countries, 'Works in {n} country', 'Works in {n} countries')}</div>
       <div style={{ marginTop: 18, display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
         <span style={{ ...typeFor('priceHero', l.size), color: '#fff', fontVariantNumeric: 'tabular-nums' }}>{price.monthly}</span>
         <span style={{ ...TYPE.small, color: ON_DARK.text2 }}>{t('a month')}</span>
@@ -661,8 +662,10 @@ export function DestinationScreen({ id, power = false, onPower, onBack, onContin
         </div>
       )}
       {unlimitedGlobal && plans[0] && (
-        <GlobalCard l={l} p={plans[0]} price={priceOf(plans[0], productFor(plans[0]))} />
+        <GlobalCard l={l} p={plans[0]} price={priceOf(plans[0], productFor(plans[0]))} countries={cat.destination.countries} />
       )}
+      {/* Every country a Global tier works in, with its mobile networks, before the buyer pays (2026-11-16). */}
+      {unlimitedGlobal && countryList && <CountryList list={countryList} />}
       {!unlimitedGlobal && tabOptions.length > 1 && (
         <PlanTabs value={shownTab} options={tabOptions} onChange={(t) => { hapticSelection(); setTab(t); setShowAll(false); }} />
       )}
