@@ -11,29 +11,19 @@
 // Deploy: supabase functions deploy appstore-notifications --no-verify-jwt
 // (Apple can't send a Supabase JWT; this endpoint authenticates the payload itself.)
 //
-// ⚠️ HARDENING TODO before production: verify the JWS signature chain. The payload
-// is a JWS signed by Apple; you must validate the x5c certificate chain up to
-// Apple's root CA (and check the leaf is Apple's) before trusting it — otherwise
-// anyone who learns the URL can forge notifications. Use Apple's
-// `app-store-server-library` or verify x5c manually. This starter DECODES but does
-// not yet VERIFY the signature.
+// Every payload is a JWS signed by Apple. verify.ts checks the signature and the
+// certificate chain up to the pinned Apple Root CA G3 before any field is read;
+// anything that fails is answered 401 and changes nothing. The service-role
+// client below is only reached with a verified payload for this app's bundle id.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { JwsVerifyError, verifyAppleJws } from './verify.ts';
 
 const admin = createClient(
   Deno.env.get('SUPABASE_URL')!,
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
 );
 
-// Decode a JWS/JWT payload segment (no signature verification — see TODO above).
-function decodeJwsPayload<T>(jws: string): T | null {
-  try {
-    const seg = jws.split('.')[1];
-    const b64 = seg.replace(/-/g, '+').replace(/_/g, '/').padEnd(seg.length + ((4 - (seg.length % 4)) % 4), '=');
-    return JSON.parse(atob(b64)) as T;
-  } catch {
-    return null;
-  }
-}
+const BUNDLE_ID = Deno.env.get('APPLE_BUNDLE_ID') ?? 'com.ringoesim.app';
 
 // Apple notificationType → our subscription_status.
 function statusFor(notificationType: string, subtype?: string): string | null {
@@ -59,9 +49,10 @@ function statusFor(notificationType: string, subtype?: string): string | null {
 interface Payload {
   notificationType: string;
   subtype?: string;
-  data?: { signedTransactionInfo?: string; environment?: string };
+  data?: { signedTransactionInfo?: string; environment?: string; bundleId?: string };
 }
 interface TxInfo {
+  bundleId?: string;
   productId: string;
   originalTransactionId: string;
   expiresDate?: number; // ms since epoch
@@ -73,13 +64,14 @@ Deno.serve(async (req) => {
     const { signedPayload } = await req.json();
     if (!signedPayload) return new Response('missing signedPayload', { status: 400 });
 
-    const payload = decodeJwsPayload<Payload>(signedPayload);
-    if (!payload) return new Response('bad payload', { status: 400 });
+    const payload = await verifyAppleJws<Payload>(signedPayload);
+    if (payload.data?.bundleId !== BUNDLE_ID) throw new JwsVerifyError('wrong bundle id');
 
     const status = statusFor(payload.notificationType, payload.subtype);
     const tx = payload.data?.signedTransactionInfo
-      ? decodeJwsPayload<TxInfo>(payload.data.signedTransactionInfo)
+      ? await verifyAppleJws<TxInfo>(payload.data.signedTransactionInfo)
       : null;
+    if (tx && tx.bundleId !== BUNDLE_ID) throw new JwsVerifyError('wrong bundle id');
 
     // Ack Apple even when there's nothing to persist (e.g. TEST notifications) so
     // it doesn't retry.
@@ -98,7 +90,11 @@ Deno.serve(async (req) => {
       .eq('subscription_original_transaction_id', tx.originalTransactionId);
 
     return new Response('ok', { status: 200 });
-  } catch {
+  } catch (e) {
+    if (e instanceof JwsVerifyError) {
+      console.warn(e.message);
+      return new Response('unauthorized', { status: 401 });
+    }
     // 500 makes Apple retry with backoff.
     return new Response('error', { status: 500 });
   }
