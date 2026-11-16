@@ -34,7 +34,7 @@ import { RingoHeader } from '../components/Header';
 import { RingoButton } from '../components/Button';
 import { BackBtn, FieldLabel, Input, HelpText, ErrorBox, SuccessBox, TextLink } from '../components/ui';
 import { useBlockSwipeBack } from '../components/ScreenHost';
-import { hasMosaic, pictureFor, skyFor, bundledPictureFor } from '../data/destinations';
+import { hasMosaic, pictureFor, skyFor, bundledPictureFor, isGlobalPlan } from '../data/destinations';
 import { light, money, SITE } from '../api/light';
 import { account } from '../store/account';
 import { openInSheet } from '../lib/browser';
@@ -97,7 +97,7 @@ export function CheckoutScreen({ selection, paid, onBack, onReady }: { selection
   // The site's price: what Stripe's page charges.
   const price = priceOf(p, null);
   const renewing = p.mode === 'subscription';
-  const isGlobal = selection.destination === 'global';
+  const isGlobal = isGlobalPlan(selection.destination);
 
   // Ringo credit (earned back on every plan by Rewards level): the balance,
   // and whether to spend it here. The site decides how much comes off, never

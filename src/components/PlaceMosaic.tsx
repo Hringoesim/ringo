@@ -14,6 +14,11 @@ const MOSAICS: Record<(typeof MOSAIC_IDS)[number], { film: { src: string; poster
     film: { src: `${SITE}/video/dashboard-sunset.mp4`, poster: `${SITE}/img/dashboard-sunset.jpg` },
     tiles: ['guadeloupe', 'seychelles', 'jamaica', 'us-virgin-islands'],
   },
+  // Global Plus (2026-11-16): the same film, four places on its own list.
+  'global-plus': {
+    film: { src: `${SITE}/video/dashboard-sunset.mp4`, poster: `${SITE}/img/dashboard-sunset.jpg` },
+    tiles: ['guadeloupe', 'martinique', 'seychelles', 'reunion'],
+  },
 };
 
 /** Fills its positioned parent. */

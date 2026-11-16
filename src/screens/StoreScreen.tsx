@@ -14,7 +14,7 @@ import { AppNudge } from '../components/AppNudge';
 import { RC, RADIUS, TAP, TYPE, cardSurface, typeFor, hexA, PHOTO_OVERLAY, PHOTO_TEXT_SHADOW } from '../theme';
 import { LOGO_SRC } from '../assets';
 import { SectionHead } from '../components/ui';
-import { hasMosaic, pictureFor, skyFor, FEATURED, bundledPictureFor, type Destination } from '../data/destinations';
+import { hasMosaic, pictureFor, skyFor, FEATURED, bundledPictureFor, isGlobalPlan, type Destination } from '../data/destinations';
 import { useSummary, useAppleFrom } from '../store/summary';
 import { useDestinations } from '../store/destinations';
 import { money, light } from '../api/light';
@@ -142,7 +142,7 @@ export function Picture({ d, size = 'big', eager = false, chip, photo }: { d: De
 
 /** One short line under a popular plan's price. Global is the only plan that renews. */
 function whatLine(d: Destination): string {
-  if (d.id === 'global') return t('Unlimited data, one monthly plan');
+  if (isGlobalPlan(d.id)) return t('Unlimited data, one monthly plan');
   if (d.kind === 'region' && d.countries > 1) return plural(d.countries, 'Works in {n} country', 'Works in {n} countries');
   return t('One payment, no renewal');
 }
@@ -157,7 +157,7 @@ function Card({ d, from, onOpen, onPeek, size, eager = false, photo }: { d: Dest
   // A card that goes mid-hold (a search narrowing the list) never opens the quick look afterwards.
   useEffect(() => stop, []);
   const big = size === 'big';
-  const chip = big && d.kind === 'region' && d.countries > 1 && d.id !== 'global' ? plural(d.countries, '{n} country', '{n} countries') : null;
+  const chip = big && d.kind === 'region' && d.countries > 1 ? plural(d.countries, '{n} country', '{n} countries') : null;
   const priceText = from != null ? t('From {price}', { price: from }) : '';
   return (
     <button
@@ -318,7 +318,7 @@ export function StoreScreen({ onOpen, onMyEsim, onLogin, loggedIn, onQuiz }: { o
 
   // The places that sell Power (an older site names none: every place but Global, unpriced).
   const powerFrom = summary?.power_from;
-  const sellsPower = (d: Destination) => (powerFrom ? powerFrom[d.id] != null : d.id !== 'global');
+  const sellsPower = (d: Destination) => (powerFrom ? powerFrom[d.id] != null : !isGlobalPlan(d.id));
   // Apple's price where StoreKit has answered for this destination (the plan
   // screen shows the same), else the catalogue's; on the Power list, its cheapest Power plan.
   const fromOf = (d: Destination): string | null => {

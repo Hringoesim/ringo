@@ -21,7 +21,11 @@ export interface Destination {
 }
 
 /** The tiles at the top of the store, in order: the plans that cover many countries. */
-export const FEATURED = ['global', 'europe', 'usa', 'asia', 'latam', 'middle-east'];
+export const FEATURED = ['global', 'global-plus', 'europe', 'usa', 'asia', 'latam', 'middle-east'];
+
+/** The Global tiers, cheapest first (2026-11-16): Global, and Global Plus with more countries. Both are the one renewing plan. */
+export const GLOBAL_PLANS = ['global', 'global-plus'];
+export const isGlobalPlan = (id: string | null | undefined): boolean => GLOBAL_PLANS.includes(String(id || ''));
 
 /** The ISO 3166-1 alpha-2 code as its flag emoji. */
 export function flagOf(iso: string | null | undefined): string {
@@ -39,7 +43,8 @@ export function hasPicture(id: string): boolean {
 // covers it, which the site resolves (a French trip buys the Europe plan,
 // a Canadian one the Global plan).
 export const REGIONS: Destination[] = [
-  { id: 'global', label: 'Global', kind: 'region', countries: 133 },
+  { id: 'global', label: 'Global', kind: 'region', countries: 117 },
+  { id: 'global-plus', label: 'Global Plus', kind: 'region', countries: 127 },
   { id: 'europe', label: 'Europe', kind: 'region', countries: 37 },
   { id: 'balkans', label: 'Balkans', kind: 'region', countries: 7 },
   { id: 'asia', label: 'Asia', kind: 'region', countries: 19 },
@@ -95,7 +100,7 @@ export function destinationById(id: string | null | undefined): Destination | nu
  */
 export const SITE_PICTURES = 'https://ringoesim.com/img/data-esims';
 /** Places the site tells as a mosaic rather than one photograph (components/PlaceMosaic.tsx). */
-export const MOSAIC_IDS = ['global'] as const;
+export const MOSAIC_IDS = ['global', 'global-plus'] as const;
 export const hasMosaic = (id: string): boolean => (MOSAIC_IDS as readonly string[]).includes(id);
 export function pictureFor(id: string): string {
   return `${SITE_PICTURES}/${id}.jpg`;
