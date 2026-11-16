@@ -1,59 +1,64 @@
-# Deploying Ringo to Vercel
+# Deploying the web build
 
-This directory is its **own git repository** — push it to GitHub as a new repo
-and it's the project root, so there's nothing special to configure: Vercel
-auto-detects Vite, and `vercel.json` already pins the build command, output
-folder, and SPA rewrites.
+This file covers the web build only. The web build is a browser preview of
+the app: sign-in by email code and browsing can work there, payment does not
+(see "Platforms" in `README.md`). For the iOS and Android apps see
+`NATIVE.md`.
 
----
+Which web host is the canonical one is not confirmed by anything in this
+repository. Two are configured.
 
-## Recommended: GitHub → Vercel dashboard
+## 1. GitHub Pages (workflow in the repository)
 
-### 1. Push to a new GitHub repo
+`.github/workflows/deploy.yml` runs on every push to `main` and on manual
+dispatch:
 
-The initial commit is already made on the `main` branch. Create an empty repo
-on **github.com** (no README/.gitignore — keep it empty), then:
+1. `npm ci`, `npm run lint`, `npm test`.
+2. `npm run build` with `GH_PAGES=1`, which sets the base path to `/ringo/`
+   (`vite.config.ts`).
+3. Uploads `dist/` and deploys it with `actions/deploy-pages`.
 
-```bash
-git remote add origin https://github.com/<you>/<repo>.git
-git push -u origin main
-```
+The repository's Pages source must be set to "GitHub Actions" for this to
+publish. If lint or a test fails, nothing is deployed.
 
-### 2. Import it on Vercel
+The workflow passes `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` and
+`VITE_GOOGLE_CLIENT_ID` from repository variables to the build. No code
+reads them any more, so they have no effect.
 
-1. Go to **https://vercel.com/new** and sign in with GitHub.
-2. **Import** your repo.
-3. In the project setup screen everything auto-detects:
-   - Framework Preset: **Vite**
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
-   - Root Directory: `./` (leave as default — the repo root is the app)
-4. Click **Deploy**.
+## 2. Vercel (configuration only)
 
-You'll get a live URL like `https://<project>.vercel.app` in ~1 minute. Every
-push to `main` redeploys automatically; pull requests get preview URLs.
+`vercel.json` tells Vercel this is a Vite project: build with
+`npm run build`, serve `dist/`, and rewrite every path to `/index.html`. The
+base path is `/` because `GH_PAGES` is not set there.
 
----
+Whether a Vercel project is connected to this repository is not visible here
+(`.vercel/` is ignored by git). If one is, Vercel builds on its own and does
+not run the lint and test steps of the GitHub workflows.
 
-## Alternative: Vercel CLI (no GitHub needed)
+To connect one: import the repository at https://vercel.com/new and accept
+the detected settings (framework Vite, build command `npm run build`, output
+directory `dist`, root directory `./`). Or use the CLI from the repository
+root:
 
 ```bash
 npm i -g vercel
-vercel          # first run: links/creates the project, then deploys a preview
-vercel --prod   # promote to production
+vercel          # first run links or creates the project and deploys a preview
+vercel --prod   # production deploy
 ```
 
-When the CLI asks "In which directory is your code located?", keep it as `./`.
+## Check before pushing
 
----
+```bash
+npm run lint && npm test && npm run build && npm run preview
+```
 
 ## Notes
 
-- **Custom domain:** Project → Settings → Domains → add your domain.
-- **This is the web mockup phase.** The iPhone frame is intentional here. When
-  you later wrap with Capacitor for the App Store, you'll switch to a frameless
-  mode in `src/Host.tsx` so the UI fills the device screen.
-- **Local sanity check before deploying:**
-  ```bash
-  cd app && npm run build && npm run preview
-  ```
+- No environment variables are needed for a web deploy. The backend URL is
+  fixed in `src/api/light.ts`.
+- The phone frame in a desktop browser is intended. On a phone-sized screen,
+  an installed PWA or the native app, `src/Host.tsx` already renders full
+  screen. No switch is needed.
+- The site only answers browser requests from origins it allows. That list
+  is in the site's repository. A new web address may need to be added there
+  before the preview can load plans.

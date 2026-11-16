@@ -1,3 +1,15 @@
+> **HISTORY ONLY. This document describes the product as it was before
+> September 2026. Nothing in it matches the current code.**
+>
+> The app was rewritten around 2026-09-13 (commit `bcae463`). The files,
+> screens and concepts named below no longer exist in `src/`:
+> `src/api/ringoApi.ts` and `RingoAPI`, mock and live modes, KYC, Ringo phone
+> numbers (MSISDN), number porting (MNP), `KycScreen`, `SignUpScreen`,
+> `PortNumberScreen` and the rest of the onboarding sequence.
+>
+> For the current architecture read `README.md`. The file is kept so the
+> earlier design can still be looked up.
+
 # Front-end ↔ Back-end alignment
 
 This documents how the Ringo front end maps to the backend architecture

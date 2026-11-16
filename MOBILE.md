@@ -1,53 +1,58 @@
 # Running Ringo on your phone
 
-Two ways: an **instant PWA** (no Mac, test today) and a **native iOS app** for
-TestFlight / the App Store.
+Two ways: the native iOS app, which is the real product, and the web build
+added to the home screen, which is a limited preview.
 
----
+## A. Native iOS app
 
-## A. Test on your iPhone right now (PWA — no Mac, no account)
-
-1. On your iPhone, open **Safari** and go to the live URL:
-   **https://hringoesim.github.io/ringo/**
-2. Tap the **Share** icon → **Add to Home Screen** → **Add**.
-3. Open **Ringo** from your home screen.
-
-It launches **full-screen** (no browser bars, no mockup frame), with the Ringo
-app icon — it behaves like a real app. Updates ship automatically on every push.
-
-> In Safari (before adding to home screen) you'll see the scaled phone *mockup*.
-> Add it to the home screen to get the real full-screen app.
-
----
-
-## B. Native iOS app (TestFlight / App Store)
-
-Requires a **Mac with Xcode** and an **Apple Developer account** ($99/yr).
+Needs a Mac with Xcode. For TestFlight and the App Store, an Apple Developer
+account.
 
 ```bash
-cd app
 npm install
-npm run ios:add        # one-time: creates the native ios/ project
-npm run ios:sync       # build web + copy into the iOS app (run after each change)
-npm run ios:open       # opens Xcode
+npm run ios:sync       # build the web app and copy it into the iOS project
+npm run ios:open       # open Xcode
 ```
 
+The `ios/` project is already in the repository. There is no one-time
+`ios:add` step.
+
 In Xcode:
-1. Select the **App** target → **Signing & Capabilities** → pick your Team
-   (bundle id is `com.ringoesim.app`).
-2. Plug in your iPhone, select it as the run target, press **▶** to install &
-   run on your device.
-3. For TestFlight: **Product → Archive** → **Distribute App → App Store Connect**,
-   then add testers in App Store Connect.
 
-App identity is set in `capacitor.config.ts` (`appId`, `appName`). App icons live
-in `public/icon-*.png` (use them in Xcode's asset catalog, or run an icon
-generator like `@capacitor/assets`).
+1. Select the **App** target, then **Signing & Capabilities**, and pick your
+   Team. The bundle id is `com.ringoesim.app`.
+2. Plug in your iPhone, select it as the run target, press Run.
+3. For TestFlight: **Product, Archive**, then **Distribute App, App Store
+   Connect**, then add testers in App Store Connect.
 
-### Notes
-- The native build uses base path `/` (default `npm run build`); the GitHub Pages
-  build uses `/ringo/` (`GH_PAGES=1`). `ios:sync` already builds with the right base.
-- Safe-area insets: the current layout approximates iOS safe areas. After your
-  first on-device run we can fine-tune top/bottom insets per device if needed.
-- Backend: set `.env` (Supabase / live API) before `ios:sync` so the native app
-  points at the right backend.
+Run `npm run ios:sync` again after every change to `src/`.
+
+More detail, including the Swift plugins and how the version number is set:
+`NATIVE.md`.
+
+Notes:
+
+- The native build uses base path `/`, which is what `npm run build` and
+  `ios:sync` produce. Only the GitHub Pages build uses `/ringo/`
+  (`GH_PAGES=1`).
+- Safe areas: each screen pads itself with `env(safe-area-inset-*)`
+  (`contentInset: 'never'` in `capacitor.config.ts`).
+- Backend: there is nothing to configure. The app always talks to
+  `https://ringoesim.com/api`.
+
+## B. Web build on the home screen (limited)
+
+The web build has a manifest (`public/manifest.webmanifest`) and the iOS
+home-screen meta tags (`index.html`), so Safari can add it to the home
+screen: Share, Add to Home Screen. Opened from the home screen it runs full
+screen, without the phone frame (`isStandalone` in `src/Host.tsx`). On a
+phone-sized screen in a plain browser tab it is also full screen.
+
+What does not work there: Sign in with Apple, Google sign-in, card payment
+and push notifications. Those need the native app.
+
+Where to open it: the deploy workflow publishes the web build to GitHub Pages
+with base path `/ringo/` on every push to `main`. For the repository
+`Hringoesim/ringo` the default Pages address would be
+`https://hringoesim.github.io/ringo/`. That the address is live, and that
+the site accepts API requests from it, is not confirmed in this repository.
